@@ -14,9 +14,9 @@ const MUTHAKARA_FIELDS = [
   ['dep_hour', 0.748, 0.142, 0.050, 0.022, 'center'],
   ['dep_minute', 0.805, 0.142, 0.050, 0.022, 'center'],
 
-  // Row 1 — company rep / مندوب (left), company name / اسم الشركة (right)
-  ['customer_name', 0.018, 0.173, 0.30, 0.020, 'end'],
-  ['company_rep', 0.558, 0.171, 0.280, 0.022, 'end'],
+  // Row 1 — company name / اسم الشركة (left), company rep / مندوب (right)
+  ['company_rep', 0.018, 0.173, 0.30, 0.020, 'end'],
+  ['customer_name', 0.558, 0.171, 0.280, 0.022, 'end'],
 
   // Row 2 — day (left), corresponding (middle), transfer date (right)
   ['day_name', 0.055, 0.198, 0.24, 0.024, 'end'],
