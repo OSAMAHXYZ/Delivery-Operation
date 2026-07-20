@@ -178,26 +178,42 @@ function findQueueItem(vin) {
   return store.queue.find((q) => normVin(q.vin) === key) || null;
 }
 
+function normalizeHeader(h) {
+  return String(h || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06ff]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function pickCol(row, aliases) {
   const keys = Object.keys(row || {});
-  const lower = new Map(keys.map((k) => [String(k).trim().toLowerCase(), k]));
+  const entries = keys.map((k) => ({ orig: k, norm: normalizeHeader(k) }));
 
-  // 1) Exact header match
+  // 1) Exact normalized header match
   for (const alias of aliases) {
-    const hit = lower.get(String(alias).trim().toLowerCase());
-    if (hit != null && row[hit] != null && String(row[hit]).trim() !== '') {
-      return String(row[hit]).trim();
+    const a = normalizeHeader(alias);
+    if (!a) continue;
+    const hit = entries.find((e) => e.norm === a);
+    if (hit && row[hit.orig] != null && String(row[hit.orig]).trim() !== '') {
+      return String(row[hit.orig]).trim();
     }
   }
 
-  // 2) Partial match — only for aliases longer than 3 chars (avoid "loc"→Allocation, "gt"→… false hits)
+  // 2) Starts-with / contains (token-aware) — supports "VIN No.", "GT Location", etc.
   for (const alias of aliases) {
-    const a = String(alias).trim().toLowerCase();
-    if (a.length <= 3) continue;
-    for (const [lk, orig] of lower) {
-      if (lk.includes(a) && row[orig] != null && String(row[orig]).trim() !== '') {
-        return String(row[orig]).trim();
-      }
+    const a = normalizeHeader(alias);
+    if (!a) continue;
+    const hit = entries.find((e) => {
+      if (!e.norm || e.norm === a) return false;
+      if (e.norm.startsWith(`${a} `) || e.norm.endsWith(` ${a}`) || e.norm.includes(` ${a} `)) return true;
+      // short keys like vin / gt: match headers that begin with them ("vin no", "gt location")
+      if (a.length <= 3) return e.norm.startsWith(`${a} `) || e.norm.startsWith(a);
+      return e.norm.includes(a);
+    });
+    if (hit && row[hit.orig] != null && String(row[hit.orig]).trim() !== '') {
+      return String(row[hit.orig]).trim();
     }
   }
   return '';
@@ -274,44 +290,76 @@ function parseDataUrl(fileData) {
 
 function parseSalesWorkbook(buffer, filename) {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-  const preferred = wb.SheetNames.find((n) => /sales\s*raw/i.test(n))
-    || wb.SheetNames.find((n) => /raw/i.test(n))
-    || wb.SheetNames[0];
-  if (!preferred) throw new Error('لا توجد أوراق في الملف');
+  const sheetOrder = [
+    ...wb.SheetNames.filter((n) => /sales\s*raw/i.test(n)),
+    ...wb.SheetNames.filter((n) => /raw/i.test(n) && !/sales\s*raw/i.test(n)),
+    ...wb.SheetNames.filter((n) => !/raw/i.test(n))
+  ];
+  // unique preserve order
+  const sheets = [...new Set(sheetOrder.length ? sheetOrder : wb.SheetNames)];
+  if (!sheets.length) throw new Error('لا توجد أوراق في الملف');
 
-  const sheet = wb.Sheets[preferred];
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-  const vehicles = [];
-  const seen = new Set();
+  const vinAliases = [
+    'vin no', 'vin no.', 'vin number', 'vin#', 'vin',
+    'chassis', 'chassis / vin', 'chassis/vin', 'chassis no', 'chassis no.',
+    'chassis number', 'شاسيه', 'رقم الشاسيه', 'frame', 'frame no'
+  ];
 
-  for (const row of rows) {
-    const vin = normVin(pickCol(row, [
-      'vin', 'chassis', 'chassis / vin', 'chassis/vin', 'chassis no', 'chassis no.',
-      'chassis number', 'شاسيه', 'رقم الشاسيه', 'frame', 'frame no'
-    ]));
-    if (!vin || vin.length < 5) continue;
-    if (seen.has(vin)) continue;
-    seen.add(vin);
+  let preferred = sheets[0];
+  let rows = [];
+  let vehicles = [];
+  let headers = [];
 
-    const product = pickCol(row, ['product', 'model', 'product name', 'وصف', 'المنتج', 'الطراز']);
-    const gt = pickCol(row, ['gt', 'gt code', 'gtcode', 'gt_code']);
-    const location = pickCol(row, ['location', 'warehouse', 'yard', 'stock location', 'الموقع', 'المستودع']);
-    const plate = pickCol(row, ['plate', 'plate no', 'plate number', 'لوحة', 'رقم اللوحة']);
-    const customerName = pickCol(row, ['customer', 'customer name', 'اسم العميل', 'العميل']);
-    const imageUrl = pickCol(row, ['image', 'image url', 'imageurl', 'photo', 'صورة']);
-    const suffix = pickCol(row, ['suffix', 'ext', 'color']);
+  for (const name of sheets) {
+    const sheet = wb.Sheets[name];
+    const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+    if (!sheetRows.length) continue;
+    const found = [];
+    const seen = new Set();
+    for (const row of sheetRows) {
+      const vin = normVin(pickCol(row, vinAliases));
+      if (!vin || vin.length < 5) continue;
+      // ignore placeholder / non-VIN junk
+      if (!/[A-HJ-NPR-Z0-9]/i.test(vin)) continue;
+      if (seen.has(vin)) continue;
+      seen.add(vin);
 
-    vehicles.push({
-      vin,
-      product,
-      model: product,
-      gt,
-      location,
-      plate,
-      customerName,
-      imageUrl,
-      suffix
-    });
+      const product = pickCol(row, ['product', 'model', 'product name', 'وصف', 'المنتج', 'الطراز']);
+      const gt = pickCol(row, ['gt location', 'gt status', 'gt code', 'gtcode', 'gt_code', 'gt']);
+      const location = pickCol(row, [
+        'gt location', 'stock location', 'storage location', 'location',
+        'warehouse', 'yard', 'الموقع', 'المستودع'
+      ]);
+      const plate = pickCol(row, ['plate', 'plate no', 'plate number', 'veh plate', 'لوحة', 'رقم اللوحة']);
+      const customerName = pickCol(row, ['customer name', 'customer', 'اسم العميل', 'العميل']);
+      const imageUrl = pickCol(row, ['image', 'image url', 'imageurl', 'photo', 'صورة']);
+      const suffix = pickCol(row, ['suffix', 'ext', 'color', 'model year']);
+
+      found.push({
+        vin,
+        product,
+        model: product,
+        gt,
+        location,
+        plate,
+        customerName,
+        imageUrl,
+        suffix
+      });
+    }
+    if (found.length) {
+      preferred = name;
+      rows = sheetRows;
+      vehicles = found;
+      headers = Object.keys(sheetRows[0] || {});
+      break;
+    }
+    if (!headers.length && sheetRows[0]) headers = Object.keys(sheetRows[0]);
+  }
+
+  if (!vehicles.length) {
+    const headerHint = headers.length ? ` · الأعمدة: ${headers.slice(0, 12).join(' | ')}` : '';
+    throw new Error(`لم يتم العثور على أرقام شاسيه في الملف${headerHint}`);
   }
 
   return {
