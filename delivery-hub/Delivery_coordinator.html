@@ -1,0 +1,241 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منسق الترحيل — Delivery Coordinator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-hub-theme.css">
+</head>
+<body class="delivery-hub">
+    <div class="hub-shell">
+        <header class="hub-topbar">
+            <div class="hub-brand">
+                <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                <div>
+                    <h1>منسق الترحيل</h1>
+                    <p>رفع البيانات وإرسال الشاسيه للفريق</p>
+                </div>
+            </div>
+            <div class="hub-actions">
+                <a href="admin-Delivery-pdf.html" class="hub-btn">لوحة الإدارة</a>
+                <a href="Delivery_pdf.html" class="hub-btn">مذكرة الترحيل</a>
+            </div>
+        </header>
+
+        <div class="hub-stats" id="stats"></div>
+
+        <section class="hub-section">
+            <div class="hub-section-head">
+                <h2>رفع بيانات خام — Raw Data Excel</h2>
+                <span class="hub-hint">Product · GT · Location</span>
+            </div>
+            <label class="hub-upload" id="uploadZone">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+                <strong>اسحب ملف Excel أو انقر للاختيار</strong>
+                <p class="hub-meta">يُستخدم لعرض Product و GT و Location لكل شاسيه</p>
+            </label>
+            <p class="hub-status" id="uploadStatus"></p>
+        </section>
+
+        <section class="hub-section">
+            <div class="hub-section-head">
+                <h2>إضافة أرقام الشاسيه — Paste VINs</h2>
+            </div>
+            <textarea id="vinPaste" class="hub-textarea" placeholder="الصق أرقام الشاسيه هنا — سطر لكل VIN أو مفصولة بمسافة"></textarea>
+            <div class="hub-actions-row">
+                <button type="button" class="hub-btn hub-btn--primary" id="btnSubmitVins">إرسال الشاسيه للفريق</button>
+            </div>
+            <p class="hub-status" id="vinStatus"></p>
+        </section>
+
+        <section class="hub-section">
+            <div class="hub-section-head">
+                <h2>قائمة الشاسيه المرسلة — Submitted Queue</h2>
+                <span class="hub-hint">تحديث فوري — Live sync</span>
+            </div>
+            <div class="hub-table-wrap">
+                <table class="hub-table">
+                    <thead>
+                        <tr>
+                            <th>الشاسيه</th>
+                            <th>Product</th>
+                            <th>GT</th>
+                            <th>Location</th>
+                            <th>المسؤول</th>
+                            <th>التصنيف</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueBody">
+                        <tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function setStatus(elId, msg, type) {
+            const el = document.getElementById(elId);
+            el.textContent = msg || '';
+            el.className = 'hub-status' + (type ? ` ${type}` : '');
+        }
+
+        function renderStats(stats, rawUploaded) {
+            document.getElementById('stats').innerHTML = `
+                <div class="hub-stat"><span>إجمالي الشاسيه</span><b>${stats.total || 0}</b></div>
+                <div class="hub-stat hub-stat--avail"><span>متاح</span><b>${stats.available || 0}</b></div>
+                <div class="hub-stat hub-stat--stock"><span>In Stock</span><b>${stats.in_stock || 0}</b></div>
+                <div class="hub-stat hub-stat--ready"><span>Ready</span><b>${stats.ready_for_delivery || 0}</b></div>
+                <div class="hub-stat"><span>بيانات خام</span><b style="font-size:1rem">${rawUploaded ? '✓' : '—'}</b></div>
+                <div class="hub-stat hub-stat--avail"><span>تم الترحيل</span><b>${stats.delivered || 0}</b></div>
+            `;
+        }
+
+        let currentQueue = [];
+
+        function parseVinList(input) {
+            return String(input || '')
+                .split(/[\s,;\n\r\t]+/)
+                .map((s) => s.trim().toUpperCase())
+                .filter(Boolean);
+        }
+
+        function queueBadgeClass(item) {
+            if (item.status === 'available') return 'hub-badge--avail';
+            if (item.agentStatus === 'delivered') return 'hub-badge--delivered';
+            if (item.agentStatus === 'in_stock') return 'hub-badge--stock';
+            if (item.agentStatus === 'ready_for_delivery') return 'hub-badge--ready';
+            if (item.agentStatus === 'out_of_delivery') return 'hub-badge--out';
+            return 'hub-badge--claimed';
+        }
+
+        function renderQueue(queue) {
+            const tbody = document.getElementById('queueBody');
+            if (!queue.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد</td></tr>';
+                return;
+            }
+            tbody.innerHTML = queue.map((item) => {
+                const avail = item.status === 'available';
+                const label = avail ? 'متاح' : (item.statusLabel || 'محجوز');
+                return `<tr>
+                    <td class="hub-vin">${item.vin}</td>
+                    <td>${item.product || '—'}</td>
+                    <td>${item.gt || '—'}</td>
+                    <td>${item.location || '—'}</td>
+                    <td>${item.assignedTo || '—'}</td>
+                    <td><span class="hub-badge ${queueBadgeClass(item)}">${label}</span></td>
+                    <td>${avail ? 'متاح' : (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز')}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadQueue() {
+            const res = await fetch('/api/delivery-coordinator/queue?admin=1');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل التحميل');
+            currentQueue = data.queue || [];
+            renderStats(data.stats, data.rawUploaded);
+            renderQueue(currentQueue);
+        }
+
+        document.getElementById('btnSubmitVins').addEventListener('click', async () => {
+            const inputEl = document.getElementById('vinPaste');
+            const parsed = parseVinList(inputEl.value);
+            if (!parsed.length) return setStatus('vinStatus', 'أدخل شاسيه واحد على الأقل', 'err');
+
+            const existing = new Set(currentQueue.map((item) => String(item.vin || '').trim().toUpperCase()).filter(Boolean));
+            const seenInPaste = new Set();
+            const newVins = [];
+            let pastedDuplicates = 0;
+            let queueDuplicates = 0;
+
+            parsed.forEach((vin) => {
+                if (seenInPaste.has(vin)) {
+                    pastedDuplicates++;
+                    return;
+                }
+                seenInPaste.add(vin);
+                if (existing.has(vin)) {
+                    queueDuplicates++;
+                    return;
+                }
+                newVins.push(vin);
+            });
+
+            if (!newVins.length) {
+                return setStatus(
+                    'vinStatus',
+                    `كل الشاسيهات مكررة${pastedDuplicates ? ` (${pastedDuplicates} داخل اللصق)` : ''}${queueDuplicates ? ` (${queueDuplicates} موجودة مسبقاً)` : ''}`,
+                    'err'
+                );
+            }
+
+            setStatus('vinStatus', 'جاري الإرسال…');
+            try {
+                const res = await fetch('/api/delivery-coordinator/submit-vins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vins: newVins })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإرسال');
+                inputEl.value = '';
+                const duplicateParts = [];
+                if (pastedDuplicates) duplicateParts.push(`${pastedDuplicates} مكررة داخل اللصق`);
+                if (queueDuplicates) duplicateParts.push(`${queueDuplicates} موجودة مسبقاً`);
+                if (data.skipped) duplicateParts.push(`${data.skipped} تم تخطيها أثناء الحفظ`);
+                setStatus(
+                    'vinStatus',
+                    `تم إضافة ${data.added} شاسيه${duplicateParts.length ? ` (${duplicateParts.join('، ')})` : ''}`,
+                    'ok'
+                );
+                await loadQueue();
+            } catch (err) {
+                setStatus('vinStatus', err.message, 'err');
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setStatus('uploadStatus', 'جاري الرفع…');
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const res = await fetch('/api/delivery-inventory/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fileData: reader.result, filename: file.name })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'فشل الرفع');
+                    setStatus('uploadStatus', `تم استيراد ${data.imported} صف`, 'ok');
+                    await loadQueue();
+                } catch (err) {
+                    setStatus('uploadStatus', err.message, 'err');
+                }
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        });
+
+        const zone = document.getElementById('uploadZone');
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            const file = e.dataTransfer.files?.[0];
+            if (file) document.getElementById('fileInput').files = e.dataTransfer.files;
+            document.getElementById('fileInput').dispatchEvent(new Event('change'));
+        });
+
+        loadQueue().catch((err) => setStatus('vinStatus', err.message, 'err'));
+    </script>
+    <script src="delivery-hub-live.js"></script>
+    <script>DeliveryHubLive.start(loadQueue);</script>
+</body>
+</html>
