@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة مذكرة الترحيل — Delivery Inventory</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Changa:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="delivery-hub-theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -69,6 +69,104 @@
         }
         #adminApp.hidden { display: none !important; }
 
+        /* —— Admin console visual polish (Toyota dark) —— */
+        body.delivery-hub.admin-console {
+            font-family: 'Tajawal', 'Changa', sans-serif;
+            background-color: #070a10;
+            background-image:
+                radial-gradient(ellipse 90% 55% at 70% -10%, rgba(235, 10, 30, 0.32), transparent 55%),
+                radial-gradient(ellipse 60% 40% at 10% 30%, rgba(235, 10, 30, 0.1), transparent 50%),
+                radial-gradient(ellipse 50% 35% at 90% 80%, rgba(30, 58, 95, 0.22), transparent 55%),
+                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            background-size: auto, auto, auto, 44px 44px, 44px 44px;
+        }
+        .admin-console .hub-brand h1,
+        .admin-console .hub-section-head h2,
+        .admin-console .xfer-dash-card h3 {
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            letter-spacing: -0.01em;
+        }
+        .admin-console .hub-stat {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .admin-console .hub-stat:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        }
+        .admin-console .hub-stat--avail:hover {
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(74, 222, 128, 0.18);
+        }
+        .admin-console .hub-stat--stock:hover {
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(96, 165, 250, 0.18);
+        }
+        .admin-console .hub-stat--ready:hover {
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(251, 191, 36, 0.16);
+        }
+        .admin-console .hub-stat--primary:hover {
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 24px rgba(235, 10, 30, 0.22);
+        }
+        .admin-console .hub-section--xfer {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(235, 10, 30, 0.22);
+            background:
+                linear-gradient(135deg, rgba(235, 10, 30, 0.08), transparent 42%),
+                rgba(12, 18, 32, 0.72);
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .admin-console .hub-section--xfer::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, #eb0a1e, #ff4d5e 45%, transparent);
+            pointer-events: none;
+        }
+
+        .xfer-date-filter {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 12px;
+            margin: 0 0 16px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(14px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .xfer-date-filter label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .xfer-date-filter input[type="date"] {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(15, 23, 42, 0.85);
+            color: #f1f5f9;
+            font: inherit;
+            font-size: 0.85rem;
+            color-scheme: dark;
+        }
+        .xfer-date-filter input[type="date"]:focus {
+            outline: none;
+            border-color: rgba(235, 10, 30, 0.55);
+            box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.15);
+        }
+        .xfer-date-label {
+            margin-inline-start: auto;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
         .xfer-dash {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -76,11 +174,26 @@
             margin-bottom: 18px;
         }
         .xfer-dash-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            background: linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 18px;
             padding: 16px 16px 12px;
             min-height: 180px;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+            overflow: hidden;
+        }
+        .xfer-dash-card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #eb0a1e, rgba(251, 113, 133, 0.7), transparent);
+            pointer-events: none;
+        }
+        .xfer-dash-card--city::before {
+            background: linear-gradient(90deg, #2563eb, rgba(96, 165, 250, 0.75), transparent);
         }
         .xfer-dash-card h3 {
             margin: 0 0 4px;
@@ -131,14 +244,20 @@
         .xfer-dash-bar > span {
             display: block;
             height: 100%;
+            width: 0;
             border-radius: inherit;
             background: linear-gradient(90deg, #eb0a1e, #fb7185);
             min-width: 2px;
+            animation: xferBarFill 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .xfer-dash-card--city .xfer-dash-bar > span {
             background: linear-gradient(90deg, #2563eb, #60a5fa);
         }
         .xfer-dash-card--city .xfer-dash-count { color: #60a5fa; }
+        @keyframes xferBarFill {
+            from { width: 0; }
+            to { width: var(--bar-w, 0%); }
+        }
         .xfer-dash-top {
             margin-top: 12px;
             padding-top: 12px;
@@ -168,6 +287,7 @@
         .xfer-account-item:hover {
             border-color: rgba(235, 10, 30, 0.4);
             background: rgba(235, 10, 30, 0.06);
+            transform: translateY(-1px);
         }
         .xfer-account-item.is-active {
             border-color: rgba(235, 10, 30, 0.65);
@@ -248,10 +368,11 @@
         }
         @media (max-width: 900px) {
             .xfer-dash { grid-template-columns: 1fr; }
+            .xfer-date-label { margin-inline-start: 0; width: 100%; }
         }
     </style>
 </head>
-<body class="delivery-hub">
+<body class="delivery-hub admin-console">
     <div id="adminGate">
         <div class="admin-gate-card">
             <h2>دخول لوحة الإدارة</h2>
@@ -284,10 +405,17 @@
         <div class="hub-stats" id="stats"></div>
         <div class="hub-stats" id="queueStats"></div>
 
-        <section class="hub-section">
+        <section class="hub-section hub-section--xfer">
             <div class="hub-section-head">
                 <h2>لوحة النقل — Companies & Cities</h2>
                 <span class="hub-hint">من مسودات الطباعة المحفوظة (شركة النقل والفرع)</span>
+            </div>
+            <div class="xfer-date-filter" id="xferDateFilterBar">
+                <label for="xferDateFilter">تاريخ الترحيل</label>
+                <input type="date" id="xferDateFilter" aria-label="تصفية حسب تاريخ الترحيل">
+                <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" id="btnXferDateToday">اليوم</button>
+                <button type="button" class="hub-btn hub-btn--sm" id="btnXferDateAll">كل التواريخ</button>
+                <span class="xfer-date-label" id="xferDateLabel">عرض كل التواريخ</span>
             </div>
             <div class="xfer-dash">
                 <div class="xfer-dash-card">
@@ -670,6 +798,62 @@
                 .replace(/"/g, '&quot;');
         }
 
+        function getSaudiTodayIso() {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Riyadh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(new Date());
+        }
+
+        function draftEventIso(d) {
+            if (d && d.printedAt) {
+                const dt = new Date(d.printedAt);
+                if (!Number.isNaN(dt.getTime())) {
+                    return new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Riyadh',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(dt);
+                }
+            }
+            const p = (d && d.payload) || {};
+            const fallback = String(p.transfer_date || p.doc_date || '').trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(fallback)) return fallback.slice(0, 10);
+            return '';
+        }
+
+        function getXferDateFilter() {
+            const el = document.getElementById('xferDateFilter');
+            return el ? String(el.value || '').trim() : '';
+        }
+
+        function filteredDrafts() {
+            const date = getXferDateFilter();
+            if (!date) return allDrafts || [];
+            return (allDrafts || []).filter((d) => draftEventIso(d) === date);
+        }
+
+        function updateXferDateLabel() {
+            const label = document.getElementById('xferDateLabel');
+            if (!label) return;
+            const date = getXferDateFilter();
+            label.textContent = date ? `عرض ترحيلات يوم ${date}` : 'عرض كل التواريخ';
+        }
+
+        function refreshTransferDashboard() {
+            updateXferDateLabel();
+            const drafts = filteredDrafts();
+            if (selectedCompany && !drafts.some((d) => draftCompanyName(d) === selectedCompany)) {
+                selectedCompany = '';
+                const panel = document.getElementById('companyRecordsPanel');
+                if (panel) panel.classList.add('hidden');
+            }
+            renderTransferDashboard(drafts);
+        }
+
         function draftCompanyName(d) {
             const p = d.payload || {};
             return String(p.company_rep || p.customer_name || d.customerName || '').trim();
@@ -678,7 +862,7 @@
         function draftsForCompany(company) {
             const key = String(company || '').trim();
             if (!key) return [];
-            return (allDrafts || []).filter((d) => draftCompanyName(d) === key);
+            return filteredDrafts().filter((d) => draftCompanyName(d) === key);
         }
 
         function highlightSelectedCompany() {
@@ -771,7 +955,7 @@
                 return `<div${clickAttrs}>
                     <div class="xfer-dash-name" title="${safeName}">${safeName}</div>
                     <div class="xfer-dash-count">${row.count}</div>
-                    <div class="xfer-dash-bar"><span style="width:${pct}%"></span></div>
+                    <div class="xfer-dash-bar"><span style="--bar-w:${pct}%"></span></div>
                 </div>`;
             }).join('');
 
@@ -818,12 +1002,12 @@
                 .sort((a, b) => b.total - a.total || a.company.localeCompare(b.company, 'ar'));
         }
 
-        function renderCompanyCityBreakdown(drafts) {
+        function renderCompanyCityBreakdown(drafts, emptyText) {
             const listEl = document.getElementById('companyCityBreakdown');
             const topEl = document.getElementById('companyCityTop');
             const rows = aggregateCompanyCities(drafts);
             if (!rows.length) {
-                listEl.innerHTML = '<div class="xfer-dash-empty">لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً</div>';
+                listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText || 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'}</div>`;
                 topEl.innerHTML = '';
                 document.getElementById('companyRecordsPanel').classList.add('hidden');
                 return;
@@ -868,13 +1052,16 @@
         }
 
         function renderTransferDashboard(drafts) {
-            const companies = tallyField(drafts, (d) => draftCompanyName(d));
-            const cities = tallyField(drafts, (d) => (d.payload || {}).branch_to);
+            const list = Array.isArray(drafts) ? drafts : filteredDrafts();
+            const dateFiltered = Boolean(getXferDateFilter());
+            const emptyDate = 'لا توجد ترحيلات في هذا التاريخ';
+            const companies = tallyField(list, (d) => draftCompanyName(d));
+            const cities = tallyField(list, (d) => (d.payload || {}).branch_to);
             renderRankList(
                 document.getElementById('companyDashList'),
                 document.getElementById('companyDashTop'),
                 companies,
-                'لا توجد شركات بعد — اطبع مذكرة مع اختيار الشركة',
+                dateFiltered ? emptyDate : 'لا توجد شركات بعد — اطبع مذكرة مع اختيار الشركة',
                 'شركة',
                 { clickableCompanies: true }
             );
@@ -882,16 +1069,32 @@
                 document.getElementById('cityDashList'),
                 document.getElementById('cityDashTop'),
                 cities,
-                'لا توجد فروع بعد — اطبع مذكرة مع اختيار الفرع',
+                dateFiltered ? emptyDate : 'لا توجد فروع بعد — اطبع مذكرة مع اختيار الفرع',
                 'فرع'
             );
-            renderCompanyCityBreakdown(drafts);
+            renderCompanyCityBreakdown(
+                list,
+                dateFiltered ? emptyDate : 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'
+            );
             highlightSelectedCompany();
         }
 
         document.getElementById('btnClearCompanyFilter').addEventListener('click', () => {
             showCompanyRecords('');
         });
+
+        document.getElementById('xferDateFilter').addEventListener('change', () => {
+            refreshTransferDashboard();
+        });
+        document.getElementById('btnXferDateToday').addEventListener('click', () => {
+            document.getElementById('xferDateFilter').value = getSaudiTodayIso();
+            refreshTransferDashboard();
+        });
+        document.getElementById('btnXferDateAll').addEventListener('click', () => {
+            document.getElementById('xferDateFilter').value = '';
+            refreshTransferDashboard();
+        });
+        updateXferDateLabel();
 
         async function loadDashboard() {
             const [invRes, queueRes] = await Promise.all([
@@ -911,11 +1114,11 @@
                 renderQueueStats(queueData.stats);
                 renderQueueTable(allQueue);
                 renderDraftsTable(allDrafts);
-                renderTransferDashboard(allDrafts);
+                renderTransferDashboard(filteredDrafts());
             } else {
                 allQueue = [];
                 allDrafts = [];
-                renderTransferDashboard([]);
+                renderTransferDashboard(filteredDrafts());
             }
         }
 
@@ -1072,6 +1275,7 @@
             renderQueueStats({ total: 0, available: 0, claimed: 0 });
             renderQueueTable([]);
             renderDraftsTable([]);
+            renderTransferDashboard(filteredDrafts());
             setUploadStatus('تم مسح البيانات', 'ok');
         });
     </script>
