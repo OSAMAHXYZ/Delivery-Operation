@@ -113,11 +113,19 @@
 
         function renderQueue(queue) {
             const tbody = document.getElementById('queueBody');
-            if (!queue.length) {
+            const seen = new Set();
+            const unique = [];
+            (queue || []).forEach((item) => {
+                const vin = String(item.vin || '').trim().toUpperCase();
+                if (!vin || seen.has(vin)) return;
+                seen.add(vin);
+                unique.push(item);
+            });
+            if (!unique.length) {
                 tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد</td></tr>';
                 return;
             }
-            tbody.innerHTML = queue.map((item) => {
+            tbody.innerHTML = unique.map((item) => {
                 const avail = item.status === 'available';
                 const label = avail ? 'متاح' : (item.statusLabel || 'محجوز');
                 return `<tr>
@@ -212,7 +220,7 @@
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'فشل الرفع');
-                    setStatus('uploadStatus', `تم استيراد ${data.imported} صف`, 'ok');
+                    setStatus('uploadStatus', `تم استيراد ${data.imported} صف — تم تحديث القائمة من البيانات الجديدة`, 'ok');
                     await loadQueue();
                 } catch (err) {
                     setStatus('uploadStatus', err.message, 'err');

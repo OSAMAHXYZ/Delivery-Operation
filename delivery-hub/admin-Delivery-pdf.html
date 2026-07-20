@@ -99,7 +99,14 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 8px 12px;
             align-items: center;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 6px 4px;
+            margin: 0 -4px;
+            transition: background 0.15s;
         }
+        .xfer-dash-row:hover { background: rgba(255,255,255,0.04); }
+        .xfer-dash-row.is-active { background: rgba(235, 10, 30, 0.1); }
         .xfer-dash-name {
             font-size: 0.84rem;
             font-weight: 700;
@@ -146,12 +153,26 @@
         .xfer-account-list {
             display: grid;
             gap: 12px;
+            max-height: 420px;
+            overflow: auto;
+            padding-left: 2px;
         }
         .xfer-account-item {
             padding: 12px 14px;
             border-radius: 14px;
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.15s;
+        }
+        .xfer-account-item:hover {
+            border-color: rgba(235, 10, 30, 0.4);
+            background: rgba(235, 10, 30, 0.06);
+        }
+        .xfer-account-item.is-active {
+            border-color: rgba(235, 10, 30, 0.65);
+            background: rgba(235, 10, 30, 0.12);
+            box-shadow: 0 0 0 1px rgba(235, 10, 30, 0.25);
         }
         .xfer-account-head {
             display: flex;
@@ -192,6 +213,34 @@
             color: #93c5fd;
             font-variant-numeric: tabular-nums;
         }
+        .xfer-records {
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(15, 23, 42, 0.55);
+        }
+        .xfer-records.hidden { display: none !important; }
+        .xfer-records-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .xfer-records-head h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .xfer-records-head p {
+            margin: 4px 0 0;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .xfer-records .hub-table-wrap { margin-top: 0; }
         .xfer-dash-empty {
             color: #64748b;
             font-size: 0.85rem;
@@ -259,11 +308,38 @@
                 </div>
                 <div class="xfer-dash-card xfer-dash-card--account">
                     <h3>حساب كل شركة حسب المدن</h3>
-                    <p class="xfer-dash-sub">كل شركة نقل ومعها الفروع / المدن التي وصلت لها وعدد المرات</p>
+                    <p class="xfer-dash-sub">اضغط على أي شركة لعرض كل سجلاتها المحفوظة — القائمة كاملة</p>
                     <div id="companyCityBreakdown" class="xfer-account-list">
                         <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
                     </div>
                     <div class="xfer-dash-top" id="companyCityTop"></div>
+                    <div class="xfer-records hidden" id="companyRecordsPanel">
+                        <div class="xfer-records-head">
+                            <div>
+                                <h3 id="companyRecordsTitle">سجلات الشركة</h3>
+                                <p id="companyRecordsMeta"></p>
+                            </div>
+                            <button type="button" class="hub-btn hub-btn--sm" id="btnClearCompanyFilter">إظهار الكل</button>
+                        </div>
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>الشاسيه</th>
+                                        <th>Product</th>
+                                        <th>المسؤول</th>
+                                        <th>مندوب الشركة</th>
+                                        <th>الفرع</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="companyRecordsBody">
+                                    <tr><td colspan="7" class="hub-empty">اختر شركة</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -585,6 +661,88 @@
             });
         }
 
+        let selectedCompany = '';
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function draftCompanyName(d) {
+            const p = d.payload || {};
+            return String(p.company_rep || p.customer_name || d.customerName || '').trim();
+        }
+
+        function draftsForCompany(company) {
+            const key = String(company || '').trim();
+            if (!key) return [];
+            return (allDrafts || []).filter((d) => draftCompanyName(d) === key);
+        }
+
+        function highlightSelectedCompany() {
+            document.querySelectorAll('[data-company]').forEach((el) => {
+                el.classList.toggle('is-active', el.dataset.company === selectedCompany);
+            });
+        }
+
+        function showCompanyRecords(company) {
+            selectedCompany = String(company || '').trim();
+            const panel = document.getElementById('companyRecordsPanel');
+            const title = document.getElementById('companyRecordsTitle');
+            const meta = document.getElementById('companyRecordsMeta');
+            const tbody = document.getElementById('companyRecordsBody');
+            highlightSelectedCompany();
+
+            if (!selectedCompany) {
+                panel.classList.add('hidden');
+                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">اختر شركة</td></tr>';
+                return;
+            }
+
+            const rows = draftsForCompany(selectedCompany);
+            panel.classList.remove('hidden');
+            title.textContent = selectedCompany;
+            meta.textContent = rows.length
+                ? `${rows.length} سجل محفوظ من المذكرات المطبوعة`
+                : 'لا توجد سجلات لهذه الشركة';
+
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد سجلات</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((d) => {
+                const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
+                const p = d.payload || {};
+                const canExport = Boolean(d.id && d.payload);
+                return `<tr>
+                    <td>${escapeHtml(when)}</td>
+                    <td class="hub-vin">${escapeHtml(d.vin || '—')}</td>
+                    <td>${escapeHtml(d.product || d.model || '—')}</td>
+                    <td>${escapeHtml(d.assignedTo || '—')}</td>
+                    <td>${escapeHtml(p.customer_name || '—')}</td>
+                    <td>${escapeHtml(p.branch_to || '—')}</td>
+                    <td>${canExport
+                        ? `<button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">تصدير PDF</button>`
+                        : '<span class="hub-meta">—</span>'}</td>
+                </tr>`;
+            }).join('');
+
+            tbody.querySelectorAll('[data-export-pdf]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    window.open(
+                        `Delivery_pdf.html?draft=${encodeURIComponent(btn.dataset.exportPdf)}&adminExport=1`,
+                        '_blank',
+                        'noopener'
+                    );
+                });
+            });
+
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         function tallyField(drafts, getter) {
             const map = new Map();
             drafts.forEach((d) => {
@@ -597,35 +755,50 @@
                 .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
         }
 
-        function renderRankList(listEl, topEl, rows, emptyText, label) {
+        function renderRankList(listEl, topEl, rows, emptyText, label, { clickableCompanies = false } = {}) {
             if (!rows.length) {
                 listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText}</div>`;
                 topEl.innerHTML = '';
                 return;
             }
             const max = rows[0].count || 1;
-            const topN = rows.slice(0, 8);
-            listEl.innerHTML = topN.map((row) => {
+            listEl.innerHTML = rows.map((row) => {
                 const pct = Math.max(4, Math.round((row.count / max) * 100));
-                const safeName = String(row.name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-                return `<div class="xfer-dash-row">
+                const safeName = escapeHtml(row.name);
+                const clickAttrs = clickableCompanies
+                    ? ` class="xfer-dash-row" data-company="${safeName}" role="button" tabindex="0"`
+                    : ' class="xfer-dash-row"';
+                return `<div${clickAttrs}>
                     <div class="xfer-dash-name" title="${safeName}">${safeName}</div>
                     <div class="xfer-dash-count">${row.count}</div>
                     <div class="xfer-dash-bar"><span style="width:${pct}%"></span></div>
                 </div>`;
             }).join('');
+
+            if (clickableCompanies) {
+                listEl.querySelectorAll('[data-company]').forEach((el) => {
+                    const open = () => showCompanyRecords(el.dataset.company);
+                    el.addEventListener('click', open);
+                    el.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            open();
+                        }
+                    });
+                });
+            }
+
             const leader = rows[0];
             const total = rows.reduce((s, r) => s + r.count, 0);
             const share = total ? Math.round((leader.count / total) * 100) : 0;
-            const safeLeader = String(leader.name).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-            topEl.innerHTML = `الأكثر: <strong>${safeLeader}</strong> — ${leader.count} من ${total} (${share}%) · ${rows.length} ${label}`;
+            topEl.innerHTML = `الأكثر: <strong>${escapeHtml(leader.name)}</strong> — ${leader.count} من ${total} (${share}%) · ${rows.length} ${label}`;
         }
 
         function aggregateCompanyCities(drafts) {
             const companies = new Map();
             drafts.forEach((d) => {
                 const p = d.payload || {};
-                const company = String(p.company_rep || p.customer_name || d.customerName || '').trim();
+                const company = draftCompanyName(d);
                 const city = String(p.branch_to || '').trim();
                 if (!company || !city || company === '-' || city === '-' || company.startsWith('—') || city.startsWith('—')) return;
                 if (!companies.has(company)) companies.set(company, { total: 0, cities: new Map() });
@@ -652,16 +825,17 @@
             if (!rows.length) {
                 listEl.innerHTML = '<div class="xfer-dash-empty">لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً</div>';
                 topEl.innerHTML = '';
+                document.getElementById('companyRecordsPanel').classList.add('hidden');
                 return;
             }
 
-            listEl.innerHTML = rows.slice(0, 12).map((row) => {
-                const safeCompany = String(row.company).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            listEl.innerHTML = rows.map((row) => {
+                const safeCompany = escapeHtml(row.company);
                 const citiesHtml = row.cities.map((cityRow) => {
-                    const safeCity = String(cityRow.city).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    const safeCity = escapeHtml(cityRow.city);
                     return `<span class="xfer-account-chip">${safeCity} <b>${cityRow.count}</b></span>`;
                 }).join('');
-                return `<div class="xfer-account-item">
+                return `<div class="xfer-account-item" data-company="${safeCompany}" role="button" tabindex="0">
                     <div class="xfer-account-head">
                         <div class="xfer-account-name" title="${safeCompany}">${safeCompany}</div>
                         <div class="xfer-account-total">${row.total} حركة</div>
@@ -670,20 +844,39 @@
                 </div>`;
             }).join('');
 
+            listEl.querySelectorAll('[data-company]').forEach((el) => {
+                const open = () => showCompanyRecords(el.dataset.company);
+                el.addEventListener('click', open);
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        open();
+                    }
+                });
+            });
+
             const companyCount = rows.length;
             const cityPairs = rows.reduce((sum, row) => sum + row.cities.length, 0);
-            topEl.innerHTML = `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة محفوظة`;
+            topEl.innerHTML = `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة محفوظة — اضغط شركة لعرض السجلات`;
+
+            if (selectedCompany && draftsForCompany(selectedCompany).length) {
+                showCompanyRecords(selectedCompany);
+            } else if (selectedCompany) {
+                selectedCompany = '';
+                document.getElementById('companyRecordsPanel').classList.add('hidden');
+            }
         }
 
         function renderTransferDashboard(drafts) {
-            const companies = tallyField(drafts, (d) => (d.payload || {}).company_rep || (d.payload || {}).customer_name || d.customerName);
+            const companies = tallyField(drafts, (d) => draftCompanyName(d));
             const cities = tallyField(drafts, (d) => (d.payload || {}).branch_to);
             renderRankList(
                 document.getElementById('companyDashList'),
                 document.getElementById('companyDashTop'),
                 companies,
                 'لا توجد شركات بعد — اطبع مذكرة مع اختيار الشركة',
-                'شركة'
+                'شركة',
+                { clickableCompanies: true }
             );
             renderRankList(
                 document.getElementById('cityDashList'),
@@ -693,7 +886,12 @@
                 'فرع'
             );
             renderCompanyCityBreakdown(drafts);
+            highlightSelectedCompany();
         }
+
+        document.getElementById('btnClearCompanyFilter').addEventListener('click', () => {
+            showCompanyRecords('');
+        });
 
         async function loadDashboard() {
             const [invRes, queueRes] = await Promise.all([
@@ -831,7 +1029,7 @@
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'فشل الرفع');
-                    setUploadStatus(`تم استيراد ${data.imported} مركبة بنجاح`, 'ok');
+                    setUploadStatus(`تم استيراد ${data.imported} مركبة — تم تحديث Product/GT/Location من الملف الجديد`, 'ok');
                     await loadDashboard();
                 } catch (err) {
                     setUploadStatus(err.message, 'err');

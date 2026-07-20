@@ -181,15 +181,19 @@ function findQueueItem(vin) {
 function pickCol(row, aliases) {
   const keys = Object.keys(row || {});
   const lower = new Map(keys.map((k) => [String(k).trim().toLowerCase(), k]));
+
+  // 1) Exact header match
   for (const alias of aliases) {
-    const hit = lower.get(alias.toLowerCase());
+    const hit = lower.get(String(alias).trim().toLowerCase());
     if (hit != null && row[hit] != null && String(row[hit]).trim() !== '') {
       return String(row[hit]).trim();
     }
   }
-  // partial contains match
+
+  // 2) Partial match — only for aliases longer than 3 chars (avoid "loc"→Allocation, "gt"→… false hits)
   for (const alias of aliases) {
-    const a = alias.toLowerCase();
+    const a = String(alias).trim().toLowerCase();
+    if (a.length <= 3) continue;
     for (const [lk, orig] of lower) {
       if (lk.includes(a) && row[orig] != null && String(row[orig]).trim() !== '') {
         return String(row[orig]).trim();
@@ -197,6 +201,62 @@ function pickCol(row, aliases) {
     }
   }
   return '';
+}
+
+function enrichFromVehicle(item, veh) {
+  if (!veh) {
+    return {
+      ...item,
+      product: '',
+      model: '',
+      gt: '',
+      location: '',
+      plate: item.plate || '',
+      imageUrl: item.imageUrl || '',
+      customerName: item.customerName || ''
+    };
+  }
+  return {
+    ...item,
+    product: veh.product || '',
+    model: veh.model || veh.product || '',
+    gt: veh.gt || '',
+    location: veh.location || '',
+    plate: veh.plate || item.plate || '',
+    imageUrl: veh.imageUrl || item.imageUrl || '',
+    customerName: veh.customerName || item.customerName || ''
+  };
+}
+
+function queuePriority(item) {
+  if (item.agentStatus === 'delivered') return 5;
+  if (item.agentStatus === 'out_of_delivery') return 4;
+  if (item.agentStatus === 'ready_for_delivery') return 3;
+  if (item.agentStatus === 'in_stock') return 2;
+  if (item.status === 'claimed') return 1;
+  return 0;
+}
+
+/** Keep one row per VIN (prefer active assignment over available). */
+function dedupeQueue(queue) {
+  const best = new Map();
+  for (const raw of queue || []) {
+    const vin = normVin(raw.vin);
+    if (!vin) continue;
+    const item = { ...raw, vin };
+    const prev = best.get(vin);
+    if (!prev || queuePriority(item) > queuePriority(prev)) {
+      best.set(vin, item);
+    }
+  }
+  return Array.from(best.values());
+}
+
+function refreshQueueFromVehicles() {
+  const byVin = vehicleIndex();
+  store.queue = dedupeQueue(store.queue).map((item) =>
+    enrichFromVehicle(item, byVin.get(normVin(item.vin)))
+  );
 }
 
 function parseDataUrl(fileData) {
@@ -228,8 +288,8 @@ function parseSalesWorkbook(buffer, filename) {
     seen.add(vin);
 
     const product = pickCol(row, ['product', 'model', 'product name', 'وصف', 'المنتج', 'الطراز']);
-    const gt = pickCol(row, ['gt', 'gt code', 'gtcode']);
-    const location = pickCol(row, ['location', 'loc', 'warehouse', 'yard', 'الموقع', 'المستودع']);
+    const gt = pickCol(row, ['gt', 'gt code', 'gtcode', 'gt_code']);
+    const location = pickCol(row, ['location', 'warehouse', 'yard', 'stock location', 'الموقع', 'المستودع']);
     const plate = pickCol(row, ['plate', 'plate no', 'plate number', 'لوحة', 'رقم اللوحة']);
     const customerName = pickCol(row, ['customer', 'customer name', 'اسم العميل', 'العميل']);
     const imageUrl = pickCol(row, ['image', 'image url', 'imageurl', 'photo', 'صورة']);
@@ -392,23 +452,13 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
       sheetName: parsed.sheetName,
       uploadedAt: new Date().toISOString()
     };
-    // Re-enrich existing queue from new inventory
-    store.queue = store.queue.map((item) => {
-      const veh = parsed.vehicles.find((v) => normVin(v.vin) === normVin(item.vin));
-      if (!veh) return item;
-      return {
-        ...item,
-        product: veh.product,
-        model: veh.model,
-        gt: veh.gt,
-        location: veh.location,
-        plate: veh.plate || item.plate,
-        imageUrl: veh.imageUrl || item.imageUrl,
-        customerName: veh.customerName || item.customerName
-      };
-    });
+    // Refresh Product/GT/Location on every queue row from the new raw file + drop duplicate VINs
+    refreshQueueFromVehicles();
     persistAndBroadcast();
-    res.json({ imported: parsed.vehicles.length });
+    res.json({
+      imported: parsed.vehicles.length,
+      queueRefreshed: store.queue.length
+    });
   } catch (err) {
     console.error('[upload]', err);
     res.status(500).json({ error: err.message || 'فشل رفع الملف' });
@@ -438,6 +488,13 @@ app.get('/api/delivery-inventory/vehicles', (req, res) => {
 app.get('/api/delivery-coordinator/queue', (req, res) => {
   const admin = String(req.query.admin || '') === '1';
   const username = String(req.query.username || '').trim();
+
+  // Always serve a unique VIN list enriched from the latest raw inventory
+  const deduped = dedupeQueue(store.queue);
+  if (deduped.length !== store.queue.length) {
+    store.queue = deduped;
+    saveStore();
+  }
   let queue = store.queue.map(enrichQueueItem);
 
   if (!admin && username) {
@@ -460,10 +517,12 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
 
 app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   const vins = Array.isArray(req.body?.vins) ? req.body.vins : [];
+  store.queue = dedupeQueue(store.queue);
   const existing = new Set(store.queue.map((q) => normVin(q.vin)));
   const byVin = vehicleIndex();
   let added = 0;
   let skipped = 0;
+  const seenBatch = new Set();
   const now = new Date().toISOString();
 
   for (const raw of vins) {
@@ -472,26 +531,21 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
       skipped += 1;
       continue;
     }
-    if (existing.has(vin)) {
+    if (seenBatch.has(vin) || existing.has(vin)) {
       skipped += 1;
       continue;
     }
-    const veh = byVin.get(vin) || {};
-    store.queue.push({
+    seenBatch.add(vin);
+    const veh = byVin.get(vin) || null;
+    const base = {
       vin,
       status: 'available',
       agentStatus: '',
       assignedTo: '',
-      product: veh.product || '',
-      model: veh.model || veh.product || '',
-      gt: veh.gt || '',
-      location: veh.location || '',
-      plate: veh.plate || '',
-      imageUrl: veh.imageUrl || '',
-      customerName: veh.customerName || '',
       addedAt: now,
       assignedAt: ''
-    });
+    };
+    store.queue.push(enrichFromVehicle(base, veh));
     existing.add(vin);
     added += 1;
   }
@@ -567,7 +621,7 @@ app.post('/api/delivery-coordinator/complete-print', (req, res) => {
   }
 
   item.status = 'claimed';
-  item.agentStatus = 'out_of_delivery';
+  item.agentStatus = 'delivered';
   item.assignedTo = auth.username;
 
   const id = `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

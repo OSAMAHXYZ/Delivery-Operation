@@ -896,7 +896,7 @@
             <section class="ws-section">
                 <div class="ws-section-head">
                     <h2>السيارات المتاحة</h2>
-                    <span class="hint">انقر لإضافة السيارة لمخزونك</span>
+                    <span class="hint">انقر على السيارة — اختر مذكرة الترحيل أو المخزون</span>
                 </div>
                 <div class="fleet-search-wrap">
                     <input
@@ -914,21 +914,13 @@
                 <p class="ws-empty fleet-search-empty hidden" id="availableVinSearchEmpty">لا توجد نتائج مطابقة للبحث</p>
                 <p class="ws-toast" id="queueStatus"></p>
             </section>
-
-            <section class="ws-section ws-section--out">
-                <div class="ws-section-head">
-                    <h2>خارج للتسليم — Out for Delivery</h2>
-                    <span class="hint">تظهر هنا بعد طباعة المذكرة</span>
-                </div>
-                <div class="fleet-grid" id="outFleet"></div>
-            </section>
         </div>
 
         <aside class="stock-dock" id="stockDock">
             <div class="stock-dock-inner">
                 <div class="stock-dock-head">
                     <h3>المخزون الحالي — Current Stock</h3>
-                    <span>اضغط «اصدار مذكرة» للطباعة أو «إرجاع للقائمة»</span>
+                    <span>اصدار مذكرة أو إرجاع للقائمة</span>
                 </div>
                 <div class="stock-scroll" id="stockDockList">
                     <div class="ws-empty" style="min-width:100%;border:none">لا توجد سيارات في مخزونك</div>
@@ -1000,7 +992,7 @@
                         </div>
                         <div>
                             <label for="day_name">اليوم / Day</label>
-                            <input id="day_name" name="day_name" type="text" placeholder="الجمعة / Friday">
+                            <input id="day_name" name="day_name" type="text" readonly title="يُحدد تلقائياً من تاريخ الترحيل" placeholder="الإثنين">
                         </div>
                         <div>
                             <label for="trailer_number">رقم التريلا / Trailer No.</label>
@@ -1063,7 +1055,7 @@
                     <img src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل">
                     <div id="overlayFields"></div>
                 </div>
-                <div class="preview-actions no-print">
+                <div class="preview-actions no-print" hidden>
                     <button type="button" class="btn btn-primary" id="btnPrint2">🖨 طباعة A4</button>
                     <button type="button" class="btn btn-secondary" id="btnScrollPreview">عرض المعاينة</button>
                 </div>
@@ -1091,10 +1083,10 @@
             <h3 id="stockActionTitle">ماذا تريد أن تفعل؟</h3>
             <div class="stock-action-meta" id="stockActionVin"></div>
             <div class="stock-action-product" id="stockActionProduct"></div>
-            <p class="stock-action-sub">اختر إصدار مذكرة الترحيل للطباعة، أو أعد السيارة للقائمة المتاحة</p>
+            <p class="stock-action-sub" id="stockActionSub">اختر إصدار مذكرة الترحيل أو نقل السيارة للمخزون</p>
             <div class="stock-action-btns">
                 <button type="button" class="sa-issue" id="stockActionIssue">اصدار مذكرة الترحيل</button>
-                <button type="button" class="sa-return" id="stockActionReturn">إرجاع السيارة للقائمة المتاحة</button>
+                <button type="button" class="sa-return" id="stockActionSecondary">نقل للمخزون</button>
                 <button type="button" class="sa-cancel" id="stockActionCancel">إلغاء</button>
             </div>
         </div>
@@ -1277,9 +1269,18 @@
             return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
         }
 
-        function getSaudiWeekdayIndex() {
-            const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', weekday: 'short' }).format(new Date());
-            return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekday];
+        function getSaudiWeekdayIndex(isoDate) {
+            const iso = String(isoDate || getSaudiTodayIso()).trim();
+            const weekday = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Riyadh',
+                weekday: 'short'
+            }).format(new Date(`${iso}T12:00:00+03:00`));
+            return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekday] ?? 0;
+        }
+
+        function arabicDayName(isoDate) {
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            return days[getSaudiWeekdayIndex(isoDate)];
         }
 
         function setTodayDates() {
@@ -1287,8 +1288,25 @@
             document.getElementById('doc_date').value = today;
             document.getElementById('transfer_date').value = today;
             document.getElementById('corresponding_date').value = today;
-            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-            document.getElementById('day_name').value = days[getSaudiWeekdayIndex()];
+            document.getElementById('day_name').value = arabicDayName(today);
+            const timeParts = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Riyadh',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).formatToParts(new Date());
+            const hour = timeParts.find((p) => p.type === 'hour')?.value || '';
+            const minute = timeParts.find((p) => p.type === 'minute')?.value || '';
+            document.getElementById('dep_hour').value = hour === '24' ? '00' : hour;
+            document.getElementById('dep_minute').value = minute;
+            updatePreview();
+        }
+
+        function syncDayFromTransferDate() {
+            const transfer = document.getElementById('transfer_date').value
+                || document.getElementById('doc_date').value
+                || getSaudiTodayIso();
+            document.getElementById('day_name').value = arabicDayName(transfer);
             updatePreview();
         }
 
@@ -1430,7 +1448,7 @@
                 setTimeout(() => {
                     const statusEl = document.getElementById('queueStatus');
                     if (statusEl) {
-                        statusEl.textContent = 'تم الطباعة — السيارة الآن في Out for Delivery';
+                        statusEl.textContent = 'تم الطباعة — تم الترحيل';
                         statusEl.className = 'ws-toast ok';
                     }
                 }, 400);
@@ -1474,6 +1492,10 @@
         form.addEventListener('reset', () => setTimeout(() => { setTodayDates(); syncCarCount(); setStatus(''); }, 0));
 
         document.getElementById('btnToday').addEventListener('click', setTodayDates);
+        document.getElementById('transfer_date').addEventListener('change', syncDayFromTransferDate);
+        document.getElementById('doc_date').addEventListener('change', () => {
+            if (!document.getElementById('transfer_date').value) syncDayFromTransferDate();
+        });
         document.getElementById('btnPrint').addEventListener('click', doPrintA4);
         document.getElementById('btnPrint2').addEventListener('click', doPrintA4);
         document.getElementById('btnScrollPreview').addEventListener('click', () => {
@@ -1549,21 +1571,14 @@
         function fleetCardHtml(item, kind) {
             const badgeClass = kind === 'avail' ? 'fc-badge--avail'
                 : kind === 'ready' ? 'fc-badge--ready'
-                : kind === 'out' ? 'fc-badge--out'
                 : kind === 'stock' ? 'fc-badge--stock' : 'fc-badge--stock';
             const badgeText = kind === 'avail' ? 'متاح'
-                : item.statusLabel || (kind === 'ready' ? 'Ready' : kind === 'out' ? 'Out for delivery' : 'مع ' + (item.assignedTo || ''));
-            const extraClass = kind === 'out' ? ' fleet-card--out'
-                : (kind === 'ready' || kind === 'stock') ? ' fleet-card--ready fleet-card--actionable'
+                : item.statusLabel || ('مع ' + (item.assignedTo || ''));
+            const extraClass = (kind === 'ready' || kind === 'stock')
+                ? ' fleet-card--ready fleet-card--actionable'
                 : ' fleet-card--actionable';
             const img = item.imageUrl
                 ? `<img src="${item.imageUrl}" alt="" onerror="this.style.display='none'">`
-                : '';
-            const actions = kind === 'out'
-                ? `<div class="fc-actions">
-                        <button type="button" class="fc-btn fc-btn--primary" data-edit-note="${item.vin}">تعديل المذكرة</button>
-                        <button type="button" class="fc-btn fc-btn--ok" data-mark-delivered="${item.vin}">تم الترحيل</button>
-                   </div>`
                 : '';
             return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}">
                 <div class="fc-media">${img}</div>
@@ -1572,7 +1587,6 @@
                     <div class="fc-product">${item.product || item.model || '—'}</div>
                     <div class="fc-meta">GT: ${item.gt || '—'} · ${item.location || '—'}</div>
                     <span class="fc-badge ${badgeClass}">${badgeText}</span>
-                    ${actions}
                 </div>
             </div>`;
         }
@@ -1620,12 +1634,12 @@
             const mine = workspaceQueue.filter((q) => q.assignedTo === agent.username);
             const available = workspaceQueue.filter((q) => q.status === 'available');
             const stock = mine.filter((q) => q.agentStatus === 'in_stock');
-            const outDel = mine.filter((q) => q.agentStatus === 'out_of_delivery');
+            const delivered = mine.filter((q) => q.agentStatus === 'delivered');
 
             document.getElementById('wsStats').innerHTML = `
                 <div class="ws-stat ws-stat--avail"><span>متاح</span><b>${available.length}</b></div>
                 <div class="ws-stat ws-stat--stock"><span>مخزوني</span><b>${stock.length}</b></div>
-                <div class="ws-stat ws-stat--out"><span>خارج للتسليم</span><b>${outDel.length}</b></div>
+                <div class="ws-stat ws-stat--avail"><span>تم الترحيل</span><b>${delivered.length}</b></div>
                 <div class="ws-stat"><span>إجمالي سياراتي</span><b>${mine.length}</b></div>
             `;
 
@@ -1634,27 +1648,9 @@
                 ? available.map((item) => fleetCardHtml(item, 'avail')).join('')
                 : '<div class="ws-empty"><strong>لا توجد سيارات متاحة</strong>انتظر المنسق لإضافة شاسيه جديدة</div>';
             availEl.querySelectorAll('.fleet-card').forEach((card) => {
-                card.addEventListener('click', () => claimWithStatus(card.dataset.vin, 'in_stock'));
+                card.addEventListener('click', () => openCarAction(card.dataset.vin, 'available'));
             });
             filterAvailableFleetByVin();
-
-            const outEl = document.getElementById('outFleet');
-            outEl.innerHTML = outDel.length
-                ? outDel.map((item) => fleetCardHtml(item, 'out')).join('')
-                : '<div class="ws-empty"><strong>لا توجد سيارات قيد التسليم</strong>اطبع مذكرة الترحيل لنقلها إلى Out for Delivery</div>';
-            outEl.querySelectorAll('[data-edit-note]').forEach((btn) => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const item = workspaceQueue.find((q) => q.vin === btn.dataset.editNote);
-                    if (item) openMainWithVin(item);
-                });
-            });
-            outEl.querySelectorAll('[data-mark-delivered]').forEach((btn) => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    markAsDelivered(btn.dataset.markDelivered);
-                });
-            });
 
             const dockEl = document.getElementById('stockDockList');
             if (!stock.length) {
@@ -1684,7 +1680,7 @@
                     });
                 });
                 dockEl.querySelectorAll('.stock-chip').forEach((card) => {
-                    card.addEventListener('click', () => openStockAction(card.dataset.vin));
+                    card.addEventListener('click', () => openCarAction(card.dataset.vin, 'stock'));
                 });
             }
         }
@@ -1703,11 +1699,13 @@
             renderWorkspace(data.queue || []);
         }
 
-        async function claimWithStatus(vin, agentStatus) {
+        async function claimWithStatus(vin, agentStatus, { quiet = false } = {}) {
             const agent = getAgent();
             const statusEl = document.getElementById('queueStatus');
-            statusEl.textContent = 'جاري الحفظ…';
-            statusEl.className = 'ws-toast';
+            if (!quiet) {
+                statusEl.textContent = 'جاري الحفظ…';
+                statusEl.className = 'ws-toast';
+            }
             try {
                 const res = await fetch('/api/delivery-coordinator/claim', {
                     method: 'POST',
@@ -1716,10 +1714,11 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل الحجز');
-                statusEl.textContent = '';
                 await loadWorkspace();
-                statusEl.textContent = 'تمت الإضافة للمخزون';
-                statusEl.className = 'ws-toast ok';
+                if (!quiet) {
+                    statusEl.textContent = 'تمت الإضافة للمخزون';
+                    statusEl.className = 'ws-toast ok';
+                }
                 return data.item;
             } catch (err) {
                 statusEl.textContent = err.message;
@@ -1735,46 +1734,30 @@
         }
 
         let stockActionVin = '';
+        let stockActionMode = 'available';
 
-        function openStockAction(vin) {
+        function openCarAction(vin, mode) {
             const item = workspaceQueue.find((q) => q.vin === vin) || { vin };
             stockActionVin = String(vin || '').trim().toUpperCase();
+            stockActionMode = mode === 'stock' ? 'stock' : 'available';
             document.getElementById('stockActionVin').textContent = stockActionVin;
             document.getElementById('stockActionProduct').textContent = item.product || item.model || '—';
+            const sub = document.getElementById('stockActionSub');
+            const secondary = document.getElementById('stockActionSecondary');
+            if (stockActionMode === 'available') {
+                sub.textContent = 'اختر إصدار مذكرة الترحيل أو نقل السيارة للمخزون';
+                secondary.textContent = 'نقل للمخزون';
+            } else {
+                sub.textContent = 'اصدار مذكرة للطباعة، أو أعد السيارة للقائمة المتاحة';
+                secondary.textContent = 'إرجاع السيارة للقائمة المتاحة';
+            }
             document.getElementById('stockActionModal').classList.add('open');
         }
 
         function closeStockAction() {
             stockActionVin = '';
+            stockActionMode = 'available';
             document.getElementById('stockActionModal').classList.remove('open');
-        }
-
-        async function markAsDelivered(vin) {
-            if (!confirm('تأكيد تم الترحيل لهذه السيارة؟')) return;
-            const agent = getAgent();
-            const statusEl = document.getElementById('queueStatus');
-            statusEl.textContent = 'جاري التحديث…';
-            statusEl.className = 'ws-toast';
-            try {
-                const res = await fetch('/api/delivery-coordinator/set-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: agent.username,
-                        password: agent.password,
-                        vin,
-                        agentStatus: 'delivered'
-                    })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'فشل تحديث الحالة');
-                statusEl.textContent = 'تم الترحيل بنجاح';
-                statusEl.className = 'ws-toast ok';
-                await loadWorkspace();
-            } catch (err) {
-                statusEl.textContent = err.message;
-                statusEl.className = 'ws-toast err';
-            }
         }
 
         async function returnToQueue(vin, { skipConfirm = false } = {}) {
@@ -1915,11 +1898,11 @@
             }
             if (item.status === 'available') {
                 openWorkspace();
-                await claimWithStatus(vin, 'in_stock');
+                openCarAction(vin, 'available');
                 return true;
             }
             if (item.assignedTo === agent.username) {
-                if (item.agentStatus === 'in_stock' || item.agentStatus === 'out_of_delivery') {
+                if (item.agentStatus === 'in_stock') {
                     openMainWithVin(item);
                 } else {
                     openWorkspace();
@@ -1999,15 +1982,29 @@
 
         document.getElementById('availableVinSearch').addEventListener('input', filterAvailableFleetByVin);
 
-        document.getElementById('stockActionIssue').addEventListener('click', () => {
+        document.getElementById('stockActionIssue').addEventListener('click', async () => {
             const vin = stockActionVin;
+            const mode = stockActionMode;
             closeStockAction();
-            if (vin) startDeliveryNote(vin);
+            if (!vin) return;
+            if (mode === 'available') {
+                const item = await claimWithStatus(vin, 'in_stock', { quiet: true });
+                if (!item) return;
+                startDeliveryNote(vin);
+                return;
+            }
+            startDeliveryNote(vin);
         });
-        document.getElementById('stockActionReturn').addEventListener('click', async () => {
+        document.getElementById('stockActionSecondary').addEventListener('click', async () => {
             const vin = stockActionVin;
+            const mode = stockActionMode;
             closeStockAction();
-            if (vin) await returnToQueue(vin, { skipConfirm: true });
+            if (!vin) return;
+            if (mode === 'available') {
+                await claimWithStatus(vin, 'in_stock');
+                return;
+            }
+            await returnToQueue(vin, { skipConfirm: true });
         });
         document.getElementById('stockActionCancel').addEventListener('click', closeStockAction);
         document.getElementById('stockActionModal').addEventListener('click', (e) => {
