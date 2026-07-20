@@ -1482,10 +1482,21 @@
         const AGENT_KEY = 'deliveryAgentUser';
         const PASS_KEY = 'deliveryAgentPass';
         const CLAIMED_VIN_KEY = 'deliveryClaimedVin';
+        const AGENT_PASSWORD = '1234';
         let workspaceQueue = [];
         // In-memory only — reload always requires login again
         let agentSession = { username: '', password: '' };
         let claimedVinSession = '';
+
+        async function readJsonResponse(res) {
+            const text = await res.text();
+            if (!text) return {};
+            try {
+                return JSON.parse(text);
+            } catch (_) {
+                return { error: 'استجابة غير صالحة من الخادم' };
+            }
+        }
 
         function getAgent() {
             return {
@@ -1684,8 +1695,11 @@
             statusEl.textContent = '';
             statusEl.className = 'ws-toast';
             const res = await fetch(`/api/delivery-coordinator/queue?username=${encodeURIComponent(agent.username)}`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'فشل تحميل القائمة');
+            const data = await readJsonResponse(res);
+            if (!res.ok) {
+                if (res.status === 404) throw new Error('الخادم غير متصل — القائمة تحتاج واجهة API');
+                throw new Error(data.error || 'فشل تحميل القائمة');
+            }
             renderWorkspace(data.queue || []);
         }
 
@@ -1942,14 +1956,37 @@
             const password = document.getElementById('loginPass').value;
             const statusEl = document.getElementById('loginStatus');
             statusEl.textContent = 'جاري التحقق…';
+            statusEl.className = 'ws-toast';
             try {
-                const res = await fetch('/api/delivery-coordinator/auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'فشل الدخول');
+                if (!username) throw new Error('اختر اسم المستخدم');
+
+                let authed = false;
+                let apiReachable = false;
+                try {
+                    const res = await fetch('/api/delivery-coordinator/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await readJsonResponse(res);
+                    if (res.status === 404 || res.status === 405) {
+                        apiReachable = false;
+                    } else {
+                        apiReachable = true;
+                        if (!res.ok) throw new Error(data.error || 'فشل الدخول');
+                        authed = true;
+                    }
+                } catch (err) {
+                    if (apiReachable) throw err;
+                    // fetch/network failure — treat as no API
+                    apiReachable = false;
+                }
+
+                if (!authed) {
+                    if (password !== AGENT_PASSWORD) throw new Error('كلمة المرور غير صحيحة');
+                    authed = true;
+                }
+
                 setAgent(username, password);
                 statusEl.textContent = '';
                 if (getUrlVin() && await tryOpenUrlVin()) return;
