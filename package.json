@@ -1,0 +1,21 @@
+{
+  "name": "delivery-operations",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Toyota Delivery Hub — coordinator queue, agent workspace, admin inventory",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "docxtemplater": "^3.55.0",
+    "express": "^4.21.2",
+    "pizzip": "^3.1.7",
+    "ws": "^8.18.0",
+    "xlsx": "^0.18.5"
+  }
+}

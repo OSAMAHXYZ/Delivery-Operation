@@ -27,6 +27,9 @@ See also `.cursor/rules/page-hubs-isolation.mdc` (all hubs) and `.cursor/rules/d
 4. Root `Delivery_*.html` / `admin-Delivery-pdf.html` are **redirect stubs only** — real code is here.
 5. Shared APIs stay in `server.js` (`/api/delivery-*`). Changing those can affect this hub; be careful.
 
-## Admin password
+## Passwords
 
-`1234` (client-side gate on admin page)
+- Agents (ياسين / الفاضل / البراء): `1234` via `POST /api/delivery-coordinator/auth`
+- Admin page gate: `1234` (client-side only)
+
+Backend lives in repo-root `server.js` (served with this hub on Railway / `npm start`).

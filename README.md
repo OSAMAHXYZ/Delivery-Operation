@@ -12,29 +12,48 @@ Toyota delivery note hub — coordinator queue, agent workspace, and admin inven
 
 Root `Delivery_*.html` files redirect to `delivery-hub/` for backward-compatible URLs.
 
+## Run locally
+
+```bash
+npm install
+npm start
+```
+
+Open http://localhost:3000 — APIs, static files, and WebSocket live sync share the same Node server (`server.js`).
+
+Data persists in `delivery-inventory-data.json` (created automatically).
+
+## Roles & passwords
+
+| Role | Access | Password |
+|------|--------|----------|
+| Agents (ياسين / الفاضل / البراء) | `/delivery-hub/Delivery_pdf.html` | `1234` |
+| Admin | `/delivery-hub/admin-Delivery-pdf.html` | `1234` (client gate) |
+| Coordinator | `/delivery-hub/Delivery_coordinator.html` | none |
+
+Override agent password with env `DELIVERY_AGENT_PASSWORD`.
+
+## Workflow
+
+1. Coordinator/Admin uploads Sales Raw Excel → `vehicles[]`
+2. Coordinator pastes VINs → queue `available`
+3. Agent claims → `in_stock`
+4. Agent prints memo → draft saved + `out_of_delivery`
+5. Agent marks delivered → `delivered`
+6. Admin reviews inventory, queue, drafts, company/city analytics
+
+## Railway
+
+Deploy as a **Node** service (`npm start`). Do not use static-only hosting — the hub needs `/api/delivery-*` and WebSocket on the same origin.
+
 ## Project layout
 
 ```
+server.js              Express + WS + inventory APIs
 delivery-hub/          Main UI (HTML, CSS, live sync JS)
 scripts/               Muthakara form field options & layout
 templates/             Word delivery-note templates (.docx)
 images/logo/           Place toyota.png here (optional)
 ```
-
-## Running locally
-
-These pages call backend APIs (`/api/delivery-*`). Serve the repo from your main app server (e.g. the parent Node project with `server.js`) so API routes and static files work together.
-
-For static preview only, open files via a local HTTP server — API features will not work without the backend.
-
-## Railway deployment
-
-Railpack detects this repo as a static site via root `index.html` and `Staticfile`. Caddy serves all files from the repo root.
-
-**Note:** Railway static hosting serves HTML/CSS/JS only. Live sync, Excel upload, and queue APIs require a backend with `/api/delivery-*` routes on the same origin (or a separate API service).
-
-## Admin
-
-Default admin gate password: `1234` (client-side on the admin page).
 
 See [`delivery-hub/README.md`](delivery-hub/README.md) for hub isolation rules.

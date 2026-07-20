@@ -13,3 +13,10 @@ desktop.ini
 *.log
 .env
 .env.*
+
+# Node
+node_modules/
+
+# Runtime inventory (persisted on server)
+delivery-inventory-data.json
+delivery-inventory-data.json.*.tmp
