@@ -27,6 +27,12 @@ These pages call backend APIs (`/api/delivery-*`). Serve the repo from your main
 
 For static preview only, open files via a local HTTP server — API features will not work without the backend.
 
+## Railway deployment
+
+Railpack detects this repo as a static site via root `index.html` and `Staticfile`. Caddy serves all files from the repo root.
+
+**Note:** Railway static hosting serves HTML/CSS/JS only. Live sync, Excel upload, and queue APIs require a backend with `/api/delivery-*` routes on the same origin (or a separate API service).
+
 ## Admin
 
 Default admin gate password: `1234` (client-side on the admin page).

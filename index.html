@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Operations — Toyota</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-hub/delivery-hub-theme.css">
+    <style>
+        .hub-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 28px;
+        }
+        .hub-card-link {
+            display: block;
+            padding: 22px 20px;
+            border-radius: 18px;
+            border: 1px solid var(--hub-line);
+            background: var(--hub-card);
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .hub-card-link:hover {
+            border-color: rgba(235, 10, 30, 0.45);
+            transform: translateY(-2px);
+        }
+        .hub-card-link h2 {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 8px;
+        }
+        .hub-card-link p {
+            font-size: 0.85rem;
+            color: var(--hub-muted);
+            line-height: 1.5;
+        }
+        .hub-card-link .hub-btn {
+            margin-top: 14px;
+        }
+        .hub-intro {
+            max-width: 640px;
+            color: var(--hub-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="delivery-hub">
+    <div class="hub-shell">
+        <header class="hub-topbar">
+            <div class="hub-brand">
+                <img src="images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                <div>
+                    <h1>Delivery Operations</h1>
+                    <p>مركز مذكرة الترحيل — Toyota Delivery Hub</p>
+                </div>
+            </div>
+        </header>
+
+        <p class="hub-intro">
+            اختر الصفحة المناسبة لدورك: منسق الترحيل، موظف المذكرة، أو لوحة الإدارة.
+        </p>
+
+        <div class="hub-cards">
+            <a class="hub-card-link" href="delivery-hub/Delivery_coordinator.html">
+                <h2>منسق الترحيل</h2>
+                <p>رفع بيانات Excel وإرسال أرقام الشاسيه للفريق.</p>
+                <span class="hub-btn hub-btn--primary">فتح المنسق</span>
+            </a>
+            <a class="hub-card-link" href="delivery-hub/Delivery_pdf.html">
+                <h2>مذكرة الترحيل</h2>
+                <p>تسجيل الدخول، اختيار الشاسيه، وطباعة مذكرة الترحيل.</p>
+                <span class="hub-btn">فتح المذكرة</span>
+            </a>
+            <a class="hub-card-link" href="delivery-hub/admin-Delivery-pdf.html">
+                <h2>لوحة الإدارة</h2>
+                <p>إدارة المخزون، رفع Excel، ومتابعة قائمة الشاسيه.</p>
+                <span class="hub-btn">فتح الإدارة</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
