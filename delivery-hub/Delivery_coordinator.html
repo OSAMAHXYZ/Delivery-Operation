@@ -27,31 +27,36 @@
 
         <section class="hub-section">
             <div class="hub-section-head">
-                <h2>رفع بيانات خام — Raw Data Excel</h2>
-                <span class="hub-hint">Product · GT · Location</span>
+                <h2>١ — رفع بيانات خام — Raw Data Excel</h2>
+                <span class="hub-hint">مطلوب أولاً · Product · GT · Location</span>
             </div>
             <label class="hub-upload" id="uploadZone">
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
                 <strong>اسحب ملف Excel أو انقر للاختيار</strong>
-                <p class="hub-meta">يُستخدم لعرض Product و GT و Location لكل شاسيه</p>
+                <p class="hub-meta">ارفع Sales Raw Data أولاً قبل إضافة أرقام الشاسيه</p>
             </label>
             <p class="hub-status" id="uploadStatus"></p>
         </section>
 
-        <section class="hub-section">
+        <section class="hub-section" id="vinSection">
             <div class="hub-section-head">
-                <h2>إضافة أرقام الشاسيه — Paste VINs</h2>
+                <h2>٢ — إضافة أرقام الشاسيه — Paste VINs</h2>
+                <span class="hub-hint" id="vinSectionHint">ارفع البيانات الخام أولاً</span>
             </div>
-            <textarea id="vinPaste" class="hub-textarea" placeholder="الصق أرقام الشاسيه هنا — سطر لكل VIN أو مفصولة بمسافة"></textarea>
+            <div id="vinGateMsg" class="hub-status err" style="margin-bottom:12px">
+                ارفع ملف Excel أولاً — بعدها يمكنك لصق أرقام الشاسيه لعرضها في القائمة
+            </div>
+            <div id="vinPromptBanner" class="hub-status ok" style="display:none;margin-bottom:12px"></div>
+            <textarea id="vinPaste" class="hub-textarea" placeholder="الصق أرقام الشاسيه هنا — سطر لكل VIN أو مفصولة بمسافة" disabled></textarea>
             <div class="hub-actions-row">
-                <button type="button" class="hub-btn hub-btn--primary" id="btnSubmitVins">إرسال الشاسيه للفريق</button>
+                <button type="button" class="hub-btn hub-btn--primary" id="btnSubmitVins" disabled>إرسال الشاسيه للفريق</button>
             </div>
             <p class="hub-status" id="vinStatus"></p>
         </section>
 
         <section class="hub-section">
             <div class="hub-section-head">
-                <h2>قائمة الشاسيه المرسلة — Submitted Queue</h2>
+                <h2>٣ — قائمة الشاسيه المرسلة — Submitted Queue</h2>
                 <span class="hub-hint">تحديث فوري — Live sync</span>
             </div>
             <div class="hub-table-wrap">
@@ -68,7 +73,7 @@
                         </tr>
                     </thead>
                     <tbody id="queueBody">
-                        <tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد</td></tr>
+                        <tr><td colspan="7" class="hub-empty">ارفع البيانات الخام أولاً ثم أضف أرقام الشاسيه</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -82,18 +87,62 @@
             el.className = 'hub-status' + (type ? ` ${type}` : '');
         }
 
-        function renderStats(stats, rawUploaded) {
+        function renderStats(stats, hasRaw) {
             document.getElementById('stats').innerHTML = `
                 <div class="hub-stat"><span>إجمالي الشاسيه</span><b>${stats.total || 0}</b></div>
                 <div class="hub-stat hub-stat--avail"><span>متاح</span><b>${stats.available || 0}</b></div>
                 <div class="hub-stat hub-stat--stock"><span>In Stock</span><b>${stats.in_stock || 0}</b></div>
                 <div class="hub-stat hub-stat--ready"><span>Ready</span><b>${stats.ready_for_delivery || 0}</b></div>
-                <div class="hub-stat"><span>بيانات خام</span><b style="font-size:1rem">${rawUploaded ? '✓' : '—'}</b></div>
+                <div class="hub-stat"><span>بيانات خام</span><b style="font-size:1rem">${hasRaw ? '✓' : '—'}</b></div>
                 <div class="hub-stat hub-stat--avail"><span>تم الترحيل</span><b>${stats.delivered || 0}</b></div>
             `;
         }
 
         let currentQueue = [];
+        let rawUploaded = false;
+
+        function setVinSectionEnabled(enabled) {
+            rawUploaded = Boolean(enabled);
+            const paste = document.getElementById('vinPaste');
+            const btn = document.getElementById('btnSubmitVins');
+            const gate = document.getElementById('vinGateMsg');
+            const hint = document.getElementById('vinSectionHint');
+            paste.disabled = !rawUploaded;
+            btn.disabled = !rawUploaded;
+            if (rawUploaded) {
+                gate.style.display = 'none';
+                hint.textContent = 'فقط الشاسيه الموجودة في ملف Excel · المكرر يُتخطى';
+            } else {
+                gate.style.display = '';
+                gate.textContent = 'ارفع ملف Excel أولاً — بعدها يمكنك لصق أرقام الشاسيه لعرضها في القائمة';
+                hint.textContent = 'ارفع البيانات الخام أولاً';
+                paste.value = '';
+                hideVinPrompt();
+            }
+        }
+
+        function hideVinPrompt() {
+            const banner = document.getElementById('vinPromptBanner');
+            banner.style.display = 'none';
+            banner.textContent = '';
+        }
+
+        function promptAddNewVins({ imported, matchedUpdated, notInNewFile } = {}) {
+            setVinSectionEnabled(true);
+            const banner = document.getElementById('vinPromptBanner');
+            const parts = [`تم استيراد ${imported || 0} صف من Excel`];
+            if (matchedUpdated) parts.push(`تم تحديث ${matchedUpdated} شاسيه موجودة في القائمة`);
+            if (notInNewFile) parts.push(`${notInNewFile} في القائمة غير موجودة في الملف الجديد`);
+            parts.push('الآن أضف أرقام الشاسيه الجديدة أدناه (المكرر يُتخطى تلقائياً)');
+            banner.textContent = parts.join(' · ');
+            banner.style.display = '';
+            banner.className = 'hub-status ok';
+            const paste = document.getElementById('vinPaste');
+            paste.value = '';
+            document.getElementById('vinSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => paste.focus(), 250);
+            setStatus('vinStatus', 'الصق أرقام الشاسيه الجديدة ثم اضغط إرسال', 'ok');
+        }
 
         function parseVinList(input) {
             return String(input || '')
@@ -113,6 +162,10 @@
 
         function renderQueue(queue) {
             const tbody = document.getElementById('queueBody');
+            if (!rawUploaded) {
+                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">ارفع البيانات الخام أولاً ثم أضف أرقام الشاسيه</td></tr>';
+                return;
+            }
             const seen = new Set();
             const unique = [];
             (queue || []).forEach((item) => {
@@ -122,7 +175,7 @@
                 unique.push(item);
             });
             if (!unique.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد شاسيه بعد — الصق أرقام الشاسيه أعلاه</td></tr>';
                 return;
             }
             tbody.innerHTML = unique.map((item) => {
@@ -145,11 +198,15 @@
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'فشل التحميل');
             currentQueue = data.queue || [];
+            setVinSectionEnabled(Boolean(data.rawUploaded));
             renderStats(data.stats, data.rawUploaded);
             renderQueue(currentQueue);
         }
 
         document.getElementById('btnSubmitVins').addEventListener('click', async () => {
+            if (!rawUploaded) {
+                return setStatus('vinStatus', 'ارفع البيانات الخام أولاً', 'err');
+            }
             const inputEl = document.getElementById('vinPaste');
             const parsed = parseVinList(inputEl.value);
             if (!parsed.length) return setStatus('vinStatus', 'أدخل شاسيه واحد على الأقل', 'err');
@@ -191,14 +248,17 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل الإرسال');
                 inputEl.value = '';
-                const duplicateParts = [];
-                if (pastedDuplicates) duplicateParts.push(`${pastedDuplicates} مكررة داخل اللصق`);
-                if (queueDuplicates) duplicateParts.push(`${queueDuplicates} موجودة مسبقاً`);
-                if (data.skipped) duplicateParts.push(`${data.skipped} تم تخطيها أثناء الحفظ`);
+                hideVinPrompt();
+                const parts = [];
+                if (data.added) parts.push(`تم إضافة ${data.added}`);
+                if (pastedDuplicates) parts.push(`${pastedDuplicates} مكررة داخل اللصق`);
+                if (queueDuplicates) parts.push(`${queueDuplicates} موجودة مسبقاً`);
+                if (data.notInInventory) parts.push(`${data.notInInventory} غير موجودة في Excel`);
+                else if (data.skipped) parts.push(`${data.skipped} تم تخطيها`);
                 setStatus(
                     'vinStatus',
-                    `تم إضافة ${data.added} شاسيه${duplicateParts.length ? ` (${duplicateParts.join('، ')})` : ''}`,
-                    'ok'
+                    parts.join(' · ') || 'لم تتم إضافة شاسيه',
+                    data.added ? 'ok' : 'err'
                 );
                 await loadQueue();
             } catch (err) {
@@ -220,8 +280,17 @@
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'فشل الرفع');
-                    setStatus('uploadStatus', `تم استيراد ${data.imported} صف — تم تحديث القائمة من البيانات الجديدة`, 'ok');
+                    setStatus(
+                        'uploadStatus',
+                        `تم رفع الملف · ${data.imported} صف · حدّثت القائمة من البيانات الجديدة`,
+                        'ok'
+                    );
                     await loadQueue();
+                    promptAddNewVins({
+                        imported: data.imported,
+                        matchedUpdated: data.matchedUpdated || 0,
+                        notInNewFile: data.notInNewFile || 0
+                    });
                 } catch (err) {
                     setStatus('uploadStatus', err.message, 'err');
                 }
@@ -241,6 +310,7 @@
             document.getElementById('fileInput').dispatchEvent(new Event('change'));
         });
 
+        setVinSectionEnabled(false);
         loadQueue().catch((err) => setStatus('vinStatus', err.message, 'err'));
     </script>
     <script src="delivery-hub-live.js"></script>

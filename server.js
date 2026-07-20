@@ -254,9 +254,15 @@ function dedupeQueue(queue) {
 
 function refreshQueueFromVehicles() {
   const byVin = vehicleIndex();
-  store.queue = dedupeQueue(store.queue).map((item) =>
-    enrichFromVehicle(item, byVin.get(normVin(item.vin)))
-  );
+  let matched = 0;
+  let missing = 0;
+  store.queue = dedupeQueue(store.queue).map((item) => {
+    const veh = byVin.get(normVin(item.vin));
+    if (veh) matched += 1;
+    else missing += 1;
+    return enrichFromVehicle(item, veh);
+  });
+  return { matched, missing, total: store.queue.length };
 }
 
 function parseDataUrl(fileData) {
@@ -453,11 +459,13 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
       uploadedAt: new Date().toISOString()
     };
     // Refresh Product/GT/Location on every queue row from the new raw file + drop duplicate VINs
-    refreshQueueFromVehicles();
+    const refresh = refreshQueueFromVehicles();
     persistAndBroadcast();
     res.json({
       imported: parsed.vehicles.length,
-      queueRefreshed: store.queue.length
+      queueRefreshed: refresh.total,
+      matchedUpdated: refresh.matched,
+      notInNewFile: refresh.missing
     });
   } catch (err) {
     console.error('[upload]', err);
@@ -516,12 +524,17 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
 });
 
 app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
+  if (!store.vehicles.length) {
+    return res.status(400).json({ error: 'ارفع البيانات الخام (Excel) أولاً قبل إضافة الشاسيه' });
+  }
+
   const vins = Array.isArray(req.body?.vins) ? req.body.vins : [];
   store.queue = dedupeQueue(store.queue);
   const existing = new Set(store.queue.map((q) => normVin(q.vin)));
   const byVin = vehicleIndex();
   let added = 0;
   let skipped = 0;
+  let notInInventory = 0;
   const seenBatch = new Set();
   const now = new Date().toISOString();
 
@@ -536,7 +549,14 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
       continue;
     }
     seenBatch.add(vin);
-    const veh = byVin.get(vin) || null;
+
+    const veh = byVin.get(vin);
+    if (!veh) {
+      notInInventory += 1;
+      skipped += 1;
+      continue;
+    }
+
     const base = {
       vin,
       status: 'available',
@@ -551,7 +571,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   }
 
   persistAndBroadcast();
-  res.json({ added, skipped });
+  res.json({ added, skipped, notInInventory });
 });
 
 app.post('/api/delivery-coordinator/claim', (req, res) => {
