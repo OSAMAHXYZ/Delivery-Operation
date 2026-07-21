@@ -172,6 +172,15 @@
             object-fit: fill;
             display: block;
         }
+        .overlay-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
         .overlay-field {
             position: absolute;
             font-family: 'Tajawal', Arial, sans-serif;
@@ -1060,7 +1069,7 @@
                 <h2 class="no-print">معاينة مذكرة الترحيل</h2>
                 <div class="print-sheet" id="printSheet">
                     <img src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل">
-                    <div id="overlayFields"></div>
+                    <div id="overlayFields" class="overlay-layer"></div>
                 </div>
                 <div class="preview-actions no-print" hidden>
                     <button type="button" class="btn btn-primary" id="btnPrint2">🖨 طباعة A4</button>
@@ -1099,9 +1108,9 @@
         </div>
     </div>
 
-    <script src="../scripts/muthakara-branch-options.js"></script>
-    <script src="../scripts/muthakara-customer-options.js"></script>
-    <script src="../scripts/muthakara-field-layout.js"></script>
+    <script src="../scripts/muthakara-branch-options.js?v=20260721c"></script>
+    <script src="../scripts/muthakara-customer-options.js?v=20260721c"></script>
+    <script src="../scripts/muthakara-field-layout.js?v=20260721c"></script>
     <script>
         const AR_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠'];
         const FIELD_LAYOUT = MUTHAKARA_FIELDS;
@@ -1180,8 +1189,13 @@
         }
 
         function overlayPositionStyle(tag, x, y, w, h) {
-            // Percent-only positions so preview and print scale the same (px nudges do not)
-            return `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%`;
+            // Use mm for horizontal nudges — browsers honor mm in print; CSS px/transform often do not
+            // VIN +50px ≈ 13.2mm, model +15px ≈ 4mm (cumulative user nudges)
+            let left = `${x * 100}%`;
+            let top = `${y * 100}%`;
+            if (/_chassis$/.test(tag)) left = `calc(${x * 100}% + 13.2mm)`;
+            if (/_model$/.test(tag)) left = `calc(${x * 100}% + 4mm)`;
+            return `left:${left};top:${top};width:${w * 100}%;height:${h * 100}%`;
         }
 
         function buildOverlay() {
@@ -1406,11 +1420,12 @@
         });
 
         function doPrintA4() {
-            updatePreview();
             const vin = getClaimedVin();
             const agent = getAgent();
             const isAdminExport = new URLSearchParams(location.search).get('adminExport') === '1';
-            // Print 3 copies: create clones of the sheet, hide the original during print via CSS.
+            // Rebuild overlay positions, then clone for print (browser print ignores CSS transform/px quirks)
+            buildOverlay();
+            updatePreview();
             const cleanupPrintCopies = () => {
                 const existing = document.getElementById('printCopies');
                 if (existing) existing.remove();

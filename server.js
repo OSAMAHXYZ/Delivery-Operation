@@ -846,7 +846,7 @@ app.post('/api/delivery-note/generate', (req, res) => {
 app.use(express.static(ROOT, {
   extensions: ['html'],
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) {
+    if (/\.(html|js|css)$/i.test(filePath)) {
       res.setHeader('Cache-Control', 'no-cache');
     }
   }
