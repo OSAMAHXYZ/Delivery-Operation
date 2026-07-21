@@ -361,6 +361,57 @@
             color: #94a3b8;
         }
         .xfer-records .hub-table-wrap { margin-top: 0; }
+        .options-manage-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .options-manage-card {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+        }
+        .options-manage-card h3 {
+            margin: 0 0 12px;
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+        .options-add-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .options-add-row .hub-input { flex: 1; }
+        .options-list {
+            display: grid;
+            gap: 6px;
+            max-height: 280px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+        .options-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(15, 23, 42, 0.45);
+        }
+        .options-item span {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (max-width: 800px) {
+            .options-manage-grid { grid-template-columns: 1fr; }
+        }
         .xfer-dash-empty {
             color: #64748b;
             font-size: 0.85rem;
@@ -404,6 +455,33 @@
 
         <div class="hub-stats" id="stats"></div>
         <div class="hub-stats" id="queueStats"></div>
+
+        <section class="hub-section" id="optionsManagerSection">
+            <div class="hub-section-head">
+                <h2>إدارة القوائم — Companies & Cities Lists</h2>
+                <span class="hub-hint">إضافة أو حذف الشركات والمدن المستخدمة في المذكرة</span>
+            </div>
+            <div class="options-manage-grid">
+                <div class="options-manage-card">
+                    <h3>شركات النقل</h3>
+                    <div class="options-add-row">
+                        <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
+                        <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
+                    </div>
+                    <p class="hub-status" id="companyOptionsStatus"></p>
+                    <div class="options-list" id="companyOptionsList"></div>
+                </div>
+                <div class="options-manage-card">
+                    <h3>المدن / الفروع</h3>
+                    <div class="options-add-row">
+                        <input type="text" id="newCityInput" class="hub-input" placeholder="اسم المدينة أو الفرع…" autocomplete="off">
+                        <button type="button" class="hub-btn hub-btn--primary" id="btnAddCity">إضافة</button>
+                    </div>
+                    <p class="hub-status" id="cityOptionsStatus"></p>
+                    <div class="options-list" id="cityOptionsList"></div>
+                </div>
+            </div>
+        </section>
 
         <section class="hub-section hub-section--xfer">
             <div class="hub-section-head">
@@ -1096,6 +1174,114 @@
         });
         updateXferDateLabel();
 
+        let managedCompanies = [];
+        let managedCities = [];
+
+        function setOptionStatus(elId, msg, type) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'hub-status' + (type ? ` ${type}` : '');
+        }
+
+        function renderOptionsList(listElId, items, kind) {
+            const listEl = document.getElementById(listElId);
+            if (!items.length) {
+                listEl.innerHTML = '<div class="hub-empty">القائمة فارغة</div>';
+                return;
+            }
+            listEl.innerHTML = items.map((name) => {
+                const safe = escapeHtml(name);
+                return `<div class="options-item">
+                    <span title="${safe}">${safe}</span>
+                    <button type="button" class="hub-btn hub-btn--sm hub-btn--danger" data-remove-option="${safe}" data-kind="${kind}">حذف</button>
+                </div>`;
+            }).join('');
+            listEl.querySelectorAll('[data-remove-option]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const name = btn.dataset.removeOption;
+                    if (!confirm(`حذف «${name}»؟`)) return;
+                    try {
+                        const res = await fetch(`/api/delivery-options/${kind}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'فشل الحذف');
+                        if (kind === 'companies') {
+                            managedCompanies = data.companies || [];
+                            renderOptionsList('companyOptionsList', managedCompanies, 'companies');
+                            setOptionStatus('companyOptionsStatus', 'تم الحذف', 'ok');
+                        } else {
+                            managedCities = data.cities || [];
+                            renderOptionsList('cityOptionsList', managedCities, 'cities');
+                            setOptionStatus('cityOptionsStatus', 'تم الحذف', 'ok');
+                        }
+                    } catch (err) {
+                        setOptionStatus(
+                            kind === 'companies' ? 'companyOptionsStatus' : 'cityOptionsStatus',
+                            err.message,
+                            'err'
+                        );
+                    }
+                });
+            });
+        }
+
+        async function loadManagedOptions() {
+            const res = await fetch('/api/delivery-options');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل تحميل القوائم');
+            managedCompanies = data.companies || [];
+            managedCities = data.cities || [];
+            renderOptionsList('companyOptionsList', managedCompanies, 'companies');
+            renderOptionsList('cityOptionsList', managedCities, 'cities');
+        }
+
+        async function addManagedOption(kind, inputId, statusId) {
+            const input = document.getElementById(inputId);
+            const name = String(input.value || '').trim();
+            if (!name) {
+                setOptionStatus(statusId, 'أدخل اسماً', 'err');
+                return;
+            }
+            setOptionStatus(statusId, 'جاري الإضافة…');
+            try {
+                const res = await fetch(`/api/delivery-options/${kind}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإضافة');
+                input.value = '';
+                if (kind === 'companies') {
+                    managedCompanies = data.companies || [];
+                    renderOptionsList('companyOptionsList', managedCompanies, 'companies');
+                } else {
+                    managedCities = data.cities || [];
+                    renderOptionsList('cityOptionsList', managedCities, 'cities');
+                }
+                setOptionStatus(statusId, 'تمت الإضافة', 'ok');
+            } catch (err) {
+                setOptionStatus(statusId, err.message, 'err');
+            }
+        }
+
+        document.getElementById('btnAddCompany').addEventListener('click', () => {
+            addManagedOption('companies', 'newCompanyInput', 'companyOptionsStatus');
+        });
+        document.getElementById('btnAddCity').addEventListener('click', () => {
+            addManagedOption('cities', 'newCityInput', 'cityOptionsStatus');
+        });
+        document.getElementById('newCompanyInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addManagedOption('companies', 'newCompanyInput', 'companyOptionsStatus');
+        });
+        document.getElementById('newCityInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addManagedOption('cities', 'newCityInput', 'cityOptionsStatus');
+        });
+
         async function loadDashboard() {
             const [invRes, queueRes] = await Promise.all([
                 fetch('/api/delivery-inventory'),
@@ -1120,6 +1306,7 @@
                 allDrafts = [];
                 renderTransferDashboard(filteredDrafts());
             }
+            loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
         }
 
         function renderDraftsTable(drafts) {

@@ -229,10 +229,6 @@
             font-family: ui-monospace, 'Consolas', monospace;
             font-size: 14px;
             letter-spacing: 0.01em;
-            transform: translateX(50px);
-        }
-        .overlay-field[data-tag="attachments"] {
-            transform: translate(-100px, -30px);
         }
         .preview-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         .preview-actions .btn { flex: 1; min-width: 120px; padding: 12px 16px; font-size: .85rem; }
@@ -267,10 +263,6 @@
             .overlay-field.overlay-field--header-date { font-size: 15px; font-weight: 700; }
             .overlay-field.overlay-field--chassis {
                 font-size: 16px;
-                transform: translateX(50px);
-            }
-            .overlay-field[data-tag="attachments"] {
-                transform: translate(-100px, -30px);
             }
             .overlay-field.overlay-field--invoice {
                 font-size: 18px;
@@ -1182,6 +1174,20 @@
             updatePreview();
         }
 
+        function overlayPositionStyle(tag, x, y, w, h) {
+            // Pixel nudges via calc() so preview + print both move (CSS transform is unreliable in print)
+            let left = `${x * 100}%`;
+            let top = `${y * 100}%`;
+            if (/_chassis$/.test(tag)) {
+                left = `calc(${x * 100}% + 50px)`;
+            }
+            if (tag === 'attachments') {
+                left = `calc(${x * 100}% - 100px)`;
+                top = `calc(${y * 100}% - 30px)`;
+            }
+            return `left:${left};top:${top};width:${w * 100}%;height:${h * 100}%`;
+        }
+
         function buildOverlay() {
             const [cx, cy, cw, ch] = MEMO_NUMBER_COVER;
             const coverHtml = `<div class="overlay-cover" aria-hidden="true" style="left:${cx * 100}%;top:${cy * 100}%;width:${cw * 100}%;height:${ch * 100}%"></div>`;
@@ -1190,7 +1196,7 @@
                 const invoiceCls = tag === 'invoice_number' ? ' overlay-field--invoice' : '';
                 const chassisCls = /_chassis$/.test(tag) ? ' overlay-field--chassis' : '';
                 const cls = 'overlay-field align-' + (align || 'end') + dateCls + invoiceCls + chassisCls;
-                return `<div class="${cls}" data-tag="${tag}" style="left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%"></div>`;
+                return `<div class="${cls}" data-tag="${tag}" style="${overlayPositionStyle(tag, x, y, w, h)}"></div>`;
             }).join('');
             overlayFields.querySelectorAll('.overlay-field').forEach((el) => {
                 fieldEls[el.dataset.tag] = el;
@@ -2046,6 +2052,22 @@
             company_rep: [...MUTHAKARA_CUSTOMER_OPTIONS]
         };
 
+        async function loadDeliveryOptions() {
+            try {
+                const res = await fetch('/api/delivery-options');
+                const data = await res.json();
+                if (!res.ok) return;
+                if (Array.isArray(data.cities) && data.cities.length) {
+                    searchableSelectOptions.branch_to = [...data.cities];
+                }
+                if (Array.isArray(data.companies) && data.companies.length) {
+                    searchableSelectOptions.company_rep = [...data.companies];
+                }
+            } catch (_) {
+                /* keep static defaults */
+            }
+        }
+
         function ensureSearchableOption(fieldId, value) {
             const v = String(value || '').trim();
             if (!v) return;
@@ -2136,7 +2158,7 @@
 
         initSearchableSelect('branch_to');
         initSearchableSelect('company_rep');
-        initGate();
+        loadDeliveryOptions().finally(() => initGate());
     </script>
     <script src="delivery-hub-live.js"></script>
     <script>

@@ -18,11 +18,44 @@ const AGENTS = new Set(['ياسين', 'الفاضل', 'البراء']);
 const AGENT_PASSWORD = process.env.DELIVERY_AGENT_PASSWORD || '1234';
 const MAX_DRAFTS = 500;
 
+const {
+  MUTHAKARA_BRANCH_OPTIONS: DEFAULT_CITIES
+} = require('./scripts/muthakara-branch-options.js');
+const {
+  MUTHAKARA_CUSTOMER_OPTIONS: DEFAULT_COMPANIES
+} = require('./scripts/muthakara-customer-options.js');
+
+function normalizeOptionName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ');
+}
+
+function uniqueSorted(list) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of list || []) {
+    const name = normalizeOptionName(raw);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out.sort((a, b) => a.localeCompare(b, 'ar'));
+}
+
+function defaultOptions() {
+  return {
+    companies: uniqueSorted(DEFAULT_COMPANIES),
+    cities: uniqueSorted(DEFAULT_CITIES)
+  };
+}
+
 const emptyStore = () => ({
   raw: null,
   vehicles: [],
   queue: [],
   drafts: [],
+  options: defaultOptions(),
   meta: {
     filename: '',
     sheetName: '',
@@ -32,6 +65,23 @@ const emptyStore = () => ({
 
 let store = emptyStore();
 const wsClients = new Set();
+
+function ensureOptions() {
+  if (!store.options || typeof store.options !== 'object') {
+    store.options = defaultOptions();
+    return;
+  }
+  if (!Array.isArray(store.options.companies) || !store.options.companies.length) {
+    store.options.companies = uniqueSorted(DEFAULT_COMPANIES);
+  } else {
+    store.options.companies = uniqueSorted(store.options.companies);
+  }
+  if (!Array.isArray(store.options.cities) || !store.options.cities.length) {
+    store.options.cities = uniqueSorted(DEFAULT_CITIES);
+  } else {
+    store.options.cities = uniqueSorted(store.options.cities);
+  }
+}
 
 function loadStore() {
   try {
@@ -45,12 +95,19 @@ function loadStore() {
       vehicles: Array.isArray(parsed.vehicles) ? parsed.vehicles : [],
       queue: Array.isArray(parsed.queue) ? parsed.queue : [],
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
+      options: parsed.options && typeof parsed.options === 'object'
+        ? {
+            companies: Array.isArray(parsed.options.companies) ? parsed.options.companies : [],
+            cities: Array.isArray(parsed.options.cities) ? parsed.options.cities : []
+          }
+        : defaultOptions(),
       meta: {
         filename: parsed.meta?.filename || parsed.filename || '',
         sheetName: parsed.meta?.sheetName || parsed.sheetName || '',
         uploadedAt: parsed.meta?.uploadedAt || parsed.uploadedAt || null
       }
     };
+    ensureOptions();
   } catch (err) {
     console.error('[delivery] failed to load store:', err.message);
     store = emptyStore();
@@ -472,6 +529,48 @@ app.post('/api/delivery-coordinator/auth', (req, res) => {
   return res.json({ ok: true, username: auth.username });
 });
 
+app.get('/api/delivery-options', (_req, res) => {
+  ensureOptions();
+  res.json({
+    companies: store.options.companies,
+    cities: store.options.cities
+  });
+});
+
+app.post('/api/delivery-options/:kind', (req, res) => {
+  const kind = String(req.params.kind || '');
+  if (kind !== 'companies' && kind !== 'cities') {
+    return res.status(400).json({ error: 'نوع القائمة غير معروف' });
+  }
+  ensureOptions();
+  const name = normalizeOptionName(req.body?.name);
+  if (!name) return res.status(400).json({ error: 'الاسم مطلوب' });
+  const list = store.options[kind];
+  const exists = list.some((x) => x.toLowerCase() === name.toLowerCase());
+  if (exists) return res.status(409).json({ error: 'هذا الاسم موجود مسبقاً', [kind]: list });
+  list.push(name);
+  store.options[kind] = uniqueSorted(list);
+  persistAndBroadcast();
+  res.json({ ok: true, name, [kind]: store.options[kind] });
+});
+
+app.delete('/api/delivery-options/:kind', (req, res) => {
+  const kind = String(req.params.kind || '');
+  if (kind !== 'companies' && kind !== 'cities') {
+    return res.status(400).json({ error: 'نوع القائمة غير معروف' });
+  }
+  ensureOptions();
+  const name = normalizeOptionName(req.body?.name);
+  if (!name) return res.status(400).json({ error: 'الاسم مطلوب' });
+  const before = store.options[kind].length;
+  store.options[kind] = store.options[kind].filter((x) => x.toLowerCase() !== name.toLowerCase());
+  if (store.options[kind].length === before) {
+    return res.status(404).json({ error: 'الاسم غير موجود', [kind]: store.options[kind] });
+  }
+  persistAndBroadcast();
+  res.json({ ok: true, name, [kind]: store.options[kind] });
+});
+
 app.get('/api/delivery-inventory', (_req, res) => {
   res.json({
     vehicles: store.vehicles,
@@ -480,7 +579,10 @@ app.get('/api/delivery-inventory', (_req, res) => {
 });
 
 app.delete('/api/delivery-inventory', (_req, res) => {
+  const options = store.options || defaultOptions();
   store = emptyStore();
+  store.options = options;
+  ensureOptions();
   persistAndBroadcast();
   res.json({ dashboard: buildDashboard() });
 });
