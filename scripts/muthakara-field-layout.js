@@ -34,8 +34,8 @@ const MUTHAKARA_FIELDS = [
   // Row 4 — branch
   ['branch_to', 0.116, 0.254, 0.66, 0.024, 'end'],
 
-  // Row 5 — attachments
-  ['attachments', 0.055, 0.296, 0.88, 0.028, 'end'],
+  // Row 5 — attachments (nudged up + left vs printed label line)
+  ['attachments', 0.02, 0.268, 0.78, 0.028, 'end'],
 
   // Signatures
   ['transport_rep_sign', 0.055, 0.662, 0.38, 0.024, 'end'],
@@ -57,11 +57,12 @@ const MUTHAKARA_FIELDS = [
 ];
 
 // Table: left→right = remarks | plate | chassis | model (all rows share TABLE_*)
+// Chassis is widest — full 17-char VIN must fit at print size without clipping
 const TABLE_COLS = [
-  ['remarks', 0.147, 0.168],
-  ['plate', 0.336, 0.158],
-  ['chassis', 0.556, 0.172],
-  ['model', 0.738, 0.168]
+  ['remarks', 0.100, 0.140],
+  ['plate', 0.250, 0.130],
+  ['chassis', 0.400, 0.310],
+  ['model', 0.730, 0.145]
 ];
 const TABLE_ROW_START = 0.362;
 const TABLE_ROW_STEP = 0.0246;
