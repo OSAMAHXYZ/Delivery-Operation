@@ -1108,9 +1108,9 @@
         </div>
     </div>
 
-    <script src="../scripts/muthakara-branch-options.js?v=20260721c"></script>
-    <script src="../scripts/muthakara-customer-options.js?v=20260721c"></script>
-    <script src="../scripts/muthakara-field-layout.js?v=20260721c"></script>
+    <script src="../scripts/muthakara-branch-options.js?v=20260721d"></script>
+    <script src="../scripts/muthakara-customer-options.js?v=20260721d"></script>
+    <script src="../scripts/muthakara-field-layout.js?v=20260721d"></script>
     <script>
         const AR_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠'];
         const FIELD_LAYOUT = MUTHAKARA_FIELDS;
@@ -1190,10 +1190,10 @@
 
         function overlayPositionStyle(tag, x, y, w, h) {
             // Use mm for horizontal nudges — browsers honor mm in print; CSS px/transform often do not
-            // VIN +50px ≈ 13.2mm, model +15px ≈ 4mm (cumulative user nudges)
+            // VIN +60px ≈ 15.9mm, model +15px ≈ 4mm (cumulative user nudges)
             let left = `${x * 100}%`;
             let top = `${y * 100}%`;
-            if (/_chassis$/.test(tag)) left = `calc(${x * 100}% + 13.2mm)`;
+            if (/_chassis$/.test(tag)) left = `calc(${x * 100}% + 15.9mm)`;
             if (/_model$/.test(tag)) left = `calc(${x * 100}% + 4mm)`;
             return `left:${left};top:${top};width:${w * 100}%;height:${h * 100}%`;
         }
