@@ -582,7 +582,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   const byVin = vehicleIndex();
   let added = 0;
   let skipped = 0;
-  let notInInventory = 0;
+  const missingVins = [];
   const seenBatch = new Set();
   const now = new Date().toISOString();
 
@@ -600,7 +600,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
 
     const veh = byVin.get(vin);
     if (!veh) {
-      notInInventory += 1;
+      missingVins.push(vin);
       skipped += 1;
       continue;
     }
@@ -619,7 +619,12 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   }
 
   persistAndBroadcast();
-  res.json({ added, skipped, notInInventory });
+  res.json({
+    added,
+    skipped,
+    notInInventory: missingVins.length,
+    missingVins
+  });
 });
 
 app.post('/api/delivery-coordinator/claim', (req, res) => {

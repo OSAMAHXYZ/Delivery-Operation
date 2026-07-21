@@ -52,6 +52,13 @@
                 <button type="button" class="hub-btn hub-btn--primary" id="btnSubmitVins" disabled>إرسال الشاسيه للفريق</button>
             </div>
             <p class="hub-status" id="vinStatus"></p>
+            <div id="missingVinBox" class="hub-section" style="display:none;margin-top:12px;padding:14px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.28)">
+                <div class="hub-section-head" style="margin-bottom:8px">
+                    <h2 style="font-size:0.88rem;color:#fecaca">شاسيه غير موجودة في Excel</h2>
+                    <span class="hub-hint" id="missingVinCount"></span>
+                </div>
+                <pre id="missingVinList" style="margin:0;white-space:pre-wrap;word-break:break-all;direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:0.82rem;color:#fecaca;line-height:1.6"></pre>
+            </div>
         </section>
 
         <section class="hub-section">
@@ -142,6 +149,11 @@
             document.getElementById('vinSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
             setTimeout(() => paste.focus(), 250);
             setStatus('vinStatus', 'الصق أرقام الشاسيه الجديدة ثم اضغط إرسال', 'ok');
+            const missingBox = document.getElementById('missingVinBox');
+            if (missingBox) {
+                missingBox.style.display = 'none';
+                document.getElementById('missingVinList').textContent = '';
+            }
         }
 
         function parseVinList(input) {
@@ -247,19 +259,33 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل الإرسال');
-                inputEl.value = '';
+                const missing = Array.isArray(data.missingVins) ? data.missingVins : [];
+                // Keep unfound VINs in the paste box so they stay visible
+                inputEl.value = missing.length ? missing.join('\n') : '';
                 hideVinPrompt();
                 const parts = [];
                 if (data.added) parts.push(`تم إضافة ${data.added}`);
                 if (pastedDuplicates) parts.push(`${pastedDuplicates} مكررة داخل اللصق`);
                 if (queueDuplicates) parts.push(`${queueDuplicates} موجودة مسبقاً`);
-                if (data.notInInventory) parts.push(`${data.notInInventory} غير موجودة في Excel`);
+                if (missing.length) parts.push(`${missing.length} غير موجودة في Excel`);
                 else if (data.skipped) parts.push(`${data.skipped} تم تخطيها`);
                 setStatus(
                     'vinStatus',
                     parts.join(' · ') || 'لم تتم إضافة شاسيه',
-                    data.added ? 'ok' : 'err'
+                    data.added && !missing.length ? 'ok' : (data.added ? 'ok' : 'err')
                 );
+                const missingBox = document.getElementById('missingVinBox');
+                const missingList = document.getElementById('missingVinList');
+                const missingCount = document.getElementById('missingVinCount');
+                if (missing.length) {
+                    missingBox.style.display = '';
+                    missingCount.textContent = `${missing.length} رقم`;
+                    missingList.textContent = missing.join('\n');
+                } else {
+                    missingBox.style.display = 'none';
+                    missingList.textContent = '';
+                    missingCount.textContent = '';
+                }
                 await loadQueue();
             } catch (err) {
                 setStatus('vinStatus', err.message, 'err');
