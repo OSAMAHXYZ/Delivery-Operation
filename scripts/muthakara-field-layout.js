@@ -61,10 +61,10 @@ const MUTHAKARA_FIELDS = [
 const TABLE_COLS = [
   ['remarks', 0.100, 0.140],
   ['plate', 0.250, 0.130],
-  // +30px right on A4 (~210mm ≈ 794px) → +3.8%
-  ['chassis', 0.438, 0.310],
-  // +10px right → +1.3%
-  ['model', 0.743, 0.145]
+  // +50px total right on A4 (~210mm ≈ 794px) from base 0.400
+  ['chassis', 0.463, 0.310],
+  // +15px total right from base 0.730
+  ['model', 0.749, 0.145]
 ];
 const TABLE_ROW_START = 0.362;
 const TABLE_ROW_STEP = 0.0246;
