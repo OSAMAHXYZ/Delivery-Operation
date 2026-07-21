@@ -34,8 +34,8 @@ const MUTHAKARA_FIELDS = [
   // Row 4 — branch
   ['branch_to', 0.116, 0.254, 0.66, 0.024, 'end'],
 
-  // Row 5 — attachments (nudged up + left vs printed label line)
-  ['attachments', 0.02, 0.268, 0.78, 0.028, 'end'],
+  // Row 5 — attachments (nudged up + left vs printed label line; +5px down ≈ +0.45%)
+  ['attachments', 0.02, 0.2725, 0.78, 0.028, 'end'],
 
   // Signatures
   ['transport_rep_sign', 0.055, 0.662, 0.38, 0.024, 'end'],
@@ -61,8 +61,10 @@ const MUTHAKARA_FIELDS = [
 const TABLE_COLS = [
   ['remarks', 0.100, 0.140],
   ['plate', 0.250, 0.130],
-  ['chassis', 0.400, 0.310],
-  ['model', 0.730, 0.145]
+  // +30px right on A4 (~210mm ≈ 794px) → +3.8%
+  ['chassis', 0.438, 0.310],
+  // +10px right → +1.3%
+  ['model', 0.743, 0.145]
 ];
 const TABLE_ROW_START = 0.362;
 const TABLE_ROW_STEP = 0.0246;
