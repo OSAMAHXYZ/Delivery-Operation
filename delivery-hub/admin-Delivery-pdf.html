@@ -3,10 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة مذكرة الترحيل — Delivery Inventory</title>
-    <link href="https://fonts.googleapis.com/css2?family=Changa:wght@600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="delivery-hub-theme.css">
+    <title>لوحة متابعة الترحيل — Delivery Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260802d">
+    <link rel="stylesheet" href="admin-saas.css?v=20260802d">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
         #adminGate {
             position: fixed; inset: 0; z-index: 300;
@@ -71,21 +75,17 @@
 
         /* —— Admin console visual polish (Toyota dark) —— */
         body.delivery-hub.admin-console {
-            font-family: 'Tajawal', 'Changa', sans-serif;
-            background-color: #070a10;
+            font-family: Inter, 'Tajawal', 'Segoe UI', sans-serif;
+            background-color: #0B1120;
             background-image:
-                radial-gradient(ellipse 90% 55% at 70% -10%, rgba(235, 10, 30, 0.32), transparent 55%),
-                radial-gradient(ellipse 60% 40% at 10% 30%, rgba(235, 10, 30, 0.1), transparent 50%),
-                radial-gradient(ellipse 50% 35% at 90% 80%, rgba(30, 58, 95, 0.22), transparent 55%),
-                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-            background-size: auto, auto, auto, 44px 44px, 44px 44px;
+                radial-gradient(ellipse 70% 45% at 90% -10%, rgba(59, 130, 246, 0.16), transparent 55%),
+                radial-gradient(ellipse 45% 35% at 0% 15%, rgba(34, 197, 94, 0.06), transparent 50%);
         }
         .admin-console .hub-brand h1,
         .admin-console .hub-section-head h2,
         .admin-console .xfer-dash-card h3 {
-            font-family: 'Changa', 'Tajawal', sans-serif;
-            letter-spacing: -0.01em;
+            font-family: Inter, 'Tajawal', sans-serif;
+            letter-spacing: -0.02em;
         }
         .admin-console .hub-stat {
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -421,6 +421,908 @@
             .xfer-dash { grid-template-columns: 1fr; }
             .xfer-date-label { margin-inline-start: 0; width: 100%; }
         }
+
+        /* —— Smooth collapsible panels —— */
+        .admin-console .hub-shell {
+            animation: adminFadeIn 0.45s ease both;
+        }
+        @keyframes adminFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+        .admin-console .hub-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            margin-bottom: 18px;
+            padding: 14px 0 14px;
+            background: linear-gradient(180deg, rgba(7, 10, 16, 0.96), rgba(7, 10, 16, 0.88) 70%, transparent);
+            backdrop-filter: blur(12px);
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+        .admin-console .hub-section.hub-fold {
+            padding: 0;
+            overflow: hidden;
+            margin-bottom: 12px;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        }
+        .admin-console .hub-section.hub-fold:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+        .admin-console .hub-section.hub-fold.is-open {
+            border-color: rgba(235, 10, 30, 0.28);
+            box-shadow:
+                0 22px 48px rgba(0, 0, 0, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+        .hub-fold-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 16px 18px;
+            margin: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-align: right;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .hub-fold-toggle:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .hub-fold-toggle:focus-visible {
+            outline: 2px solid rgba(235, 10, 30, 0.45);
+            outline-offset: -2px;
+        }
+        .hub-fold-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            letter-spacing: -0.01em;
+        }
+        .hub-fold-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #eb0a1e;
+            box-shadow: 0 0 12px rgba(235, 10, 30, 0.55);
+            flex-shrink: 0;
+        }
+        .hub-fold-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-inline-start: auto;
+        }
+        .hub-fold-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.75rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: rgba(235, 10, 30, 0.14);
+            border: 1px solid rgba(235, 10, 30, 0.28);
+            color: #fda4af;
+            font-size: 0.75rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+        .hub-fold-count:empty,
+        .hub-fold-count[data-empty="1"] {
+            display: none;
+        }
+        .hub-fold-chevron {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            position: relative;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s, border-color 0.2s;
+        }
+        .hub-fold-chevron::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        .hub-fold.is-open .hub-fold-chevron {
+            transform: rotate(180deg);
+            background: rgba(235, 10, 30, 0.16);
+            border-color: rgba(235, 10, 30, 0.4);
+        }
+        .hub-fold-body {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .hub-fold.is-open .hub-fold-body {
+            grid-template-rows: 1fr;
+        }
+        .hub-fold-body-inner {
+            overflow: hidden;
+            min-height: 0;
+        }
+        .hub-fold-content {
+            padding: 0 18px 18px;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 0.28s ease, transform 0.28s ease;
+            pointer-events: none;
+        }
+        .hub-fold.is-open .hub-fold-content {
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+            transition-delay: 0.05s;
+        }
+        .hub-fold .hub-section-head { display: none; }
+        .admin-console .hub-section--xfer.hub-fold.is-open {
+            border-color: rgba(235, 10, 30, 0.28);
+        }
+        .hub-fold-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .hub-fold-actions .hub-btn--sm {
+            border-radius: 999px;
+        }
+        #statsFold .hub-stats,
+        #queueStatsFold .hub-stats {
+            margin-bottom: 0;
+        }
+
+        /* —— Global tracking filters —— */
+        .admin-filter-bar {
+            margin-bottom: 14px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(165deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+        }
+        .admin-filter-bar h3 {
+            margin: 0 0 10px;
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .admin-filter-grid {
+            display: grid;
+            grid-template-columns: minmax(160px, 1.1fr) repeat(2, minmax(130px, 1fr)) auto;
+            gap: 10px 12px;
+            align-items: end;
+        }
+        .admin-filter-field label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .admin-filter-field select,
+        .admin-filter-field input[type="date"] {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(15, 23, 42, 0.85);
+            color: #f1f5f9;
+            font: inherit;
+            font-size: 0.85rem;
+            color-scheme: dark;
+        }
+        .admin-filter-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .admin-filter-meta {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+        .admin-filter-meta strong { color: #e2e8f0; }
+
+        /* —— Percentage charts —— */
+        .pct-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .pct-chart-card {
+            padding: 16px 18px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: linear-gradient(165deg, rgba(255,255,255,0.08), rgba(15, 23, 42, 0.55));
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+        }
+        .pct-chart-card--status {
+            grid-column: 1 / -1;
+            border-color: rgba(34, 197, 94, 0.35);
+            background:
+                linear-gradient(135deg, rgba(34, 197, 94, 0.1), transparent 40%),
+                linear-gradient(165deg, rgba(255,255,255,0.07), rgba(15, 23, 42, 0.55));
+        }
+        .pct-chart-card h3 {
+            margin: 0 0 4px;
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .pct-chart-sub {
+            margin: 0 0 14px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+        .pct-chart-layout {
+            display: grid;
+            grid-template-columns: 190px minmax(0, 1fr);
+            gap: 18px;
+            align-items: center;
+        }
+        .pct-chart-card--status .pct-chart-layout {
+            grid-template-columns: 210px minmax(0, 1fr);
+        }
+        .pct-donut-wrap {
+            position: relative;
+            width: 190px;
+            height: 190px;
+            margin: 0 auto;
+        }
+        .pct-chart-card--status .pct-donut-wrap {
+            width: 210px;
+            height: 210px;
+        }
+        .pct-donut-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .pct-donut-center {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            text-align: center;
+            pointer-events: none;
+            padding: 12px;
+        }
+        .pct-donut-center b {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+        }
+        .pct-donut-center .pct-main {
+            font-size: 2rem;
+            color: #4ade80;
+        }
+        .pct-donut-center span {
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+        .pct-legend {
+            display: grid;
+            gap: 10px;
+            max-height: 260px;
+            overflow: auto;
+            padding-left: 2px;
+        }
+        .pct-legend-row {
+            display: grid;
+            grid-template-columns: 14px minmax(0, 1fr) auto;
+            gap: 8px 10px;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .pct-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+        }
+        .pct-legend-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #f1f5f9;
+            font-weight: 800;
+            font-size: 0.88rem;
+        }
+        .pct-legend-pct {
+            color: #fff;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            font-size: 1rem;
+            min-width: 3.6rem;
+            text-align: left;
+            background: rgba(235, 10, 30, 0.2);
+            border: 1px solid rgba(235, 10, 30, 0.35);
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+        .pct-legend-pct.is-green {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #86efac;
+        }
+        .pct-legend-pct.is-amber {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fcd34d;
+        }
+        .pct-legend-meta {
+            grid-column: 2 / -1;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
+        .pct-legend-bar {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        .pct-legend-bar > span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            min-width: 2px;
+        }
+        .pct-legend-count {
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .pct-status-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .pct-status-pill {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+        .pct-status-pill span {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .pct-status-pill b {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+        }
+        .pct-status-pill--done { border-color: rgba(34, 197, 94, 0.35); }
+        .pct-status-pill--done b { color: #4ade80; }
+        .pct-status-pill--pending { border-color: rgba(245, 158, 11, 0.35); }
+        .pct-status-pill--pending b { color: #fbbf24; }
+
+        /* Delivered / Total progress chart */
+        .pct-chart-card--delivered-total {
+            grid-column: 1 / -1;
+            border-color: rgba(34, 197, 94, 0.4);
+            background:
+                linear-gradient(120deg, rgba(34, 197, 94, 0.14), transparent 45%),
+                linear-gradient(165deg, rgba(255,255,255,0.08), rgba(15, 23, 42, 0.55));
+        }
+        .delivered-total-layout {
+            display: grid;
+            grid-template-columns: 200px minmax(0, 1fr);
+            gap: 20px;
+            align-items: center;
+        }
+        .delivered-total-meter {
+            display: grid;
+            gap: 14px;
+        }
+        .delivered-total-numbers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+            align-items: baseline;
+        }
+        .delivered-total-numbers .big {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: #4ade80;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            font-family: 'Changa', 'Tajawal', sans-serif;
+        }
+        .delivered-total-numbers .of {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+        .delivered-total-numbers .of b {
+            color: #f8fafc;
+            font-size: 1.35rem;
+        }
+        .delivered-total-pct-badge {
+            margin-inline-start: auto;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.45);
+            color: #86efac;
+            font-size: 1.25rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+        .delivered-total-bar {
+            height: 22px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+            position: relative;
+        }
+        .delivered-total-bar > span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #16a34a, #4ade80);
+            min-width: 0;
+            transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.35);
+        }
+        .delivered-total-caption {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        .delivered-total-caption strong { color: #e2e8f0; }
+        @media (max-width: 900px) {
+            .delivered-total-layout { grid-template-columns: 1fr; }
+            .delivered-total-pct-badge { margin-inline-start: 0; }
+        }
+        .xfer-dash-count-pct {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .xfer-dash-count-pct .pct {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #fda4af;
+        }
+        .admin-track-note {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(96, 165, 250, 0.25);
+            background: rgba(37, 99, 235, 0.08);
+            color: #bfdbfe;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .admin-restore-box {
+            position: relative;
+            z-index: 90;
+            margin-bottom: 14px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px dashed rgba(235, 10, 30, 0.35);
+            background: linear-gradient(165deg, rgba(235, 10, 30, 0.08), rgba(255,255,255,0.02));
+            pointer-events: auto;
+        }
+        .admin-restore-box .hub-btn {
+            position: relative;
+            z-index: 1;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .admin-restore-box h3 {
+            margin: 0 0 6px;
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .admin-restore-box p {
+            margin: 0 0 12px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        .admin-restore-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        .admin-restore-actions input[type="file"] {
+            /* Keep pickable: display:none blocks button-triggered clicks in Chrome */
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+            opacity: 0;
+        }
+        .restore-file-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0;
+        }
+        .restore-file-btn input[type="file"] {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            clip: auto;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .company-filter-chip {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 12px;
+            margin-bottom: 14px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(235, 10, 30, 0.4);
+            background: linear-gradient(135deg, rgba(235, 10, 30, 0.16), rgba(255,255,255,0.03));
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+            animation: adminRise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .company-filter-chip.hidden { display: none !important; }
+        .company-filter-chip .label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fda4af;
+        }
+        .company-filter-chip .name {
+            font-family: 'Changa', 'Tajawal', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #fff;
+        }
+        .company-filter-chip .meta {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-inline-start: auto;
+        }
+        .pct-legend-row.is-clickable {
+            cursor: pointer;
+        }
+        .pct-legend-row.is-clickable:hover {
+            background: rgba(235, 10, 30, 0.12);
+            border-color: rgba(235, 10, 30, 0.35);
+        }
+        .pct-legend-row.is-active,
+        .xfer-dash-row.is-active,
+        .xfer-account-item.is-active {
+            border-color: rgba(235, 10, 30, 0.65) !important;
+            background: rgba(235, 10, 30, 0.14) !important;
+            box-shadow: 0 0 0 1px rgba(235, 10, 30, 0.25);
+        }
+        @media (max-width: 900px) {
+            .admin-filter-grid { grid-template-columns: 1fr 1fr; }
+            .admin-filter-actions { grid-column: 1 / -1; }
+            .pct-charts { grid-template-columns: 1fr; }
+            .pct-chart-layout,
+            .pct-chart-card--status .pct-chart-layout { grid-template-columns: 1fr; }
+            .pct-status-strip { grid-template-columns: 1fr; }
+        }
+
+        /* —— Super smooth & flexible admin shell —— */
+        html { scroll-behavior: smooth; }
+        body.delivery-hub.admin-console {
+            background-attachment: fixed;
+        }
+        .admin-console .hub-shell {
+            width: min(1560px, calc(100% - 24px));
+            max-width: none;
+            margin-inline: auto;
+            padding: 12px 0 64px;
+            animation: adminFadeIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .admin-console .hub-topbar {
+            gap: 14px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 14, 22, 0.72);
+            backdrop-filter: blur(18px) saturate(1.2);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .admin-console .hub-brand h1 {
+            font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+        }
+        .admin-console .hub-actions {
+            gap: 8px;
+        }
+        .admin-console .hub-btn {
+            border-radius: 999px;
+            transition:
+                transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.22s ease,
+                border-color 0.22s ease,
+                box-shadow 0.22s ease,
+                color 0.22s ease;
+        }
+        .admin-console .hub-btn:hover {
+            transform: translateY(-2px);
+        }
+        .admin-console .hub-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+        .admin-console .hub-btn--primary {
+            box-shadow: 0 10px 28px rgba(235, 10, 30, 0.28);
+        }
+        .admin-console .hub-btn--primary:hover {
+            box-shadow: 0 14px 34px rgba(235, 10, 30, 0.4);
+        }
+
+        .admin-console .hub-fold-actions,
+        .admin-console .admin-track-note,
+        .admin-console .admin-restore-box,
+        .admin-console .admin-filter-bar,
+        .admin-console .hub-section.hub-fold {
+            animation: adminRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .admin-console .hub-fold-actions { animation-delay: 0.02s; }
+        .admin-console .admin-track-note { animation-delay: 0.05s; }
+        .admin-console .admin-restore-box { animation-delay: 0.08s; }
+        .admin-console .admin-filter-bar { animation-delay: 0.11s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(1) { animation-delay: 0.14s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(2) { animation-delay: 0.17s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(3) { animation-delay: 0.2s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(4) { animation-delay: 0.23s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(5) { animation-delay: 0.26s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(6) { animation-delay: 0.29s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(7) { animation-delay: 0.32s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(8) { animation-delay: 0.35s; }
+        .admin-console .hub-section.hub-fold:nth-of-type(9) { animation-delay: 0.38s; }
+        @keyframes adminRise {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .admin-console .hub-section.hub-fold {
+            border-radius: 18px;
+            margin-bottom: 10px;
+            background: rgba(15, 23, 42, 0.48);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+            transition:
+                border-color 0.3s ease,
+                box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.3s ease,
+                transform 0.3s ease;
+        }
+        .admin-console .hub-section.hub-fold:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+            transform: translateY(-1px);
+        }
+        .admin-console .hub-section.hub-fold.is-open {
+            background: rgba(15, 23, 42, 0.62);
+            border-color: rgba(235, 10, 30, 0.32);
+            box-shadow:
+                0 24px 56px rgba(0, 0, 0, 0.36),
+                inset 0 1px 0 rgba(255, 255, 255, 0.07);
+            transform: none;
+        }
+        .hub-fold-body {
+            transition: grid-template-rows 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .hub-fold-content {
+            transition:
+                opacity 0.32s ease,
+                transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .hub-fold-toggle {
+            padding: 15px 18px;
+            transition: background 0.25s ease;
+        }
+        .hub-fold-chevron {
+            transition:
+                transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                background 0.25s ease,
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+        }
+        .hub-fold.is-open .hub-fold-chevron {
+            box-shadow: 0 0 16px rgba(235, 10, 30, 0.35);
+        }
+
+        .admin-filter-bar,
+        .admin-restore-box,
+        .admin-track-note {
+            transition:
+                border-color 0.25s ease,
+                box-shadow 0.3s ease,
+                transform 0.25s ease;
+        }
+        .admin-filter-bar:focus-within,
+        .admin-restore-box:hover {
+            border-color: rgba(235, 10, 30, 0.4);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+        }
+        .admin-filter-grid {
+            grid-template-columns: minmax(200px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto;
+        }
+        .admin-filter-field select,
+        .admin-filter-field input[type="date"],
+        .admin-console .hub-input,
+        .admin-console .hub-textarea {
+            transition:
+                border-color 0.2s ease,
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+        }
+        .admin-filter-field select:hover,
+        .admin-filter-field input[type="date"]:hover,
+        .admin-console .hub-input:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .pct-charts {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .pct-chart-card {
+            transition:
+                transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.3s ease,
+                border-color 0.25s ease;
+        }
+        .pct-chart-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+        }
+        .pct-chart-card--delivered-total:hover,
+        .pct-chart-card--status:hover {
+            transform: translateY(-2px);
+        }
+
+        .admin-console .hub-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .admin-console .hub-stat {
+            border-radius: 16px;
+            transition:
+                transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.28s ease,
+                border-color 0.28s ease;
+        }
+        .admin-console .hub-table-wrap {
+            border-radius: 14px;
+            transition: border-color 0.25s ease;
+        }
+        .admin-console .hub-table tbody tr {
+            transition: background 0.18s ease;
+        }
+        .admin-console .hub-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .xfer-dash {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .xfer-dash-card {
+            transition:
+                transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.28s ease,
+                border-color 0.25s ease;
+        }
+        .xfer-dash-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        .xfer-dash-row,
+        .xfer-account-item {
+            transition:
+                background 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .admin-gate-card {
+            animation: adminRise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            backdrop-filter: blur(16px);
+        }
+
+        @media (max-width: 1100px) {
+            .admin-console .hub-shell { width: min(100%, calc(100% - 16px)); }
+            .admin-filter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .admin-filter-actions { grid-column: 1 / -1; }
+        }
+        @media (max-width: 700px) {
+            .admin-console .hub-topbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .admin-console .hub-actions {
+                width: 100%;
+            }
+            .admin-console .hub-actions .hub-btn {
+                flex: 1 1 auto;
+            }
+            .admin-filter-grid { grid-template-columns: 1fr; }
+            .pct-charts { grid-template-columns: 1fr; }
+            .xfer-dash { grid-template-columns: 1fr; }
+            .hub-fold-title { font-size: 0.9rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .admin-console .hub-shell,
+            .admin-console .hub-fold-actions,
+            .admin-console .admin-track-note,
+            .admin-console .admin-restore-box,
+            .admin-console .admin-filter-bar,
+            .admin-console .hub-section.hub-fold,
+            .admin-gate-card {
+                animation: none !important;
+            }
+            .admin-console .hub-btn,
+            .admin-console .hub-stat,
+            .pct-chart-card,
+            .xfer-dash-card,
+            .hub-fold-body,
+            .hub-fold-content,
+            .hub-fold-chevron,
+            .delivered-total-bar > span {
+                transition: none !important;
+            }
+        }
     </style>
 </head>
 <body class="delivery-hub admin-console">
@@ -436,97 +1338,450 @@
     </div>
 
     <div class="hub-shell hidden" id="adminApp">
-        <header class="hub-topbar">
-            <div class="hub-brand">
-                <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
-                <div>
-                    <h1>لوحة إدارة الترحيل</h1>
-                    <p>بيانات الشاسيه · قائمة المنسق · المخزون</p>
-                </div>
+        <header class="saas-header saas-card">
+            <div>
+                <p class="saas-header__eyebrow">Toyota Delivery Hub</p>
+                <h1>لوحة متابعة الترحيل</h1>
             </div>
-            <div class="hub-actions">
-                <a href="Delivery_coordinator.html" class="hub-btn">منسق الترحيل</a>
-                <a href="Delivery_pdf.html" class="hub-btn">مذكرة الترحيل</a>
-                <button type="button" class="hub-btn hub-btn--primary" id="btnExportExcel">تصدير Excel</button>
-                <button type="button" class="hub-btn hub-btn--danger" id="btnClear">مسح البيانات</button>
-                <button type="button" class="hub-btn" id="btnAdminLogout">خروج</button>
+            <div class="saas-header__actions">
+                <a href="Delivery_coordinator.html" class="saas-btn saas-btn--ghost saas-btn--sm">المنسق</a>
+                <button type="button" class="saas-btn saas-btn--primary" id="btnExportExcel">تصدير Excel</button>
+                <button type="button" class="saas-btn saas-btn--sm" id="btnExpandAll">فتح الكل</button>
+                <button type="button" class="saas-btn saas-btn--sm" id="btnCollapseAll">طي الكل</button>
+                <button type="button" class="saas-btn saas-btn--danger saas-btn--sm" id="btnClear">مسح</button>
+                <button type="button" class="saas-btn" id="btnAdminLogout">خروج</button>
             </div>
         </header>
 
-        <div class="hub-stats" id="stats"></div>
-        <div class="hub-stats" id="queueStats"></div>
-
-        <section class="hub-section" id="optionsManagerSection">
-            <div class="hub-section-head">
-                <h2>إدارة القوائم — Companies & Cities Lists</h2>
-                <span class="hub-hint">إضافة أو حذف الشركات والمدن المستخدمة في المذكرة</span>
-            </div>
-            <div class="options-manage-grid">
-                <div class="options-manage-card">
-                    <h3>شركات النقل</h3>
-                    <div class="options-add-row">
-                        <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
-                        <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
-                    </div>
-                    <p class="hub-status" id="companyOptionsStatus"></p>
-                    <div class="options-list" id="companyOptionsList"></div>
+        <div class="admin-restore-box saas-card saas-section" id="adminRestoreBox" style="margin-top:14px">
+            <div class="saas-section__head">
+                <div>
+                    <h3>الإعدادات والأرشيف</h3>
+                    <p>استعادة تصدير قديم · تحديث Sales Raw من صفحة المنسق</p>
                 </div>
-                <div class="options-manage-card">
-                    <h3>المدن / الفروع</h3>
-                    <div class="options-add-row">
-                        <input type="text" id="newCityInput" class="hub-input" placeholder="اسم المدينة أو الفرع…" autocomplete="off">
-                        <button type="button" class="hub-btn hub-btn--primary" id="btnAddCity">إضافة</button>
+            </div>
+            <div class="admin-restore-actions">
+                <label class="hub-btn hub-btn--primary restore-file-btn" id="btnRestoreExport">
+                    <input type="file" id="restoreExportInput" accept=".xlsx,.xls">
+                    استيراد أرشيف delivery_export
+                </label>
+                <span class="hub-meta" id="restoreExportMeta">لم يتم استيراد أرشيف بعد</span>
+                <a href="Delivery_coordinator.html" class="hub-btn" style="text-decoration:none">تحديث Sales Raw من المنسق</a>
+            </div>
+            <p class="hub-status" id="restoreExportStatus" style="min-height:1.4em"></p>
+        </div>
+
+        <div class="ft-shell" id="adminFilterBar">
+            <div class="ft-toolbar" role="search" aria-label="Filter toolbar">
+                <div class="ft-search">
+                    <svg class="ft-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="m20 20-3.5-3.5"></path>
+                    </svg>
+                    <input
+                        type="search"
+                        class="ft-input"
+                        id="ftSearchInput"
+                        placeholder="Search VIN from system inventory…"
+                        autocomplete="off"
+                        aria-label="Search by VIN"
+                    >
+                    <button type="button" class="ft-search__clear" id="ftSearchClear" aria-label="Clear search">×</button>
+                </div>
+
+                <div class="ft-date-inline" id="ftDateControl" aria-label="Delivery note date range">
+                    <label class="ft-date-inline__field">
+                        <span>Start date</span>
+                        <input type="date" id="ftDateFromUi" lang="en" aria-label="Start date">
+                    </label>
+                    <label class="ft-date-inline__field">
+                        <span>End date</span>
+                        <input type="date" id="ftDateToUi" lang="en" aria-label="End date">
+                    </label>
+                    <button type="button" class="ft-btn ft-btn--ghost" id="ftDateToday" title="Today">Today</button>
+                </div>
+
+                <div class="ft-control" id="ftCompanyControl" data-ft-select="company">
+                    <button type="button" class="ft-control__trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"></path>
+                        </svg>
+                        <span class="ft-control__value is-placeholder" data-ft-label>Company</span>
+                    </button>
+                    <span class="ft-control__chevron" aria-hidden="true">▾</span>
+                    <div class="ft-panel" role="listbox">
+                        <div class="ft-panel__search"><input type="search" placeholder="Search company…" data-ft-q></div>
+                        <div data-ft-options></div>
                     </div>
-                    <p class="hub-status" id="cityOptionsStatus"></p>
-                    <div class="options-list" id="cityOptionsList"></div>
+                </div>
+
+                <div class="ft-actions">
+                    <div class="ft-more" id="ftMoreWrap">
+                        <button type="button" class="ft-btn ft-btn--more" id="ftMoreBtn" aria-expanded="false">
+                            More Filters
+                        </button>
+                        <div class="ft-more__panel" id="ftMorePanel">
+                            <div>
+                                <div class="ft-more__label">Date type</div>
+                                <select class="ft-native" id="ftDateTypeUi">
+                                    <option value="delivery_note" selected>Delivery note date</option>
+                                    <option value="invoice">Invoice date</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="ft-more__label">Coordinator</div>
+                                <div class="ft-control" id="ftCoordinatorControl" data-ft-select="coordinator" style="min-width:0">
+                                    <button type="button" class="ft-control__trigger" aria-haspopup="listbox" aria-expanded="false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <circle cx="12" cy="8" r="4"></circle>
+                                            <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path>
+                                        </svg>
+                                        <span class="ft-control__value is-placeholder" data-ft-label>Coordinator</span>
+                                    </button>
+                                    <span class="ft-control__chevron" aria-hidden="true">▾</span>
+                                    <div class="ft-panel" role="listbox" style="inset-inline-end:0;inset-inline-start:auto">
+                                        <div class="ft-panel__search"><input type="search" placeholder="Search…" data-ft-q></div>
+                                        <div data-ft-options></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="ft-btn ft-btn--primary" id="btnTrackApply">Apply Filters</button>
+                    <button type="button" class="ft-btn ft-btn--ghost" id="btnTrackClear">Reset</button>
+                </div>
+            </div>
+
+            <div class="ft-chips" id="filterChipsBar" aria-label="Active filters"></div>
+            <p class="ft-meta admin-filter-meta" id="trackFilterMeta">Showing all records</p>
+            <p class="hub-meta" id="trackFilterHint" hidden></p>
+
+            <div class="ft-hidden-natives" aria-hidden="true">
+                <select id="trackDateType">
+                    <option value="delivery_note" selected>Delivery note</option>
+                    <option value="invoice">Invoice</option>
+                </select>
+                <input type="date" id="trackDateFrom">
+                <input type="date" id="trackDateTo">
+                <button type="button" id="btnTrackToday" hidden>Today</button>
+                <button type="button" id="btnClearCompanyScope" hidden>Clear company</button>
+            </div>
+        </div>
+
+        <div class="company-filter-chip saas-chip-bar hidden" id="companyFilterChip" hidden>
+            <span class="label">Company</span>
+            <span class="name" id="companyFilterName">—</span>
+            <span class="meta" id="companyFilterMeta"></span>
+        </div>
+
+        <div class="admin-overview-row">
+        <div class="saas-kpi-grid" id="premiumKpiGrid" aria-label="مؤشرات سريعة"></div>
+
+        <section class="saas-hero saas-card" id="heroProgressCard" aria-label="تقدم الترحيل">
+            <div>
+                <p class="saas-hero__eyebrow">Delivery Progress</p>
+                <h2>تقدم الترحيل</h2>
+                <p class="saas-hero__caption" id="deliveredTotalCaption">لا توجد بيانات بعد</p>
+            </div>
+            <div>
+                <div class="saas-hero__pct" id="deliveredTotalPct">0%</div>
+                <div class="saas-hero__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                    <span id="deliveredTotalBarFill"></span>
+                </div>
+                <div class="saas-hero__stats">
+                    <div><b id="deliveredTotalDone">0</b><span>تم الترحيل</span></div>
+                    <div><b id="deliveredTotalRemaining">0</b><span>متبقي</span></div>
+                    <div><b id="deliveredTotalAll">0</b><span>الإجمالي</span></div>
+                </div>
+            </div>
+            <div class="pct-donut-wrap" id="deliveredTotalDonut" hidden></div>
+        </section>
+        </div>
+
+        <section class="hub-section hub-fold" id="statsFold" data-fold hidden>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">ملخص المخزون — Inventory Stats</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">إجمالي المركبات والمنتجات</span>
+                    <span class="hub-fold-count" id="statsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="hub-stats" id="stats"></div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="hub-section hub-section--xfer">
-            <div class="hub-section-head">
-                <h2>لوحة النقل — Companies & Cities</h2>
-                <span class="hub-hint">من مسودات الطباعة المحفوظة (شركة النقل والفرع)</span>
-            </div>
-            <div class="xfer-date-filter" id="xferDateFilterBar">
-                <label for="xferDateFilter">تاريخ الترحيل</label>
-                <input type="date" id="xferDateFilter" aria-label="تصفية حسب تاريخ الترحيل">
-                <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" id="btnXferDateToday">اليوم</button>
-                <button type="button" class="hub-btn hub-btn--sm" id="btnXferDateAll">كل التواريخ</button>
-                <span class="xfer-date-label" id="xferDateLabel">عرض كل التواريخ</span>
-            </div>
-            <div class="xfer-dash">
-                <div class="xfer-dash-card">
-                    <h3>أكثر شركات النقل اختياراً</h3>
-                    <p class="xfer-dash-sub">حقل اسم الشركة / Company في المذكرة</p>
-                    <div id="companyDashList" class="xfer-dash-list">
-                        <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
+        <section class="hub-section hub-fold" id="queueStatsFold" data-fold hidden>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">ملخص القائمة — Queue Stats</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">حالات الترحيل الحية</span>
+                    <span class="hub-fold-count" id="queueStatsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="hub-stats" id="queueStats"></div>
                     </div>
-                    <div class="xfer-dash-top" id="companyDashTop"></div>
                 </div>
-                <div class="xfer-dash-card xfer-dash-card--city">
-                    <h3>أكثر الفروع / المدن تحويلاً</h3>
-                    <p class="xfer-dash-sub">حقل محولة إلى فرع / Branch</p>
-                    <div id="cityDashList" class="xfer-dash-list">
-                        <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
-                    </div>
-                    <div class="xfer-dash-top" id="cityDashTop"></div>
-                </div>
-                <div class="xfer-dash-card xfer-dash-card--account">
-                    <h3>حساب كل شركة حسب المدن</h3>
-                    <p class="xfer-dash-sub">اضغط على أي شركة لعرض كل سجلاتها المحفوظة — القائمة كاملة</p>
-                    <div id="companyCityBreakdown" class="xfer-account-list">
-                        <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
-                    </div>
-                    <div class="xfer-dash-top" id="companyCityTop"></div>
-                    <div class="xfer-records hidden" id="companyRecordsPanel">
-                        <div class="xfer-records-head">
-                            <div>
-                                <h3 id="companyRecordsTitle">سجلات الشركة</h3>
-                                <p id="companyRecordsMeta"></p>
+            </div>
+        </section>
+
+        <section class="hub-section hub-fold" id="optionsManagerSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">إدارة القوائم — Companies & Cities</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">إضافة أو حذف الشركات والمدن</span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="options-manage-grid">
+                            <div class="options-manage-card">
+                                <h3>شركات النقل</h3>
+                                <div class="options-add-row">
+                                    <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
+                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
+                                </div>
+                                <p class="hub-status" id="companyOptionsStatus"></p>
+                                <div class="options-list" id="companyOptionsList"></div>
                             </div>
-                            <button type="button" class="hub-btn hub-btn--sm" id="btnClearCompanyFilter">إظهار الكل</button>
+                            <div class="options-manage-card">
+                                <h3>المدن / الفروع</h3>
+                                <div class="options-add-row">
+                                    <input type="text" id="newCityInput" class="hub-input" placeholder="اسم المدينة أو الفرع…" autocomplete="off">
+                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCity">إضافة</button>
+                                </div>
+                                <p class="hub-status" id="cityOptionsStatus"></p>
+                                <div class="options-list" id="cityOptionsList"></div>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="hub-section hub-section--xfer hub-fold is-open" id="xferDashSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="true">
+                <span class="hub-fold-title">لوحة النقل — Companies & Cities</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">من مسودات الطباعة المحفوظة</span>
+                    <span class="hub-fold-count" id="xferFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="xfer-dash-mosaic">
+                        <div class="saas-section saas-card xfer-trend-card xfer-mosaic-cell" style="margin:0;box-shadow:none">
+                            <div class="saas-section__head">
+                                <div>
+                                    <h3>اتجاهات الترحيل</h3>
+                                    <p>عدد المذكرات حسب الأسبوع (من الإثنين إلى الأحد)</p>
+                                </div>
+                            </div>
+                            <div id="trendChartEl" class="xfer-trend-chart"></div>
+                        </div>
+
+                        <div class="saas-section saas-card xfer-mosaic-cell" style="margin:0;box-shadow:none">
+                            <div class="saas-section__head">
+                                <div>
+                                    <h3>أبرز الشركات</h3>
+                                    <p>اضغط شركة لعرض بياناتها فقط</p>
+                                </div>
+                            </div>
+                            <div id="companyDashList" class="saas-company-list xfer-dash-list xfer-dash-list--compact">
+                                <div class="saas-empty">لا توجد بيانات بعد</div>
+                            </div>
+                            <div class="xfer-dash-top" id="companyDashTop" hidden></div>
+                        </div>
+
+                        <div class="xfer-branches-row xfer-mosaic-span-2">
+                            <div class="pct-chart-card saas-section" style="margin:0">
+                                <h3>الفروع / المدن</h3>
+                                <p class="pct-chart-sub">ترتيب أفقي حسب عدد التحويلات</p>
+                                <div id="cityPctDonut" class="xfer-city-chart"></div>
+                                <div class="pct-legend" id="cityPctLegend" hidden></div>
+                            </div>
+                            <div class="saas-section saas-card" style="margin:0;box-shadow:none">
+                                <div class="saas-section__head">
+                                    <div>
+                                        <h3>ترتيب الفروع</h3>
+                                        <p>قائمة سريعة للفروع</p>
+                                    </div>
+                                </div>
+                                <div id="cityDashList" class="saas-company-list xfer-dash-list xfer-dash-list--compact">
+                                    <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
+                                </div>
+                                <div class="xfer-dash-top" id="cityDashTop"></div>
+                            </div>
+                        </div>
+
+                        <div class="pct-chart-card pct-chart-card--status saas-section xfer-mosaic-span-2" style="margin:0" hidden>
+                            <h3>حالة الترحيل</h3>
+                            <p class="pct-chart-sub">تم الترحيل مقابل المتبقي</p>
+                            <div class="pct-chart-layout">
+                                <div class="pct-donut-wrap" id="statusPctDonut"></div>
+                                <div>
+                                    <div class="pct-legend" id="statusPctLegend"></div>
+                                    <div class="pct-status-strip" id="statusPctStrip"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="saas-section saas-card xfer-mosaic-span-2" id="invoiceStatusCard" style="margin:0;box-shadow:none">
+                            <div class="saas-section__head">
+                                <div>
+                                    <h3>زمن التسليم حسب الشركة (Lead Time)</h3>
+                                    <p>الفرق بالأيام = Invoice (من Sales Raw) − Delivery Note. الصفوف الفارغة تعني أن تاريخ الفاتورة غير موجود في ملف المخزون لهذا VIN</p>
+                                </div>
+                                <div class="invoice-status-stats" id="invoiceStatusStats" aria-live="polite"></div>
+                            </div>
+                            <div class="lead-company-row">
+                                <label for="leadTimeCompanySelect">الشركة</label>
+                                <select id="leadTimeCompanySelect" class="ft-native" aria-label="اختر شركة لزمن التسليم">
+                                    <option value="">— اختر شركة —</option>
+                                </select>
+                            </div>
+                            <div class="lead-time-grid">
+                                <div class="lead-time-charts">
+                                    <div class="invoice-status-layout invoice-status-layout--compact">
+                                        <div id="invoiceStatusChart" class="invoice-status-chart"></div>
+                                        <div class="invoice-status-bars" id="invoiceStatusBars"></div>
+                                    </div>
+                                </div>
+                                <div class="hub-table-wrap lead-time-table-wrap">
+                                    <table class="hub-table saas-table">
+                                        <thead>
+                                            <tr>
+                                                <th>VIN</th>
+                                                <th>Invoice</th>
+                                                <th>Delivery Note</th>
+                                                <th>الأيام</th>
+                                                <th>الفئة</th>
+                                                <th>المنتج</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="leadTimeCarsBody">
+                                            <tr><td colspan="6" class="hub-empty">اختر شركة لعرض السيارات وزمن التسليم</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="pct-chart-card" hidden>
+                            <div class="pct-donut-wrap" id="companyPctDonut"></div>
+                            <div class="pct-legend" id="companyPctLegend"></div>
+                        </div>
+                        <div class="xfer-date-filter" id="xferDateFilterBar" style="display:none">
+                            <label for="xferDateFilter">تاريخ الترحيل</label>
+                            <input type="date" id="xferDateFilter" aria-label="تصفية حسب تاريخ الترحيل">
+                            <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" id="btnXferDateToday">اليوم</button>
+                            <button type="button" class="hub-btn hub-btn--sm" id="btnXferDateAll">كل التواريخ</button>
+                            <span class="xfer-date-label" id="xferDateLabel">عرض كل التواريخ</span>
+                        </div>
+                        <div class="xfer-dash xfer-dash--single">
+                            <div class="xfer-dash-card xfer-dash-card--account">
+                                <h3>حساب كل شركة حسب المدن</h3>
+                                <p class="xfer-dash-sub">اضغط على أي شركة لعرض كل سجلاتها</p>
+                                <div id="companyCityBreakdown" class="xfer-account-list">
+                                    <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
+                                </div>
+                                <div class="xfer-dash-top" id="companyCityTop"></div>
+                                <div class="xfer-records hidden" id="companyRecordsPanel">
+                                    <div class="xfer-records-head">
+                                        <div>
+                                            <h3 id="companyRecordsTitle">سجلات الشركة</h3>
+                                            <p id="companyRecordsMeta"></p>
+                                        </div>
+                                        <button type="button" class="hub-btn hub-btn--sm" id="btnClearCompanyFilter">إظهار الكل</button>
+                                    </div>
+                                    <div class="hub-table-wrap">
+                                        <table class="hub-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>التاريخ</th>
+                                                    <th>الشاسيه</th>
+                                                    <th>Product</th>
+                                                    <th>المسؤول</th>
+                                                    <th>مندوب الشركة</th>
+                                                    <th>الفرع</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="companyRecordsBody">
+                                                <tr><td colspan="7" class="hub-empty">اختر شركة</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="hub-section hub-fold" id="queueSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">قائمة المنسق — Coordinator Queue</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">تحديث فوري — Live sync</span>
+                    <span class="hub-fold-count" id="queueFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <p class="hub-meta" style="margin-bottom:12px">متاح · مع الفاضل/ياسين/البراء · تم الترحيل</p>
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>الشاسيه</th>
+                                        <th>Product</th>
+                                        <th>GT</th>
+                                        <th>Location</th>
+                                        <th>المسؤول</th>
+                                        <th>التصنيف</th>
+                                        <th>الحالة</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="queueBody">
+                                    <tr><td colspan="8" class="hub-empty">لا توجد شاسيه في القائمة</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="hub-section hub-fold" id="draftsSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">مسودات الطباعة — Print Drafts</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">تصدير PDF لأي مسودة محفوظة</span>
+                    <span class="hub-fold-count" id="draftsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
                         <div class="hub-table-wrap">
                             <table class="hub-table">
                                 <thead>
@@ -536,12 +1791,13 @@
                                         <th>Product</th>
                                         <th>المسؤول</th>
                                         <th>مندوب الشركة</th>
+                                        <th>اسم الشركة</th>
                                         <th>الفرع</th>
                                         <th></th>
                                     </tr>
                                 </thead>
-                                <tbody id="companyRecordsBody">
-                                    <tr><td colspan="7" class="hub-empty">اختر شركة</td></tr>
+                                <tbody id="draftsBody">
+                                    <tr><td colspan="7" class="hub-empty">لا توجد مسودات بعد</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -550,104 +1806,101 @@
             </div>
         </section>
 
-        <section class="hub-section">
-            <div class="hub-section-head">
-                <h2>قائمة المنسق — Coordinator Queue</h2>
-                <span class="hub-hint">تحديث فوري — Live sync</span>
-            </div>
-            <p class="hub-meta" style="margin-bottom:12px">متاح · مع الفاضل/ياسين/البراء · تم الترحيل</p>
-            <div class="hub-table-wrap">
-                <table class="hub-table">
-                    <thead>
-                        <tr>
-                            <th>الشاسيه</th>
-                            <th>Product</th>
-                            <th>GT</th>
-                            <th>Location</th>
-                            <th>المسؤول</th>
-                            <th>التصنيف</th>
-                            <th>الحالة</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="queueBody">
-                        <tr><td colspan="8" class="hub-empty">لا توجد شاسيه في القائمة</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="hub-section">
-            <div class="hub-section-head">
-                <h2>مسودات الطباعة — Print Drafts</h2>
-                <span class="hub-hint">تصدير PDF لأي مسودة محفوظة</span>
-            </div>
-            <div class="hub-table-wrap">
-                <table class="hub-table">
-                    <thead>
-                        <tr>
-                            <th>التاريخ</th>
-                            <th>الشاسيه</th>
-                            <th>Product</th>
-                            <th>المسؤول</th>
-                            <th>مندوب الشركة</th>
-                            <th>اسم الشركة</th>
-                            <th>الفرع</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="draftsBody">
-                        <tr><td colspan="7" class="hub-empty">لا توجد مسودات بعد</td></tr>
-                    </tbody>
-                </table>
+        <section class="hub-section hub-fold" id="warehouseDraftsSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">التسليم في المستودع — Warehouse Delivery</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">قوائم فحص المستودع — تصدير PDF</span>
+                    <span class="hub-fold-count" id="warehouseDraftsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>الشاسيه</th>
+                                        <th>Product</th>
+                                        <th>المسؤول</th>
+                                        <th>المالك</th>
+                                        <th>الهاتف</th>
+                                        <th>العدد</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="warehouseDraftsBody">
+                                    <tr><td colspan="8" class="hub-empty">لا توجد قوائم فحص مستودع بعد</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="hub-section">
-            <div class="hub-section-head">
-                <h2>رفع بيانات خام — Upload Raw Data</h2>
+        <p class="hub-status" id="uploadStatus"></p>
+        <p class="hub-meta" id="uploadMeta" style="display:none"></p>
+
+        <section class="hub-section hub-fold" id="productsSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">توزيع المنتجات — Products</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-fold-count" id="productsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="hub-chips" id="productsGrid">
+                            <span class="hub-empty">لا توجد بيانات</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <label class="hub-upload" id="uploadZone">
-                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-                <strong>اسحب ملف Excel أو انقر للاختيار</strong>
-                <p class="hub-meta">Sales Raw Data — أعمدة VIN / Product / Plate</p>
-            </label>
-            <p class="hub-meta" id="uploadMeta">لم يتم رفع ملف بعد</p>
-            <p class="hub-status" id="uploadStatus"></p>
         </section>
 
-        <section class="hub-section">
-            <div class="hub-section-head">
-                <h2>توزيع المنتجات — Products</h2>
-            </div>
-            <div class="hub-chips" id="productsGrid">
-                <span class="hub-empty">لا توجد بيانات</span>
-            </div>
-        </section>
-
-        <section class="hub-section">
-            <div class="hub-section-head">
-                <h2>سجل المركبات — Vehicle Inventory</h2>
-            </div>
-            <div class="hub-toolbar">
-                <input type="search" id="searchInput" class="hub-input" placeholder="بحث بالشاسيه، المنتج، اللوحة، العميل…">
-            </div>
-            <div class="hub-table-wrap">
-                <table class="hub-table">
-                    <thead>
-                        <tr>
-                            <th>صورة</th>
-                            <th>الشاسية / VIN</th>
-                            <th>المنتج / Product</th>
-                            <th>اللوحة</th>
-                            <th>العميل</th>
-                            <th>الموقع</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <tr><td colspan="6" class="hub-empty">لا توجد بيانات — ارفع ملف Excel</td></tr>
-                    </tbody>
-                </table>
+        <section class="hub-section hub-fold" id="inventorySection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">سجل المركبات — Vehicle Inventory</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">بحث وعرض الشاسيه</span>
+                    <span class="hub-fold-count" id="inventoryFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="hub-toolbar">
+                            <input type="search" id="searchInput" class="hub-input" placeholder="Search by VIN, Company, Branch..." hidden aria-hidden="true">
+                        </div>
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>صورة</th>
+                                        <th>الشاسية / VIN</th>
+                                        <th>المنتج / Product</th>
+                                        <th>اللوحة</th>
+                                        <th>العميل</th>
+                                        <th>الموقع</th>
+                                        <th>Proforma</th>
+                                        <th>Invoice</th>
+                                        <th>Delivery Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr><td colspan="9" class="hub-empty">لا توجد بيانات — ارفع الملف من صفحة المنسق</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
@@ -699,6 +1952,130 @@
         });
         document.getElementById('btnAdminLogout').addEventListener('click', lockAdmin);
 
+        function setRestoreStatus(msg, type) {
+            const el = document.getElementById('restoreExportStatus');
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'hub-status' + (type ? ` ${type}` : '');
+        }
+
+        function syncRestoreMetaFromDashboard() {
+            const meta = document.getElementById('restoreExportMeta');
+            if (!meta) return;
+            const name = String((lastDashboard && lastDashboard.filename) || '').trim();
+            if (!name) return;
+            meta.textContent = `${name} · ${allVehicles.length} مركبة · ${allDrafts.length} مسودة · ${allQueue.length} قائمة`;
+        }
+
+        async function restoreExportFile(file) {
+            if (!file) {
+                setRestoreStatus('اختر ملف Excel أولاً', 'err');
+                return;
+            }
+            setRestoreStatus(`تم اختيار: ${file.name}`);
+            if (!confirm('استيراد هذا الأرشيف سيستبدل المخزون / القائمة / المسودات الحالية. متابعة؟')) {
+                setRestoreStatus('تم إلغاء الاستيراد');
+                return;
+            }
+            setRestoreStatus('جاري استيراد الأرشيف…');
+            try {
+                const readerResult = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('فشل قراءة الملف من الجهاز'));
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
+                });
+                const res = await fetch('/api/delivery-inventory/restore-export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileData: readerResult, filename: file.name })
+                });
+                const text = await res.text();
+                let data = {};
+                try { data = text ? JSON.parse(text) : {}; } catch (_) {
+                    throw new Error(res.status === 413
+                        ? 'الملف كبير جداً للخادم'
+                        : `فشل الاستيراد (HTTP ${res.status})`);
+                }
+                if (!res.ok) throw new Error(data.error || 'فشل الاستيراد');
+                const meta = document.getElementById('restoreExportMeta');
+                if (meta) {
+                    meta.textContent = `${file.name} · ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة`;
+                }
+                setRestoreStatus(
+                    `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} في القائمة`,
+                    'ok'
+                );
+                await loadDashboard();
+                if (data.draftsImported) openFold('draftsSection', { scroll: true });
+                else openFold('inventorySection', { scroll: true });
+            } catch (err) {
+                setRestoreStatus(err.message || 'فشل الاستيراد', 'err');
+            }
+        }
+
+        // Native file input sits on top of the blue label — no programmatic .click() needed.
+        document.getElementById('restoreExportInput')?.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) restoreExportFile(file);
+            e.target.value = '';
+        });
+
+        function setFoldOpen(section, open) {
+            if (!section) return;
+            section.classList.toggle('is-open', open);
+            const btn = section.querySelector('.hub-fold-toggle');
+            if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+
+        function openFold(sectionOrId, { scroll = false } = {}) {
+            const section = typeof sectionOrId === 'string'
+                ? document.getElementById(sectionOrId)
+                : sectionOrId;
+            setFoldOpen(section, true);
+            if (scroll && section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function setFoldCount(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const n = Number(value) || 0;
+            el.textContent = n > 0 ? String(n) : '';
+            el.dataset.empty = n > 0 ? '0' : '1';
+        }
+
+        function updateFoldCounts() {
+            const vehicleCount = allVehicles.length;
+            const queueCount = allQueue.length;
+            const draftCount = allDrafts.length;
+            const productCount = (lastDashboard && lastDashboard.uniqueProducts) || 0;
+            setFoldCount('statsFoldCount', vehicleCount);
+            setFoldCount('queueStatsFoldCount', queueCount);
+            setFoldCount('queueFoldCount', queueCount);
+            setFoldCount('draftsFoldCount', draftCount);
+            setFoldCount('warehouseDraftsFoldCount', (allDrafts || []).filter(isWarehouseAdminDraft).length);
+            setFoldCount('xferFoldCount', draftCount);
+            setFoldCount('inventoryFoldCount', vehicleCount);
+            setFoldCount('productsFoldCount', productCount);
+        }
+
+        document.querySelectorAll('[data-fold]').forEach((section) => {
+            const btn = section.querySelector('.hub-fold-toggle');
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                setFoldOpen(section, !section.classList.contains('is-open'));
+            });
+        });
+
+        document.getElementById('btnExpandAll')?.addEventListener('click', () => {
+            document.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, true));
+        });
+        document.getElementById('btnCollapseAll')?.addEventListener('click', () => {
+            document.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, false));
+        });
+
         function setUploadStatus(msg, type) {
             const el = document.getElementById('uploadStatus');
             el.textContent = msg || '';
@@ -729,10 +2106,14 @@
                 Product: v.product || v.model || '',
                 Plate: v.plate || '',
                 Customer: v.customerName || '',
+                'Contact No.': v.phone || '',
                 Location: v.location || '',
                 GT: v.gt || '',
                 Model: v.model || '',
-                'Image URL': v.imageUrl || ''
+                'Image URL': v.imageUrl || '',
+                'Proforma Date': v.proformaDate || '',
+                'Invoice Date': v.invoiceDate || '',
+                'Delivery Note Date': v.deliveryNoteDate || ''
             }));
             XLSX.utils.book_append_sheet(
                 wb,
@@ -751,7 +2132,7 @@
                 'Agent Status': item.agentStatus || '',
                 Classification: item.status === 'available'
                     ? 'متاح'
-                    : (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'),
+                    : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز')),
                 Plate: item.plate || '',
                 Customer: item.customerName || '',
                 'Added At': item.addedAt || '',
@@ -819,28 +2200,239 @@
             );
         }
 
+        function renderPremiumKpis() {
+            const host = document.getElementById('premiumKpiGrid');
+            if (!host) return;
+            const progress = deliveredOfTotalStats();
+            const warehouse = warehouseDeliveredStats();
+            const drafts = filteredDrafts();
+            const vehicles = filteredVehicleList();
+            const companies = new Set(drafts.map(draftCompanyName).filter(Boolean)).size;
+            const branches = new Set(
+                drafts.map((d) => String((d.payload || {}).branch_to || '').trim()).filter((n) => n && n !== '-')
+            ).size;
+            const cards = [
+                { label: 'إجمالي المركبات', value: vehicles.length, trend: 'ضمن النطاق الحالي', accent: '#3B82F6', icon: '🚗' },
+                { label: 'تم الترحيل', value: progress.delivered, trend: `${progress.pct}% من الإجمالي`, accent: '#22C55E', icon: '✓' },
+                { label: 'تم التسليم في المستودع', value: warehouse.count, trend: `${warehouse.pct}% من الإجمالي`, accent: '#0EA5E9', icon: '🏭' },
+                { label: 'متبقي', value: progress.remaining, trend: 'قيد التنفيذ / غير مرحّل', accent: '#F59E0B', icon: '⏳' },
+                { label: 'الشركات', value: companies, trend: 'من المذكرات المصفّاة', accent: '#3B82F6', icon: '🏢' },
+                { label: 'الفروع', value: branches, trend: 'وجهات التحويل', accent: '#64748B', icon: '📍' },
+                { label: 'نسبة الترحيل', value: `${progress.pct}%`, trend: `${progress.delivered} من ${progress.total}`, accent: '#22C55E', icon: '%' },
+                { label: 'نسبة التسليم في المستودع', value: `${warehouse.pct}%`, trend: `${warehouse.count} من ${warehouse.total}`, accent: '#0EA5E9', icon: '%' }
+            ];
+            host.innerHTML = cards.map((c) => `
+                <article class="saas-kpi saas-card">
+                    <div class="saas-kpi__icon" style="color:${c.accent};background:${c.accent}22">${c.icon}</div>
+                    <div class="saas-kpi__label">${c.label}</div>
+                    <div class="saas-kpi__value">${c.value}</div>
+                    <div class="saas-kpi__trend">${c.trend}</div>
+                    <span class="saas-kpi__accent" style="background:${c.accent}"></span>
+                </article>
+            `).join('');
+        }
+
+        const apexChartsByEl = new WeakMap();
+
+        function renderApex(el, options) {
+            if (!el || typeof ApexCharts === 'undefined') return;
+            const prev = apexChartsByEl.get(el);
+            if (prev) {
+                prev.destroy();
+                apexChartsByEl.delete(el);
+            }
+            el.innerHTML = '';
+            const chart = new ApexCharts(el, options);
+            chart.render();
+            apexChartsByEl.set(el, chart);
+        }
+
+        function isoAddDays(iso, days) {
+            const dt = parseIsoDateOnly(iso);
+            if (!dt) return '';
+            dt.setUTCDate(dt.getUTCDate() + days);
+            return dt.toISOString().slice(0, 10);
+        }
+
+        /** Monday (UTC) of the week containing the ISO date. */
+        function weekStartMondayIso(iso) {
+            const dt = parseIsoDateOnly(iso);
+            if (!dt) return '';
+            const day = dt.getUTCDay(); // 0 Sun .. 6 Sat
+            const diff = (day + 6) % 7; // days since Monday
+            dt.setUTCDate(dt.getUTCDate() - diff);
+            return dt.toISOString().slice(0, 10);
+        }
+
+        function weekRangeLabel(weekStartIso) {
+            const start = parseIsoDateOnly(weekStartIso);
+            if (!start) return weekStartIso;
+            const end = new Date(start);
+            end.setUTCDate(start.getUTCDate() + 6);
+            const fmt = (d) => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+            return `${fmt(start)}–${fmt(end)}`;
+        }
+
+        function draftsTrendRows(drafts) {
+            const map = new Map();
+            (drafts || []).forEach((d) => {
+                const iso = draftEventIso(d);
+                if (!iso) return;
+                const week = weekStartMondayIso(iso);
+                if (!week) return;
+                map.set(week, (map.get(week) || 0) + 1);
+            });
+            const keys = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
+            if (!keys.length) return [];
+
+            const rows = [];
+            let cur = keys[0];
+            const last = keys[keys.length - 1];
+            while (cur && cur <= last) {
+                rows.push({
+                    weekStart: cur,
+                    date: weekRangeLabel(cur),
+                    count: map.get(cur) || 0
+                });
+                cur = isoAddDays(cur, 7);
+            }
+            return rows;
+        }
+
+        function renderTrendChart(drafts) {
+            const el = document.getElementById('trendChartEl');
+            if (!el) return;
+            const rows = draftsTrendRows(drafts);
+            if (!rows.length) {
+                el.innerHTML = '<div class="saas-empty">لا توجد بيانات اتجاه بعد</div>';
+                return;
+            }
+            const maxCount = Math.max(...rows.map((r) => r.count), 0);
+            renderApex(el, {
+                chart: {
+                    type: 'bar',
+                    height: 220,
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    fontFamily: 'Inter, sans-serif'
+                },
+                theme: { mode: 'dark' },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 8,
+                        columnWidth: rows.length <= 4 ? '42%' : '58%',
+                        dataLabels: { position: 'top' }
+                    }
+                },
+                colors: ['#3B82F6'],
+                dataLabels: {
+                    enabled: true,
+                    offsetY: -16,
+                    style: { colors: ['#E2E8F0'], fontSize: '11px', fontWeight: 700 },
+                    formatter: (val) => (val ? String(val) : '')
+                },
+                grid: {
+                    borderColor: 'rgba(255,255,255,0.06)',
+                    strokeDashArray: 3,
+                    padding: { top: 12, bottom: 0 }
+                },
+                series: [{ name: 'مذكرات / أسبوع', data: rows.map((r) => r.count) }],
+                xaxis: {
+                    categories: rows.map((r) => r.date),
+                    labels: {
+                        style: { colors: '#94A3B8', fontSize: '11px' },
+                        rotate: rows.length > 6 ? -35 : 0,
+                        rotateAlways: rows.length > 6
+                    },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    title: {
+                        text: 'الأسبوع',
+                        style: { color: '#64748B', fontSize: '11px', fontWeight: 500 }
+                    }
+                },
+                yaxis: {
+                    min: 0,
+                    max: maxCount <= 2 ? 4 : undefined,
+                    forceNiceScale: true,
+                    tickAmount: Math.min(5, Math.max(2, maxCount || 2)),
+                    labels: {
+                        style: { colors: '#94A3B8', fontSize: '11px' },
+                        formatter: (val) => String(Math.round(val))
+                    },
+                    title: {
+                        text: 'عدد المذكرات',
+                        style: { color: '#64748B', fontSize: '11px', fontWeight: 500 }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: { formatter: (val) => `${val} مذكرة` }
+                }
+            });
+        }
+
+        function renderHorizontalBars(el, rows, color) {
+            if (!el) return;
+            if (!rows.length) {
+                el.innerHTML = '<div class="saas-empty">لا توجد بيانات</div>';
+                return;
+            }
+            const top = rows.slice(0, 10);
+            renderApex(el, {
+                chart: {
+                    type: 'bar',
+                    height: Math.max(200, top.length * 32),
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    fontFamily: 'Inter, sans-serif'
+                },
+                theme: { mode: 'dark' },
+                plotOptions: { bar: { horizontal: true, borderRadius: 8, barHeight: '62%' } },
+                colors: [color || '#3B82F6'],
+                dataLabels: { enabled: false },
+                grid: { borderColor: 'rgba(255,255,255,0.06)' },
+                series: [{ name: 'العدد', data: top.map((r) => r.count) }],
+                xaxis: {
+                    categories: top.map((r) => r.name),
+                    labels: { style: { colors: '#94A3B8', fontSize: '11px' } }
+                },
+                yaxis: { labels: { style: { colors: '#F8FAFC', fontSize: '12px' } } },
+                tooltip: { theme: 'dark' }
+            });
+        }
+
         function renderStats(dashboard) {
             const d = dashboard || {};
-            document.getElementById('stats').innerHTML = `
+            const statsEl = document.getElementById('stats');
+            if (statsEl) {
+                statsEl.innerHTML = `
                 <div class="hub-stat"><span>إجمالي المركبات</span><b>${d.totalVehicles || 0}</b></div>
                 <div class="hub-stat hub-stat--stock"><span>منتجات مختلفة</span><b>${d.uniqueProducts || 0}</b></div>
                 <div class="hub-stat"><span>آخر رفع</span><b style="font-size:0.95rem">${d.uploadedAt ? new Date(d.uploadedAt).toLocaleString('ar-SA') : '—'}</b></div>
                 <div class="hub-stat"><span>الملف</span><b style="font-size:0.85rem">${d.filename || '—'}</b></div>
             `;
-            document.getElementById('uploadMeta').textContent = d.sheetName
-                ? `الورقة: ${d.sheetName} · ${d.totalVehicles || 0} مركبة`
-                : 'لم يتم رفع ملف بعد';
+            }
+            const meta = document.getElementById('uploadMeta');
+            if (meta) {
+                meta.textContent = d.sheetName
+                    ? `الورقة: ${d.sheetName} · ${d.totalVehicles || 0} مركبة`
+                    : 'لم يتم رفع ملف بعد';
+            }
             const grid = document.getElementById('productsGrid');
-            const top = d.topProducts || [];
-            grid.innerHTML = top.length
-                ? top.map((p) => `<span class="hub-chip"><span>${p.count}</span>${p.product}</span>`).join('')
-                : '<span class="hub-empty">لا توجد بيانات</span>';
+            if (grid) {
+                const top = d.topProducts || [];
+                grid.innerHTML = top.length
+                    ? top.map((p) => `<span class="hub-chip"><span>${p.count}</span>${p.product}</span>`).join('')
+                    : '<span class="hub-empty">لا توجد بيانات</span>';
+            }
+            renderPremiumKpis();
         }
 
         function renderTable(list) {
             const tbody = document.getElementById('tableBody');
             if (!list.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="hub-empty">لا توجد نتائج</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="hub-empty">لا توجد نتائج</td></tr>';
                 return;
             }
             tbody.innerHTML = list.slice(0, 300).map((v) => {
@@ -854,6 +2446,9 @@
                     <td>${v.plate || '—'}</td>
                     <td>${v.customerName || '—'}</td>
                     <td>${v.location || '—'}</td>
+                    <td>${v.proformaDate || '—'}</td>
+                    <td>${v.invoiceDate || '—'}</td>
+                    <td>${v.deliveryNoteDate || '—'}</td>
                 </tr>`;
             }).join('');
         }
@@ -861,13 +2456,472 @@
         function filterVehicles(q) {
             const s = String(q || '').trim().toLowerCase();
             if (!s) return allVehicles;
-            return allVehicles.filter((v) => {
-                const hay = [v.vin, v.product, v.model, v.plate, v.customerName, v.location].join(' ').toLowerCase();
-                return hay.includes(s);
+            return allVehicles.filter((v) => rowMatchesSearch(v, s));
+        }
+
+        function normSearchVin(value) {
+            return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        function draftChassisList(row) {
+            const p = row?.payload || {};
+            const cars = Array.isArray(p.cars) ? p.cars : [];
+            const list = cars.map((c) => c?.chassis || c?.vin || '').filter(Boolean);
+            if (row?.vin) list.unshift(row.vin);
+            return list;
+        }
+
+        function rowMatchesSearch(row, qRaw) {
+            const q = String(qRaw || '').trim().toLowerCase();
+            if (!q) return true;
+            const qVin = normSearchVin(q);
+            if (qVin.length >= 3) {
+                const vins = [
+                    row?.vin,
+                    ...draftChassisList(row)
+                ].map(normSearchVin).filter(Boolean);
+                if (vins.some((vin) => vin.includes(qVin))) return true;
+            }
+            const p = row?.payload || {};
+            const hay = [
+                row?.vin, row?.product, row?.model, row?.plate, row?.customerName,
+                row?.location, row?.assignedTo, row?.gt, row?.status, row?.agentStatus,
+                p.company_rep, p.customer_name, p.branch_to, p.attachments,
+                ...draftChassisList(row)
+            ].join(' ').toLowerCase();
+            return hay.includes(q);
+        }
+
+        function searchSystemVehicles(q) {
+            const query = String(q || '').trim();
+            if (!query) return filteredVehicleList();
+            const byVin = new Map();
+            const push = (v) => {
+                const key = normVinKey(v?.vin);
+                if (!key || byVin.has(key)) return;
+                byVin.set(key, v);
+            };
+            (allVehicles || []).forEach((v) => {
+                if (rowMatchesSearch(v, query)) push(v);
+            });
+            (allQueue || []).forEach((qItem) => {
+                if (!rowMatchesSearch(qItem, query)) return;
+                const existing = byVin.get(normVinKey(qItem.vin));
+                if (existing) return;
+                const inv = (allVehicles || []).find((v) => normVinKey(v.vin) === normVinKey(qItem.vin));
+                push(inv || {
+                    vin: qItem.vin,
+                    product: qItem.product || qItem.model || '',
+                    model: qItem.model || '',
+                    plate: qItem.plate || '',
+                    customerName: qItem.customerName || '',
+                    location: qItem.location || '',
+                    gt: qItem.gt || '',
+                    imageUrl: qItem.imageUrl || '',
+                    proformaDate: '',
+                    invoiceDate: '',
+                    deliveryNoteDate: ''
+                });
+            });
+            (allDrafts || []).forEach((d) => {
+                if (!rowMatchesSearch(d, query)) return;
+                draftChassisList(d).forEach((chassis) => {
+                    const key = normVinKey(chassis);
+                    if (!key || byVin.has(key)) return;
+                    if (query && !normSearchVin(chassis).includes(normSearchVin(query)) && !rowMatchesSearch(d, query)) return;
+                    const inv = (allVehicles || []).find((v) => normVinKey(v.vin) === key);
+                    push(inv || {
+                        vin: chassis,
+                        product: d.product || d.model || '',
+                        model: d.model || '',
+                        plate: d.plate || '',
+                        customerName: draftCompanyName(d) || d.customerName || '',
+                        location: (d.payload || {}).branch_to || d.location || '',
+                        gt: d.gt || '',
+                        imageUrl: '',
+                        proformaDate: '',
+                        invoiceDate: '',
+                        deliveryNoteDate: draftEventIso(d)
+                    });
+                });
+            });
+            return [...byVin.values()];
+        }
+
+        function applyDisplayFilters(list, kind) {
+            let out = list || [];
+            const q = String(uiFilters.search || '').trim();
+            if (q) {
+                out = out.filter((row) => rowMatchesSearch(row, q));
+            }
+            if (uiFilters.coordinator) {
+                out = out.filter((row) => String(row.assignedTo || '') === uiFilters.coordinator);
+            }
+            return out;
+        }
+
+        function syncDateControlsFromNatives() {
+            const from = document.getElementById('trackDateFrom')?.value || '';
+            const to = document.getElementById('trackDateTo')?.value || '';
+            const type = document.getElementById('trackDateType')?.value || 'delivery_note';
+            const fromUi = document.getElementById('ftDateFromUi');
+            const toUi = document.getElementById('ftDateToUi');
+            const typeUi = document.getElementById('ftDateTypeUi');
+            if (fromUi) fromUi.value = from;
+            if (toUi) toUi.value = to;
+            if (typeUi) typeUi.value = type === 'invoice' ? 'invoice' : 'delivery_note';
+        }
+
+        function pushDatesToNatives() {
+            const fromUi = document.getElementById('ftDateFromUi')?.value || '';
+            const toUi = document.getElementById('ftDateToUi')?.value || '';
+            const typeUi = document.getElementById('ftDateTypeUi')?.value || 'delivery_note';
+            const fromEl = document.getElementById('trackDateFrom');
+            const toEl = document.getElementById('trackDateTo');
+            const typeEl = document.getElementById('trackDateType');
+            if (fromEl) fromEl.value = fromUi;
+            if (toEl) toEl.value = toUi;
+            if (typeEl) typeEl.value = typeUi === 'invoice' ? 'invoice' : 'delivery_note';
+            syncDateControlsFromNatives();
+        }
+
+        function closeAllFtPanels(except) {
+            document.querySelectorAll('.ft-control.is-open, .ft-more.is-open').forEach((el) => {
+                if (except && el === except) return;
+                el.classList.remove('is-open');
+                const btn = el.querySelector('[aria-expanded]');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+            document.getElementById('ftMoreBtn')?.classList.remove('is-active');
+        }
+
+        function collectSelectOptions() {
+            const companies = new Set();
+            const coordinators = new Set();
+
+            const draftsInRange = dateScopedDrafts();
+
+            draftsInRange.forEach((d) => {
+                const c = draftCompanyName(d);
+                if (c) companies.add(c);
+                const who = String(d.assignedTo || '').trim();
+                if (who) coordinators.add(who);
+            });
+
+            const vins = scopedVinSet();
+            let queueInRange = allQueue || [];
+            if (vins) {
+                queueInRange = vins.size
+                    ? queueInRange.filter((q) => vins.has(normVinKey(q.vin)))
+                    : [];
+            }
+            if (selectedCompany) {
+                const companyVins = companyVinSet();
+                if (companyVins) {
+                    queueInRange = queueInRange.filter((q) => companyVins.has(normVinKey(q.vin)));
+                }
+            }
+
+            queueInRange.forEach((q) => {
+                const who = String(q.assignedTo || '').trim();
+                if (who) coordinators.add(who);
+            });
+
+            return {
+                company: Array.from(companies).sort((a, b) => a.localeCompare(b, 'ar')),
+                coordinator: Array.from(coordinators).sort((a, b) => a.localeCompare(b, 'ar'))
+            };
+        }
+
+        /** Drop filter values that no longer exist in the entered data. */
+        function pruneStaleUiFilters() {
+            const companies = new Set();
+            const draftsInRange = dateScopedDrafts();
+            draftsInRange.forEach((d) => {
+                const c = draftCompanyName(d);
+                if (c) companies.add(c);
+            });
+            if (selectedCompany && !companies.has(selectedCompany)) selectedCompany = '';
+
+            const coordinators = new Set();
+            draftsInRange.forEach((d) => {
+                const who = String(d.assignedTo || '').trim();
+                if (who) coordinators.add(who);
+            });
+
+            const vins = scopedVinSet();
+            let queueInRange = allQueue || [];
+            if (vins) {
+                queueInRange = vins.size
+                    ? queueInRange.filter((q) => vins.has(normVinKey(q.vin)))
+                    : [];
+            }
+            if (selectedCompany) {
+                const companyVins = companyVinSet();
+                if (companyVins) {
+                    queueInRange = queueInRange.filter((q) => companyVins.has(normVinKey(q.vin)));
+                }
+            }
+            queueInRange.forEach((q) => {
+                const who = String(q.assignedTo || '').trim();
+                if (who) coordinators.add(who);
+            });
+
+            uiFilters.branch = '';
+            uiFilters.status = '';
+            if (uiFilters.coordinator && !coordinators.has(uiFilters.coordinator)) uiFilters.coordinator = '';
+        }
+
+        function currentSelectValue(kind) {
+            if (kind === 'company') return selectedCompany || '';
+            if (kind === 'coordinator') return uiFilters.coordinator || '';
+            return '';
+        }
+
+        function setSelectValue(kind, value) {
+            if (kind === 'company') {
+                selectedCompany = value || '';
+                return;
+            }
+            if (kind === 'coordinator') uiFilters.coordinator = value || '';
+        }
+
+        function renderFtSelect(control) {
+            if (!control) return;
+            const kind = control.dataset.ftSelect;
+            const optionsHost = control.querySelector('[data-ft-options]');
+            const labelEl = control.querySelector('[data-ft-label]');
+            const qInput = control.querySelector('[data-ft-q]');
+            if (!optionsHost || !labelEl) return;
+            const all = collectSelectOptions();
+            let items = all[kind] || [];
+            const q = String(qInput?.value || '').trim().toLowerCase();
+            if (q) items = items.filter((name) => String(name).toLowerCase().includes(q));
+            const current = currentSelectValue(kind);
+            const placeholder = kind === 'company' ? 'Company' : 'Coordinator';
+            if (current) {
+                labelEl.textContent = current;
+                labelEl.classList.remove('is-placeholder');
+            } else {
+                labelEl.textContent = placeholder;
+                labelEl.classList.add('is-placeholder');
+            }
+
+            const clearRow = `<button type="button" class="ft-option" data-value="">All ${placeholder}</button>`;
+            const rows = items.map((name) => `<button type="button" class="ft-option${name === current ? ' is-active' : ''}" data-value="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join('');
+            optionsHost.innerHTML = clearRow + (rows || '<div class="saas-empty" style="padding:12px">No options</div>');
+            optionsHost.querySelectorAll('.ft-option').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    setSelectValue(kind, btn.dataset.value || '');
+                    closeAllFtPanels();
+                    renderAllFtSelects();
+                    renderFilterChips();
+                    if (kind === 'company') {
+                        applyTrackFilter();
+                    } else {
+                        refreshTransferDashboard();
+                    }
+                });
+            });
+        }
+
+        function renderAllFtSelects() {
+            document.querySelectorAll('[data-ft-select]').forEach((el) => renderFtSelect(el));
+        }
+
+        function renderFilterChips() {
+            const host = document.getElementById('filterChipsBar');
+            if (!host) return;
+            const chips = [];
+            const { type, from, to } = getTrackFilter();
+            if (from || to) {
+                chips.push({
+                    key: 'date',
+                    label: `${type === 'invoice' ? 'Invoice' : 'DN'} ${from || '…'} → ${to || '…'}`,
+                    clear: () => {
+                        document.getElementById('trackDateFrom').value = '';
+                        document.getElementById('trackDateTo').value = '';
+                        document.getElementById('ftDateFromUi').value = '';
+                        document.getElementById('ftDateToUi').value = '';
+                        syncDateControlsFromNatives();
+                        applyTrackFilter();
+                    }
+                });
+            }
+            if (type === 'invoice') {
+                chips.push({
+                    key: 'type',
+                    label: 'Invoice date',
+                    clear: () => {
+                        document.getElementById('trackDateType').value = 'delivery_note';
+                        document.getElementById('ftDateTypeUi').value = 'delivery_note';
+                        applyTrackFilter();
+                    }
+                });
+            }
+            if (selectedCompany) {
+                chips.push({
+                    key: 'company',
+                    label: selectedCompany,
+                    clear: () => {
+                        selectedCompany = '';
+                        renderAllFtSelects();
+                        applyTrackFilter();
+                    }
+                });
+            }
+            if (uiFilters.coordinator) {
+                chips.push({
+                    key: 'coordinator',
+                    label: uiFilters.coordinator,
+                    clear: () => {
+                        uiFilters.coordinator = '';
+                        renderAllFtSelects();
+                        refreshTransferDashboard();
+                    }
+                });
+            }
+            if (uiFilters.search) {
+                chips.push({
+                    key: 'search',
+                    label: `“${uiFilters.search}”`,
+                    clear: () => {
+                        uiFilters.search = '';
+                        const ft = document.getElementById('ftSearchInput');
+                        const legacy = document.getElementById('searchInput');
+                        if (ft) ft.value = '';
+                        if (legacy) legacy.value = '';
+                        document.getElementById('ftSearchClear')?.classList.remove('is-visible');
+                        refreshTransferDashboard();
+                    }
+                });
+            }
+
+            if (!chips.length) {
+                host.innerHTML = '';
+                return;
+            }
+
+            host.innerHTML = chips.map((c) => `
+                <span class="ft-chip" data-chip="${c.key}">
+                    ${escapeHtml(c.label)}
+                    <button type="button" aria-label="Remove filter">×</button>
+                </span>
+            `).join('') + `<button type="button" class="ft-chip ft-chip--clear" id="ftClearAllChips">Clear All</button>`;
+
+            chips.forEach((c) => {
+                host.querySelector(`[data-chip="${c.key}"] button`)?.addEventListener('click', c.clear);
+            });
+            document.getElementById('ftClearAllChips')?.addEventListener('click', () => {
+                document.getElementById('btnTrackClear')?.click();
+            });
+        }
+
+        function initPremiumFilterToolbar() {
+            syncDateControlsFromNatives();
+            renderAllFtSelects();
+            renderFilterChips();
+
+            document.querySelectorAll('[data-ft-select] .ft-control__trigger').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const control = btn.closest('.ft-control');
+                    const willOpen = !control.classList.contains('is-open');
+                    closeAllFtPanels(willOpen ? control : null);
+                    control.classList.toggle('is-open', willOpen);
+                    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                    if (willOpen) {
+                        renderFtSelect(control);
+                        control.querySelector('[data-ft-q]')?.focus();
+                    }
+                });
+            });
+
+            document.querySelectorAll('[data-ft-q]').forEach((input) => {
+                input.addEventListener('input', () => {
+                    const control = input.closest('[data-ft-select]');
+                    renderFtSelect(control);
+                });
+                input.addEventListener('click', (e) => e.stopPropagation());
+            });
+
+            const dateControl = document.getElementById('ftDateControl');
+            const syncAndApplyDates = () => {
+                pushDatesToNatives();
+                renderFilterChips();
+                applyTrackFilter();
+            };
+            document.getElementById('ftDateFromUi')?.addEventListener('change', syncAndApplyDates);
+            document.getElementById('ftDateToUi')?.addEventListener('change', syncAndApplyDates);
+            document.getElementById('ftDateFromUi')?.addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('ftDateToUi')?.addEventListener('click', (e) => e.stopPropagation());
+            dateControl?.addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('ftDateToday')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const today = getSaudiTodayIso();
+                document.getElementById('ftDateFromUi').value = today;
+                document.getElementById('ftDateToUi').value = today;
+                syncAndApplyDates();
+            });
+
+            document.getElementById('ftMoreBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const wrap = document.getElementById('ftMoreWrap');
+                const willOpen = !wrap.classList.contains('is-open');
+                closeAllFtPanels(willOpen ? wrap : null);
+                wrap.classList.toggle('is-open', willOpen);
+                document.getElementById('ftMoreBtn').classList.toggle('is-active', willOpen);
+                document.getElementById('ftMoreBtn').setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+            document.getElementById('ftMorePanel')?.addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('ftDateTypeUi')?.addEventListener('change', () => {
+                const typeUi = document.getElementById('ftDateTypeUi')?.value || 'delivery_note';
+                document.getElementById('trackDateType').value = typeUi === 'invoice' ? 'invoice' : 'delivery_note';
+                pushDatesToNatives();
+                renderFilterChips();
+                applyTrackFilter();
+            });
+
+            const search = document.getElementById('ftSearchInput');
+            const clearBtn = document.getElementById('ftSearchClear');
+            let searchTimer = null;
+            search?.addEventListener('input', () => {
+                uiFilters.search = search.value || '';
+                const legacy = document.getElementById('searchInput');
+                if (legacy) legacy.value = search.value;
+                clearBtn?.classList.toggle('is-visible', Boolean(search.value));
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    renderFilterChips();
+                    refreshTransferDashboard();
+                }, 160);
+            });
+            clearBtn?.addEventListener('click', () => {
+                search.value = '';
+                uiFilters.search = '';
+                const legacy = document.getElementById('searchInput');
+                if (legacy) legacy.value = '';
+                clearBtn.classList.remove('is-visible');
+                renderFilterChips();
+                refreshTransferDashboard();
+            });
+
+            document.addEventListener('click', () => closeAllFtPanels());
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeAllFtPanels();
             });
         }
 
         let selectedCompany = '';
+        let uiFilters = {
+            search: '',
+            branch: '',
+            status: '',
+            coordinator: ''
+        };
+        let managedCompanies = [];
+        let managedCities = [];
 
         function escapeHtml(value) {
             return String(value || '')
@@ -903,18 +2957,311 @@
             return '';
         }
 
+        function normVinKey(vin) {
+            return String(vin || '').trim().toUpperCase();
+        }
+
+        function vehicleByVin() {
+            const map = new Map();
+            (allVehicles || []).forEach((v) => {
+                const vin = normVinKey(v.vin);
+                if (vin) map.set(vin, v);
+            });
+            return map;
+        }
+
+        function getTrackFilter() {
+            const rawType = document.getElementById('trackDateType')?.value
+                || document.getElementById('ftDateTypeUi')?.value
+                || 'delivery_note';
+            return {
+                type: rawType === 'invoice' ? 'invoice' : 'delivery_note',
+                from: String(document.getElementById('trackDateFrom')?.value || '').trim(),
+                to: String(document.getElementById('trackDateTo')?.value || '').trim()
+            };
+        }
+
+        function isoInRange(iso, from, to) {
+            if (!iso) return false;
+            if (from && iso < from) return false;
+            if (to && iso > to) return false;
+            return true;
+        }
+
+        function vehicleDateIso(v, type) {
+            if (!v) return '';
+            if (type === 'proforma') return String(v.proformaDate || '').slice(0, 10);
+            if (type === 'invoice') return String(v.invoiceDate || '').slice(0, 10);
+            return String(v.deliveryNoteDate || '').slice(0, 10);
+        }
+
+        function deliveryNoteDateBounds() {
+            let min = '';
+            let max = '';
+            (allVehicles || []).forEach((v) => {
+                const iso = String(v.deliveryNoteDate || '').slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+                if (!min || iso < min) min = iso;
+                if (!max || iso > max) max = iso;
+            });
+            return { min, max };
+        }
+
+        function applyDeliveryNoteDateBounds() {
+            // Keep date pickers unrestricted so Start/End remain selectable.
+            ['ftDateFromUi', 'ftDateToUi', 'trackDateFrom', 'trackDateTo'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.removeAttribute('min');
+                el.removeAttribute('max');
+            });
+        }
+
+        function hasActiveTrackFilter() {
+            const { from, to } = getTrackFilter();
+            return Boolean(from || to);
+        }
+
+        /**
+         * VIN universe for the current date filter (from raw inventory dates).
+         * - delivery_note (default) → Delivery Note Date
+         * - invoice → Invoice Date
+         * Returns null when no date range is set (show all).
+         */
+        function scopedVinSet() {
+            const { type, from, to } = getTrackFilter();
+            if (!from && !to) return null;
+
+            const dateType = type === 'invoice' ? 'invoice' : 'delivery_note';
+            const set = new Set();
+            (allVehicles || []).forEach((v) => {
+                const iso = vehicleDateIso(v, dateType);
+                if (!iso || !isoInRange(iso, from, to)) return;
+                const vin = normVinKey(v.vin);
+                if (vin) set.add(vin);
+            });
+            return set;
+        }
+
         function getXferDateFilter() {
             const el = document.getElementById('xferDateFilter');
             return el ? String(el.value || '').trim() : '';
         }
 
+        function dateScopedDrafts() {
+            const legacy = getXferDateFilter();
+            let list = allDrafts || [];
+            if (legacy) {
+                list = list.filter((d) => draftEventIso(d) === legacy);
+            }
+
+            const { from, to } = getTrackFilter();
+            if (!from && !to) return list;
+
+            const vins = scopedVinSet();
+            if (!vins || !vins.size) return [];
+            return list.filter((d) => {
+                if (vins.has(normVinKey(d.vin))) return true;
+                const extra = [
+                    ...(Array.isArray(d.vins) ? d.vins : []),
+                    ...((d.payload && d.payload.vins) || [])
+                ];
+                return extra.some((v) => vins.has(normVinKey(v)));
+            });
+        }
+
+        /** VINs belonging to the selected company (from date-scoped drafts). null = no company filter. */
+        function companyVinSet() {
+            if (!selectedCompany) return null;
+            const set = new Set();
+            dateScopedDrafts().forEach((d) => {
+                if (draftCompanyName(d) !== selectedCompany) return;
+                const list = [
+                    ...(Array.isArray(d.vins) ? d.vins : []),
+                    d.vin,
+                    ...((d.payload && d.payload.vins) || []),
+                    ...((d.payload && d.payload.cars) || []).map((c) => c && (c.chassis || c.vin))
+                ];
+                list.forEach((v) => {
+                    const vin = normVinKey(v);
+                    if (vin) set.add(vin);
+                });
+            });
+            return set;
+        }
+
         function filteredDrafts() {
-            const date = getXferDateFilter();
-            if (!date) return allDrafts || [];
-            return (allDrafts || []).filter((d) => draftEventIso(d) === date);
+            let list = dateScopedDrafts();
+            if (selectedCompany) {
+                list = list.filter((d) => draftCompanyName(d) === selectedCompany);
+            }
+            return list;
+        }
+
+        function filteredQueue() {
+            let queue;
+            const vins = scopedVinSet();
+            if (!vins) queue = allQueue || [];
+            else if (!vins.size) queue = [];
+            else queue = (allQueue || []).filter((q) => vins.has(normVinKey(q.vin)));
+
+            const companyVins = companyVinSet();
+            if (companyVins) {
+                queue = queue.filter((q) => companyVins.has(normVinKey(q.vin)));
+            }
+            return queue;
+        }
+
+        function vehiclesFromVinSet(vins) {
+            const byVin = vehicleByVin();
+            const list = [];
+            (vins || new Set()).forEach((vin) => {
+                const v = byVin.get(vin);
+                if (v) {
+                    list.push(v);
+                    return;
+                }
+                const draft = (allDrafts || []).find((d) => normVinKey(d.vin) === vin);
+                const q = (allQueue || []).find((item) => normVinKey(item.vin) === vin);
+                list.push({
+                    vin,
+                    product: draft?.product || q?.product || '',
+                    model: draft?.model || q?.model || '',
+                    plate: draft?.plate || q?.plate || '',
+                    customerName: draft?.customerName || q?.customerName || '',
+                    location: draft?.location || q?.location || '',
+                    gt: draft?.gt || q?.gt || '',
+                    imageUrl: '',
+                    proformaDate: '',
+                    invoiceDate: '',
+                    deliveryNoteDate: draft ? draftEventIso(draft) : ''
+                });
+            });
+            return list;
+        }
+
+        function filteredVehicleList() {
+            const { type, from, to } = getTrackFilter();
+            const companyVins = companyVinSet();
+
+            if (!from && !to) {
+                if (companyVins) return vehiclesFromVinSet(companyVins);
+                return allVehicles || [];
+            }
+
+            let vins = scopedVinSet() || new Set();
+            if (companyVins) {
+                vins = new Set([...vins].filter((vin) => companyVins.has(vin)));
+            }
+            const list = vehiclesFromVinSet(vins);
+
+            if (type === 'proforma' || type === 'invoice') {
+                return list.sort((a, b) =>
+                    String(vehicleDateIso(a, type)).localeCompare(String(vehicleDateIso(b, type)))
+                );
+            }
+            return list;
+        }
+
+        function updateCompanyFilterChip() {
+            const chip = document.getElementById('companyFilterChip');
+            const nameEl = document.getElementById('companyFilterName');
+            const metaEl = document.getElementById('companyFilterMeta');
+            if (!chip) return;
+            if (!selectedCompany) {
+                chip.classList.add('hidden');
+                return;
+            }
+            chip.classList.remove('hidden');
+            if (nameEl) nameEl.textContent = selectedCompany;
+            if (metaEl) {
+                const drafts = filteredDrafts().length;
+                const queue = filteredQueue().length;
+                const delivered = filteredQueue().filter((q) => q.agentStatus === 'delivered').length;
+                metaEl.textContent = `${drafts} مسودة · ${queue} في القائمة · ${delivered} تم الترحيل`;
+            }
+        }
+
+        function updateTrackFilterHint() {
+            const hint = document.getElementById('trackFilterHint');
+            if (!hint) return;
+            const type = getTrackFilter().type;
+            if (type === 'proforma') {
+                hint.textContent = 'نطاق السيارات = تاريخ البروفورما من Sales Raw → ثم عرض حالة الترحيل/المسودات/الرسوم لهذه السيارات.';
+            } else if (type === 'invoice') {
+                hint.textContent = 'نطاق السيارات = تاريخ الفاتورة من Sales Raw → ثم عرض حالة الترحيل/المسودات/الرسوم لهذه السيارات.';
+            } else {
+                hint.textContent = 'نطاق المذكرات = تاريخ الطباعة/الترحيل من المسودات المحفوظة → الرسوم والقوائم ضمن الفترة.';
+            }
+        }
+
+        function updateTrackFilterMeta() {
+            const meta = document.getElementById('trackFilterMeta');
+            if (!meta) return;
+            updateTrackFilterHint();
+            const { type, from, to } = getTrackFilter();
+            const typeLabel = type === 'proforma'
+                ? 'البروفورما (Raw)'
+                : type === 'invoice'
+                    ? 'الفاتورة (Raw)'
+                    : 'مذكرة الترحيل (مسودات)';
+            const drafts = filteredDrafts().length;
+            const searchQ = String(uiFilters.search || '').trim();
+            const vehiclesBase = searchQ ? searchSystemVehicles(searchQ) : filteredVehicleList();
+            const vehiclesAll = vehiclesBase.length;
+            const vehiclesShown = applyDisplayFilters(vehiclesBase, 'vehicle').length;
+            const queue = filteredQueue().length;
+            const delivered = filteredQueue().filter((q) => q.agentStatus === 'delivered').length;
+            const still = queue - delivered;
+            const withP = (allVehicles || []).filter((v) => v.proformaDate).length;
+            const withI = (allVehicles || []).filter((v) => v.invoiceDate).length;
+            const companyBit = selectedCompany
+                ? ` · شركة <strong>${escapeHtml(selectedCompany)}</strong>`
+                : '';
+            const searchBit = searchQ
+                ? ` · VIN search <strong>${escapeHtml(searchQ)}</strong>`
+                : '';
+            const showing = `Showing <strong>${vehiclesShown}</strong> of <strong>${vehiclesAll || (allVehicles || []).length}</strong> vehicles`;
+
+            if (!from && !to) {
+                meta.innerHTML = `${showing}${searchBit}${companyBit} · <strong>${(selectedCompany ? drafts : (allDrafts || []).length)}</strong> drafts · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
+                updateCompanyFilterChip();
+                renderFilterChips();
+                return;
+            }
+            meta.innerHTML = `${showing}${searchBit}${companyBit} · filter <strong>${typeLabel}</strong> ${from || '…'} → ${to || '…'} · 
+                <strong>${drafts}</strong> drafts · queue <strong>${queue}</strong> 
+                (delivered <strong>${delivered}</strong> · remaining <strong>${still}</strong>)`;
+            updateCompanyFilterChip();
+            renderFilterChips();
+        }
+
+        function computeQueueStats(queue) {
+            const list = queue || [];
+            const stats = {
+                total: list.length,
+                available: 0,
+                claimed: 0,
+                in_stock: 0,
+                ready_for_delivery: 0,
+                out_of_delivery: 0,
+                delivered: 0,
+                drafts: filteredDrafts().length
+            };
+            list.forEach((q) => {
+                if (q.status === 'available') stats.available += 1;
+                else stats.claimed += 1;
+                const st = q.agentStatus || '';
+                if (st === 'in_stock') stats.in_stock += 1;
+                else if (st === 'ready_for_delivery') stats.ready_for_delivery += 1;
+                else if (st === 'out_of_delivery') stats.out_of_delivery += 1;
+                else if (st === 'delivered') stats.delivered += 1;
+            });
+            return stats;
         }
 
         function updateXferDateLabel() {
+            updateTrackFilterMeta();
             const label = document.getElementById('xferDateLabel');
             if (!label) return;
             const date = getXferDateFilter();
@@ -922,14 +3269,63 @@
         }
 
         function refreshTransferDashboard() {
+            applyDeliveryNoteDateBounds();
             updateXferDateLabel();
-            const drafts = filteredDrafts();
-            if (selectedCompany && !drafts.some((d) => draftCompanyName(d) === selectedCompany)) {
+            pruneStaleUiFilters();
+            const draftsBase = filteredDrafts();
+            const queueBase = filteredQueue();
+            if (selectedCompany && !draftsBase.some((d) => draftCompanyName(d) === selectedCompany)) {
                 selectedCompany = '';
                 const panel = document.getElementById('companyRecordsPanel');
                 if (panel) panel.classList.add('hidden');
             }
-            renderTransferDashboard(drafts);
+            const searchQ = String(uiFilters.search || '').trim();
+            const drafts = applyDisplayFilters(
+                searchQ ? (allDrafts || []).filter((d) => rowMatchesSearch(d, searchQ)) : filteredDrafts(),
+                'draft'
+            );
+            const queue = applyDisplayFilters(
+                searchQ ? (allQueue || []).filter((q) => rowMatchesSearch(q, searchQ)) : filteredQueue(),
+                'queue'
+            );
+            const vehicles = searchQ
+                ? applyDisplayFilters(searchSystemVehicles(searchQ), 'vehicle')
+                : applyDisplayFilters(filteredVehicleList(), 'vehicle');
+            renderTransferDashboard(searchQ ? drafts : filteredDrafts());
+            renderTable(vehicles);
+            renderQueueTable(queue);
+            const warehouseDrafts = drafts.filter(isWarehouseAdminDraft);
+            const memoDrafts = drafts.filter((d) => !isWarehouseAdminDraft(d));
+            renderDraftsTable(memoDrafts);
+            renderWarehouseDraftsTable(warehouseDrafts);
+            renderQueueStats(computeQueueStats(queue));
+            setFoldCount('queueStatsFoldCount', queue.length);
+            setFoldCount('draftsFoldCount', memoDrafts.length);
+            setFoldCount('warehouseDraftsFoldCount', warehouseDrafts.length);
+            setFoldCount('xferFoldCount', searchQ ? drafts.length : filteredDrafts().length);
+            setFoldCount('inventoryFoldCount', vehicles.length);
+            if (searchQ) {
+                openFold('inventorySection');
+                openFold('queueSection');
+                openFold('draftsSection');
+                openFold('warehouseDraftsSection');
+            }
+            renderAllFtSelects();
+            renderFilterChips();
+            syncDateControlsFromNatives();
+            updateTrackFilterMeta();
+        }
+
+        function applyTrackFilter() {
+            refreshTransferDashboard();
+            openFold('xferDashSection');
+            openFold('queueStatsFold');
+            if (String(uiFilters.search || '').trim()) {
+                openFold('inventorySection', { scroll: true });
+                openFold('queueSection');
+                openFold('draftsSection');
+                openFold('warehouseDraftsSection');
+            }
         }
 
         function draftCompanyName(d) {
@@ -940,7 +3336,7 @@
         function draftsForCompany(company) {
             const key = String(company || '').trim();
             if (!key) return [];
-            return filteredDrafts().filter((d) => draftCompanyName(d) === key);
+            return dateScopedDrafts().filter((d) => draftCompanyName(d) === key);
         }
 
         function highlightSelectedCompany() {
@@ -949,26 +3345,28 @@
             });
         }
 
-        function showCompanyRecords(company) {
-            selectedCompany = String(company || '').trim();
+        function renderCompanyRecordsPanel(company) {
             const panel = document.getElementById('companyRecordsPanel');
             const title = document.getElementById('companyRecordsTitle');
             const meta = document.getElementById('companyRecordsMeta');
             const tbody = document.getElementById('companyRecordsBody');
+            if (!panel || !tbody) return;
             highlightSelectedCompany();
 
-            if (!selectedCompany) {
+            if (!company) {
                 panel.classList.add('hidden');
                 tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">اختر شركة</td></tr>';
                 return;
             }
 
-            const rows = draftsForCompany(selectedCompany);
+            const rows = draftsForCompany(company);
             panel.classList.remove('hidden');
-            title.textContent = selectedCompany;
-            meta.textContent = rows.length
-                ? `${rows.length} سجل محفوظ من المذكرات المطبوعة`
-                : 'لا توجد سجلات لهذه الشركة';
+            if (title) title.textContent = company;
+            if (meta) {
+                meta.textContent = rows.length
+                    ? `${rows.length} سجل — كل بيانات هذه الشركة ضمن الفلتر`
+                    : 'لا توجد سجلات لهذه الشركة';
+            }
 
             if (!rows.length) {
                 tbody.innerHTML = '<tr><td colspan="7" class="hub-empty">لا توجد سجلات</td></tr>';
@@ -986,8 +3384,9 @@
                     <td>${escapeHtml(d.assignedTo || '—')}</td>
                     <td>${escapeHtml(p.customer_name || '—')}</td>
                     <td>${escapeHtml(p.branch_to || '—')}</td>
-                    <td>${canExport
-                        ? `<button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">تصدير PDF</button>`
+                    <td style="white-space:nowrap">${canExport
+                        ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
+                           <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">تصدير PDF</button>`
                         : '<span class="hub-meta">—</span>'}</td>
                 </tr>`;
             }).join('');
@@ -1001,9 +3400,50 @@
                     );
                 });
             });
-
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            tbody.querySelectorAll('[data-edit-draft]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    window.open(
+                        `Delivery_pdf.html?draft=${encodeURIComponent(btn.dataset.editDraft)}&adminEdit=1`,
+                        '_blank',
+                        'noopener'
+                    );
+                });
+            });
         }
+
+        /** Click company name → show only that company's data everywhere. Click again to clear. */
+        function showCompanyRecords(company) {
+            const next = String(company || '').trim();
+            selectedCompany = selectedCompany && selectedCompany === next ? '' : next;
+            updateCompanyFilterChip();
+            refreshTransferDashboard();
+            openFold('xferDashSection');
+            openFold('draftsSection');
+            openFold('queueSection');
+            if (selectedCompany) {
+                renderCompanyRecordsPanel(selectedCompany);
+                const panel = document.getElementById('companyRecordsPanel');
+                if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                renderCompanyRecordsPanel('');
+            }
+        }
+
+        function clearCompanyScope() {
+            selectedCompany = '';
+            updateCompanyFilterChip();
+            refreshTransferDashboard();
+            renderCompanyRecordsPanel('');
+        }
+
+        document.getElementById('leadTimeCompanySelect')?.addEventListener('change', () => {
+            const sel = document.getElementById('leadTimeCompanySelect');
+            selectedCompany = String(sel?.value || '').trim();
+            updateCompanyFilterChip();
+            refreshTransferDashboard();
+            if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
+            else renderCompanyRecordsPanel('');
+        });
 
         function tallyField(drafts, getter) {
             const map = new Map();
@@ -1018,27 +3458,126 @@
         }
 
         function renderRankList(listEl, topEl, rows, emptyText, label, { clickableCompanies = false } = {}) {
+            if (!listEl) return;
             if (!rows.length) {
-                listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText}</div>`;
-                topEl.innerHTML = '';
+                listEl.innerHTML = `<div class="saas-empty">${emptyText}</div>`;
+                if (topEl) topEl.innerHTML = '';
                 return;
             }
-            const max = rows[0].count || 1;
-            listEl.innerHTML = rows.map((row) => {
-                const pct = Math.max(4, Math.round((row.count / max) * 100));
-                const safeName = escapeHtml(row.name);
-                const clickAttrs = clickableCompanies
-                    ? ` class="xfer-dash-row" data-company="${safeName}" role="button" tabindex="0"`
-                    : ' class="xfer-dash-row"';
-                return `<div${clickAttrs}>
-                    <div class="xfer-dash-name" title="${safeName}">${safeName}</div>
-                    <div class="xfer-dash-count">${row.count}</div>
-                    <div class="xfer-dash-bar"><span style="--bar-w:${pct}%"></span></div>
+            const total = rows.reduce((s, r) => s + r.count, 0) || 1;
+            const showCards = clickableCompanies || listEl.id === 'companyDashList';
+            if (showCards) {
+                listEl.innerHTML = rows.slice(0, 8).map((row, i) => {
+                    const sharePct = Math.round((row.count / total) * 1000) / 10;
+                    const safeName = escapeHtml(row.name);
+                    const active = selectedCompany === row.name ? ' is-active' : '';
+                    return `<button type="button" class="saas-company-card${active}" data-company="${safeName}">
+                        <div class="saas-company-card__top">
+                            <span class="saas-company-card__rank">#${i + 1}</span>
+                            <span>${sharePct}%</span>
+                        </div>
+                        <div class="saas-company-card__name" title="${safeName}">${safeName}</div>
+                        <div class="saas-company-card__meta">${row.count} مذكرة</div>
+                        <div class="saas-company-card__bar"><span style="width:${Math.min(100, sharePct)}%"></span></div>
+                    </button>`;
+                }).join('');
+                listEl.querySelectorAll('[data-company]').forEach((el) => {
+                    el.addEventListener('click', () => showCompanyRecords(el.dataset.company));
+                });
+            } else {
+                const max = rows[0].count || 1;
+                listEl.innerHTML = rows.map((row) => {
+                    const barPct = Math.max(4, Math.round((row.count / max) * 100));
+                    const sharePct = Math.round((row.count / total) * 1000) / 10;
+                    const safeName = escapeHtml(row.name);
+                    return `<div class="xfer-dash-row">
+                        <div class="xfer-dash-name" title="${safeName}">${safeName}</div>
+                        <div class="xfer-dash-count-pct">
+                            <div class="xfer-dash-count">${row.count}</div>
+                            <div class="pct">${sharePct}%</div>
+                        </div>
+                        <div class="xfer-dash-bar"><span style="--bar-w:${barPct}%"></span></div>
+                    </div>`;
+                }).join('');
+            }
+
+            if (topEl && !topEl.hidden) {
+                const leader = rows[0];
+                const share = Math.round((leader.count / total) * 100);
+                topEl.innerHTML = `الأكثر: <strong>${escapeHtml(leader.name)}</strong> — ${leader.count} من ${total} (<strong>${share}%</strong>) · ${rows.length} ${label}`;
+            }
+        }
+
+        const CHART_COLORS = [
+            '#eb0a1e', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6',
+            '#06b6d4', '#f97316', '#ec4899', '#84cc16', '#64748b'
+        ];
+
+        function renderPercentChart(donutEl, legendEl, rows, emptyText, options = {}) {
+            if (!donutEl || !legendEl) return;
+            if (!rows.length) {
+                donutEl.innerHTML = '';
+                legendEl.innerHTML = `<div class="xfer-dash-empty">${emptyText}</div>`;
+                const strip = options.stripEl;
+                if (strip) strip.innerHTML = '';
+                return;
+            }
+            const total = rows.reduce((s, r) => s + r.count, 0) || 1;
+            const top = rows.slice(0, 8);
+            const otherCount = rows.slice(8).reduce((s, r) => s + r.count, 0);
+            const slices = otherCount
+                ? [...top, { name: 'أخرى', count: otherCount }]
+                : top;
+
+            const size = options.large ? 160 : 140;
+            const cx = size / 2;
+            const r = options.large ? 62 : 54;
+            const stroke = options.large ? 26 : 22;
+            const c = 2 * Math.PI * r;
+            let offset = 0;
+            const arcs = slices.map((row, i) => {
+                const frac = row.count / total;
+                const len = frac * c;
+                const color = row.color || CHART_COLORS[i % CHART_COLORS.length];
+                const arc = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+                    stroke-dasharray="${len} ${Math.max(0.01, c - len)}" stroke-dashoffset="${-offset}"
+                    stroke-linecap="butt"></circle>`;
+                offset += len;
+                return arc;
+            }).join('');
+
+            const centerHtml = options.centerPct != null
+                ? `<b class="pct-main">${options.centerPct}%</b><span>${options.centerLabel || 'تم الترحيل'}</span>`
+                : `<b>${total}</b><span>إجمالي</span>`;
+
+            donutEl.innerHTML = `
+                <svg viewBox="0 0 ${size} ${size}" aria-hidden="true">${arcs}
+                    <circle cx="${cx}" cy="${cx}" r="${r - stroke / 2 - 8}" fill="#0b1220"></circle>
+                </svg>
+                <div class="pct-donut-center">${centerHtml}</div>
+            `;
+
+            legendEl.innerHTML = slices.map((row, i) => {
+                const pct = Math.round((row.count / total) * 1000) / 10;
+                const color = row.color || CHART_COLORS[i % CHART_COLORS.length];
+                const pctClass = row.pctClass ? ` ${row.pctClass}` : '';
+                const clickable = options.clickableCompanies && row.name !== 'أخرى';
+                const active = clickable && selectedCompany === row.name ? ' is-active' : '';
+                const clickClass = clickable ? ' is-clickable' : '';
+                const dataAttr = clickable ? ` data-company="${escapeHtml(row.name)}"` : '';
+                return `<div class="pct-legend-row${clickClass}${active}"${dataAttr} ${clickable ? 'role="button" tabindex="0"' : ''}>
+                    <span class="pct-swatch" style="background:${color}"></span>
+                    <span class="pct-legend-name" title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</span>
+                    <span class="pct-legend-pct${pctClass}">${pct}%</span>
+                    <div class="pct-legend-meta">
+                        <div class="pct-legend-bar"><span style="width:${Math.max(3, pct)}%;background:${color}"></span></div>
+                        <span class="pct-legend-count">${row.count} من ${total}</span>
+                    </div>
                 </div>`;
             }).join('');
 
-            if (clickableCompanies) {
-                listEl.querySelectorAll('[data-company]').forEach((el) => {
+            if (options.clickableCompanies) {
+                legendEl.querySelectorAll('[data-company]').forEach((el) => {
                     const open = () => showCompanyRecords(el.dataset.company);
                     el.addEventListener('click', open);
                     el.addEventListener('keydown', (e) => {
@@ -1050,10 +3589,441 @@
                 });
             }
 
-            const leader = rows[0];
-            const total = rows.reduce((s, r) => s + r.count, 0);
-            const share = total ? Math.round((leader.count / total) * 100) : 0;
-            topEl.innerHTML = `الأكثر: <strong>${escapeHtml(leader.name)}</strong> — ${leader.count} من ${total} (${share}%) · ${rows.length} ${label}`;
+            if (options.stripEl) {
+                options.stripEl.innerHTML = slices.map((row) => {
+                    const pct = Math.round((row.count / total) * 1000) / 10;
+                    const kind = row.stripClass || '';
+                    return `<div class="pct-status-pill ${kind}">
+                        <span>${escapeHtml(row.name)}</span>
+                        <b>${row.count} · ${pct}%</b>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function parseIsoDateOnly(value) {
+            const s = String(value || '').trim().slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+            const [y, m, d] = s.split('-').map(Number);
+            const dt = new Date(Date.UTC(y, m - 1, d));
+            if (Number.isNaN(dt.getTime())) return null;
+            return dt;
+        }
+
+        function daysBetweenIso(a, b) {
+            const da = parseIsoDateOnly(a);
+            const db = parseIsoDateOnly(b);
+            if (!da || !db) return null;
+            const ms = Math.abs(db.getTime() - da.getTime());
+            return Math.round(ms / 86400000);
+        }
+
+        function leadTimeBucket(days) {
+            if (days == null || days < 0) return null;
+            if (days <= 1) return '1';
+            if (days === 2) return '2';
+            return '3plus';
+        }
+
+        function leadTimeBucketLabel(bucket) {
+            if (bucket === '1') return '١ يوم';
+            if (bucket === '2') return '٢ يوم';
+            if (bucket === '3plus') return '٣+ أيام';
+            return '—';
+        }
+
+        function findVehicleForVin(byVin, vin) {
+            const key = normVinKey(vin);
+            if (!key) return null;
+            if (byVin.has(key)) return byVin.get(key);
+            const compact = key.replace(/[^A-Z0-9]/g, '');
+            if (!compact) return null;
+            for (const [k, v] of byVin.entries()) {
+                if (String(k).replace(/[^A-Z0-9]/g, '') === compact) return v;
+            }
+            return null;
+        }
+
+        function leadTimeMissingLabel(row) {
+            if (row.days != null) return '';
+            if (!row.invoiceDate && !row.deliveryNoteDate) return 'بدون تاريخين';
+            if (!row.invoiceDate) return 'بدون Invoice';
+            if (!row.deliveryNoteDate) return 'بدون Delivery Note';
+            return 'تاريخ غير صالح';
+        }
+
+        /** Build VIN lead-time rows for a company (invoice date → delivery note date). */
+        function companyLeadTimeRows(company) {
+            const key = String(company || '').trim();
+            if (!key) return [];
+            const byVin = vehicleByVin();
+            const map = new Map();
+
+            dateScopedDrafts().forEach((d) => {
+                if (draftCompanyName(d) !== key) return;
+                const vin = normVinKey(d.vin);
+                if (!vin) return;
+                const vehicle = findVehicleForVin(byVin, vin);
+                const noteDate = draftEventIso(d) || String(vehicle?.deliveryNoteDate || '').slice(0, 10);
+                const invoiceDate = String(vehicle?.invoiceDate || '').slice(0, 10);
+                const existing = map.get(vin);
+                // Prefer latest delivery-note date if multiple drafts
+                if (!existing || (noteDate && noteDate > (existing.deliveryNoteDate || ''))) {
+                    const days = daysBetweenIso(invoiceDate, noteDate);
+                    map.set(vin, {
+                        vin,
+                        product: d.product || d.model || vehicle?.product || vehicle?.model || '',
+                        invoiceDate: invoiceDate || '',
+                        deliveryNoteDate: noteDate || '',
+                        days,
+                        bucket: leadTimeBucket(days)
+                    });
+                }
+            });
+
+            return Array.from(map.values()).sort((a, b) => {
+                const da = a.days == null ? 9999 : a.days;
+                const db = b.days == null ? 9999 : b.days;
+                return da - db || a.vin.localeCompare(b.vin);
+            });
+        }
+
+        function leadTimeStats(rows) {
+            let day1 = 0;
+            let day2 = 0;
+            let day3plus = 0;
+            let missing = 0;
+            (rows || []).forEach((r) => {
+                if (r.bucket === '1') day1 += 1;
+                else if (r.bucket === '2') day2 += 1;
+                else if (r.bucket === '3plus') day3plus += 1;
+                else missing += 1;
+            });
+            const measured = day1 + day2 + day3plus;
+            return { day1, day2, day3plus, missing, measured, total: (rows || []).length };
+        }
+
+        function populateLeadTimeCompanySelect() {
+            const sel = document.getElementById('leadTimeCompanySelect');
+            if (!sel) return;
+            const names = tallyField(dateScopedDrafts(), (d) => draftCompanyName(d)).map((r) => r.name);
+            const current = selectedCompany || sel.value || '';
+            sel.innerHTML = '<option value="">— اختر شركة —</option>' + names.map((name) =>
+                `<option value="${escapeHtml(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`
+            ).join('');
+            if (current && names.includes(current)) sel.value = current;
+        }
+
+        function renderInvoiceDeliveryChart() {
+            populateLeadTimeCompanySelect();
+            const sel = document.getElementById('leadTimeCompanySelect');
+            const company = String(selectedCompany || sel?.value || '').trim();
+            if (sel && company && sel.value !== company) sel.value = company;
+
+            const statsEl = document.getElementById('invoiceStatusStats');
+            const barsEl = document.getElementById('invoiceStatusBars');
+            const chartEl = document.getElementById('invoiceStatusChart');
+            const tbody = document.getElementById('leadTimeCarsBody');
+            if (!chartEl) return;
+
+            if (!company) {
+                if (statsEl) statsEl.innerHTML = '<span>اختر شركة</span>';
+                if (barsEl) barsEl.innerHTML = '';
+                chartEl.innerHTML = '<div class="saas-empty">اختر شركة لعرض زمن التسليم (Invoice → Delivery Note)</div>';
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="hub-empty">اختر شركة لعرض السيارات وزمن التسليم</td></tr>';
+                }
+                return;
+            }
+
+            const rows = companyLeadTimeRows(company);
+            const stats = leadTimeStats(rows);
+            const base = stats.measured || 1;
+
+            if (statsEl) {
+                statsEl.innerHTML = `
+                    <span class="is-d1">١ يوم: ${stats.day1}</span>
+                    <span class="is-d2">٢ يوم: ${stats.day2}</span>
+                    <span class="is-d3">٣+: ${stats.day3plus}</span>
+                    <span>VINs ${stats.total}</span>
+                    <span>بقياس ${stats.measured}</span>
+                `;
+            }
+
+            const pct = (n) => Math.round((n / base) * 1000) / 10;
+            if (barsEl) {
+                barsEl.innerHTML = `
+                    <div class="invoice-status-row">
+                        <div class="invoice-status-row__head">
+                            <span>١ يوم (أو أقل)</span>
+                            <small>${stats.day1} · ${stats.measured ? pct(stats.day1) : 0}%</small>
+                        </div>
+                        <div class="invoice-status-row__track" aria-hidden="true">
+                            <span style="width:${stats.measured ? Math.min(100, pct(stats.day1)) : 0}%;background:linear-gradient(90deg,#22c55e,#4ade80)"></span>
+                        </div>
+                    </div>
+                    <div class="invoice-status-row">
+                        <div class="invoice-status-row__head">
+                            <span>٢ يوم</span>
+                            <small>${stats.day2} · ${stats.measured ? pct(stats.day2) : 0}%</small>
+                        </div>
+                        <div class="invoice-status-row__track" aria-hidden="true">
+                            <span style="width:${stats.measured ? Math.min(100, pct(stats.day2)) : 0}%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></span>
+                        </div>
+                    </div>
+                    <div class="invoice-status-row">
+                        <div class="invoice-status-row__head">
+                            <span>٣ أيام فأكثر</span>
+                            <small>${stats.day3plus} · ${stats.measured ? pct(stats.day3plus) : 0}%</small>
+                        </div>
+                        <div class="invoice-status-row__track" aria-hidden="true">
+                            <span style="width:${stats.measured ? Math.min(100, pct(stats.day3plus)) : 0}%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></span>
+                        </div>
+                    </div>
+                    <div class="invoice-status-row" style="opacity:0.85">
+                        <div class="invoice-status-row__head">
+                            <span>بدون Invoice في Sales Raw</span>
+                            <small>${stats.missing} VIN لا يُحسب زمنها (غالباً تاريخ الفاتورة فارغ)</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (tbody) {
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="hub-empty">لا توجد سيارات لهذه الشركة في النطاق</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map((r) => {
+                        const missing = leadTimeMissingLabel(r);
+                        const badgeClass = r.bucket === '1' ? 'lead-badge--1'
+                            : r.bucket === '2' ? 'lead-badge--2'
+                                : r.bucket === '3plus' ? 'lead-badge--3'
+                                    : 'lead-badge--na';
+                        const daysText = r.days == null ? '—' : String(r.days);
+                        const badgeText = missing || leadTimeBucketLabel(r.bucket);
+                        return `<tr title="${escapeHtml(missing || '')}">
+                            <td class="hub-vin">${escapeHtml(r.vin)}</td>
+                            <td>${escapeHtml(r.invoiceDate || '—')}</td>
+                            <td>${escapeHtml(r.deliveryNoteDate || '—')}</td>
+                            <td><strong>${escapeHtml(daysText)}</strong></td>
+                            <td><span class="lead-badge ${badgeClass}">${escapeHtml(badgeText)}</span></td>
+                            <td>${escapeHtml(r.product || '—')}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+
+            if (!stats.measured) {
+                chartEl.innerHTML = '<div class="saas-empty">لا توجد سيارات بتاريخ Invoice + Delivery Note لهذه الشركة</div>';
+                return;
+            }
+
+            renderApex(chartEl, {
+                chart: {
+                    type: 'donut',
+                    height: 220,
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    fontFamily: 'Inter, sans-serif'
+                },
+                theme: { mode: 'dark' },
+                labels: ['١ يوم', '٢ يوم', '٣+ أيام'],
+                series: [stats.day1, stats.day2, stats.day3plus],
+                colors: ['#22C55E', '#3B82F6', '#F59E0B'],
+                stroke: { width: 0 },
+                legend: {
+                    position: 'bottom',
+                    labels: { colors: '#94A3B8' }
+                },
+                dataLabels: { enabled: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '72%',
+                            labels: {
+                                show: true,
+                                name: { color: '#94A3B8' },
+                                value: {
+                                    color: '#F8FAFC',
+                                    fontWeight: 700,
+                                    fontSize: '22px',
+                                    formatter: (val) => String(val)
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'VIN',
+                                    color: '#F8FAFC',
+                                    formatter: () => String(stats.measured)
+                                }
+                            }
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: { formatter: (val) => `${val} VIN` }
+                }
+            });
+        }
+
+        function deliveryStatusRows() {
+            const queue = filteredQueue();
+            let delivered = 0;
+            let still = 0;
+            queue.forEach((q) => {
+                if (q.agentStatus === 'delivered') delivered += 1;
+                else still += 1;
+            });
+            // If queue empty but drafts exist, treat drafts as delivered baseline
+            if (!queue.length && (allDrafts || []).length) {
+                const drafts = filteredDrafts();
+                delivered = drafts.length;
+                still = 0;
+            }
+            return [
+                {
+                    name: 'تم الترحيل',
+                    count: delivered,
+                    color: '#22c55e',
+                    pctClass: 'is-green',
+                    stripClass: 'pct-status-pill--done'
+                },
+                {
+                    name: 'لم يُرحّل بعد',
+                    count: still,
+                    color: '#f59e0b',
+                    pctClass: 'is-amber',
+                    stripClass: 'pct-status-pill--pending'
+                }
+            ].filter((r) => delivered + still > 0);
+        }
+
+        /** Delivered count vs overall total in the current filter scope. */
+        function deliveredOfTotalStats() {
+            const queue = filteredQueue();
+            const vehicles = filteredVehicleList();
+            const drafts = filteredDrafts();
+            const { type } = getTrackFilter();
+
+            let delivered = queue.filter((q) => q.agentStatus === 'delivered').length;
+            // Prefer queue total; fall back to vehicles in scope, then drafts
+            let total = queue.length;
+            if (!total && (type === 'proforma' || type === 'invoice')) {
+                total = vehicles.length;
+                // Count delivered among those VINs even if not all are in queue
+                const vinSet = new Set(vehicles.map((v) => normVinKey(v.vin)));
+                delivered = (allQueue || []).filter(
+                    (q) => vinSet.has(normVinKey(q.vin)) && q.agentStatus === 'delivered'
+                ).length;
+            }
+            if (!total && drafts.length) {
+                total = drafts.length;
+                delivered = drafts.length;
+            }
+            if (!total && !hasActiveTrackFilter()) {
+                total = (allQueue || []).length || (allVehicles || []).length;
+                delivered = (allQueue || []).filter((q) => q.agentStatus === 'delivered').length;
+            }
+
+            const pct = total ? Math.round((delivered / total) * 1000) / 10 : 0;
+            return { delivered, total, pct, remaining: Math.max(0, total - delivered) };
+        }
+
+        function isWarehouseAdminDraft(d) {
+            const p = (d && d.payload) || {};
+            if (p.warehouse_group || p.deliveryMode === 'warehouse') return true;
+            if (String(p.branch_to || '').trim() === 'المستودع') return true;
+            if (String(p.company_rep || '').includes('مستودع')) return true;
+            const wh = p.warehouse || {};
+            return Boolean(wh.owner_name || wh.user_name || wh.user_phone || wh.user_id || wh.print_date);
+        }
+
+        function isWarehouseQueueItem(q) {
+            if (!q || q.agentStatus !== 'delivered') return false;
+            if (q.deliveryMode === 'warehouse') return true;
+            return String(q.statusLabel || '').includes('المستودع');
+        }
+
+        /** Warehouse delivery count + % of current scope total. */
+        function warehouseDeliveredStats() {
+            const progress = deliveredOfTotalStats();
+            const queue = filteredQueue();
+            const vins = new Set();
+
+            queue.filter(isWarehouseQueueItem).forEach((q) => {
+                const vin = normVinKey(q.vin);
+                if (vin) vins.add(vin);
+            });
+
+            filteredDrafts().filter(isWarehouseAdminDraft).forEach((d) => {
+                const list = [
+                    ...(Array.isArray(d.vins) ? d.vins : []),
+                    d.vin,
+                    ...((d.payload && d.payload.vins) || []),
+                    ...((d.payload && d.payload.cars) || []).map((c) => c && (c.chassis || c.vin))
+                ];
+                list.forEach((v) => {
+                    const vin = normVinKey(v);
+                    if (vin) vins.add(vin);
+                });
+            });
+
+            // Scope to current vehicle/queue filter when applicable
+            const scopeVehicles = filteredVehicleList();
+            if (scopeVehicles.length && (getTrackFilter().type === 'proforma' || getTrackFilter().type === 'invoice')) {
+                const scope = new Set(scopeVehicles.map((v) => normVinKey(v.vin)));
+                [...vins].forEach((vin) => {
+                    if (!scope.has(vin)) vins.delete(vin);
+                });
+            }
+
+            const count = vins.size;
+            const total = progress.total || 0;
+            const pct = total ? Math.round((count / total) * 1000) / 10 : 0;
+            return { count, total, pct, delivered: progress.delivered };
+        }
+
+        function renderDeliveredOfTotalChart() {
+            const stats = deliveredOfTotalStats();
+            const doneEl = document.getElementById('deliveredTotalDone');
+            const allEl = document.getElementById('deliveredTotalAll');
+            const pctEl = document.getElementById('deliveredTotalPct');
+            const barEl = document.getElementById('deliveredTotalBarFill');
+            const capEl = document.getElementById('deliveredTotalCaption');
+            const donutEl = document.getElementById('deliveredTotalDonut');
+
+            if (doneEl) doneEl.textContent = String(stats.delivered);
+            if (allEl) allEl.textContent = String(stats.total);
+            const remEl = document.getElementById('deliveredTotalRemaining');
+            if (remEl) remEl.textContent = String(stats.remaining);
+            if (pctEl) pctEl.textContent = `${stats.pct}%`;
+            if (barEl) barEl.style.width = `${Math.min(100, stats.pct)}%`;
+            const heroBar = document.querySelector('#heroProgressCard .saas-hero__bar');
+            if (heroBar) heroBar.setAttribute('aria-valuenow', String(stats.pct));
+            if (capEl) {
+                const { type } = getTrackFilter();
+                const scope =
+                    type === 'proforma' ? 'نطاق البروفورما'
+                        : type === 'invoice' ? 'نطاق الفاتورة'
+                            : hasActiveTrackFilter() ? 'نطاق مذكرة الترحيل'
+                                : 'كل البيانات';
+                capEl.innerHTML = stats.total
+                    ? `<strong>${stats.delivered}</strong> مُرحَّلة من أصل <strong>${stats.total}</strong> (${scope}) · متبقي <strong>${stats.remaining}</strong>`
+                    : 'لا توجد بيانات في النطاق الحالي';
+            }
+
+            // Hero replaces the old delivered-total donut; keep call soft if element hidden
+            if (donutEl && !donutEl.hidden) {
+                const rows = stats.total
+                    ? [
+                        { name: 'تم الترحيل', count: stats.delivered, color: '#22c55e', pctClass: 'is-green' },
+                        { name: 'باقي الإجمالي', count: stats.remaining, color: '#64748b', pctClass: 'is-amber' }
+                    ]
+                    : [];
+                const legendHost = document.createElement('div');
+                renderPercentChart(donutEl, legendHost, rows, '', { large: true, centerPct: stats.pct, centerLabel: 'من الإجمالي' });
+            }
+            renderPremiumKpis();
         }
 
         function aggregateCompanyCities(drafts) {
@@ -1087,7 +4057,8 @@
             if (!rows.length) {
                 listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText || 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'}</div>`;
                 topEl.innerHTML = '';
-                document.getElementById('companyRecordsPanel').classList.add('hidden');
+                if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
+                else renderCompanyRecordsPanel('');
                 return;
             }
 
@@ -1119,63 +4090,204 @@
 
             const companyCount = rows.length;
             const cityPairs = rows.reduce((sum, row) => sum + row.cities.length, 0);
-            topEl.innerHTML = `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة محفوظة — اضغط شركة لعرض السجلات`;
+            topEl.innerHTML = selectedCompany
+                ? `عرض شركة واحدة فقط — <strong>${escapeHtml(selectedCompany)}</strong> · اضغط نفس الاسم للإلغاء`
+                : `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة — اضغط اسم الشركة لعرض بياناتها فقط`;
 
-            if (selectedCompany && draftsForCompany(selectedCompany).length) {
-                showCompanyRecords(selectedCompany);
-            } else if (selectedCompany) {
-                selectedCompany = '';
-                document.getElementById('companyRecordsPanel').classList.add('hidden');
-            }
+            if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
+            else highlightSelectedCompany();
         }
 
         function renderTransferDashboard(drafts) {
             const list = Array.isArray(drafts) ? drafts : filteredDrafts();
-            const dateFiltered = Boolean(getXferDateFilter());
-            const emptyDate = 'لا توجد ترحيلات في هذا التاريخ';
-            const companies = tallyField(list, (d) => draftCompanyName(d));
-            const cities = tallyField(list, (d) => (d.payload || {}).branch_to);
+            const navList = dateScopedDrafts();
+            const { type } = getTrackFilter();
+            const dateFiltered = hasActiveTrackFilter() || Boolean(getXferDateFilter());
+            const emptyDate = 'لا توجد بيانات في هذه الفترة حسب الفلتر';
+            let companies = tallyField(navList, (d) => draftCompanyName(d));
+            let cities = tallyField(list, (d) => (d.payload || {}).branch_to);
+            const vehicles = filteredVehicleList();
+            const products = tallyField(
+                vehicles.map((v) => ({ _name: v.product || v.model || '' })),
+                (row) => row._name
+            );
+
+            const companyCard = document.getElementById('companyPctDonut')?.closest('.pct-chart-card');
+            const cityCard = document.getElementById('cityPctDonut')?.closest('.pct-chart-card');
+            const companyTitle = companyCard?.querySelector('h3');
+            const companySub = companyCard?.querySelector('.pct-chart-sub');
+            const cityTitle = cityCard?.querySelector('h3');
+            const citySub = cityCard?.querySelector('.pct-chart-sub');
+
+            let companyRows = companies;
+            let cityRows = cities;
+            const usingProductFallback = !companies.length && !selectedCompany;
+            if (type === 'proforma' || type === 'invoice') {
+                if (companyTitle) companyTitle.textContent = selectedCompany
+                    ? `اختر شركة أخرى أو ألغِ التصفية`
+                    : companies.length
+                        ? 'نسبة شركات النقل ضمن النطاق'
+                        : 'نسبة المنتجات ضمن نطاق التاريخ';
+                if (companySub) {
+                    companySub.textContent = selectedCompany
+                        ? `حالياً: ${selectedCompany} — اضغط شركة أخرى للتبديل`
+                        : companies.length
+                            ? 'من المسودات المرتبطة بسيارات Proforma/Invoice — اضغط شركة للتصفية'
+                            : 'توزيع المنتجات للسيارات في Sales Raw ضمن الفترة';
+                }
+                if (usingProductFallback) companyRows = products;
+                if (cityTitle) cityTitle.textContent = cities.length
+                    ? (selectedCompany ? 'فروع / مدن هذه الشركة' : 'نسبة الفروع / المدن ضمن النطاق')
+                    : 'توزيع المنتجات (بديل)';
+                if (citySub) {
+                    citySub.textContent = cities.length
+                        ? (selectedCompany
+                            ? 'الفروع من مذكرات الشركة المختارة'
+                            : 'الفروع من المذكرات للسيارات داخل نطاق التاريخ')
+                        : 'يظهر عند عدم وجود فروع في المسودات بعد';
+                }
+                if (!cities.length && products.length) cityRows = products;
+            } else {
+                if (companyTitle) companyTitle.textContent = selectedCompany
+                    ? 'الشركات — اختر للتبديل'
+                    : 'نسبة كل شركة من الإجمالي';
+                if (companySub) companySub.textContent = selectedCompany
+                    ? `معروض فقط: ${selectedCompany} — اضغط نفس الشركة للإلغاء`
+                    : 'حسب المذكرات ضمن الفلتر — اضغط اسم الشركة لعرض بياناتها فقط';
+                if (cityTitle) cityTitle.textContent = selectedCompany
+                    ? 'فروع / مدن هذه الشركة'
+                    : 'نسبة الفروع / المدن';
+                if (citySub) citySub.textContent = selectedCompany
+                    ? 'توزيع التحويل لفروع الشركة المختارة'
+                    : 'توزيع التحويل حسب الفرع ضمن الفترة';
+            }
+
+            const statusRows = deliveryStatusRows();
+            const statusTotal = statusRows.reduce((s, r) => s + r.count, 0) || 1;
+            const deliveredRow = statusRows.find((r) => r.name === 'تم الترحيل');
+            const deliveredPct = deliveredRow
+                ? Math.round((deliveredRow.count / statusTotal) * 1000) / 10
+                : 0;
+
+            const statusSub = document.querySelector('.pct-chart-card--status .pct-chart-sub');
+            if (statusSub) {
+                statusSub.textContent = selectedCompany
+                    ? `حالة الترحيل لشركة ${selectedCompany} فقط`
+                    : type === 'delivery_note'
+                        ? 'تم الترحيل مقابل المتبقي للمذكرات/القائمة في فترة تاريخ الترحيل'
+                        : type === 'proforma'
+                            ? 'حالة الترحيل لسيارات تاريخ البروفورما ضمن الفترة'
+                            : 'حالة الترحيل لسيارات تاريخ الفاتورة ضمن الفترة';
+            }
+
+            renderDeliveredOfTotalChart();
+            renderInvoiceDeliveryChart();
+            renderTrendChart(list);
+
+            renderPercentChart(
+                document.getElementById('statusPctDonut'),
+                document.getElementById('statusPctLegend'),
+                statusRows,
+                emptyDate,
+                {
+                    large: true,
+                    centerPct: statusRows.length ? deliveredPct : null,
+                    centerLabel: 'تم الترحيل',
+                    stripEl: document.getElementById('statusPctStrip')
+                }
+            );
+            renderHorizontalBars(
+                document.getElementById('cityPctDonut'),
+                cities.length ? cities : cityRows,
+                '#22C55E'
+            );
             renderRankList(
                 document.getElementById('companyDashList'),
                 document.getElementById('companyDashTop'),
-                companies,
+                companies.length ? companies : companyRows,
                 dateFiltered ? emptyDate : 'لا توجد شركات بعد — اطبع مذكرة مع اختيار الشركة',
-                'شركة',
-                { clickableCompanies: true }
+                companies.length ? 'شركة' : 'منتج',
+                { clickableCompanies: Boolean(companies.length) }
             );
             renderRankList(
                 document.getElementById('cityDashList'),
                 document.getElementById('cityDashTop'),
-                cities,
+                cities.length ? cities : cityRows,
                 dateFiltered ? emptyDate : 'لا توجد فروع بعد — اطبع مذكرة مع اختيار الفرع',
-                'فرع'
+                cities.length ? 'فرع' : 'منتج'
             );
             renderCompanyCityBreakdown(
-                list,
+                navList,
                 dateFiltered ? emptyDate : 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'
             );
+            updateCompanyFilterChip();
             highlightSelectedCompany();
+            openFold('xferDashSection');
         }
 
-        document.getElementById('btnClearCompanyFilter').addEventListener('click', () => {
-            showCompanyRecords('');
+        document.getElementById('btnClearCompanyFilter')?.addEventListener('click', clearCompanyScope);
+        document.getElementById('btnClearCompanyScope')?.addEventListener('click', clearCompanyScope);
+
+        document.getElementById('btnTrackApply')?.addEventListener('click', () => {
+            pushDatesToNatives();
+            applyTrackFilter();
+        });
+        document.getElementById('btnTrackToday')?.addEventListener('click', () => {
+            const today = getSaudiTodayIso();
+            document.getElementById('trackDateFrom').value = today;
+            document.getElementById('trackDateTo').value = today;
+            const fromUi = document.getElementById('ftDateFromUi');
+            const toUi = document.getElementById('ftDateToUi');
+            if (fromUi) fromUi.value = today;
+            if (toUi) toUi.value = today;
+            syncDateControlsFromNatives();
+            applyTrackFilter();
+        });
+        document.getElementById('btnTrackClear')?.addEventListener('click', () => {
+            document.getElementById('trackDateFrom').value = '';
+            document.getElementById('trackDateTo').value = '';
+            document.getElementById('trackDateType').value = 'delivery_note';
+            document.getElementById('xferDateFilter').value = '';
+            const fromUi = document.getElementById('ftDateFromUi');
+            const toUi = document.getElementById('ftDateToUi');
+            const typeUi = document.getElementById('ftDateTypeUi');
+            if (fromUi) fromUi.value = '';
+            if (toUi) toUi.value = '';
+            if (typeUi) typeUi.value = 'delivery_note';
+            selectedCompany = '';
+            uiFilters = { search: '', branch: '', status: '', coordinator: '' };
+            const typeEl = document.getElementById('trackDateType');
+            if (typeEl) typeEl.value = 'delivery_note';
+            if (typeUi) typeUi.value = 'delivery_note';
+            applyDeliveryNoteDateBounds();
+            const ftSearch = document.getElementById('ftSearchInput');
+            const legacySearch = document.getElementById('searchInput');
+            if (ftSearch) ftSearch.value = '';
+            if (legacySearch) legacySearch.value = '';
+            document.getElementById('ftSearchClear')?.classList.remove('is-visible');
+            syncDateControlsFromNatives();
+            renderAllFtSelects();
+            renderFilterChips();
+            applyTrackFilter();
+        });
+        document.getElementById('trackDateType')?.addEventListener('change', () => {
+            updateTrackFilterHint();
+            if (hasActiveTrackFilter()) applyTrackFilter();
+            else updateTrackFilterMeta();
         });
 
-        document.getElementById('xferDateFilter').addEventListener('change', () => {
+        document.getElementById('xferDateFilter')?.addEventListener('change', () => {
             refreshTransferDashboard();
         });
-        document.getElementById('btnXferDateToday').addEventListener('click', () => {
+        document.getElementById('btnXferDateToday')?.addEventListener('click', () => {
             document.getElementById('xferDateFilter').value = getSaudiTodayIso();
             refreshTransferDashboard();
         });
-        document.getElementById('btnXferDateAll').addEventListener('click', () => {
+        document.getElementById('btnXferDateAll')?.addEventListener('click', () => {
             document.getElementById('xferDateFilter').value = '';
             refreshTransferDashboard();
         });
         updateXferDateLabel();
-
-        let managedCompanies = [];
-        let managedCities = [];
 
         function setOptionStatus(elId, msg, type) {
             const el = document.getElementById(elId);
@@ -1293,24 +4405,46 @@
             allVehicles = data.vehicles || [];
             lastDashboard = data.dashboard || null;
             renderStats(data.dashboard);
-            renderTable(allVehicles);
             if (queueRes.ok) {
                 allQueue = queueData.queue || [];
                 allDrafts = queueData.drafts || [];
-                renderQueueStats(queueData.stats);
-                renderQueueTable(allQueue);
-                renderDraftsTable(allDrafts);
-                renderTransferDashboard(filteredDrafts());
             } else {
                 allQueue = [];
                 allDrafts = [];
-                renderTransferDashboard(filteredDrafts());
             }
             loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
+            updateFoldCounts();
+            refreshTransferDashboard();
+            syncRestoreMetaFromDashboard();
+        }
+
+        function bindDraftActionButtons(tbody) {
+            if (!tbody) return;
+            tbody.querySelectorAll('[data-export-pdf]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.exportPdf;
+                    window.open(
+                        `Delivery_pdf.html?draft=${encodeURIComponent(id)}&adminExport=1`,
+                        '_blank',
+                        'noopener'
+                    );
+                });
+            });
+            tbody.querySelectorAll('[data-edit-draft]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.editDraft;
+                    window.open(
+                        `Delivery_pdf.html?draft=${encodeURIComponent(id)}&adminEdit=1`,
+                        '_blank',
+                        'noopener'
+                    );
+                });
+            });
         }
 
         function renderDraftsTable(drafts) {
             const tbody = document.getElementById('draftsBody');
+            if (!tbody) return;
             if (!drafts.length) {
                 tbody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد مسودات بعد</td></tr>';
                 return;
@@ -1327,21 +4461,66 @@
                     <td>${p.customer_name || '—'}</td>
                     <td>${p.company_rep || d.customerName || '—'}</td>
                     <td>${p.branch_to || '—'}</td>
-                    <td>${canExport
-                        ? `<button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${d.id}">تصدير PDF</button>`
-                        : '<span class="hub-meta">—</span>'}</td>
+                    <td style="white-space:nowrap">
+                        ${canExport
+                            ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${d.id}">تعديل</button>
+                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${d.id}">تصدير PDF</button>`
+                            : '<span class="hub-meta">—</span>'}
+                    </td>
                 </tr>`;
             }).join('');
-            tbody.querySelectorAll('[data-export-pdf]').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.exportPdf;
-                    window.open(
-                        `Delivery_pdf.html?draft=${encodeURIComponent(id)}&adminExport=1`,
-                        '_blank',
-                        'noopener'
-                    );
-                });
-            });
+            bindDraftActionButtons(tbody);
+        }
+
+        function draftVinList(d) {
+            const seen = new Set();
+            const list = [];
+            const push = (v) => {
+                const vin = normVinKey(v);
+                if (!vin || seen.has(vin)) return;
+                seen.add(vin);
+                list.push(vin);
+            };
+            (Array.isArray(d.vins) ? d.vins : []).forEach(push);
+            push(d.vin);
+            (((d.payload || {}).vins) || []).forEach(push);
+            (((d.payload || {}).cars) || []).forEach((c) => push(c && (c.chassis || c.vin)));
+            return list;
+        }
+
+        function renderWarehouseDraftsTable(drafts) {
+            const tbody = document.getElementById('warehouseDraftsBody');
+            if (!tbody) return;
+            if (!drafts.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد قوائم فحص مستودع بعد</td></tr>';
+                return;
+            }
+            tbody.innerHTML = drafts.slice(0, 100).map((d) => {
+                const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
+                const p = d.payload || {};
+                const wh = p.warehouse || {};
+                const vins = draftVinList(d);
+                const canExport = Boolean(d.id && d.payload);
+                const vinLabel = vins.length
+                    ? vins.map((v) => escapeHtml(v)).join('<br>')
+                    : '—';
+                return `<tr>
+                    <td>${when}</td>
+                    <td class="hub-vin">${vinLabel}</td>
+                    <td>${escapeHtml(d.product || d.model || '—')}</td>
+                    <td>${escapeHtml(d.assignedTo || '—')}</td>
+                    <td>${escapeHtml(wh.owner_name || p.customer_name || '—')}</td>
+                    <td>${escapeHtml(wh.user_phone || p.phone || '—')}</td>
+                    <td>${vins.length || 1}</td>
+                    <td style="white-space:nowrap">
+                        ${canExport
+                            ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
+                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">تصدير PDF</button>`
+                            : '<span class="hub-meta">—</span>'}
+                    </td>
+                </tr>`;
+            }).join('');
+            bindDraftActionButtons(tbody);
         }
 
         function renderQueueStats(stats) {
@@ -1382,7 +4561,7 @@
                     <td>${item.location || '—'}</td>
                     <td>${item.assignedTo || '—'}</td>
                     <td><span class="hub-badge ${queueBadgeClass(item)}">${label}</span></td>
-                    <td>${avail ? 'متاح' : (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز')}</td>
+                    <td>${avail ? 'متاح' : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'))}</td>
                     <td>${avail || item.agentStatus === 'delivered' ? '' : `<button type="button" class="hub-btn hub-btn--sm" data-release="${item.vin}">إتاحة</button>`}</td>
                 </tr>`;
             }).join('');
@@ -1406,47 +4585,15 @@
             });
         }
 
-        async function uploadFile(file) {
-            if (!file) return;
-            setUploadStatus('جاري الرفع والمعالجة…');
-            const reader = new FileReader();
-            reader.onload = async () => {
-                try {
-                    const res = await fetch('/api/delivery-inventory/upload', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ fileData: reader.result, filename: file.name })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'فشل الرفع');
-                    setUploadStatus(`تم استيراد ${data.imported} مركبة — تم تحديث Product/GT/Location من الملف الجديد`, 'ok');
-                    await loadDashboard();
-                } catch (err) {
-                    setUploadStatus(err.message, 'err');
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            uploadFile(e.target.files?.[0]);
-            e.target.value = '';
-        });
-
-        const zone = document.getElementById('uploadZone');
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
-        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            zone.classList.remove('dragover');
-            uploadFile(e.dataTransfer.files?.[0]);
-        });
-
         document.getElementById('searchInput').addEventListener('input', (e) => {
-            renderTable(filterVehicles(e.target.value));
+            uiFilters.search = e.target.value || '';
+            const ft = document.getElementById('ftSearchInput');
+            if (ft) ft.value = e.target.value;
+            document.getElementById('ftSearchClear')?.classList.toggle('is-visible', Boolean(uiFilters.search));
+            refreshTransferDashboard();
         });
 
-        document.getElementById('btnExportExcel').addEventListener('click', exportAllToExcel);
+        document.getElementById('btnExportExcel')?.addEventListener('click', exportAllToExcel);
 
         document.getElementById('btnClear').addEventListener('click', async () => {
             if (!confirm('مسح كل بيانات الشاسيه؟')) return;
@@ -1462,9 +4609,14 @@
             renderQueueStats({ total: 0, available: 0, claimed: 0 });
             renderQueueTable([]);
             renderDraftsTable([]);
+            renderWarehouseDraftsTable([]);
             renderTransferDashboard(filteredDrafts());
+            updateFoldCounts();
+            updateTrackFilterMeta();
             setUploadStatus('تم مسح البيانات', 'ok');
         });
+
+        initPremiumFilterToolbar();
     </script>
     <script src="delivery-hub-live.js"></script>
 </body>

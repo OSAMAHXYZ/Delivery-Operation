@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منسق الترحيل — Delivery Coordinator</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="delivery-hub-theme.css">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260802b">
 </head>
 <body class="delivery-hub">
     <div class="hub-shell">
@@ -27,15 +27,21 @@
 
         <section class="hub-section">
             <div class="hub-section-head">
-                <h2>١ — رفع بيانات خام — Raw Data Excel</h2>
-                <span class="hub-hint">مطلوب أولاً · Product · GT · Location</span>
+                <h2>١ — رفع / تحديث بيانات خام — Sales Raw</h2>
+                <span class="hub-hint">مطلوب أولاً · Product · GT · Location · تواريخ</span>
             </div>
             <label class="hub-upload" id="uploadZone">
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-                <strong>اسحب ملف Excel أو انقر للاختيار</strong>
+                <strong>اسحب ملف Excel أو انقر للاختيار — رفع كامل</strong>
                 <p class="hub-meta">ارفع Sales Raw Data أولاً قبل إضافة أرقام الشاسيه</p>
             </label>
             <p class="hub-status" id="uploadStatus"></p>
+            <div class="hub-actions-row" style="margin-top:14px;flex-wrap:wrap;gap:10px;align-items:center">
+                <input type="file" id="mergeDatesInput" accept=".xlsx,.xls" hidden>
+                <button type="button" class="hub-btn hub-btn--primary" id="btnMergeDates">تحديث التواريخ من Sales Raw</button>
+                <span class="hub-meta" id="mergeDatesMeta">يحدّث Proforma / Invoice / هاتف بدون مسح المسودات أو القائمة</span>
+            </div>
+            <p class="hub-status" id="mergeDatesStatus"></p>
         </section>
 
         <section class="hub-section" id="vinSection">
@@ -322,6 +328,44 @@
                 }
             };
             reader.readAsDataURL(file);
+            e.target.value = '';
+        });
+
+        async function mergeDatesFromSalesRaw(file) {
+            if (!file) return;
+            setStatus('mergeDatesStatus', 'جاري تحديث التواريخ من Sales Raw…');
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const res = await fetch('/api/delivery-inventory/merge-dates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fileData: reader.result, filename: file.name })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'فشل التحديث');
+                    const meta = document.getElementById('mergeDatesMeta');
+                    if (meta) {
+                        meta.textContent = `حدّث ${data.updated || 0} · أضاف ${data.added || 0} · Proforma ${data.withProforma || 0} · Invoice ${data.withInvoice || 0}`;
+                    }
+                    setStatus(
+                        'mergeDatesStatus',
+                        `تم التحديث: ${data.updated || 0} مركبة · Proforma ${data.withProforma || 0} · Invoice ${data.withInvoice || 0}`,
+                        'ok'
+                    );
+                    await loadQueue();
+                } catch (err) {
+                    setStatus('mergeDatesStatus', err.message, 'err');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('btnMergeDates').addEventListener('click', () => {
+            document.getElementById('mergeDatesInput').click();
+        });
+        document.getElementById('mergeDatesInput').addEventListener('change', (e) => {
+            mergeDatesFromSalesRaw(e.target.files?.[0]);
             e.target.value = '';
         });
 

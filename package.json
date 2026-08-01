@@ -6,7 +6,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "admin:dev": "npm run dev --prefix admin-app",
+    "admin:build": "npm run build --prefix admin-app"
   },
   "engines": {
     "node": ">=18"

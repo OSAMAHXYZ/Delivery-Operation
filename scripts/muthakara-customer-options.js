@@ -6,7 +6,8 @@ const MUTHAKARA_CUSTOMER_OPTIONS = [
     'شركه درب الرياض',
     'وسم الثريا',
     'الطريق الراسي',
-    'شركه سعيد محي البسامي'
+    'شركه سعيد محي البسامي',
+    'مستودع الهاتفية'
 ];
 
 if (typeof module !== 'undefined' && module.exports) {

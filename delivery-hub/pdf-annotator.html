@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Annotation Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-hub-theme.css">
+    <style>
+        :root {
+            --pdf-bg: #0f172a;
+            --pdf-card: rgba(15, 23, 42, 0.82);
+            --pdf-line: rgba(148, 163, 184, 0.22);
+            --pdf-text: #e2e8f0;
+            --pdf-muted: #94a3b8;
+            --pdf-accent: #2563eb;
+            --pdf-accent-2: #3b82f6;
+        }
+        * { box-sizing: border-box; }
+        body.delivery-hub {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 30%),
+                linear-gradient(180deg, #07101f, #0b1220 42%, #0f172a);
+            color: var(--pdf-text);
+            font-family: 'Tajawal', 'Inter', sans-serif;
+            margin: 0;
+        }
+        .pdf-shell {
+            width: min(1480px, calc(100% - 24px));
+            margin: 18px auto 28px;
+        }
+        .pdf-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .pdf-brand h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+        .pdf-brand p {
+            margin: 6px 0 0;
+            color: var(--pdf-muted);
+            font-size: 0.92rem;
+        }
+        .pdf-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--pdf-line);
+            color: var(--pdf-text);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .pdf-back:hover {
+            border-color: rgba(59, 130, 246, 0.48);
+        }
+        .pdf-layout {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+        .pdf-card {
+            background: var(--pdf-card);
+            border: 1px solid var(--pdf-line);
+            border-radius: 18px;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.26);
+        }
+        .pdf-sidebar {
+            padding: 18px;
+            position: sticky;
+            top: 18px;
+        }
+        .pdf-section + .pdf-section {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(148, 163, 184, 0.14);
+        }
+        .pdf-section h2 {
+            margin: 0 0 12px;
+            font-size: 0.92rem;
+            color: #f8fafc;
+        }
+        .pdf-field {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .pdf-field label {
+            font-size: 0.78rem;
+            color: var(--pdf-muted);
+        }
+        .pdf-field input,
+        .pdf-field select,
+        .pdf-field textarea,
+        .pdf-btn {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--pdf-text);
+            font: inherit;
+        }
+        .pdf-field input,
+        .pdf-field select,
+        .pdf-field textarea {
+            padding: 10px 12px;
+        }
+        .pdf-field textarea {
+            min-height: 84px;
+            resize: vertical;
+        }
+        .pdf-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .pdf-inline-tools {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .pdf-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.72);
+            color: var(--pdf-text);
+            cursor: pointer;
+            font: inherit;
+        }
+        .pdf-toggle.is-active {
+            border-color: rgba(59, 130, 246, 0.55);
+            background: rgba(37, 99, 235, 0.2);
+            color: #dbeafe;
+        }
+        .pdf-btn {
+            padding: 11px 14px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .pdf-btn:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        .pdf-btn--primary {
+            background: linear-gradient(180deg, var(--pdf-accent-2), var(--pdf-accent));
+            border-color: rgba(59, 130, 246, 0.55);
+            color: #fff;
+        }
+        .pdf-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .pdf-help {
+            margin: 0;
+            color: var(--pdf-muted);
+            font-size: 0.82rem;
+            line-height: 1.55;
+        }
+        .pdf-status {
+            min-height: 1.3em;
+            margin-top: 12px;
+            font-size: 0.84rem;
+        }
+        .pdf-status.is-error { color: #fca5a5; }
+        .pdf-status.is-ok { color: #86efac; }
+        .pdf-main {
+            padding: 16px;
+        }
+        .pdf-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .pdf-toolbar__meta {
+            color: var(--pdf-muted);
+            font-size: 0.84rem;
+        }
+        .pdf-pages {
+            display: grid;
+            gap: 18px;
+        }
+        .pdf-page {
+            position: relative;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.3);
+            background: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .pdf-page canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .pdf-anno-layer {
+            position: absolute;
+            inset: 0;
+        }
+        .pdf-anno {
+            position: absolute;
+            min-width: 40px;
+            min-height: 24px;
+            padding: 2px 4px;
+            border-radius: 6px;
+            border: 1px dashed transparent;
+            cursor: move;
+            white-space: pre-wrap;
+            line-height: 1.2;
+            user-select: none;
+            transform-origin: top left;
+        }
+        .pdf-anno.is-selected {
+            border-color: rgba(37, 99, 235, 0.8);
+            background: rgba(219, 234, 254, 0.18);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
+        }
+        .pdf-empty {
+            border: 1px dashed rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 36px 22px;
+            text-align: center;
+            color: var(--pdf-muted);
+            font-size: 0.95rem;
+        }
+        @media (max-width: 1100px) {
+            .pdf-layout {
+                grid-template-columns: 1fr;
+            }
+            .pdf-sidebar {
+                position: static;
+                top: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            .pdf-shell {
+                width: min(100% - 14px, 100%);
+            }
+            .pdf-main, .pdf-sidebar {
+                padding: 14px;
+            }
+            .pdf-row-2,
+            .pdf-inline-tools {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="delivery-hub">
+    <div class="pdf-shell">
+        <div class="pdf-topbar">
+            <div class="pdf-brand">
+                <h1>PDF Annotation Editor</h1>
+                <p>حمّل أي PDF، أضف نصوصاً متعددة، حرّكها، ثم احفظها داخل ملف PDF جديد.</p>
+            </div>
+            <a class="pdf-back" href="../index.html">العودة للرئيسية</a>
+        </div>
+
+        <div class="pdf-layout">
+            <aside class="pdf-card pdf-sidebar">
+                <div class="pdf-section">
+                    <h2>الملف</h2>
+                    <div class="pdf-field">
+                        <label for="pdfFileInput">اختر PDF</label>
+                        <input id="pdfFileInput" type="file" accept="application/pdf">
+                    </div>
+                    <p class="pdf-help">بعد التحميل: اضغط على أي مكان داخل الصفحة لإضافة حقل نص جديد.</p>
+                </div>
+
+                <div class="pdf-section">
+                    <h2>التكبير</h2>
+                    <div class="pdf-row-2">
+                        <div class="pdf-field">
+                            <label for="zoomRange">Zoom</label>
+                            <input id="zoomRange" type="range" min="0.5" max="2.5" step="0.1" value="1.2">
+                        </div>
+                        <div class="pdf-field">
+                            <label for="zoomSelect">النسبة</label>
+                            <select id="zoomSelect">
+                                <option value="0.75">75%</option>
+                                <option value="1">100%</option>
+                                <option value="1.2" selected>120%</option>
+                                <option value="1.5">150%</option>
+                                <option value="2">200%</option>
+                                <option value="2.5">250%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-section">
+                    <h2>النص المحدد</h2>
+                    <div class="pdf-field">
+                        <label for="textContentInput">Text</label>
+                        <textarea id="textContentInput" placeholder="اختر نصاً أو اضغط داخل الصفحة لإضافة نص جديد"></textarea>
+                    </div>
+                    <div class="pdf-row-2">
+                        <div class="pdf-field">
+                            <label for="fontSizeInput">Font Size</label>
+                            <input id="fontSizeInput" type="number" min="6" max="96" value="18">
+                        </div>
+                        <div class="pdf-field">
+                            <label for="fontColorInput">Font Color</label>
+                            <input id="fontColorInput" type="color" value="#111111">
+                        </div>
+                    </div>
+                    <div class="pdf-field">
+                        <label for="fontFamilySelect">Font Family</label>
+                        <select id="fontFamilySelect">
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="TimesRoman">Times Roman</option>
+                            <option value="Courier">Courier</option>
+                        </select>
+                    </div>
+                    <div class="pdf-inline-tools">
+                        <button class="pdf-toggle" id="boldToggle" type="button">Bold</button>
+                        <button class="pdf-toggle" id="italicToggle" type="button">Italic</button>
+                    </div>
+                    <div class="pdf-field" style="margin-top:12px">
+                        <button class="pdf-btn" id="deleteTextBtn" type="button">حذف النص المحدد</button>
+                    </div>
+                </div>
+
+                <div class="pdf-section">
+                    <h2>الحفظ</h2>
+                    <button class="pdf-btn pdf-btn--primary" id="savePdfBtn" type="button" disabled>Save Flattened PDF</button>
+                    <p class="pdf-help" style="margin-top:10px">سيتم دمج كل النصوص داخل الملف النهائي ليُفتح بشكل عادي في Adobe Reader.</p>
+                    <div class="pdf-status" id="pdfStatus" role="status"></div>
+                </div>
+            </aside>
+
+            <main class="pdf-card pdf-main">
+                <div class="pdf-toolbar">
+                    <div class="pdf-toolbar__meta" id="pdfMeta">لم يتم تحميل ملف بعد</div>
+                    <div class="pdf-toolbar__meta" id="annotationMeta">0 text fields</div>
+                </div>
+                <div class="pdf-pages" id="pdfPages">
+                    <div class="pdf-empty">اختر ملف PDF للبدء. بعد ذلك اضغط داخل الصفحة لإضافة نص قابل للتحرير والسحب.</div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.5.136/build/pdf.min.mjs" type="module"></script>
+    <script type="module">
+        import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.5.136/build/pdf.min.mjs';
+        import { PDFDocument, StandardFonts, rgb } from 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm';
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.5.136/build/pdf.worker.min.mjs';
+
+        const fileInput = document.getElementById('pdfFileInput');
+        const pagesEl = document.getElementById('pdfPages');
+        const saveBtn = document.getElementById('savePdfBtn');
+        const statusEl = document.getElementById('pdfStatus');
+        const metaEl = document.getElementById('pdfMeta');
+        const annotationMetaEl = document.getElementById('annotationMeta');
+        const zoomRange = document.getElementById('zoomRange');
+        const zoomSelect = document.getElementById('zoomSelect');
+        const textContentInput = document.getElementById('textContentInput');
+        const fontSizeInput = document.getElementById('fontSizeInput');
+        const fontColorInput = document.getElementById('fontColorInput');
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        const boldToggle = document.getElementById('boldToggle');
+        const italicToggle = document.getElementById('italicToggle');
+        const deleteTextBtn = document.getElementById('deleteTextBtn');
+
+        let pdfBytes = null;
+        let pdfDoc = null;
+        let pdfName = 'annotated.pdf';
+        let zoom = Number(zoomSelect.value || 1.2);
+        let annotations = [];
+        let selectedId = '';
+        let nextId = 1;
+        let pageMetrics = [];
+        let dragging = null;
+
+        function setStatus(msg, kind = '') {
+            statusEl.textContent = msg || '';
+            statusEl.className = 'pdf-status' + (kind ? ` ${kind}` : '');
+        }
+
+        function selectedAnnotation() {
+            return annotations.find((a) => a.id === selectedId) || null;
+        }
+
+        function syncToolbar() {
+            const a = selectedAnnotation();
+            const disabled = !a;
+            textContentInput.disabled = disabled;
+            fontSizeInput.disabled = disabled;
+            fontColorInput.disabled = disabled;
+            fontFamilySelect.disabled = disabled;
+            boldToggle.disabled = disabled;
+            italicToggle.disabled = disabled;
+            deleteTextBtn.disabled = disabled;
+
+            if (!a) {
+                textContentInput.value = '';
+                fontSizeInput.value = '18';
+                fontColorInput.value = '#111111';
+                fontFamilySelect.value = 'Helvetica';
+                boldToggle.classList.remove('is-active');
+                italicToggle.classList.remove('is-active');
+            } else {
+                textContentInput.value = a.text;
+                fontSizeInput.value = String(a.fontSize);
+                fontColorInput.value = a.color;
+                fontFamilySelect.value = a.fontFamily;
+                boldToggle.classList.toggle('is-active', Boolean(a.bold));
+                italicToggle.classList.toggle('is-active', Boolean(a.italic));
+            }
+            annotationMetaEl.textContent = `${annotations.length} text fields`;
+        }
+
+        function updateSelected(patch) {
+            const idx = annotations.findIndex((a) => a.id === selectedId);
+            if (idx < 0) return;
+            annotations[idx] = { ...annotations[idx], ...patch };
+            renderAnnotations();
+            syncToolbar();
+        }
+
+        function renderAnnotations() {
+            document.querySelectorAll('.pdf-anno-layer').forEach((layer) => {
+                const pageIndex = Number(layer.dataset.pageIndex);
+                layer.innerHTML = '';
+                annotations.filter((a) => a.pageIndex === pageIndex).forEach((a) => {
+                    const el = document.createElement('div');
+                    el.className = 'pdf-anno' + (a.id === selectedId ? ' is-selected' : '');
+                    el.dataset.id = a.id;
+                    el.textContent = a.text || '';
+                    el.style.left = `${a.x * zoom}px`;
+                    el.style.top = `${a.y * zoom}px`;
+                    el.style.fontSize = `${a.fontSize * zoom}px`;
+                    el.style.fontFamily = ({
+                        Helvetica: 'Arial, Helvetica, sans-serif',
+                        TimesRoman: '"Times New Roman", serif',
+                        Courier: '"Courier New", monospace'
+                    })[a.fontFamily] || 'Arial, sans-serif';
+                    el.style.color = a.color;
+                    el.style.fontWeight = a.bold ? '700' : '400';
+                    el.style.fontStyle = a.italic ? 'italic' : 'normal';
+                    el.title = 'انقر للتحديد، واسحب لتحريك النص';
+
+                    el.addEventListener('click', (evt) => {
+                        evt.stopPropagation();
+                        selectedId = a.id;
+                        renderAnnotations();
+                        syncToolbar();
+                    });
+
+                    el.addEventListener('pointerdown', (evt) => {
+                        evt.stopPropagation();
+                        selectedId = a.id;
+                        dragging = {
+                            id: a.id,
+                            pointerId: evt.pointerId,
+                            startX: evt.clientX,
+                            startY: evt.clientY,
+                            originX: a.x,
+                            originY: a.y
+                        };
+                        el.setPointerCapture(evt.pointerId);
+                        renderAnnotations();
+                        syncToolbar();
+                    });
+
+                    layer.appendChild(el);
+                });
+            });
+        }
+
+        async function renderPdf() {
+            if (!pdfDoc) return;
+            setStatus('جاري عرض الصفحات…');
+            pagesEl.innerHTML = '';
+            pageMetrics = [];
+
+            for (let i = 1; i <= pdfDoc.numPages; i += 1) {
+                const page = await pdfDoc.getPage(i);
+                const viewport = page.getViewport({ scale: zoom });
+                pageMetrics.push({
+                    width: viewport.width,
+                    height: viewport.height,
+                    pdfWidth: viewport.width / zoom,
+                    pdfHeight: viewport.height / zoom
+                });
+
+                const pageWrap = document.createElement('div');
+                pageWrap.className = 'pdf-page';
+                pageWrap.dataset.pageIndex = String(i - 1);
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+
+                const layer = document.createElement('div');
+                layer.className = 'pdf-anno-layer';
+                layer.dataset.pageIndex = String(i - 1);
+
+                layer.addEventListener('click', (evt) => {
+                    if (evt.target !== layer) return;
+                    const rect = layer.getBoundingClientRect();
+                    const x = (evt.clientX - rect.left) / zoom;
+                    const y = (evt.clientY - rect.top) / zoom;
+                    const text = 'اكتب هنا';
+                    const ann = {
+                        id: `a${nextId++}`,
+                        pageIndex: i - 1,
+                        x,
+                        y,
+                        text,
+                        fontSize: Number(fontSizeInput.value || 18),
+                        fontFamily: fontFamilySelect.value || 'Helvetica',
+                        color: fontColorInput.value || '#111111',
+                        bold: boldToggle.classList.contains('is-active'),
+                        italic: italicToggle.classList.contains('is-active')
+                    };
+                    annotations.push(ann);
+                    selectedId = ann.id;
+                    renderAnnotations();
+                    syncToolbar();
+                    setStatus('تمت إضافة حقل نص جديد', 'is-ok');
+                });
+
+                pageWrap.appendChild(canvas);
+                pageWrap.appendChild(layer);
+                pagesEl.appendChild(pageWrap);
+                await page.render({ canvasContext: ctx, viewport }).promise;
+            }
+
+            renderAnnotations();
+            syncToolbar();
+            metaEl.textContent = `${pdfName} · ${pdfDoc.numPages} page(s)`;
+            setStatus('تم تحميل ملف PDF', 'is-ok');
+        }
+
+        function hexToRgb(hex) {
+            const s = String(hex || '#111111').replace('#', '');
+            const full = s.length === 3 ? s.split('').map((c) => c + c).join('') : s;
+            const num = Number.parseInt(full, 16);
+            return rgb(((num >> 16) & 255) / 255, ((num >> 8) & 255) / 255, (num & 255) / 255);
+        }
+
+        async function saveFlattenedPdf() {
+            if (!pdfBytes) return;
+            saveBtn.disabled = true;
+            setStatus('جاري حفظ PDF الجديد…');
+            try {
+                const pdf = await PDFDocument.load(pdfBytes);
+                const fontCache = new Map();
+
+                const fontKeyFor = (a) => {
+                    const family = a.fontFamily || 'Helvetica';
+                    const bold = Boolean(a.bold);
+                    const italic = Boolean(a.italic);
+                    if (family === 'TimesRoman') {
+                        if (bold && italic) return StandardFonts.TimesRomanBoldItalic;
+                        if (bold) return StandardFonts.TimesRomanBold;
+                        if (italic) return StandardFonts.TimesRomanItalic;
+                        return StandardFonts.TimesRoman;
+                    }
+                    if (family === 'Courier') {
+                        if (bold && italic) return StandardFonts.CourierBoldOblique;
+                        if (bold) return StandardFonts.CourierBold;
+                        if (italic) return StandardFonts.CourierOblique;
+                        return StandardFonts.Courier;
+                    }
+                    if (bold && italic) return StandardFonts.HelveticaBoldOblique;
+                    if (bold) return StandardFonts.HelveticaBold;
+                    if (italic) return StandardFonts.HelveticaOblique;
+                    return StandardFonts.Helvetica;
+                };
+
+                for (const ann of annotations) {
+                    const page = pdf.getPage(ann.pageIndex);
+                    const key = fontKeyFor(ann);
+                    if (!fontCache.has(key)) fontCache.set(key, await pdf.embedFont(key));
+                    const font = fontCache.get(key);
+                    const pageHeight = page.getHeight();
+                    const lines = String(ann.text || '').split(/\r?\n/);
+                    let y = pageHeight - ann.y - ann.fontSize;
+                    lines.forEach((line, idx) => {
+                        page.drawText(line, {
+                            x: ann.x,
+                            y: y - (idx * ann.fontSize * 1.2),
+                            size: ann.fontSize,
+                            font,
+                            color: hexToRgb(ann.color)
+                        });
+                    });
+                }
+
+                const out = await pdf.save();
+                const blob = new Blob([out], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const base = pdfName.replace(/\.pdf$/i, '') || 'annotated';
+                a.download = `${base}_annotated.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+                setStatus('تم حفظ PDF بنجاح', 'is-ok');
+            } catch (err) {
+                setStatus(err.message || 'فشل حفظ PDF', 'is-error');
+            } finally {
+                saveBtn.disabled = false;
+            }
+        }
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+            saveBtn.disabled = true;
+            setStatus('جاري قراءة الملف…');
+            try {
+                pdfName = file.name || 'annotated.pdf';
+                pdfBytes = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                annotations = [];
+                selectedId = '';
+                nextId = 1;
+                saveBtn.disabled = false;
+                await renderPdf();
+            } catch (err) {
+                setStatus(err.message || 'تعذّر تحميل PDF', 'is-error');
+                pagesEl.innerHTML = '<div class="pdf-empty">تعذّر فتح هذا الملف. تأكد أنه PDF صالح.</div>';
+            }
+        });
+
+        zoomRange.addEventListener('input', async () => {
+            zoom = Number(zoomRange.value || 1.2);
+            zoomSelect.value = String(zoom);
+            if (pdfDoc) await renderPdf();
+        });
+
+        zoomSelect.addEventListener('change', async () => {
+            zoom = Number(zoomSelect.value || 1.2);
+            zoomRange.value = String(zoom);
+            if (pdfDoc) await renderPdf();
+        });
+
+        textContentInput.addEventListener('input', () => updateSelected({ text: textContentInput.value }));
+        fontSizeInput.addEventListener('input', () => updateSelected({ fontSize: Math.max(6, Number(fontSizeInput.value || 18)) }));
+        fontColorInput.addEventListener('input', () => updateSelected({ color: fontColorInput.value }));
+        fontFamilySelect.addEventListener('change', () => updateSelected({ fontFamily: fontFamilySelect.value }));
+        boldToggle.addEventListener('click', () => updateSelected({ bold: !selectedAnnotation()?.bold }));
+        italicToggle.addEventListener('click', () => updateSelected({ italic: !selectedAnnotation()?.italic }));
+
+        deleteTextBtn.addEventListener('click', () => {
+            if (!selectedId) return;
+            annotations = annotations.filter((a) => a.id !== selectedId);
+            selectedId = '';
+            renderAnnotations();
+            syncToolbar();
+        });
+
+        saveBtn.addEventListener('click', saveFlattenedPdf);
+
+        document.addEventListener('pointermove', (evt) => {
+            if (!dragging) return;
+            const idx = annotations.findIndex((a) => a.id === dragging.id);
+            if (idx < 0) return;
+            const dx = (evt.clientX - dragging.startX) / zoom;
+            const dy = (evt.clientY - dragging.startY) / zoom;
+            annotations[idx] = {
+                ...annotations[idx],
+                x: Math.max(0, dragging.originX + dx),
+                y: Math.max(0, dragging.originY + dy)
+            };
+            renderAnnotations();
+        });
+
+        document.addEventListener('pointerup', () => {
+            dragging = null;
+        });
+
+        syncToolbar();
+    </script>
+</body>
+</html>

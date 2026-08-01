@@ -42,10 +42,11 @@
         }
         .nav-btn:hover { border-color: var(--tot-primary); }
         .layout {
-            max-width: 1400px; margin: 0 auto;
+            max-width: 1380px; margin: 0 auto;
             display: grid; gap: 20px;
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
             align-items: start;
+            padding: 0 16px 48px;
         }
         @media (max-width: 1100px) {
             .layout { grid-template-columns: 1fr; }
@@ -111,6 +112,41 @@
             background: rgba(235, 10, 30, 0.08);
             color: var(--tot-primary);
         }
+        .searchable-select-hint {
+            margin: 6px 0 0;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        .searchable-select input.is-invalid {
+            border-color: #ef4444;
+            outline: 2px solid rgba(239, 68, 68, 0.15);
+        }
+        .warehouse-delivery-actions {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .btn-warehouse {
+            background: linear-gradient(180deg, #2563eb, #1d4ed8);
+            color: #fff;
+            border: 0;
+            border-radius: 12px;
+            padding: 12px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            width: auto;
+            max-width: 100%;
+            text-align: center;
+        }
+        .btn-warehouse:hover {
+            filter: brightness(1.05);
+        }
+        .btn-warehouse:active {
+            transform: translateY(1px);
+        }
         .searchable-select-empty {
             padding: 12px;
             color: var(--tot-muted);
@@ -143,9 +179,58 @@
         .status.err { color: #b91c1c; }
         .status.ok { color: #15803d; }
         .hint { font-size: .75rem; color: var(--tot-muted); margin-top: 6px; }
+        .warehouse-top-fields[hidden] { display: none !important; }
+        .warehouse-top-fields {
+            border-color: rgba(37, 99, 235, 0.18);
+            background: linear-gradient(180deg, #f8fbff, #ffffff);
+        }
+        body.warehouse-form-mode .preview-card {
+            border-color: rgba(37, 99, 235, 0.35);
+            box-shadow: 0 10px 32px rgba(37, 99, 235, 0.12);
+        }
+        body.warehouse-form-mode .preview-card h2 {
+            color: #1d4ed8;
+        }
+        body.warehouse-form-mode .overlay-field {
+            font-size: 12px;
+            font-weight: 700;
+            align-items: center;
+        }
+        @media print {
+            body.warehouse-form-mode .overlay-field {
+                font-size: 13px;
+            }
+            /* Shift form + overlays down ~20px so content clears the page top */
+            body.warehouse-form-mode .print-sheet {
+                margin-top: 5.3mm;
+                height: calc(var(--form-h) - 5.3mm);
+            }
+            /* Force VIN near the chassis label on the right in print preview */
+            body.warehouse-form-mode .overlay-field[data-tag="wh_chassis"],
+            body.warehouse-form-mode .overlay-field[data-tag^="wh_chassis_"] {
+                left: 71% !important;
+                width: 20% !important;
+            }
+        }
+        body.warehouse-form-mode .memo-only-section,
+        body.warehouse-form-mode .warehouse-delivery-actions {
+            display: none !important;
+        }
+        body.warehouse-form-mode .hero h1::after {
+            content: ' — قائمة فحص المستودع';
+            font-size: 0.7em;
+            color: #1d4ed8;
+        }
 
         .preview-panel {
-            position: sticky; top: calc(var(--nav-h) + 16px);
+            position: sticky;
+            top: calc(var(--nav-h) + 16px);
+            width: 100%;
+            max-width: 100%;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+            align-self: start;
         }
         .preview-card {
             background: #fff; border: 1px solid var(--tot-line); border-radius: 16px;
@@ -158,6 +243,8 @@
         .print-sheet {
             position: relative;
             width: 100%;
+            max-width: 560px;
+            margin: 0 auto;
             aspect-ratio: 210 / 297;
             background: #fff;
             border: 1px solid #ddd;
@@ -205,6 +292,10 @@
             z-index: 1;
             box-sizing: border-box;
         }
+        .overlay-cover--wh {
+            border: none;
+            background: #fff;
+        }
         .overlay-field.align-end {
             align-items: flex-end;
             justify-content: flex-start;
@@ -242,8 +333,18 @@
             overflow: visible;
             text-overflow: clip;
         }
-        .preview-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .preview-actions { display: none !important; }
         .preview-actions .btn { flex: 1; min-width: 120px; padding: 12px 16px; font-size: .85rem; }
+
+        @media (max-width: 1100px) {
+            .preview-panel {
+                position: static;
+                top: auto;
+            }
+            .print-sheet {
+                max-width: 100%;
+            }
+        }
 
         @page carbonless {
             size: var(--form-w) var(--form-h);
@@ -251,13 +352,33 @@
         }
 
         @media print {
-            body { background: #fff; padding: 0; }
-            .page-nav, .form-col, .hero, .no-print { display: none !important; }
-            .layout { display: block; max-width: none; }
+            html, body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                min-height: 0 !important;
+                height: auto !important;
+            }
+            .page-nav,
+            .form-col,
+            .hero,
+            .no-print,
+            #gateLogin,
+            #agentWorkspace,
+            #mainApp,
+            .vin-modal,
+            .stock-action-modal {
+                display: none !important;
+            }
+            .layout { display: block; max-width: none; padding: 0; margin: 0; }
             .preview-panel { position: static; width: 100%; }
-            .preview-card { border: none; box-shadow: none; padding: 0; }
+            .preview-card { border: none; box-shadow: none; padding: 0; margin: 0; }
             #printSheet { display: none !important; }
-            #printCopies { display: block; }
+            #printCopies {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
             .print-sheet {
                 width: var(--form-w);
                 height: var(--form-h);
@@ -268,9 +389,19 @@
                 margin: 0;
                 overflow: hidden;
                 page-break-after: avoid;
+                break-inside: avoid;
+                page-break-inside: avoid;
             }
-            .print-copy { page-break-after: always; }
-            .print-copy:last-child { page-break-after: auto; }
+            .print-copy {
+                page-break-after: always;
+                break-after: page;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .print-copy:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
             .overlay-field { font-size: 17px; font-weight: 700; }
             .overlay-field.overlay-field--header-date { font-size: 15px; font-weight: 700; }
             .overlay-field.overlay-field--chassis {
@@ -862,6 +993,11 @@
             body.print-carbonless .print-sheet {
                 background: transparent;
             }
+            body.print-carbonless #mainApp,
+            body.print-carbonless #gateLogin,
+            body.print-carbonless #agentWorkspace {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -962,7 +1098,7 @@
 
         <div class="form-col">
             <form id="deliveryForm">
-                <section class="card">
+                <section class="card memo-only-section">
                     <h2>بيانات المذكرة — Header</h2>
                     <div class="grid grid-4">
                         <div>
@@ -984,15 +1120,16 @@
                     </div>
                 </section>
 
-                <section class="card">
+                <section class="card memo-only-section">
                     <h2>بيانات العميل والنقل — Customer &amp; Transport</h2>
                     <div class="grid grid-2">
                         <div>
                             <label for="company_rep">اسم الشركة / Company</label>
                             <div class="searchable-select">
-                                <input id="company_rep" name="company_rep" type="text" required autocomplete="off" placeholder="اكتب للبحث عن الشركة…" spellcheck="false">
+                                <input id="company_rep" name="company_rep" type="text" required autocomplete="off" placeholder="اختر الشركة من القائمة…" spellcheck="false" data-list-only="1">
                                 <div class="searchable-select-menu" id="company_rep_menu" role="listbox"></div>
                             </div>
+                            <p class="searchable-select-hint">يجب الاختيار من القائمة فقط — لا يُسمح بالكتابة الحرة</p>
                         </div>
                         <div>
                             <label for="customer_name">مندوب الشركة / Company Rep</label>
@@ -1021,15 +1158,56 @@
                         <div>
                             <label for="branch_to">محولة إلى فرع / Branch</label>
                             <div class="searchable-select">
-                                <input id="branch_to" name="branch_to" type="text" required autocomplete="off" placeholder="اكتب للبحث عن الفرع…" spellcheck="false">
+                                <input id="branch_to" name="branch_to" type="text" required autocomplete="off" placeholder="اختر الفرع من القائمة…" spellcheck="false" data-list-only="1">
                                 <div class="searchable-select-menu" id="branch_to_menu" role="listbox"></div>
                             </div>
+                            <p class="searchable-select-hint">يجب الاختيار من القائمة فقط — لا يُسمح بالكتابة الحرة</p>
                         </div>
                         <div class="grid" style="grid-column: 1 / -1">
                             <label for="attachments">المرفقات / Attachments</label>
                             <textarea id="attachments" name="attachments" rows="2"></textarea>
                         </div>
                     </div>
+                </section>
+
+                <section class="card warehouse-top-fields no-print" id="warehouseTopFields" hidden>
+                    <h2>بيانات قائمة فحص التسليم</h2>
+                    <p class="hint">عبّئ هذه الحقول فقط — تظهر على نموذج المستودع. الشاسيه من الجدول أدناه.</p>
+                    <div class="grid grid-2">
+                        <div>
+                            <label for="wh_owner_name">اسم المالك</label>
+                            <input id="wh_owner_name" name="wh_owner_name" type="text" placeholder="اسم المالك">
+                        </div>
+                        <div>
+                            <label for="wh_user_name">اسم المستخدم</label>
+                            <input id="wh_user_name" name="wh_user_name" type="text" placeholder="اسم المستخدم">
+                        </div>
+                        <div>
+                            <label for="wh_user_phone">هاتف</label>
+                            <input id="wh_user_phone" name="wh_user_phone" type="text" placeholder="05xxxxxxxx">
+                        </div>
+                        <div>
+                            <label for="wh_user_id">رقم الهوية</label>
+                            <input id="wh_user_id" name="wh_user_id" type="text" placeholder="رقم الهوية">
+                        </div>
+                        <div>
+                            <label for="wh_print_date">تاريخ طباعة المستند</label>
+                            <input id="wh_print_date" name="wh_print_date" type="date">
+                        </div>
+                        <div>
+                            <label for="wh_print_time">وقت طباعة المستند</label>
+                            <input id="wh_print_time" name="wh_print_time" type="time" step="1">
+                        </div>
+                    </div>
+                    <!-- Keep hidden for payload compatibility -->
+                    <input type="hidden" id="wh_branch_name" name="wh_branch_name" value="">
+                    <input type="hidden" id="wh_city_address" name="wh_city_address" value="">
+                    <input type="hidden" id="wh_branch_cr" name="wh_branch_cr" value="">
+                    <input type="hidden" id="wh_branch_phone" name="wh_branch_phone" value="">
+                    <input type="hidden" id="wh_center_code" name="wh_center_code" value="">
+                    <input type="hidden" id="wh_statement_no" name="wh_statement_no" value="">
+                    <input type="hidden" id="wh_user_email" name="wh_user_email" value="">
+                    <input type="hidden" id="wh_technicians_name" name="wh_technicians_name" value="">
                 </section>
 
                 <section class="card">
@@ -1066,9 +1244,9 @@
 
         <aside class="preview-panel">
             <div class="preview-card">
-                <h2 class="no-print">معاينة مذكرة الترحيل</h2>
+                <h2 class="no-print" id="previewTitle">معاينة مذكرة الترحيل</h2>
                 <div class="print-sheet" id="printSheet">
-                    <img src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل">
+                    <img id="previewFormImage" src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل">
                     <div id="overlayFields" class="overlay-layer"></div>
                 </div>
                 <div class="preview-actions no-print" hidden>
@@ -1099,11 +1277,11 @@
             <h3 id="stockActionTitle">ماذا تريد أن تفعل؟</h3>
             <div class="stock-action-meta" id="stockActionVin"></div>
             <div class="stock-action-product" id="stockActionProduct"></div>
-            <p class="stock-action-sub" id="stockActionSub">اختر إصدار مذكرة الترحيل أو نقل السيارة للمخزون</p>
+            <p class="stock-action-sub" id="stockActionSub">اختر نوع الإجراء لهذه السيارة</p>
             <div class="stock-action-btns">
-                <button type="button" class="sa-issue" id="stockActionIssue">اصدار مذكرة الترحيل</button>
-                <button type="button" class="sa-return" id="stockActionSecondary">نقل للمخزون</button>
-                <button type="button" class="sa-cancel" id="stockActionCancel">إلغاء</button>
+                <button type="button" class="sa-issue" id="stockActionWarehouse">التسليم في المستودع</button>
+                <button type="button" class="sa-return" id="stockActionTransfer">الترحيل</button>
+                <button type="button" class="sa-cancel" id="stockActionBack">الرجوع للقائمة</button>
             </div>
         </div>
     </div>
@@ -1111,9 +1289,11 @@
     <script src="../scripts/muthakara-branch-options.js?v=20260722b"></script>
     <script src="../scripts/muthakara-customer-options.js?v=20260722b"></script>
     <script src="../scripts/muthakara-field-layout.js?v=20260722b"></script>
+    <script src="../scripts/check-note-field-layout.js?v=20260801vindown20"></script>
     <script>
         const AR_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠'];
-        const FIELD_LAYOUT = MUTHAKARA_FIELDS;
+        let FIELD_LAYOUT = MUTHAKARA_FIELDS;
+        let warehousePrintMode = false;
         const carsBody = document.getElementById('carsBody');
         const statusEl = document.getElementById('status');
         const form = document.getElementById('deliveryForm');
@@ -1193,19 +1373,35 @@
             // VIN +60px ≈ 15.9mm, model +15px ≈ 4mm, plate +40px ≈ 10.6mm
             let left = `${x * 100}%`;
             let top = `${y * 100}%`;
-            if (/_chassis$/.test(tag)) left = `calc(${x * 100}% + 15.9mm)`;
+            if (/^wh_chassis/.test(tag)) {
+                // Absolute % — mm accumulation was hard to see / deploy; place VIN near label
+                left = `${x * 100}%`;
+            } else if (/_chassis$/.test(tag)) {
+                left = `calc(${x * 100}% + 15.9mm)`;
+            }
             if (/_model$/.test(tag)) left = `calc(${x * 100}% + 4mm)`;
             if (/_plate$/.test(tag)) left = `calc(${x * 100}% + 10.6mm)`;
             return `left:${left};top:${top};width:${w * 100}%;height:${h * 100}%`;
         }
 
         function buildOverlay() {
-            const [cx, cy, cw, ch] = MEMO_NUMBER_COVER;
-            const coverHtml = `<div class="overlay-cover" aria-hidden="true" style="left:${cx * 100}%;top:${cy * 100}%;width:${cw * 100}%;height:${ch * 100}%"></div>`;
+            Object.keys(fieldEls).forEach((k) => { delete fieldEls[k]; });
+            FIELD_LAYOUT = warehousePrintMode
+                ? (typeof CHECK_NOTE_FIELDS !== 'undefined' ? CHECK_NOTE_FIELDS : [])
+                : MUTHAKARA_FIELDS;
+            let coverHtml = '';
+            if (warehousePrintMode && typeof CHECK_NOTE_COVERS !== 'undefined') {
+                coverHtml = CHECK_NOTE_COVERS.map(([cx, cy, cw, ch]) =>
+                    `<div class="overlay-cover overlay-cover--wh" aria-hidden="true" style="left:${cx * 100}%;top:${cy * 100}%;width:${cw * 100}%;height:${ch * 100}%"></div>`
+                ).join('');
+            } else if (!warehousePrintMode) {
+                const [cx, cy, cw, ch] = MEMO_NUMBER_COVER;
+                coverHtml = `<div class="overlay-cover" aria-hidden="true" style="left:${cx * 100}%;top:${cy * 100}%;width:${cw * 100}%;height:${ch * 100}%"></div>`;
+            }
             overlayFields.innerHTML = coverHtml + FIELD_LAYOUT.map(([tag, x, y, w, h, align]) => {
                 const dateCls = /^date_[dmy]$/.test(tag) ? ' overlay-field--header-date' : '';
                 const invoiceCls = tag === 'invoice_number' ? ' overlay-field--invoice' : '';
-                const chassisCls = /_chassis$/.test(tag) ? ' overlay-field--chassis' : '';
+                const chassisCls = /chassis/.test(tag) ? ' overlay-field--chassis' : '';
                 const cls = 'overlay-field align-' + (align || 'end') + dateCls + invoiceCls + chassisCls;
                 return `<div class="${cls}" data-tag="${tag}" style="${overlayPositionStyle(tag, x, y, w, h)}"></div>`;
             }).join('');
@@ -1242,7 +1438,104 @@
                 car_count: String(filled || fd.get('car_count')?.trim() || ''),
                 branch_to: fd.get('branch_to')?.trim(),
                 attachments: fd.get('attachments')?.trim(),
+                warehouse: {
+                    branch_name: fd.get('wh_branch_name')?.trim(),
+                    city_address: fd.get('wh_city_address')?.trim(),
+                    statement_no: fd.get('wh_statement_no')?.trim(),
+                    center_code: fd.get('wh_center_code')?.trim(),
+                    owner_name: fd.get('wh_owner_name')?.trim(),
+                    user_name: fd.get('wh_user_name')?.trim(),
+                    user_phone: fd.get('wh_user_phone')?.trim(),
+                    user_email: fd.get('wh_user_email')?.trim(),
+                    user_id: fd.get('wh_user_id')?.trim(),
+                    technicians_name: fd.get('wh_technicians_name')?.trim(),
+                    branch_cr: fd.get('wh_branch_cr')?.trim(),
+                    branch_phone: fd.get('wh_branch_phone')?.trim(),
+                    print_date: fd.get('wh_print_date')?.trim(),
+                    print_time: fd.get('wh_print_time')?.trim()
+                },
+                phone: fd.get('wh_user_phone')?.trim(),
                 cars
+            };
+        }
+
+        function formatWhPrintDate(iso) {
+            const s = String(iso || '').trim();
+            const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return s;
+            return `${m[3]}.${m[2]}.${m[1]}`;
+        }
+
+        function formatWhPrintTime(value) {
+            const raw = String(value || '').trim();
+            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(raw)) {
+                const parts = raw.split(':');
+                const hh = String(parts[0]).padStart(2, '0');
+                const mm = String(parts[1]).padStart(2, '0');
+                const ss = String(parts[2] || '00').padStart(2, '0');
+                return `${hh}:${mm}:${ss}`;
+            }
+            try {
+                return new Intl.DateTimeFormat('en-GB', {
+                    timeZone: 'Asia/Riyadh',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }).format(new Date());
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function getFormChassisList() {
+            const cars = collectPayload().cars || [];
+            const list = [];
+            const seen = new Set();
+            cars.forEach((c) => {
+                const vin = String(c?.chassis || '').trim().toUpperCase();
+                if (!vin || seen.has(vin)) return;
+                seen.add(vin);
+                list.push(vin);
+            });
+            const claimed = getClaimedVin();
+            if (claimed && !seen.has(claimed)) list.unshift(claimed);
+            return list;
+        }
+
+        function buildCheckNoteOverlayData(body) {
+            const wh = body.warehouse || {};
+            const cars = Array.isArray(body.cars) ? body.cars : [];
+            const vins = [];
+            const seen = new Set();
+            cars.forEach((c) => {
+                const vin = String(c?.chassis || '').trim().toUpperCase();
+                if (!vin || seen.has(vin)) return;
+                seen.add(vin);
+                vins.push(vin);
+            });
+            const owner = wh.owner_name || body.customer_name || '';
+            const printIso = wh.print_date || body.doc_date || body.transfer_date || '';
+            return {
+                wh_branch_name: wh.branch_name || '',
+                wh_city_address: wh.city_address || '',
+                wh_branch_cr: wh.branch_cr || '',
+                wh_branch_phone: wh.branch_phone || '',
+                wh_center_code: wh.center_code || wh.statement_no || '',
+                wh_print_date: formatWhPrintDate(printIso),
+                wh_owner_name: owner,
+                wh_user_name: wh.user_name || '',
+                wh_user_phone: wh.user_phone || '',
+                wh_user_email: wh.user_email || '',
+                wh_user_id: wh.user_id || '',
+                wh_print_time: formatWhPrintTime(wh.print_time),
+                wh_chassis: vins[0] || '',
+                wh_chassis_2: vins[1] || '',
+                wh_chassis_3: vins[2] || '',
+                wh_chassis_4: vins[3] || '',
+                wh_chassis_5: vins[4] || (vins.length > 5 ? `+${vins.length - 4} أخرى` : ''),
+                wh_guest_name: owner,
+                wh_technicians_name: wh.technicians_name || ''
             };
         }
 
@@ -1286,7 +1579,10 @@
         }
 
         function updatePreview() {
-            const data = buildFlatData(collectPayload());
+            const payload = collectPayload();
+            const data = warehousePrintMode
+                ? buildCheckNoteOverlayData(payload)
+                : buildFlatData(payload);
             Object.keys(fieldEls).forEach((tag) => {
                 fieldEls[tag].textContent = data[tag] || '';
             });
@@ -1361,7 +1657,9 @@
                     ? `<img src="${v.imageUrl}" alt="" onerror="this.style.display='none'">`
                     : '<div class="vin-meta" style="height:72px;display:flex;align-items:center;justify-content:center">🚗</div>';
                 const meta = [v.plate, v.suffix].filter(Boolean).join(' · ');
-                return `<button type="button" class="vin-card" data-vin="${v.vin}" data-product="${(v.product || v.model || '').replace(/"/g, '&quot;')}" data-plate="${(v.plate || '').replace(/"/g, '&quot;')}">
+                const phoneAttr = String(v.phone || '').replace(/"/g, '&quot;');
+                const customerAttr = String(v.customerName || '').replace(/"/g, '&quot;');
+                return `<button type="button" class="vin-card" data-vin="${v.vin}" data-product="${(v.product || v.model || '').replace(/"/g, '&quot;')}" data-plate="${(v.plate || '').replace(/"/g, '&quot;')}" data-phone="${phoneAttr}" data-customer="${customerAttr}">
                     ${img}
                     <div class="vin-no">${v.vin}</div>
                     <div class="vin-product">${v.product || v.model || '—'}</div>
@@ -1371,6 +1669,29 @@
             vinGrid.querySelectorAll('.vin-card').forEach((btn) => {
                 btn.addEventListener('click', () => selectVinVehicle(btn));
             });
+        }
+
+        function setWarehousePhoneFromRaw(phone) {
+            const el = document.getElementById('wh_user_phone');
+            if (!el) return;
+            const p = String(phone || '').trim();
+            if (!p || p === '#') return;
+            el.value = p;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            updatePreview();
+        }
+
+        async function lookupVehiclePhone(vin) {
+            const key = String(vin || '').trim().toUpperCase();
+            if (!key) return '';
+            try {
+                const res = await fetch(`/api/delivery-inventory/vehicles?search=${encodeURIComponent(key)}&limit=20`);
+                const data = await res.json();
+                const hit = (data.vehicles || []).find((v) => String(v.vin || '').trim().toUpperCase() === key);
+                return String(hit?.phone || '').trim();
+            } catch (_) {
+                return '';
+            }
         }
 
         async function loadVinOptions(search) {
@@ -1404,6 +1725,9 @@
             const product = btn.dataset.product || '';
             form.querySelector(`[name="car_chassis_${activeVinRow}"]`).value = vin;
             form.querySelector(`[name="car_model_${activeVinRow}"]`).value = product;
+            if (warehousePrintMode || activeVinRow === 0) {
+                setWarehousePhoneFromRaw(btn.dataset.phone || '');
+            }
             closeVinPicker();
             syncCarCount();
         }
@@ -1421,9 +1745,16 @@
         });
 
         function doPrintA4() {
+            const isAdminMode = new URLSearchParams(location.search).get('adminExport') === '1'
+                || new URLSearchParams(location.search).get('adminEdit') === '1';
+            if (!isAdminMode && !validateListOnlyFields()) return;
             const vin = getClaimedVin();
             const agent = getAgent();
-            const isAdminExport = new URLSearchParams(location.search).get('adminExport') === '1';
+            const isAdminExport = isAdminMode;
+            const isWarehouse = warehousePrintMode;
+            const tableVins = getFormChassisList();
+            const groupVins = tableVins.length ? tableVins : (vin ? [vin] : []);
+
             // Rebuild overlay positions, then clone for print (browser print ignores CSS transform/px quirks)
             buildOverlay();
             updatePreview();
@@ -1436,7 +1767,8 @@
             const printSheet = document.getElementById('printSheet');
             const copiesContainer = document.createElement('div');
             copiesContainer.id = 'printCopies';
-            const copies = 3;
+            // Check-note form: one filled page. Transfer memo: 3 copies.
+            const copies = isWarehouse ? 1 : 3;
             for (let i = 0; i < copies; i++) {
                 const clone = printSheet.cloneNode(true);
                 clone.classList.add('print-copy');
@@ -1445,13 +1777,22 @@
                 clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
                 copiesContainer.appendChild(clone);
             }
-            document.body.appendChild(copiesContainer);
+            // First in DOM so print engines don't leave a blank leading page.
+            document.body.insertBefore(copiesContainer, document.body.firstChild);
 
             const finish = async () => {
                 cleanupPrintCopies();
                 window.removeEventListener('afterprint', finish);
                 if (isAdminExport) return;
-                if (vin && agent.username && agent.password) {
+                if (isWarehouse) {
+                    try {
+                        await downloadWarehouseCheckNoteFile();
+                    } catch (err) {
+                        console.error('check-note download failed', err);
+                    }
+                }
+                const vinsToComplete = groupVins.length ? groupVins : (vin ? [vin] : []);
+                if (vinsToComplete.length && agent.username && agent.password) {
                     try {
                         const res = await fetch('/api/delivery-coordinator/complete-print', {
                             method: 'POST',
@@ -1459,27 +1800,35 @@
                             body: JSON.stringify({
                                 username: agent.username,
                                 password: agent.password,
-                                vin,
+                                vin: vinsToComplete[0],
+                                vins: vinsToComplete,
                                 draft: collectPayload()
                             })
                         });
                         if (!res.ok) {
                             const err = await res.json().catch(() => ({}));
                             console.error('complete-print failed', err.error || res.status);
+                            setStatus(err.error || 'فشل تحديث حالة الترحيل', 'err');
+                        } else {
+                            const data = await res.json().catch(() => ({}));
+                            const n = data.deliveredCount || vinsToComplete.length;
+                            setTimeout(() => {
+                                const statusEl = document.getElementById('queueStatus');
+                                if (statusEl) {
+                                    statusEl.textContent = isWarehouse
+                                        ? `تم التسليم في المستودع لـ ${n} سيارة`
+                                        : (n > 1 ? `تم الترحيل لـ ${n} سيارة` : 'تم الطباعة — تم الترحيل');
+                                    statusEl.className = 'ws-toast ok';
+                                }
+                            }, 400);
                         }
                     } catch (err) {
                         console.error('complete-print failed', err);
                     }
                 }
                 clearClaimedVin();
+                clearDeliveryForm();
                 openWorkspace();
-                setTimeout(() => {
-                    const statusEl = document.getElementById('queueStatus');
-                    if (statusEl) {
-                        statusEl.textContent = 'تم الطباعة — تم الترحيل';
-                        statusEl.className = 'ws-toast ok';
-                    }
-                }, 400);
             };
             window.addEventListener('afterprint', finish);
             window.print();
@@ -1487,27 +1836,34 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            setStatus('جاري إنشاء ملف Word…');
+            if (!validateListOnlyFields()) return;
+            const useCheckNote = warehousePrintMode;
+            setStatus(useCheckNote ? 'جاري إنشاء delivery_check_note…' : 'جاري إنشاء ملف Word…');
             const btn = document.getElementById('btnDownload');
             btn.disabled = true;
             try {
-                const res = await fetch('/api/delivery-note/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(collectPayload())
-                });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(err.error || `Server error ${res.status}`);
+                if (useCheckNote) {
+                    await downloadWarehouseCheckNoteFile();
+                    setStatus('تم تحميل delivery_check_note', 'ok');
+                } else {
+                    const res = await fetch('/api/delivery-note/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(collectPayload())
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.error || `Server error ${res.status}`);
+                    }
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `muthakara_tarhil_${Date.now()}.docx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setStatus('تم التحميل — افتح الملف في Word واطبعه', 'ok');
                 }
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `muthakara_tarhil_${Date.now()}.docx`;
-                a.click();
-                URL.revokeObjectURL(url);
-                setStatus('تم التحميل — افتح الملف في Word واطبعه', 'ok');
             } catch (err) {
                 setStatus(err.message || 'فشل إنشاء الملف', 'err');
             } finally {
@@ -1517,7 +1873,13 @@
 
         form.addEventListener('input', updatePreview);
         form.addEventListener('change', updatePreview);
-        form.addEventListener('reset', () => setTimeout(() => { setTodayDates(); syncCarCount(); setStatus(''); }, 0));
+        let _skipResetWarehouse = false;
+        form.addEventListener('reset', () => setTimeout(() => {
+            setTodayDates(); syncCarCount();
+            if (!_skipResetWarehouse) setWarehousePrintMode(false);
+            _skipResetWarehouse = false;
+            setStatus('');
+        }, 0));
 
         document.getElementById('btnToday').addEventListener('click', setTodayDates);
         document.getElementById('transfer_date').addEventListener('change', syncDayFromTransferDate);
@@ -1533,10 +1895,13 @@
         const PASS_KEY = 'deliveryAgentPass';
         const CLAIMED_VIN_KEY = 'deliveryClaimedVin';
         const AGENT_PASSWORD = '1234';
+        const NORMAL_PREVIEW_IMAGE = '../images/muthakara-tarhil-form.png';
+        const WAREHOUSE_PREVIEW_IMAGE = '../images/delivery-check-note-form.png?v=20260731align2';
         let workspaceQueue = [];
         // In-memory only — reload always requires login again
         let agentSession = { username: '', password: '' };
         let claimedVinSession = '';
+        // warehousePrintMode declared near top with FIELD_LAYOUT
 
         async function readJsonResponse(res) {
             const text = await res.text();
@@ -1587,6 +1952,49 @@
 
         function clearClaimedVin() {
             claimedVinSession = '';
+        }
+
+        function clearDeliveryForm() {
+            form.reset();
+            buildOverlay();
+            setTodayDates();
+            syncCarCount();
+            setWarehousePrintMode(false);
+            setStatus('');
+        }
+
+        function setWarehousePrintMode(enabled) {
+            warehousePrintMode = Boolean(enabled);
+            document.body.classList.toggle('warehouse-form-mode', warehousePrintMode);
+            const previewTitle = document.getElementById('previewTitle');
+            const previewImg = document.getElementById('previewFormImage');
+            const topFields = document.getElementById('warehouseTopFields');
+            const overlay = document.getElementById('overlayFields');
+            const printBtn = document.getElementById('btnPrint');
+            const downloadBtn = document.getElementById('btnDownload');
+            if (previewTitle) {
+                previewTitle.textContent = warehousePrintMode
+                    ? 'معاينة قائمة فحص التسليم'
+                    : 'معاينة مذكرة الترحيل';
+            }
+            if (previewImg) {
+                previewImg.src = warehousePrintMode ? WAREHOUSE_PREVIEW_IMAGE : NORMAL_PREVIEW_IMAGE;
+                previewImg.alt = warehousePrintMode ? 'قائمة فحص السيارات وقت التسليم' : 'مذكرة ترحيل';
+            }
+            if (overlay) overlay.style.display = '';
+            if (topFields) topFields.hidden = !warehousePrintMode;
+            if (printBtn) {
+                printBtn.textContent = warehousePrintMode
+                    ? '🖨 طباعة قائمة الفحص + PDF'
+                    : '🖨 طباعة A4';
+            }
+            if (downloadBtn) {
+                downloadBtn.textContent = warehousePrintMode
+                    ? '⬇ تحميل PDF الفحص'
+                    : '⬇ تحميل Word';
+            }
+            buildOverlay();
+            updatePreview();
         }
 
         function showView(which) {
@@ -1771,13 +2179,10 @@
             document.getElementById('stockActionVin').textContent = stockActionVin;
             document.getElementById('stockActionProduct').textContent = item.product || item.model || '—';
             const sub = document.getElementById('stockActionSub');
-            const secondary = document.getElementById('stockActionSecondary');
-            if (stockActionMode === 'available') {
-                sub.textContent = 'اختر إصدار مذكرة الترحيل أو نقل السيارة للمخزون';
-                secondary.textContent = 'نقل للمخزون';
-            } else {
-                sub.textContent = 'اصدار مذكرة للطباعة، أو أعد السيارة للقائمة المتاحة';
-                secondary.textContent = 'إرجاع السيارة للقائمة المتاحة';
+            if (sub) {
+                sub.textContent = stockActionMode === 'available'
+                    ? 'اختر: التسليم في المستودع أو الترحيل أو الرجوع للقائمة'
+                    : 'اختر نوع المذكرة لهذه السيارة أو ارجع للقائمة';
             }
             document.getElementById('stockActionModal').classList.add('open');
         }
@@ -1815,6 +2220,7 @@
             const model = form.querySelector('[name="car_model_0"]');
             if (chassis) chassis.value = item.vin;
             if (model) model.value = item.product || item.model || '';
+            setWarehousePhoneFromRaw(item.phone || '');
             syncCarCount();
             updatePreview();
         }
@@ -1822,8 +2228,8 @@
         function openMainWithVin(item) {
             setClaimedVin(item.vin);
             showView('app');
+            clearDeliveryForm();
             prefillClaimedVin(item);
-            setTodayDates();
         }
 
         function openWorkspace() {
@@ -1849,8 +2255,62 @@
             return params.get('adminExport') === '1' && Boolean(getUrlDraftId());
         }
 
+        function isAdminEditMode() {
+            const params = new URLSearchParams(location.search);
+            return params.get('adminEdit') === '1' && Boolean(getUrlDraftId());
+        }
+
+        async function saveAdminDraftEdit() {
+            const draftId = getUrlDraftId();
+            if (!draftId) return;
+            setStatus('جاري حفظ التعديلات…', 'ok');
+            try {
+                const res = await fetch(`/api/delivery-coordinator/drafts/${encodeURIComponent(draftId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload: collectPayload() })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الحفظ');
+                setStatus('تم حفظ تعديلات المذكرة', 'ok');
+            } catch (err) {
+                setStatus(err.message || 'فشل الحفظ', 'err');
+            }
+        }
+
+        function isWarehouseDraftPayload(payload) {
+            if (!payload || typeof payload !== 'object') return false;
+            if (payload.warehouse_group) return true;
+            if (String(payload.branch_to || '').trim() === 'المستودع') return true;
+            const company = String(payload.company_rep || '').trim();
+            if (company.includes('مستودع')) return true;
+            const wh = payload.warehouse || {};
+            return Boolean(
+                wh.owner_name || wh.user_name || wh.user_id || wh.user_phone
+                || wh.print_date || wh.print_time
+            );
+        }
+
+        function waitForPreviewImage() {
+            const img = document.getElementById('previewFormImage');
+            if (!img) return Promise.resolve();
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise((resolve) => {
+                const done = () => {
+                    img.removeEventListener('load', done);
+                    img.removeEventListener('error', done);
+                    resolve();
+                };
+                img.addEventListener('load', done);
+                img.addEventListener('error', done);
+                setTimeout(done, 2500);
+            });
+        }
+
         function applyDraftPayload(payload) {
             if (!payload || typeof payload !== 'object') return;
+            const params = new URLSearchParams(location.search);
+            const adminMode = params.get('adminExport') === '1' || params.get('adminEdit') === '1';
             const setVal = (id, value) => {
                 const el = document.getElementById(id);
                 if (el && value != null && value !== '') el.value = value;
@@ -1859,17 +2319,34 @@
             setVal('invoice_number', payload.invoice_number);
             setVal('dep_hour', payload.dep_hour);
             setVal('dep_minute', payload.dep_minute);
-            if (payload.company_rep) ensureSearchableOption('company_rep', payload.company_rep);
             setVal('customer_name', payload.customer_name);
-            setVal('company_rep', payload.company_rep);
+            if (payload.company_rep && (adminMode || ensureSearchableOption('company_rep', payload.company_rep))) {
+                setVal('company_rep', payload.company_rep);
+            }
             setVal('transfer_date', payload.transfer_date);
             setVal('corresponding_date', payload.corresponding_date);
             setVal('day_name', payload.day_name);
             setVal('trailer_number', payload.trailer_number);
             setVal('car_count', payload.car_count);
-            if (payload.branch_to) ensureSearchableOption('branch_to', payload.branch_to);
-            setVal('branch_to', payload.branch_to);
+            if (payload.branch_to && (adminMode || ensureSearchableOption('branch_to', payload.branch_to))) {
+                setVal('branch_to', payload.branch_to);
+            }
             setVal('attachments', payload.attachments);
+            const wh = payload.warehouse || {};
+            setVal('wh_branch_name', wh.branch_name);
+            setVal('wh_city_address', wh.city_address);
+            setVal('wh_statement_no', wh.statement_no);
+            setVal('wh_center_code', wh.center_code || wh.statement_no);
+            setVal('wh_owner_name', wh.owner_name || payload.customer_name);
+            setVal('wh_user_name', wh.user_name);
+            setVal('wh_user_phone', wh.user_phone);
+            setVal('wh_user_email', wh.user_email);
+            setVal('wh_user_id', wh.user_id);
+            setVal('wh_technicians_name', wh.technicians_name);
+            setVal('wh_branch_cr', wh.branch_cr);
+            setVal('wh_branch_phone', wh.branch_phone);
+            setVal('wh_print_date', wh.print_date || payload.doc_date || payload.transfer_date);
+            setVal('wh_print_time', wh.print_time);
             const cars = Array.isArray(payload.cars) ? payload.cars : [];
             cars.forEach((row, i) => {
                 if (i > 9) return;
@@ -1894,19 +2371,60 @@
             const draft = data.draft;
             if (!draft?.payload) throw new Error('المسودة لا تحتوي على بيانات الطباعة');
             showView('app');
+            const isWh = isWarehouseDraftPayload(draft.payload);
+            setWarehousePrintMode(isWh);
             applyDraftPayload(draft.payload);
-            setStatus('وضع تصدير PDF للإدارة — اطبع واختر «حفظ كـ PDF»', 'ok');
+            buildOverlay();
+            updatePreview();
+            const vinsLabel = Array.isArray(draft.vins) && draft.vins.length > 1
+                ? draft.vins.join(' · ')
+                : (draft.vin || draftId);
+            setStatus(isWh
+                ? 'تصدير قائمة فحص المستودع — اطبع واختر «حفظ كـ PDF»'
+                : 'وضع تصدير PDF للإدارة — اطبع واختر «حفظ كـ PDF»', 'ok');
             const banner = document.createElement('div');
             banner.className = 'no-print';
             banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:999px;background:#111827;border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 40px rgba(0,0,0,.35);';
             banner.innerHTML = `
-                <span style="color:#e2e8f0;font-size:.82rem;font-weight:700">تصدير مسودة · ${draft.vin || draftId}</span>
+                <span style="color:#e2e8f0;font-size:.82rem;font-weight:700">تصدير مسودة · ${vinsLabel}</span>
                 <button type="button" class="btn btn-primary" id="btnAdminExportPdf" style="padding:8px 16px">تصدير PDF</button>
                 <a href="admin-Delivery-pdf.html" class="btn" style="padding:8px 14px;text-decoration:none">العودة للإدارة</a>
             `;
             document.body.appendChild(banner);
             document.getElementById('btnAdminExportPdf').addEventListener('click', doPrintA4);
-            setTimeout(() => doPrintA4(), 450);
+            await waitForPreviewImage();
+            setTimeout(() => doPrintA4(), 250);
+            return true;
+        }
+
+        async function openAdminDraftEdit() {
+            const draftId = getUrlDraftId();
+            const res = await fetch(`/api/delivery-coordinator/drafts/${encodeURIComponent(draftId)}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'تعذر تحميل المسودة');
+            const draft = data.draft;
+            if (!draft?.payload) throw new Error('المسودة لا تحتوي على بيانات الطباعة');
+            showView('app');
+            const isWh = isWarehouseDraftPayload(draft.payload);
+            setWarehousePrintMode(isWh);
+            applyDraftPayload(draft.payload);
+            buildOverlay();
+            updatePreview();
+            setStatus(isWh
+                ? 'تعديل قائمة فحص المستودع — عدّل ثم احفظ أو صدّر PDF'
+                : 'وضع تعديل المذكرة — عدّل الحقول ثم احفظ', 'ok');
+            const banner = document.createElement('div');
+            banner.className = 'no-print';
+            banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;border-radius:999px;background:#111827;border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 40px rgba(0,0,0,.35);';
+            banner.innerHTML = `
+                <span style="color:#e2e8f0;font-size:.82rem;font-weight:700">تعديل مسودة · ${draft.vin || draftId}</span>
+                <button type="button" class="btn btn-primary" id="btnAdminSaveDraft" style="padding:8px 16px">حفظ التعديلات</button>
+                <button type="button" class="btn" id="btnAdminEditPrint" style="padding:8px 16px">تصدير PDF</button>
+                <a href="admin-Delivery-pdf.html" class="btn" style="padding:8px 14px;text-decoration:none">العودة للإدارة</a>
+            `;
+            document.body.appendChild(banner);
+            document.getElementById('btnAdminSaveDraft').addEventListener('click', saveAdminDraftEdit);
+            document.getElementById('btnAdminEditPrint').addEventListener('click', doPrintA4);
             return true;
         }
 
@@ -1954,6 +2472,19 @@
                     const loginStatus = document.getElementById('loginStatus');
                     if (loginStatus) {
                         loginStatus.textContent = err.message || 'فشل تصدير المسودة';
+                        loginStatus.className = 'ws-toast err';
+                    }
+                }
+                return;
+            }
+            if (isAdminEditMode()) {
+                try {
+                    await openAdminDraftEdit();
+                } catch (err) {
+                    showView('login');
+                    const loginStatus = document.getElementById('loginStatus');
+                    if (loginStatus) {
+                        loginStatus.textContent = err.message || 'فشل فتح التعديل';
                         loginStatus.className = 'ws-toast err';
                     }
                 }
@@ -2010,7 +2541,7 @@
 
         document.getElementById('availableVinSearch').addEventListener('input', filterAvailableFleetByVin);
 
-        document.getElementById('stockActionIssue').addEventListener('click', async () => {
+        document.getElementById('stockActionWarehouse').addEventListener('click', async () => {
             const vin = stockActionVin;
             const mode = stockActionMode;
             closeStockAction();
@@ -2019,22 +2550,28 @@
                 const item = await claimWithStatus(vin, 'in_stock', { quiet: true });
                 if (!item) return;
                 startDeliveryNote(vin);
+                applyWarehouseDelivery();
                 return;
             }
             startDeliveryNote(vin);
+            applyWarehouseDelivery();
         });
-        document.getElementById('stockActionSecondary').addEventListener('click', async () => {
+
+        document.getElementById('stockActionTransfer').addEventListener('click', async () => {
             const vin = stockActionVin;
             const mode = stockActionMode;
             closeStockAction();
             if (!vin) return;
+            setWarehousePrintMode(false);
             if (mode === 'available') {
-                await claimWithStatus(vin, 'in_stock');
+                const item = await claimWithStatus(vin, 'in_stock', { quiet: true });
+                if (!item) return;
+                startDeliveryNote(vin);
                 return;
             }
-            await returnToQueue(vin, { skipConfirm: true });
+            startDeliveryNote(vin);
         });
-        document.getElementById('stockActionCancel').addEventListener('click', closeStockAction);
+        document.getElementById('stockActionBack').addEventListener('click', closeStockAction);
         document.getElementById('stockActionModal').addEventListener('click', (e) => {
             if (e.target.id === 'stockActionModal') closeStockAction();
         });
@@ -2052,6 +2589,7 @@
         });
 
         document.getElementById('btnBackWorkspace').addEventListener('click', () => {
+            setWarehousePrintMode(false);
             clearClaimedVin();
             openWorkspace();
         });
@@ -2075,17 +2613,172 @@
                 if (Array.isArray(data.companies) && data.companies.length) {
                     searchableSelectOptions.company_rep = [...data.companies];
                 }
+                ensureWarehouseCompanyOption();
             } catch (_) {
                 /* keep static defaults */
             }
         }
 
-        function ensureSearchableOption(fieldId, value) {
-            const v = String(value || '').trim();
-            if (!v) return;
-            const list = searchableSelectOptions[fieldId];
+        const WAREHOUSE_COMPANY = 'مستودع الهاتفية';
+        const WAREHOUSE_BRANCH = 'المستودع';
+        const WAREHOUSE_ATTACHMENT = 'تم الاستلام من قبل صاحب المركبة';
+
+        function ensureWarehouseCompanyOption() {
+            const list = searchableSelectOptions.company_rep;
             if (!list) return;
-            if (!list.some((x) => x === v)) list.push(v);
+            if (!list.some((x) => String(x).trim() === WAREHOUSE_COMPANY)) {
+                list.unshift(WAREHOUSE_COMPANY);
+            }
+        }
+
+        function ensureWarehouseBranchOption() {
+            const list = searchableSelectOptions.branch_to;
+            if (!list) return;
+            if (!list.some((x) => String(x).trim() === WAREHOUSE_BRANCH)) {
+                list.unshift(WAREHOUSE_BRANCH);
+            }
+        }
+
+        function applyWarehouseDelivery() {
+            _skipResetWarehouse = true;
+            ensureWarehouseCompanyOption();
+            ensureWarehouseBranchOption();
+            const companyInput = document.getElementById('company_rep');
+            const branchInput = document.getElementById('branch_to');
+            const attachments = document.getElementById('attachments');
+            const invoiceInput = document.getElementById('invoice_number');
+            const customerInput = document.getElementById('customer_name');
+            const agent = getAgent();
+            if (companyInput) {
+                companyInput.value = WAREHOUSE_COMPANY;
+                companyInput.classList.remove('is-invalid');
+                companyInput.setCustomValidity('');
+                companyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                companyInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (branchInput) {
+                branchInput.value = WAREHOUSE_BRANCH;
+                branchInput.classList.remove('is-invalid');
+                branchInput.setCustomValidity('');
+                branchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                branchInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (attachments) {
+                attachments.value = WAREHOUSE_ATTACHMENT;
+                attachments.dispatchEvent(new Event('input', { bubbles: true }));
+                attachments.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (invoiceInput && !invoiceInput.value.trim()) {
+                invoiceInput.value = 'WH';
+            }
+            const printDateEl = document.getElementById('wh_print_date');
+            const printTimeEl = document.getElementById('wh_print_time');
+            const docDate = document.getElementById('doc_date')?.value || getSaudiTodayIso();
+            if (printDateEl && !printDateEl.value) printDateEl.value = docDate;
+            if (printTimeEl && !printTimeEl.value) {
+                printTimeEl.value = formatWhPrintTime().slice(0, 8);
+            }
+            const ownerEl = document.getElementById('wh_owner_name');
+            if (ownerEl && !ownerEl.value.trim() && customerInput?.value.trim()) {
+                ownerEl.value = customerInput.value.trim();
+            }
+            if (customerInput && !customerInput.value.trim() && ownerEl?.value.trim()) {
+                customerInput.value = ownerEl.value.trim();
+            }
+            const techEl = document.getElementById('wh_technicians_name');
+            if (techEl && !techEl.value.trim() && agent.username) {
+                techEl.value = agent.username;
+            }
+            const phoneEl = document.getElementById('wh_user_phone');
+            if (phoneEl && !phoneEl.value.trim()) {
+                const vin = getClaimedVin() || getFormChassisList()[0] || '';
+                if (vin) {
+                    lookupVehiclePhone(vin).then((phone) => {
+                        if (phone) setWarehousePhoneFromRaw(phone);
+                    });
+                }
+            }
+            setWarehousePrintMode(true);
+            document.getElementById('warehouseTopFields')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setStatus('عبّئ: المالك · المستخدم · الهوية · تاريخ ووقت الطباعة — الهاتف من البيانات الخام', 'ok');
+        }
+
+        async function downloadWarehouseCheckNoteFile() {
+            const payload = collectPayload();
+            const res = await fetch('/api/delivery-note/generate-check-note', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const err = await readJsonResponse(res);
+                throw new Error(err.error || `Server error ${res.status}`);
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `delivery_check_note_${Date.now()}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function generateWarehouseCheckNoteAndComplete() {
+            applyWarehouseDelivery();
+            if (!validateListOnlyFields()) return;
+            doPrintA4();
+        }
+
+        function isExactSearchableOption(fieldId, value) {
+            const v = String(value || '').trim();
+            if (!v) return false;
+            const list = searchableSelectOptions[fieldId] || [];
+            return list.some((x) => String(x).trim() === v);
+        }
+
+        /** Do not invent new companies/branches — value must already exist in the list. */
+        function ensureSearchableOption(fieldId, value) {
+            return isExactSearchableOption(fieldId, value);
+        }
+
+        function setSearchableValidity(input, ok, message) {
+            if (!input) return;
+            input.classList.toggle('is-invalid', !ok);
+            input.setCustomValidity(ok ? '' : (message || 'يجب الاختيار من القائمة فقط'));
+        }
+
+        function enforceListOnlyValue(fieldId, { clearIfInvalid = true } = {}) {
+            const input = document.getElementById(fieldId);
+            if (!input) return false;
+            const v = String(input.value || '').trim();
+            if (!v) {
+                setSearchableValidity(input, false, 'مطلوب — اختر من القائمة');
+                return false;
+            }
+            if (!isExactSearchableOption(fieldId, v)) {
+                if (clearIfInvalid) input.value = '';
+                setSearchableValidity(input, false, 'يجب الاختيار من القائمة فقط');
+                return false;
+            }
+            input.value = v;
+            setSearchableValidity(input, true, '');
+            return true;
+        }
+
+        function validateListOnlyFields() {
+            if (warehousePrintMode) return true;
+            const companyOk = enforceListOnlyValue('company_rep', { clearIfInvalid: false });
+            const branchOk = enforceListOnlyValue('branch_to', { clearIfInvalid: false });
+            if (!companyOk || !branchOk) {
+                const firstBad = !companyOk
+                    ? document.getElementById('company_rep')
+                    : document.getElementById('branch_to');
+                firstBad?.reportValidity();
+                firstBad?.focus();
+                setStatus('شركة والنقل: اختر الشركة والفرع من القائمة فقط', 'err');
+                return false;
+            }
+            return true;
         }
 
         function initSearchableSelect(fieldId) {
@@ -2094,6 +2787,7 @@
             if (!input || !menu) return;
             const options = () => searchableSelectOptions[fieldId] || [];
             let activeIdx = -1;
+            let pickedFromList = isExactSearchableOption(fieldId, input.value);
 
             function closeMenu() {
                 menu.classList.remove('open');
@@ -2101,11 +2795,20 @@
                 activeIdx = -1;
             }
 
+            function pickValue(name) {
+                input.value = name;
+                pickedFromList = true;
+                setSearchableValidity(input, true, '');
+                closeMenu();
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
             function openMenu(filterText) {
                 const q = String(filterText || '').trim().toLowerCase();
                 const matches = options().filter((name) => !q || String(name).toLowerCase().includes(q));
                 if (!matches.length) {
-                    menu.innerHTML = '<div class="searchable-select-empty">لا توجد نتائج</div>';
+                    menu.innerHTML = '<div class="searchable-select-empty">لا توجد نتائج في القائمة</div>';
                     menu.classList.add('open');
                     activeIdx = -1;
                     return;
@@ -2122,10 +2825,7 @@
                 menu.querySelectorAll('button').forEach((btn) => {
                     btn.addEventListener('mousedown', (e) => {
                         e.preventDefault();
-                        input.value = btn.textContent;
-                        closeMenu();
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        pickValue(btn.textContent);
                     });
                 });
             }
@@ -2139,7 +2839,11 @@
             }
 
             input.addEventListener('focus', () => openMenu(input.value));
-            input.addEventListener('input', () => openMenu(input.value));
+            input.addEventListener('input', () => {
+                pickedFromList = false;
+                setSearchableValidity(input, true, '');
+                openMenu(input.value);
+            });
             input.addEventListener('keydown', (e) => {
                 if (!menu.classList.contains('open')) {
                     if (e.key === 'ArrowDown') openMenu(input.value);
@@ -2159,17 +2863,42 @@
                 } else if (e.key === 'Enter') {
                     if (activeIdx >= 0 && items[activeIdx]) {
                         e.preventDefault();
-                        items[activeIdx].dispatchEvent(new Event('mousedown'));
+                        pickValue(items[activeIdx].textContent);
                     }
                 } else if (e.key === 'Escape') {
                     closeMenu();
                 }
             });
-            input.addEventListener('blur', () => setTimeout(closeMenu, 120));
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    closeMenu();
+                    const v = String(input.value || '').trim();
+                    if (!v) {
+                        setSearchableValidity(input, false, 'مطلوب — اختر من القائمة');
+                        return;
+                    }
+                    if (pickedFromList && isExactSearchableOption(fieldId, v)) {
+                        setSearchableValidity(input, true, '');
+                        return;
+                    }
+                    if (isExactSearchableOption(fieldId, v)) {
+                        pickedFromList = true;
+                        setSearchableValidity(input, true, '');
+                        return;
+                    }
+                    // Free text not allowed — clear and force list choice
+                    input.value = '';
+                    pickedFromList = false;
+                    setSearchableValidity(input, false, 'يجب الاختيار من القائمة فقط');
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }, 140);
+            });
         }
 
         initSearchableSelect('branch_to');
         initSearchableSelect('company_rep');
+        ensureWarehouseCompanyOption();
         loadDeliveryOptions().finally(() => initGate());
     </script>
     <script src="delivery-hub-live.js"></script>
