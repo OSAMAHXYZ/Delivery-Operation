@@ -7,8 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260802d">
-    <link rel="stylesheet" href="admin-saas.css?v=20260802d">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260802h">
+    <link rel="stylesheet" href="admin-saas.css?v=20260802h">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
@@ -332,6 +332,36 @@
         .xfer-account-chip b {
             color: #93c5fd;
             font-variant-numeric: tabular-nums;
+        }
+        .xfer-section-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #94a3b8;
+            margin: 4px 2px 2px;
+        }
+        .xfer-warehouse-block {
+            display: grid;
+            gap: 8px;
+            padding-bottom: 10px;
+            margin-bottom: 4px;
+            border-bottom: 1px dashed rgba(14, 165, 233, 0.28);
+        }
+        .xfer-account-item--warehouse {
+            background: rgba(14, 165, 233, 0.08);
+            border-color: rgba(14, 165, 233, 0.35);
+        }
+        .xfer-account-item--warehouse:hover {
+            border-color: rgba(14, 165, 233, 0.65);
+            background: rgba(14, 165, 233, 0.14);
+        }
+        .xfer-account-item--warehouse.is-active {
+            border-color: rgba(14, 165, 233, 0.85);
+            background: rgba(14, 165, 233, 0.2);
+            box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.35);
+        }
+        .xfer-account-item--warehouse .xfer-account-total {
+            color: #7dd3fc;
         }
         .xfer-records {
             margin-top: 14px;
@@ -1353,13 +1383,19 @@
             </div>
         </header>
 
-        <div class="admin-restore-box saas-card saas-section" id="adminRestoreBox" style="margin-top:14px">
-            <div class="saas-section__head">
-                <div>
-                    <h3>الإعدادات والأرشيف</h3>
-                    <p>استعادة تصدير قديم · تحديث Sales Raw من صفحة المنسق</p>
+        <div class="admin-restore-box saas-card saas-section hub-fold" id="adminRestoreBox" data-fold style="margin-top:10px">
+            <button type="button" class="hub-fold-toggle" aria-expanded="false" style="width:100%;background:transparent;border:0;padding:0;text-align:inherit;cursor:pointer">
+                <div class="saas-section__head" style="margin:0;width:100%">
+                    <div>
+                        <h3>الإعدادات والأرشيف</h3>
+                        <p>استعادة تصدير قديم · تحديث Sales Raw من صفحة المنسق</p>
+                    </div>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
                 </div>
-            </div>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
             <div class="admin-restore-actions">
                 <label class="hub-btn hub-btn--primary restore-file-btn" id="btnRestoreExport">
                     <input type="file" id="restoreExportInput" accept=".xlsx,.xls">
@@ -1369,6 +1405,9 @@
                 <a href="Delivery_coordinator.html" class="hub-btn" style="text-decoration:none">تحديث Sales Raw من المنسق</a>
             </div>
             <p class="hub-status" id="restoreExportStatus" style="min-height:1.4em"></p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="ft-shell" id="adminFilterBar">
@@ -1424,7 +1463,7 @@
                             <div>
                                 <div class="ft-more__label">Date type</div>
                                 <select class="ft-native" id="ftDateTypeUi">
-                                    <option value="delivery_note" selected>Delivery note date</option>
+                                    <option value="delivery_note" selected>Delivery note issue date</option>
                                     <option value="invoice">Invoice date</option>
                                 </select>
                             </div>
@@ -1627,9 +1666,9 @@
                             </div>
                         </div>
 
-                        <div class="pct-chart-card pct-chart-card--status saas-section xfer-mosaic-span-2" style="margin:0" hidden>
+                        <div class="pct-chart-card pct-chart-card--status saas-section xfer-mosaic-span-2" style="margin:0">
                             <h3>حالة الترحيل</h3>
-                            <p class="pct-chart-sub">تم الترحيل مقابل المتبقي</p>
+                            <p class="pct-chart-sub">تم الترحيل مقابل المتبقي — كل البيانات عند عدم اختيار تاريخ</p>
                             <div class="pct-chart-layout">
                                 <div class="pct-donut-wrap" id="statusPctDonut"></div>
                                 <div>
@@ -1639,7 +1678,20 @@
                             </div>
                         </div>
 
-                        <div class="saas-section saas-card xfer-mosaic-span-2" id="invoiceStatusCard" style="margin:0;box-shadow:none">
+                        </div>
+
+                        <section class="hub-section hub-fold" id="xferDetailsFold" data-fold style="margin:12px 0 0;border:0;box-shadow:none;background:transparent">
+                            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                                <span class="hub-fold-title">تفاصيل إضافية — Lead time &amp; الشركات</span>
+                                <span class="hub-fold-meta">
+                                    <span class="hub-hint">زمن التسليم وحساب الشركات حسب المدن</span>
+                                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                                </span>
+                            </button>
+                            <div class="hub-fold-body">
+                                <div class="hub-fold-body-inner">
+                                    <div class="hub-fold-content" style="display:grid;gap:14px">
+                        <div class="saas-section saas-card" id="invoiceStatusCard" style="margin:0;box-shadow:none">
                             <div class="saas-section__head">
                                 <div>
                                     <h3>زمن التسليم حسب الشركة (Lead Time)</h3>
@@ -1679,7 +1731,6 @@
                                 </div>
                             </div>
                         </div>
-                        </div>
                         <div class="pct-chart-card" hidden>
                             <div class="pct-donut-wrap" id="companyPctDonut"></div>
                             <div class="pct-legend" id="companyPctLegend"></div>
@@ -1694,7 +1745,7 @@
                         <div class="xfer-dash xfer-dash--single">
                             <div class="xfer-dash-card xfer-dash-card--account">
                                 <h3>حساب كل شركة حسب المدن</h3>
-                                <p class="xfer-dash-sub">اضغط على أي شركة لعرض كل سجلاتها</p>
+                                <p class="xfer-dash-sub">التسليم في المستودع يظهر تحت «في المستودع» كـ مستودع الهاتفية — اضغط أي صف لعرض سجلاته</p>
                                 <div id="companyCityBreakdown" class="xfer-account-list">
                                     <div class="xfer-dash-empty">لا توجد بيانات بعد — اطبع مذكرة أولاً</div>
                                 </div>
@@ -1728,6 +1779,10 @@
                                 </div>
                             </div>
                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -1770,11 +1825,11 @@
             </div>
         </section>
 
-        <section class="hub-section hub-fold" id="draftsSection" data-fold>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">مسودات الطباعة — Print Drafts</span>
+        <section class="hub-section hub-fold is-open" id="draftsSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="true">
+                <span class="hub-fold-title">جميع ملفات PDF — All Car PDFs</span>
                 <span class="hub-fold-meta">
-                    <span class="hub-hint">تصدير PDF لأي مسودة محفوظة</span>
+                    <span class="hub-hint">تصفح · بحث · ترتيب · صفحات</span>
                     <span class="hub-fold-count" id="draftsFoldCount" data-empty="1"></span>
                     <span class="hub-fold-chevron" aria-hidden="true"></span>
                 </span>
@@ -1782,31 +1837,64 @@
             <div class="hub-fold-body">
                 <div class="hub-fold-body-inner">
                     <div class="hub-fold-content">
-                        <div class="hub-table-wrap">
-                            <table class="hub-table">
+                        <div class="pdf-browser-toolbar" id="pdfBrowserToolbar">
+                            <div class="pdf-browser-search">
+                                <input type="search" id="pdfBrowserSearch" class="hub-input" placeholder="بحث: VIN · شركة · مسؤول · فرع…" autocomplete="off" aria-label="بحث في ملفات PDF">
+                            </div>
+                            <select id="pdfBrowserType" class="ft-native" aria-label="نوع المذكرة">
+                                <option value="all">كل الأنواع</option>
+                                <option value="memo">مذكرة ترحيل</option>
+                                <option value="warehouse">مستودع</option>
+                            </select>
+                            <select id="pdfBrowserSort" class="ft-native" aria-label="ترتيب">
+                                <option value="date_desc">الأحدث أولاً</option>
+                                <option value="date_asc">الأقدم أولاً</option>
+                                <option value="cars_desc">أكثر سيارات</option>
+                                <option value="cars_asc">أقل سيارات</option>
+                                <option value="company_asc">الشركة أ→ي</option>
+                                <option value="company_desc">الشركة ي→أ</option>
+                                <option value="vin_asc">VIN A→Z</option>
+                            </select>
+                            <select id="pdfBrowserPageSize" class="ft-native" aria-label="عدد الصفوف">
+                                <option value="10">10 / صفحة</option>
+                                <option value="20" selected>20 / صفحة</option>
+                                <option value="50">50 / صفحة</option>
+                                <option value="100">100 / صفحة</option>
+                            </select>
+                        </div>
+                        <p class="pdf-browser-meta hub-meta" id="pdfBrowserMeta">لا توجد ملفات بعد</p>
+                        <div class="hub-table-wrap pdf-browser-table-wrap">
+                            <table class="hub-table" id="pdfBrowserTable">
                                 <thead>
                                     <tr>
                                         <th>التاريخ</th>
+                                        <th>النوع</th>
                                         <th>الشاسيه</th>
+                                        <th>العدد</th>
                                         <th>Product</th>
                                         <th>المسؤول</th>
-                                        <th>مندوب الشركة</th>
-                                        <th>اسم الشركة</th>
+                                        <th>الشركة</th>
                                         <th>الفرع</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="draftsBody">
-                                    <tr><td colspan="7" class="hub-empty">لا توجد مسودات بعد</td></tr>
+                                    <tr><td colspan="9" class="hub-empty">لا توجد مسودات بعد</td></tr>
                                 </tbody>
                             </table>
                         </div>
+                        <div class="pdf-browser-pager" id="pdfBrowserPager" hidden>
+                            <button type="button" class="hub-btn hub-btn--sm" id="pdfBrowserPrev">السابق</button>
+                            <span class="hub-meta" id="pdfBrowserPageLabel">صفحة 1</span>
+                            <button type="button" class="hub-btn hub-btn--sm" id="pdfBrowserNext">التالي</button>
+                        </div>
+                        <tbody id="warehouseDraftsBody" hidden aria-hidden="true"></tbody>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="hub-section hub-fold" id="warehouseDraftsSection" data-fold>
+        <section class="hub-section hub-fold" id="warehouseDraftsSection" data-fold hidden>
             <button type="button" class="hub-fold-toggle" aria-expanded="false">
                 <span class="hub-fold-title">التسليم في المستودع — Warehouse Delivery</span>
                 <span class="hub-fold-meta">
@@ -1818,25 +1906,7 @@
             <div class="hub-fold-body">
                 <div class="hub-fold-body-inner">
                     <div class="hub-fold-content">
-                        <div class="hub-table-wrap">
-                            <table class="hub-table">
-                                <thead>
-                                    <tr>
-                                        <th>التاريخ</th>
-                                        <th>الشاسيه</th>
-                                        <th>Product</th>
-                                        <th>المسؤول</th>
-                                        <th>المالك</th>
-                                        <th>الهاتف</th>
-                                        <th>العدد</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="warehouseDraftsBody">
-                                    <tr><td colspan="8" class="hub-empty">لا توجد قوائم فحص مستودع بعد</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <p class="hub-meta">استخدم قسم «جميع ملفات PDF» أعلاه مع فلتر المستودع.</p>
                     </div>
                 </div>
             </div>
@@ -1912,6 +1982,8 @@
         let allQueue = [];
         let allDrafts = [];
         let lastDashboard = null;
+        /** Warehouse deliveries show under this label — not as a transport company. */
+        const WAREHOUSE_SPECIAL_NAME = 'مستودع الهاتفية';
 
         function unlockAdmin() {
             adminAuthed = true;
@@ -2121,23 +2193,30 @@
                 'Vehicle Inventory'
             );
 
-            const queueRows = allQueue.map((item) => ({
-                'Chassis / VIN': item.vin || '',
-                Product: item.product || item.model || '',
-                GT: item.gt || '',
-                Location: item.location || '',
-                'Assigned To': item.assignedTo || '',
-                Status: item.status || '',
-                'Status Label': item.statusLabel || '',
-                'Agent Status': item.agentStatus || '',
-                Classification: item.status === 'available'
-                    ? 'متاح'
-                    : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز')),
-                Plate: item.plate || '',
-                Customer: item.customerName || '',
-                'Added At': item.addedAt || '',
-                'Assigned At': item.assignedAt || ''
-            }));
+            const queueRows = allQueue.map((item) => {
+                const isWh = item.deliveryMode === 'warehouse'
+                    || String(item.statusLabel || '').includes('المستودع');
+                return {
+                    'Chassis / VIN': item.vin || '',
+                    Product: item.product || item.model || '',
+                    GT: item.gt || '',
+                    Location: item.location || '',
+                    'Assigned To': item.assignedTo || '',
+                    Status: item.status || '',
+                    'Status Label': item.statusLabel || '',
+                    'Agent Status': item.agentStatus || '',
+                    'Delivery Mode': isWh ? 'warehouse' : (item.agentStatus === 'delivered' ? 'memo' : ''),
+                    Classification: item.status === 'available'
+                        ? 'متاح'
+                        : (isWh
+                            ? 'تم التسليم في المستودع'
+                            : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'))),
+                    Plate: item.plate || '',
+                    Customer: item.customerName || '',
+                    'Added At': item.addedAt || '',
+                    'Assigned At': item.assignedAt || ''
+                };
+            });
             XLSX.utils.book_append_sheet(
                 wb,
                 XLSX.utils.json_to_sheet(queueRows.length ? queueRows : [{ 'Chassis / VIN': '' }]),
@@ -2146,28 +2225,72 @@
 
             const draftRows = allDrafts.map((d) => {
                 const p = d.payload || {};
+                const isWh = isWarehouseAdminDraft(d);
+                const vinList = [
+                    ...(Array.isArray(d.vins) ? d.vins : []),
+                    d.vin,
+                    ...(Array.isArray(p.vins) ? p.vins : []),
+                    ...((Array.isArray(p.cars) ? p.cars : []).map((c) => c && (c.chassis || c.vin)))
+                ].map((v) => String(v || '').trim()).filter(Boolean);
+                const uniqueVins = [...new Set(vinList)];
+                const ownerName = p.warehouse?.owner_name || p.customer_name || p.company_rep || d.customerName || '';
                 return {
                     'Draft ID': d.id || '',
                     'Printed At': d.printedAt || '',
-                    'Chassis / VIN': d.vin || '',
+                    'Chassis / VIN': uniqueVins[0] || d.vin || '',
+                    'All VINs': uniqueVins.join(', '),
+                    'Car Count': uniqueVins.length || 1,
                     Product: d.product || d.model || '',
                     'Assigned To': d.assignedTo || '',
-                    'Company Name': p.company_rep || '',
-                    'Company Rep': p.customer_name || d.customerName || '',
-                    'Branch To': p.branch_to || '',
+                    Section: isWh ? 'في المستودع' : 'شركات النقل',
+                    'Delivery Type': isWh ? 'warehouse' : 'memo',
+                    'Company Name': isWh ? WAREHOUSE_SPECIAL_NAME : (p.company_rep || ''),
+                    'Company Rep': isWh ? ownerName : (p.customer_name || d.customerName || ''),
+                    'Branch To': isWh ? 'في المستودع' : (p.branch_to || ''),
                     'Branch From': p.branch_from || '',
                     Plate: p.plate || d.plate || '',
                     GT: p.gt || d.gt || '',
                     Location: p.location || d.location || '',
                     Remarks: p.remarks || '',
                     'Customer ID': p.customer_id || '',
-                    Phone: p.phone || ''
+                    Phone: p.phone || p.warehouse?.user_phone || ''
                 };
             });
             XLSX.utils.book_append_sheet(
                 wb,
                 XLSX.utils.json_to_sheet(draftRows.length ? draftRows : [{ 'Draft ID': '' }]),
                 'Print Drafts'
+            );
+
+            // Mirror admin «حساب كل شركة حسب المدن» — warehouse as مستودع الهاتفية
+            const { rows: companyCityAgg, warehouse: whAgg } = aggregateCompanyCities(allDrafts);
+            const companyCityRows = [];
+            if (whAgg) {
+                companyCityRows.push({
+                    Section: 'في المستودع',
+                    Company: WAREHOUSE_SPECIAL_NAME,
+                    City: 'في المستودع',
+                    Cars: whAgg.total
+                });
+            }
+            companyCityAgg.forEach((row) => {
+                (row.cities || []).forEach((cityRow) => {
+                    companyCityRows.push({
+                        Section: 'شركات النقل',
+                        Company: row.company,
+                        City: cityRow.city,
+                        Cars: cityRow.count
+                    });
+                });
+            });
+            XLSX.utils.book_append_sheet(
+                wb,
+                XLSX.utils.json_to_sheet(
+                    companyCityRows.length
+                        ? companyCityRows
+                        : [{ Section: '', Company: '', City: '', Cars: 0 }]
+                ),
+                'Company by City'
             );
 
             const topProducts = (lastDashboard && lastDashboard.topProducts) || [];
@@ -2181,11 +2304,16 @@
                 'Products'
             );
 
+            const warehouseDraftCount = allDrafts.filter(isWarehouseAdminDraft).length;
+            const warehouseCarCount = whAgg ? whAgg.total : 0;
             const summary = [{
                 'Total Vehicles': (lastDashboard && lastDashboard.totalVehicles) || allVehicles.length,
                 'Unique Products': (lastDashboard && lastDashboard.uniqueProducts) || 0,
                 'Queue Total': allQueue.length,
                 'Drafts Total': allDrafts.length,
+                'Warehouse Drafts': warehouseDraftCount,
+                'Warehouse Cars': warehouseCarCount,
+                'Warehouse Label': WAREHOUSE_SPECIAL_NAME,
                 Filename: (lastDashboard && lastDashboard.filename) || '',
                 'Sheet Name': (lastDashboard && lastDashboard.sheetName) || '',
                 'Uploaded At': (lastDashboard && lastDashboard.uploadedAt) || '',
@@ -2195,7 +2323,7 @@
 
             XLSX.writeFile(wb, `delivery_export_${excelStamp()}.xlsx`);
             setUploadStatus(
-                `تم تصدير Excel: ${allVehicles.length} مركبة · ${allQueue.length} قائمة · ${allDrafts.length} مسودة`,
+                `تم تصدير Excel: ${allVehicles.length} مركبة · ${allQueue.length} قائمة · ${allDrafts.length} مسودة · ${warehouseCarCount} في المستودع`,
                 'ok'
             );
         }
@@ -2207,9 +2335,14 @@
             const warehouse = warehouseDeliveredStats();
             const drafts = filteredDrafts();
             const vehicles = filteredVehicleList();
-            const companies = new Set(drafts.map(draftCompanyName).filter(Boolean)).size;
+            const companies = new Set(
+                drafts.filter((d) => !isWarehouseAdminDraft(d)).map(draftCompanyName).filter(Boolean)
+            ).size;
             const branches = new Set(
-                drafts.map((d) => String((d.payload || {}).branch_to || '').trim()).filter((n) => n && n !== '-')
+                drafts
+                    .filter((d) => !isWarehouseAdminDraft(d))
+                    .map((d) => String((d.payload || {}).branch_to || '').trim())
+                    .filter((n) => n && n !== '-' && n !== 'المستودع')
             ).size;
             const cards = [
                 { label: 'إجمالي المركبات', value: vehicles.length, trend: 'ضمن النطاق الحالي', accent: '#3B82F6', icon: '🚗' },
@@ -2311,64 +2444,76 @@
             renderApex(el, {
                 chart: {
                     type: 'bar',
-                    height: 220,
+                    height: 180,
                     toolbar: { show: false },
                     background: 'transparent',
-                    fontFamily: 'Inter, sans-serif'
+                    fontFamily: 'Inter, Tajawal, sans-serif',
+                    animations: {
+                        enabled: true,
+                        speed: 450,
+                        dynamicAnimation: { enabled: true, speed: 280 }
+                    }
                 },
                 theme: { mode: 'dark' },
                 plotOptions: {
                     bar: {
-                        borderRadius: 8,
-                        columnWidth: rows.length <= 4 ? '42%' : '58%',
+                        borderRadius: 7,
+                        columnWidth: rows.length <= 4 ? '38%' : '55%',
+                        distributed: false,
                         dataLabels: { position: 'top' }
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        type: 'vertical',
+                        shadeIntensity: 0.35,
+                        gradientToColors: ['#60A5FA'],
+                        inverseColors: false,
+                        opacityFrom: 1,
+                        opacityTo: 0.75,
+                        stops: [0, 100]
                     }
                 },
                 colors: ['#3B82F6'],
                 dataLabels: {
                     enabled: true,
-                    offsetY: -16,
+                    offsetY: -14,
                     style: { colors: ['#E2E8F0'], fontSize: '11px', fontWeight: 700 },
                     formatter: (val) => (val ? String(val) : '')
                 },
                 grid: {
                     borderColor: 'rgba(255,255,255,0.06)',
                     strokeDashArray: 3,
-                    padding: { top: 12, bottom: 0 }
+                    padding: { top: 8, bottom: 0, left: 4, right: 4 }
                 },
                 series: [{ name: 'مذكرات / أسبوع', data: rows.map((r) => r.count) }],
                 xaxis: {
                     categories: rows.map((r) => r.date),
                     labels: {
-                        style: { colors: '#94A3B8', fontSize: '11px' },
-                        rotate: rows.length > 6 ? -35 : 0,
+                        style: { colors: '#94A3B8', fontSize: '10px' },
+                        rotate: rows.length > 6 ? -30 : 0,
                         rotateAlways: rows.length > 6
                     },
                     axisBorder: { show: false },
-                    axisTicks: { show: false },
-                    title: {
-                        text: 'الأسبوع',
-                        style: { color: '#64748B', fontSize: '11px', fontWeight: 500 }
-                    }
+                    axisTicks: { show: false }
                 },
                 yaxis: {
                     min: 0,
                     max: maxCount <= 2 ? 4 : undefined,
                     forceNiceScale: true,
-                    tickAmount: Math.min(5, Math.max(2, maxCount || 2)),
+                    tickAmount: Math.min(4, Math.max(2, maxCount || 2)),
                     labels: {
-                        style: { colors: '#94A3B8', fontSize: '11px' },
+                        style: { colors: '#94A3B8', fontSize: '10px' },
                         formatter: (val) => String(Math.round(val))
-                    },
-                    title: {
-                        text: 'عدد المذكرات',
-                        style: { color: '#64748B', fontSize: '11px', fontWeight: 500 }
                     }
                 },
                 tooltip: {
                     theme: 'dark',
                     y: { formatter: (val) => `${val} مذكرة` }
-                }
+                },
+                legend: { show: false }
             });
         }
 
@@ -2382,23 +2527,55 @@
             renderApex(el, {
                 chart: {
                     type: 'bar',
-                    height: Math.max(200, top.length * 32),
+                    height: Math.max(170, top.length * 28),
                     toolbar: { show: false },
                     background: 'transparent',
-                    fontFamily: 'Inter, sans-serif'
+                    fontFamily: 'Inter, Tajawal, sans-serif',
+                    animations: { enabled: true, speed: 400 }
                 },
                 theme: { mode: 'dark' },
-                plotOptions: { bar: { horizontal: true, borderRadius: 8, barHeight: '62%' } },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                        borderRadius: 6,
+                        barHeight: '68%',
+                        dataLabels: { position: 'top' }
+                    }
+                },
                 colors: [color || '#3B82F6'],
-                dataLabels: { enabled: false },
-                grid: { borderColor: 'rgba(255,255,255,0.06)' },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        type: 'horizontal',
+                        shadeIntensity: 0.25,
+                        opacityFrom: 0.95,
+                        opacityTo: 0.7,
+                        stops: [0, 100]
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    offsetX: 6,
+                    style: { colors: ['#E2E8F0'], fontSize: '11px', fontWeight: 700 }
+                },
+                grid: {
+                    borderColor: 'rgba(255,255,255,0.06)',
+                    strokeDashArray: 3,
+                    xaxis: { lines: { show: true } },
+                    yaxis: { lines: { show: false } },
+                    padding: { left: 8, right: 16 }
+                },
                 series: [{ name: 'العدد', data: top.map((r) => r.count) }],
                 xaxis: {
                     categories: top.map((r) => r.name),
                     labels: { style: { colors: '#94A3B8', fontSize: '11px' } }
                 },
-                yaxis: { labels: { style: { colors: '#F8FAFC', fontSize: '12px' } } },
-                tooltip: { theme: 'dark' }
+                yaxis: {
+                    labels: { style: { colors: '#CBD5E1', fontSize: '11px' } }
+                },
+                tooltip: { theme: 'dark' },
+                legend: { show: false }
             });
         }
 
@@ -2601,12 +2778,18 @@
 
             const draftsInRange = dateScopedDrafts();
 
+            let hasWarehouse = false;
             draftsInRange.forEach((d) => {
+                if (isWarehouseAdminDraft(d)) {
+                    hasWarehouse = true;
+                    return;
+                }
                 const c = draftCompanyName(d);
                 if (c) companies.add(c);
                 const who = String(d.assignedTo || '').trim();
                 if (who) coordinators.add(who);
             });
+            if (hasWarehouse) companies.add(WAREHOUSE_SPECIAL_NAME);
 
             const vins = scopedVinSet();
             let queueInRange = allQueue || [];
@@ -2637,10 +2820,16 @@
         function pruneStaleUiFilters() {
             const companies = new Set();
             const draftsInRange = dateScopedDrafts();
+            let hasWarehouse = false;
             draftsInRange.forEach((d) => {
+                if (isWarehouseAdminDraft(d)) {
+                    hasWarehouse = true;
+                    return;
+                }
                 const c = draftCompanyName(d);
                 if (c) companies.add(c);
             });
+            if (hasWarehouse) companies.add(WAREHOUSE_SPECIAL_NAME);
             if (selectedCompany && !companies.has(selectedCompany)) selectedCompany = '';
 
             const coordinators = new Set();
@@ -3023,22 +3212,37 @@
         }
 
         /**
-         * VIN universe for the current date filter (from raw inventory dates).
-         * - delivery_note (default) → Delivery Note Date
-         * - invoice → Invoice Date
+         * VIN universe for the current date filter.
+         * - delivery_note → vehicle Delivery Note Date + VINs on drafts issued (printed) in range
+         * - invoice → vehicle Invoice Date in range
          * Returns null when no date range is set (show all).
          */
         function scopedVinSet() {
             const { type, from, to } = getTrackFilter();
             if (!from && !to) return null;
 
-            const dateType = type === 'invoice' ? 'invoice' : 'delivery_note';
             const set = new Set();
+            if (type === 'invoice') {
+                (allVehicles || []).forEach((v) => {
+                    const iso = vehicleDateIso(v, 'invoice');
+                    if (!iso || !isoInRange(iso, from, to)) return;
+                    const vin = normVinKey(v.vin);
+                    if (vin) set.add(vin);
+                });
+                return set;
+            }
+
+            // Delivery note issue date: inventory DN date + printed draft dates
             (allVehicles || []).forEach((v) => {
-                const iso = vehicleDateIso(v, dateType);
+                const iso = vehicleDateIso(v, 'delivery_note');
                 if (!iso || !isoInRange(iso, from, to)) return;
                 const vin = normVinKey(v.vin);
                 if (vin) set.add(vin);
+            });
+            (allDrafts || []).forEach((d) => {
+                const iso = draftEventIso(d);
+                if (!iso || !isoInRange(iso, from, to)) return;
+                draftVinList(d).forEach((vin) => set.add(vin));
             });
             return set;
         }
@@ -3048,6 +3252,22 @@
             return el ? String(el.value || '').trim() : '';
         }
 
+        function draftVinList(d) {
+            const seen = new Set();
+            const list = [];
+            const push = (v) => {
+                const vin = normVinKey(v);
+                if (!vin || seen.has(vin)) return;
+                seen.add(vin);
+                list.push(vin);
+            };
+            (Array.isArray(d.vins) ? d.vins : []).forEach(push);
+            push(d.vin);
+            (((d.payload || {}).vins) || []).forEach(push);
+            (((d.payload || {}).cars) || []).forEach((c) => push(c && (c.chassis || c.vin)));
+            return list;
+        }
+
         function dateScopedDrafts() {
             const legacy = getXferDateFilter();
             let list = allDrafts || [];
@@ -3055,19 +3275,24 @@
                 list = list.filter((d) => draftEventIso(d) === legacy);
             }
 
-            const { from, to } = getTrackFilter();
+            const { type, from, to } = getTrackFilter();
             if (!from && !to) return list;
 
+            if (type === 'delivery_note') {
+                // Keep drafts issued in the selected range (same PDF for all its cars)
+                return list.filter((d) => {
+                    const iso = draftEventIso(d);
+                    if (iso && isoInRange(iso, from, to)) return true;
+                    const vins = scopedVinSet();
+                    if (!vins || !vins.size) return false;
+                    return draftVinList(d).some((vin) => vins.has(vin));
+                });
+            }
+
+            // Invoice: drafts that include any car invoiced in range
             const vins = scopedVinSet();
             if (!vins || !vins.size) return [];
-            return list.filter((d) => {
-                if (vins.has(normVinKey(d.vin))) return true;
-                const extra = [
-                    ...(Array.isArray(d.vins) ? d.vins : []),
-                    ...((d.payload && d.payload.vins) || [])
-                ];
-                return extra.some((v) => vins.has(normVinKey(v)));
-            });
+            return list.filter((d) => draftVinList(d).some((vin) => vins.has(vin)));
         }
 
         /** VINs belonging to the selected company (from date-scoped drafts). null = no company filter. */
@@ -3075,7 +3300,7 @@
             if (!selectedCompany) return null;
             const set = new Set();
             dateScopedDrafts().forEach((d) => {
-                if (draftCompanyName(d) !== selectedCompany) return;
+                if (!draftMatchesCompanyKey(d, selectedCompany)) return;
                 const list = [
                     ...(Array.isArray(d.vins) ? d.vins : []),
                     d.vin,
@@ -3093,7 +3318,7 @@
         function filteredDrafts() {
             let list = dateScopedDrafts();
             if (selectedCompany) {
-                list = list.filter((d) => draftCompanyName(d) === selectedCompany);
+                list = list.filter((d) => draftMatchesCompanyKey(d, selectedCompany));
             }
             return list;
         }
@@ -3216,7 +3441,9 @@
             const withP = (allVehicles || []).filter((v) => v.proformaDate).length;
             const withI = (allVehicles || []).filter((v) => v.invoiceDate).length;
             const companyBit = selectedCompany
-                ? ` · شركة <strong>${escapeHtml(selectedCompany)}</strong>`
+                ? (isWarehouseAccountKey(selectedCompany)
+                    ? ` · <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> (في المستودع)`
+                    : ` · شركة <strong>${escapeHtml(selectedCompany)}</strong>`)
                 : '';
             const searchBit = searchQ
                 ? ` · VIN search <strong>${escapeHtml(searchQ)}</strong>`
@@ -3224,7 +3451,7 @@
             const showing = `Showing <strong>${vehiclesShown}</strong> of <strong>${vehiclesAll || (allVehicles || []).length}</strong> vehicles`;
 
             if (!from && !to) {
-                meta.innerHTML = `${showing}${searchBit}${companyBit} · <strong>${(selectedCompany ? drafts : (allDrafts || []).length)}</strong> drafts · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
+                meta.innerHTML = `Showing <strong>all</strong> · <strong>${(allVehicles || []).length}</strong> vehicles · <strong>${(allDrafts || []).length}</strong> drafts · queue <strong>${(allQueue || []).length}</strong> (delivered <strong>${(allQueue || []).filter((q) => q.agentStatus === 'delivered').length}</strong>)${searchBit}${companyBit} · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
                 updateCompanyFilterChip();
                 renderFilterChips();
                 return;
@@ -3274,7 +3501,7 @@
             pruneStaleUiFilters();
             const draftsBase = filteredDrafts();
             const queueBase = filteredQueue();
-            if (selectedCompany && !draftsBase.some((d) => draftCompanyName(d) === selectedCompany)) {
+            if (selectedCompany && !draftsBase.some((d) => draftMatchesCompanyKey(d, selectedCompany))) {
                 selectedCompany = '';
                 const panel = document.getElementById('companyRecordsPanel');
                 if (panel) panel.classList.add('hidden');
@@ -3296,11 +3523,11 @@
             renderQueueTable(queue);
             const warehouseDrafts = drafts.filter(isWarehouseAdminDraft);
             const memoDrafts = drafts.filter((d) => !isWarehouseAdminDraft(d));
-            renderDraftsTable(memoDrafts);
+            renderAllPdfsBrowser(drafts);
             renderWarehouseDraftsTable(warehouseDrafts);
             renderQueueStats(computeQueueStats(queue));
             setFoldCount('queueStatsFoldCount', queue.length);
-            setFoldCount('draftsFoldCount', memoDrafts.length);
+            setFoldCount('draftsFoldCount', drafts.length);
             setFoldCount('warehouseDraftsFoldCount', warehouseDrafts.length);
             setFoldCount('xferFoldCount', searchQ ? drafts.length : filteredDrafts().length);
             setFoldCount('inventoryFoldCount', vehicles.length);
@@ -3333,10 +3560,23 @@
             return String(p.company_rep || p.customer_name || d.customerName || '').trim();
         }
 
+        function isWarehouseAccountKey(key) {
+            return String(key || '').trim() === WAREHOUSE_SPECIAL_NAME;
+        }
+
+        /** Match drafts for company filter — warehouse deliveries use مستودع الهاتفية, not owner name. */
+        function draftMatchesCompanyKey(d, key) {
+            const k = String(key || '').trim();
+            if (!k) return true;
+            if (isWarehouseAccountKey(k)) return isWarehouseAdminDraft(d);
+            if (isWarehouseAdminDraft(d)) return false;
+            return draftCompanyName(d) === k;
+        }
+
         function draftsForCompany(company) {
             const key = String(company || '').trim();
             if (!key) return [];
-            return dateScopedDrafts().filter((d) => draftCompanyName(d) === key);
+            return dateScopedDrafts().filter((d) => draftMatchesCompanyKey(d, key));
         }
 
         function highlightSelectedCompany() {
@@ -3361,10 +3601,16 @@
 
             const rows = draftsForCompany(company);
             panel.classList.remove('hidden');
-            if (title) title.textContent = company;
+            if (title) {
+                title.textContent = isWarehouseAccountKey(company)
+                    ? `في المستودع — ${WAREHOUSE_SPECIAL_NAME}`
+                    : company;
+            }
             if (meta) {
                 meta.textContent = rows.length
-                    ? `${rows.length} سجل — كل بيانات هذه الشركة ضمن الفلتر`
+                    ? (isWarehouseAccountKey(company)
+                        ? `${rows.length} سجل تسليم في المستودع ضمن الفلتر`
+                        : `${rows.length} سجل — كل بيانات هذه الشركة ضمن الفلتر`)
                     : 'لا توجد سجلات لهذه الشركة';
             }
 
@@ -3445,12 +3691,23 @@
             else renderCompanyRecordsPanel('');
         });
 
-        function tallyField(drafts, getter) {
+        /** How many cars (VINs) a draft/PDF contributes to counters. */
+        function draftCarWeight(d) {
+            const n = draftVinList(d).length;
+            return n > 0 ? n : 1;
+        }
+
+        /**
+         * Tally drafts by a field. By default each PDF counts by number of VINs
+         * (5 cars on one PDF → +5 for that company/branch).
+         */
+        function tallyField(drafts, getter, { byCars = true } = {}) {
             const map = new Map();
             drafts.forEach((d) => {
                 const raw = String(getter(d) || '').trim();
                 if (!raw || raw === '-' || raw.startsWith('- اختر') || raw.startsWith('—')) return;
-                map.set(raw, (map.get(raw) || 0) + 1);
+                const weight = byCars ? draftCarWeight(d) : 1;
+                map.set(raw, (map.get(raw) || 0) + weight);
             });
             return Array.from(map.entries())
                 .map(([name, count]) => ({ name, count }))
@@ -3477,7 +3734,7 @@
                             <span>${sharePct}%</span>
                         </div>
                         <div class="saas-company-card__name" title="${safeName}">${safeName}</div>
-                        <div class="saas-company-card__meta">${row.count} مذكرة</div>
+                        <div class="saas-company-card__meta">${row.count} سيارة</div>
                         <div class="saas-company-card__bar"><span style="width:${Math.min(100, sharePct)}%"></span></div>
                     </button>`;
                 }).join('');
@@ -3660,7 +3917,7 @@
             const map = new Map();
 
             dateScopedDrafts().forEach((d) => {
-                if (draftCompanyName(d) !== key) return;
+                if (!draftMatchesCompanyKey(d, key)) return;
                 const vin = normVinKey(d.vin);
                 if (!vin) return;
                 const vehicle = findVehicleForVin(byVin, vin);
@@ -3706,7 +3963,14 @@
         function populateLeadTimeCompanySelect() {
             const sel = document.getElementById('leadTimeCompanySelect');
             if (!sel) return;
-            const names = tallyField(dateScopedDrafts(), (d) => draftCompanyName(d)).map((r) => r.name);
+            const names = tallyField(
+                dateScopedDrafts().filter((d) => !isWarehouseAdminDraft(d)),
+                (d) => draftCompanyName(d)
+            ).map((r) => r.name);
+            if (dateScopedDrafts().some(isWarehouseAdminDraft)) {
+                names.push(WAREHOUSE_SPECIAL_NAME);
+                names.sort((a, b) => a.localeCompare(b, 'ar'));
+            }
             const current = selectedCompany || sel.value || '';
             sel.innerHTML = '<option value="">— اختر شركة —</option>' + names.map((name) =>
                 `<option value="${escapeHtml(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`
@@ -3931,11 +4195,11 @@
 
         function isWarehouseAdminDraft(d) {
             const p = (d && d.payload) || {};
-            if (p.warehouse_group || p.deliveryMode === 'warehouse') return true;
-            if (String(p.branch_to || '').trim() === 'المستودع') return true;
+            if (p.deliveryMode === 'warehouse' || p.warehouse_group === true) return true;
+            const branch = String(p.branch_to || '').trim();
+            if (branch === 'المستودع' || branch === 'في المستودع') return true;
             if (String(p.company_rep || '').includes('مستودع')) return true;
-            const wh = p.warehouse || {};
-            return Boolean(wh.owner_name || wh.user_name || wh.user_phone || wh.user_id || wh.print_date);
+            return false;
         }
 
         function isWarehouseQueueItem(q) {
@@ -4028,18 +4292,26 @@
 
         function aggregateCompanyCities(drafts) {
             const companies = new Map();
+            let warehouseTotal = 0;
+
             drafts.forEach((d) => {
+                if (isWarehouseAdminDraft(d)) {
+                    warehouseTotal += draftCarWeight(d);
+                    return;
+                }
                 const p = d.payload || {};
                 const company = draftCompanyName(d);
                 const city = String(p.branch_to || '').trim();
                 if (!company || !city || company === '-' || city === '-' || company.startsWith('—') || city.startsWith('—')) return;
+                if (city === 'المستودع') return;
                 if (!companies.has(company)) companies.set(company, { total: 0, cities: new Map() });
                 const entry = companies.get(company);
-                entry.total++;
-                entry.cities.set(city, (entry.cities.get(city) || 0) + 1);
+                const weight = draftCarWeight(d);
+                entry.total += weight;
+                entry.cities.set(city, (entry.cities.get(city) || 0) + weight);
             });
 
-            return Array.from(companies.entries())
+            const rows = Array.from(companies.entries())
                 .map(([company, info]) => ({
                     company,
                     total: info.total,
@@ -4048,13 +4320,20 @@
                         .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city, 'ar'))
                 }))
                 .sort((a, b) => b.total - a.total || a.company.localeCompare(b.company, 'ar'));
+
+            return {
+                rows,
+                warehouse: warehouseTotal > 0
+                    ? { company: WAREHOUSE_SPECIAL_NAME, total: warehouseTotal }
+                    : null
+            };
         }
 
         function renderCompanyCityBreakdown(drafts, emptyText) {
             const listEl = document.getElementById('companyCityBreakdown');
             const topEl = document.getElementById('companyCityTop');
-            const rows = aggregateCompanyCities(drafts);
-            if (!rows.length) {
+            const { rows, warehouse } = aggregateCompanyCities(drafts);
+            if (!rows.length && !warehouse) {
                 listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText || 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'}</div>`;
                 topEl.innerHTML = '';
                 if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
@@ -4062,20 +4341,40 @@
                 return;
             }
 
-            listEl.innerHTML = rows.map((row) => {
-                const safeCompany = escapeHtml(row.company);
-                const citiesHtml = row.cities.map((cityRow) => {
-                    const safeCity = escapeHtml(cityRow.city);
-                    return `<span class="xfer-account-chip">${safeCity} <b>${cityRow.count}</b></span>`;
-                }).join('');
-                return `<div class="xfer-account-item" data-company="${safeCompany}" role="button" tabindex="0">
-                    <div class="xfer-account-head">
-                        <div class="xfer-account-name" title="${safeCompany}">${safeCompany}</div>
-                        <div class="xfer-account-total">${row.total} حركة</div>
+            const parts = [];
+            if (warehouse) {
+                const safeWh = escapeHtml(warehouse.company);
+                parts.push(`<div class="xfer-warehouse-block">
+                    <div class="xfer-section-label">في المستودع</div>
+                    <div class="xfer-account-item xfer-account-item--warehouse" data-company="${safeWh}" role="button" tabindex="0">
+                        <div class="xfer-account-head">
+                            <div class="xfer-account-name" title="${safeWh}">${safeWh}</div>
+                            <div class="xfer-account-total">${warehouse.total} سيارة</div>
+                        </div>
+                        <div class="xfer-account-cities">
+                            <span class="xfer-account-chip">التسليم في المستودع <b>${warehouse.total}</b></span>
+                        </div>
                     </div>
-                    <div class="xfer-account-cities">${citiesHtml || '<span class="xfer-dash-empty">لا توجد مدن</span>'}</div>
-                </div>`;
-            }).join('');
+                </div>`);
+            }
+            if (rows.length) {
+                parts.push(`<div class="xfer-section-label">شركات النقل</div>`);
+                parts.push(rows.map((row) => {
+                    const safeCompany = escapeHtml(row.company);
+                    const citiesHtml = row.cities.map((cityRow) => {
+                        const safeCity = escapeHtml(cityRow.city);
+                        return `<span class="xfer-account-chip">${safeCity} <b>${cityRow.count}</b></span>`;
+                    }).join('');
+                    return `<div class="xfer-account-item" data-company="${safeCompany}" role="button" tabindex="0">
+                        <div class="xfer-account-head">
+                            <div class="xfer-account-name" title="${safeCompany}">${safeCompany}</div>
+                            <div class="xfer-account-total">${row.total} سيارة</div>
+                        </div>
+                        <div class="xfer-account-cities">${citiesHtml || '<span class="xfer-dash-empty">لا توجد مدن</span>'}</div>
+                    </div>`;
+                }).join(''));
+            }
+            listEl.innerHTML = parts.join('');
 
             listEl.querySelectorAll('[data-company]').forEach((el) => {
                 const open = () => showCompanyRecords(el.dataset.company);
@@ -4090,9 +4389,12 @@
 
             const companyCount = rows.length;
             const cityPairs = rows.reduce((sum, row) => sum + row.cities.length, 0);
+            const whBit = warehouse ? ` · <strong>${warehouse.total}</strong> في المستودع` : '';
             topEl.innerHTML = selectedCompany
-                ? `عرض شركة واحدة فقط — <strong>${escapeHtml(selectedCompany)}</strong> · اضغط نفس الاسم للإلغاء`
-                : `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة — اضغط اسم الشركة لعرض بياناتها فقط`;
+                ? (isWarehouseAccountKey(selectedCompany)
+                    ? `عرض <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> فقط — اضغط نفس الصف للإلغاء`
+                    : `عرض شركة واحدة فقط — <strong>${escapeHtml(selectedCompany)}</strong> · اضغط نفس الاسم للإلغاء`)
+                : `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة${whBit} — اضغط اسم الشركة لعرض بياناتها فقط`;
 
             if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
             else highlightSelectedCompany();
@@ -4101,11 +4403,13 @@
         function renderTransferDashboard(drafts) {
             const list = Array.isArray(drafts) ? drafts : filteredDrafts();
             const navList = dateScopedDrafts();
+            const memoNav = navList.filter((d) => !isWarehouseAdminDraft(d));
+            const memoList = list.filter((d) => !isWarehouseAdminDraft(d));
             const { type } = getTrackFilter();
             const dateFiltered = hasActiveTrackFilter() || Boolean(getXferDateFilter());
             const emptyDate = 'لا توجد بيانات في هذه الفترة حسب الفلتر';
-            let companies = tallyField(navList, (d) => draftCompanyName(d));
-            let cities = tallyField(list, (d) => (d.payload || {}).branch_to);
+            let companies = tallyField(memoNav, (d) => draftCompanyName(d));
+            let cities = tallyField(memoList, (d) => (d.payload || {}).branch_to);
             const vehicles = filteredVehicleList();
             const products = tallyField(
                 vehicles.map((v) => ({ _name: v.product || v.model || '' })),
@@ -4442,85 +4746,188 @@
             });
         }
 
-        function renderDraftsTable(drafts) {
+        const pdfBrowserState = {
+            page: 1,
+            pageSize: 20,
+            sort: 'date_desc',
+            type: 'all',
+            q: '',
+            source: []
+        };
+
+        function draftCompanyLabel(d) {
+            const p = (d && d.payload) || {};
+            return String(p.company_rep || d.customerName || p.warehouse?.owner_name || '').trim();
+        }
+
+        function draftBranchLabel(d) {
+            const p = (d && d.payload) || {};
+            return String(p.branch_to || '').trim();
+        }
+
+        function draftSearchBlob(d) {
+            const vins = draftVinList(d).join(' ');
+            const p = (d && d.payload) || {};
+            return [
+                vins,
+                d.product,
+                d.model,
+                d.assignedTo,
+                draftCompanyLabel(d),
+                draftBranchLabel(d),
+                p.customer_name,
+                p.warehouse?.owner_name,
+                p.warehouse?.user_phone,
+                d.id
+            ].map((x) => String(x || '')).join(' ').toUpperCase();
+        }
+
+        function filterSortPdfs(list) {
+            let rows = Array.isArray(list) ? list.slice() : [];
+            if (pdfBrowserState.type === 'memo') {
+                rows = rows.filter((d) => !isWarehouseAdminDraft(d));
+            } else if (pdfBrowserState.type === 'warehouse') {
+                rows = rows.filter(isWarehouseAdminDraft);
+            }
+            const q = String(pdfBrowserState.q || '').trim().toUpperCase();
+            if (q) {
+                rows = rows.filter((d) => draftSearchBlob(d).includes(q));
+            }
+            const sort = pdfBrowserState.sort || 'date_desc';
+            rows.sort((a, b) => {
+                const vinsA = draftVinList(a);
+                const vinsB = draftVinList(b);
+                if (sort === 'date_asc' || sort === 'date_desc') {
+                    const ta = a.printedAt ? new Date(a.printedAt).getTime() : 0;
+                    const tb = b.printedAt ? new Date(b.printedAt).getTime() : 0;
+                    return sort === 'date_asc' ? ta - tb : tb - ta;
+                }
+                if (sort === 'cars_asc' || sort === 'cars_desc') {
+                    const ca = vinsA.length || 1;
+                    const cb = vinsB.length || 1;
+                    return sort === 'cars_asc' ? ca - cb : cb - ca;
+                }
+                if (sort === 'company_asc' || sort === 'company_desc') {
+                    const cmp = draftCompanyLabel(a).localeCompare(draftCompanyLabel(b), 'ar');
+                    return sort === 'company_asc' ? cmp : -cmp;
+                }
+                if (sort === 'vin_asc') {
+                    return String(vinsA[0] || a.vin || '').localeCompare(String(vinsB[0] || b.vin || ''), 'en');
+                }
+                return 0;
+            });
+            return rows;
+        }
+
+        function renderAllPdfsBrowser(drafts) {
+            pdfBrowserState.source = Array.isArray(drafts) ? drafts.slice() : [];
+            const rows = filterSortPdfs(pdfBrowserState.source);
+            const pageSize = Math.max(5, Number(pdfBrowserState.pageSize) || 20);
+            const total = rows.length;
+            const pages = Math.max(1, Math.ceil(total / pageSize) || 1);
+            if (pdfBrowserState.page > pages) pdfBrowserState.page = pages;
+            if (pdfBrowserState.page < 1) pdfBrowserState.page = 1;
+            const start = (pdfBrowserState.page - 1) * pageSize;
+            const pageRows = rows.slice(start, start + pageSize);
+
+            const meta = document.getElementById('pdfBrowserMeta');
+            if (meta) {
+                meta.textContent = total
+                    ? `عرض ${start + 1}–${Math.min(start + pageSize, total)} من ${total} ملف PDF`
+                    : 'لا توجد ملفات PDF مطابقة';
+            }
+            const pager = document.getElementById('pdfBrowserPager');
+            const pageLabel = document.getElementById('pdfBrowserPageLabel');
+            if (pager) pager.hidden = total <= pageSize;
+            if (pageLabel) pageLabel.textContent = `صفحة ${pdfBrowserState.page} من ${pages}`;
+            const prev = document.getElementById('pdfBrowserPrev');
+            const next = document.getElementById('pdfBrowserNext');
+            if (prev) prev.disabled = pdfBrowserState.page <= 1;
+            if (next) next.disabled = pdfBrowserState.page >= pages;
+
             const tbody = document.getElementById('draftsBody');
             if (!tbody) return;
-            if (!drafts.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد مسودات بعد</td></tr>';
+            if (!pageRows.length) {
+                tbody.innerHTML = '<tr><td colspan="9" class="hub-empty">لا توجد مسودات PDF — اطبع مذكرة أو استورد أرشيف</td></tr>';
                 return;
             }
-            tbody.innerHTML = drafts.slice(0, 100).map((d) => {
+            tbody.innerHTML = pageRows.map((d) => {
                 const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
                 const p = d.payload || {};
-                const canExport = Boolean(d.id && d.payload);
-                return `<tr>
-                    <td>${when}</td>
-                    <td class="hub-vin">${d.vin || '—'}</td>
-                    <td>${d.product || d.model || '—'}</td>
-                    <td>${d.assignedTo || '—'}</td>
-                    <td>${p.customer_name || '—'}</td>
-                    <td>${p.company_rep || d.customerName || '—'}</td>
-                    <td>${p.branch_to || '—'}</td>
-                    <td style="white-space:nowrap">
-                        ${canExport
-                            ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${d.id}">تعديل</button>
-                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${d.id}">تصدير PDF</button>`
-                            : '<span class="hub-meta">—</span>'}
-                    </td>
-                </tr>`;
-            }).join('');
-            bindDraftActionButtons(tbody);
-        }
-
-        function draftVinList(d) {
-            const seen = new Set();
-            const list = [];
-            const push = (v) => {
-                const vin = normVinKey(v);
-                if (!vin || seen.has(vin)) return;
-                seen.add(vin);
-                list.push(vin);
-            };
-            (Array.isArray(d.vins) ? d.vins : []).forEach(push);
-            push(d.vin);
-            (((d.payload || {}).vins) || []).forEach(push);
-            (((d.payload || {}).cars) || []).forEach((c) => push(c && (c.chassis || c.vin)));
-            return list;
-        }
-
-        function renderWarehouseDraftsTable(drafts) {
-            const tbody = document.getElementById('warehouseDraftsBody');
-            if (!tbody) return;
-            if (!drafts.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد قوائم فحص مستودع بعد</td></tr>';
-                return;
-            }
-            tbody.innerHTML = drafts.slice(0, 100).map((d) => {
-                const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
-                const p = d.payload || {};
-                const wh = p.warehouse || {};
                 const vins = draftVinList(d);
+                const isWh = isWarehouseAdminDraft(d);
                 const canExport = Boolean(d.id && d.payload);
                 const vinLabel = vins.length
-                    ? vins.map((v) => escapeHtml(v)).join('<br>')
-                    : '—';
+                    ? vins.map((v) => `<span class="pdf-vin-chip">${escapeHtml(v)}</span>`).join('')
+                    : escapeHtml(d.vin || '—');
+                const typeBadge = isWh
+                    ? '<span class="pdf-type-badge pdf-type-badge--wh">مستودع</span>'
+                    : '<span class="pdf-type-badge pdf-type-badge--memo">مذكرة</span>';
                 return `<tr>
                     <td>${when}</td>
-                    <td class="hub-vin">${vinLabel}</td>
+                    <td>${typeBadge}</td>
+                    <td class="hub-vin pdf-vin-cell">${vinLabel}</td>
+                    <td><strong>${vins.length || 1}</strong></td>
                     <td>${escapeHtml(d.product || d.model || '—')}</td>
                     <td>${escapeHtml(d.assignedTo || '—')}</td>
-                    <td>${escapeHtml(wh.owner_name || p.customer_name || '—')}</td>
-                    <td>${escapeHtml(wh.user_phone || p.phone || '—')}</td>
-                    <td>${vins.length || 1}</td>
+                    <td>${escapeHtml(draftCompanyLabel(d) || '—')}</td>
+                    <td>${escapeHtml(draftBranchLabel(d) || (isWh ? 'المستودع' : '—'))}</td>
                     <td style="white-space:nowrap">
                         ${canExport
                             ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
-                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">تصدير PDF</button>`
+                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">PDF</button>`
                             : '<span class="hub-meta">—</span>'}
                     </td>
                 </tr>`;
             }).join('');
             bindDraftActionButtons(tbody);
+        }
+
+        function renderDraftsTable(drafts) {
+            renderAllPdfsBrowser(drafts);
+        }
+
+        function renderWarehouseDraftsTable() {
+            // Merged into All PDFs browser (type filter = warehouse).
+        }
+
+        function initPdfBrowserControls() {
+            const search = document.getElementById('pdfBrowserSearch');
+            const type = document.getElementById('pdfBrowserType');
+            const sort = document.getElementById('pdfBrowserSort');
+            const pageSize = document.getElementById('pdfBrowserPageSize');
+            let timer = null;
+            search?.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    pdfBrowserState.q = search.value || '';
+                    pdfBrowserState.page = 1;
+                    renderAllPdfsBrowser(pdfBrowserState.source);
+                }, 180);
+            });
+            type?.addEventListener('change', () => {
+                pdfBrowserState.type = type.value || 'all';
+                pdfBrowserState.page = 1;
+                renderAllPdfsBrowser(pdfBrowserState.source);
+            });
+            sort?.addEventListener('change', () => {
+                pdfBrowserState.sort = sort.value || 'date_desc';
+                pdfBrowserState.page = 1;
+                renderAllPdfsBrowser(pdfBrowserState.source);
+            });
+            pageSize?.addEventListener('change', () => {
+                pdfBrowserState.pageSize = Number(pageSize.value) || 20;
+                pdfBrowserState.page = 1;
+                renderAllPdfsBrowser(pdfBrowserState.source);
+            });
+            document.getElementById('pdfBrowserPrev')?.addEventListener('click', () => {
+                pdfBrowserState.page -= 1;
+                renderAllPdfsBrowser(pdfBrowserState.source);
+            });
+            document.getElementById('pdfBrowserNext')?.addEventListener('click', () => {
+                pdfBrowserState.page += 1;
+                renderAllPdfsBrowser(pdfBrowserState.source);
+            });
         }
 
         function renderQueueStats(stats) {
@@ -4617,6 +5024,7 @@
         });
 
         initPremiumFilterToolbar();
+        initPdfBrowserControls();
     </script>
     <script src="delivery-hub-live.js"></script>
 </body>

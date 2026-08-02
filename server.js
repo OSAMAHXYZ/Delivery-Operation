@@ -19,7 +19,7 @@ const PORT = Number(process.env.PORT) || 3000;
 
 const AGENTS = new Set(['ياسين', 'الفاضل', 'البراء']);
 const AGENT_PASSWORD = process.env.DELIVERY_AGENT_PASSWORD || '1234';
-const MAX_DRAFTS = 500;
+const MAX_DRAFTS = 2000;
 
 const {
   MUTHAKARA_BRANCH_OPTIONS: DEFAULT_CITIES
@@ -169,14 +169,89 @@ function statusLabelFor(item) {
 
 function isWarehouseDraftPayload(payload) {
   if (!payload || typeof payload !== 'object') return false;
-  if (payload.warehouse_group) return true;
-  if (String(payload.branch_to || '').trim() === 'المستودع') return true;
-  if (String(payload.company_rep || '').includes('مستودع')) return true;
-  const wh = payload.warehouse || {};
-  return Boolean(
-    wh.owner_name || wh.user_name || wh.user_id || wh.user_phone
-    || wh.print_date || wh.print_time
-  );
+  if (payload.deliveryMode === 'warehouse' || payload.warehouse_group === true) return true;
+  const branch = String(payload.branch_to || '').trim();
+  if (branch === 'المستودع' || branch === 'في المستودع') return true;
+  const company = String(payload.company_rep || '').trim();
+  if (company.includes('مستودع')) return true;
+  // Do not treat leftover owner/print fields alone as warehouse — memo forms share those inputs.
+  return false;
+}
+
+function isWarehouseExportRow(row) {
+  const deliveryType = String(pickCol(row, [
+    'delivery type', 'delivery mode', 'نوع التسليم', 'section', 'القسم'
+  ]) || '').trim().toLowerCase();
+  if (deliveryType === 'warehouse' || deliveryType.includes('مستودع') || deliveryType.includes('warehouse')) {
+    return true;
+  }
+  const companyName = String(pickCol(row, ['company name', 'company', 'اسم الشركة', 'الشركة']) || '').trim();
+  if (companyName === 'مستودع الهاتفية' || companyName.includes('مستودع')) return true;
+  const branchTo = String(pickCol(row, ['branch to', 'branch', 'الفرع', 'إلى فرع']) || '').trim();
+  if (branchTo === 'المستودع' || branchTo === 'في المستودع') return true;
+  const classification = String(pickCol(row, ['classification', 'status label']) || '');
+  if (classification.includes('المستودع')) return true;
+  return false;
+}
+
+/** Collect unique VINs from draft payload cars / vins arrays (+ optional extras). */
+function collectDraftVins(draftPayload, extra = []) {
+  const fromCars = Array.isArray(draftPayload?.cars)
+    ? draftPayload.cars.map((c) => c?.chassis || c?.vin || '')
+    : [];
+  const fromPayloadVins = Array.isArray(draftPayload?.vins) ? draftPayload.vins : [];
+  const fromExtra = Array.isArray(extra) ? extra : [extra];
+  return [...new Set(
+    [...fromExtra, ...fromPayloadVins, ...fromCars]
+      .map((v) => normVin(v))
+      .filter(Boolean)
+  )];
+}
+
+/**
+ * Mark VINs as delivered on the coordinator queue (creates queue rows if missing).
+ * Shared by agent complete-print and admin draft edit.
+ */
+function markVinsDelivered(vins, { assignedTo = 'admin', warehouseDelivery = false, forceAssign = true } = {}) {
+  const byVehicle = vehicleIndex();
+  const deliveredItems = [];
+  const blocked = [];
+
+  for (const vin of vins) {
+    let item = findQueueItem(vin);
+    if (!item) {
+      const veh = byVehicle.get(vin);
+      item = enrichFromVehicle({
+        vin,
+        status: 'claimed',
+        agentStatus: 'delivered',
+        deliveryMode: warehouseDelivery ? 'warehouse' : '',
+        assignedTo: assignedTo || 'admin',
+        assignedAt: new Date().toISOString(),
+        addedAt: new Date().toISOString()
+      }, veh || {});
+      store.queue.push(item);
+    } else {
+      if (
+        !forceAssign
+        && item.assignedTo
+        && assignedTo
+        && item.assignedTo !== assignedTo
+        && item.agentStatus !== 'delivered'
+      ) {
+        blocked.push({ vin, assignedTo: item.assignedTo });
+        continue;
+      }
+      item.status = 'claimed';
+      item.agentStatus = 'delivered';
+      // Explicitly clear warehouse mode for memo deliveries so label is تم الترحيل
+      item.deliveryMode = warehouseDelivery ? 'warehouse' : '';
+      if (assignedTo) item.assignedTo = assignedTo;
+    }
+    deliveredItems.push(enrichQueueItem(item));
+  }
+
+  return { deliveredItems, blocked };
 }
 
 function enrichQueueItem(item) {
@@ -527,6 +602,7 @@ function parseVehiclesFromRows(rows) {
 function buildDraftPayloadFromExportRow(row, veh) {
   const today = new Date().toISOString().slice(0, 10);
   // Export maps: Company Name ← payload.company_rep, Company Rep ← payload.customer_name
+  // Warehouse exports use Company Name = مستودع الهاتفية, Branch To = في المستودع
   const companyName = pickCol(row, ['company name', 'company', 'اسم الشركة', 'الشركة']);
   const companyRep = pickCol(row, ['company rep', 'rep', 'مندوب الشركة', 'المندوب']);
   const branchTo = pickCol(row, ['branch to', 'branch', 'الفرع', 'إلى فرع']);
@@ -537,6 +613,7 @@ function buildDraftPayloadFromExportRow(row, veh) {
   const docDate = printedAt && /^\d{4}-\d{2}-\d{2}/.test(printedAt)
     ? printedAt.slice(0, 10)
     : today;
+  const isWh = isWarehouseExportRow(row);
 
   const cars = Array.from({ length: 10 }, () => emptyCarSlot());
   cars[0] = {
@@ -546,22 +623,33 @@ function buildDraftPayloadFromExportRow(row, veh) {
     remarks: pickCol(row, ['remarks', 'notes', 'ملاحظات']) || ''
   };
 
-  return {
+  const payload = {
     doc_date: docDate,
     invoice_number: '',
     dep_hour: '',
     dep_minute: '',
-    customer_name: companyRep,
-    company_rep: companyName,
+    customer_name: companyRep || '',
+    company_rep: isWh ? 'مستودع الهاتفية' : companyName,
     transfer_date: docDate,
     corresponding_date: docDate,
     day_name: arabicWeekdayName(docDate),
     trailer_number: '',
     car_count: vin ? '1' : '',
-    branch_to: branchTo,
+    branch_to: isWh ? 'المستودع' : branchTo,
     attachments: '',
     cars
   };
+
+  if (isWh) {
+    payload.deliveryMode = 'warehouse';
+    payload.warehouse_group = true;
+    payload.warehouse = {
+      owner_name: companyRep || companyName || '',
+      user_phone: pickCol(row, ['phone', 'هاتف']) || ''
+    };
+  }
+
+  return payload;
 }
 
 function parsePrintDraftsFromRows(rows) {
@@ -603,10 +691,14 @@ function parseQueueFromRows(rows) {
     const status = pickCol(row, ['status']) || 'available';
     const agentStatus = pickCol(row, ['agent status']) || '';
     const assignedTo = pickCol(row, ['assigned to']) || '';
+    const deliveryModeRaw = String(pickCol(row, ['delivery mode', 'delivery type']) || '').trim().toLowerCase();
+    const isWh = deliveryModeRaw === 'warehouse'
+      || isWarehouseExportRow(row);
     queue.push({
       vin,
       status: status === 'claimed' || assignedTo ? 'claimed' : 'available',
       agentStatus,
+      deliveryMode: isWh ? 'warehouse' : (deliveryModeRaw === 'memo' ? '' : ''),
       assignedTo,
       addedAt: pickCol(row, ['added at']) || new Date().toISOString(),
       assignedAt: pickCol(row, ['assigned at']) || '',
@@ -1398,45 +1490,23 @@ app.post('/api/delivery-coordinator/complete-print', (req, res) => {
   const draftPayload = req.body?.draft || {};
   const primaryVin = normVin(req.body?.vin);
   const fromBody = Array.isArray(req.body?.vins) ? req.body.vins : [];
-  const fromCars = Array.isArray(draftPayload?.cars)
-    ? draftPayload.cars.map((c) => c?.chassis || c?.vin || '')
-    : [];
-  const vins = [...new Set(
-    [primaryVin, ...fromBody, ...fromCars]
-      .map((v) => normVin(v))
-      .filter(Boolean)
-  )];
+  const vins = collectDraftVins(draftPayload, [primaryVin, ...fromBody]);
   if (!vins.length) return res.status(400).json({ error: 'الشاسيه مطلوب' });
 
   const warehouseDelivery = isWarehouseDraftPayload(draftPayload);
-  const byVehicle = vehicleIndex();
-  const deliveredItems = [];
-  for (const vin of vins) {
-    let item = findQueueItem(vin);
-    if (!item) {
-      const veh = byVehicle.get(vin);
-      item = enrichFromVehicle({
-        vin,
-        status: 'claimed',
-        agentStatus: 'delivered',
-        deliveryMode: warehouseDelivery ? 'warehouse' : '',
-        assignedTo: auth.username,
-        assignedAt: new Date().toISOString(),
-        addedAt: new Date().toISOString()
-      }, veh || {});
-      store.queue.push(item);
-    } else {
-      if (item.assignedTo && item.assignedTo !== auth.username && item.agentStatus !== 'delivered') {
-        return res.status(403).json({
-          error: `غير مسموح — الشاسيه ${vin} مع موظف آخر (${item.assignedTo})`
-        });
-      }
-      item.status = 'claimed';
-      item.agentStatus = 'delivered';
-      item.deliveryMode = warehouseDelivery ? 'warehouse' : (item.deliveryMode || '');
-      item.assignedTo = auth.username;
-    }
-    deliveredItems.push(enrichQueueItem(item));
+  const { deliveredItems, blocked } = markVinsDelivered(vins, {
+    assignedTo: auth.username,
+    warehouseDelivery,
+    forceAssign: false
+  });
+  if (blocked.length) {
+    const b = blocked[0];
+    return res.status(403).json({
+      error: `غير مسموح — الشاسيه ${b.vin} مع موظف آخر (${b.assignedTo})`
+    });
+  }
+  if (!deliveredItems.length) {
+    return res.status(400).json({ error: 'لم يتم ترحيل أي شاسيه' });
   }
 
   const primary = deliveredItems[0];
@@ -1481,7 +1551,7 @@ app.get('/api/delivery-coordinator/drafts/:draftId', (req, res) => {
   res.json({ draft });
 });
 
-/** Admin edit: update delivery-note draft payload / meta. */
+/** Admin edit: update delivery-note draft payload / meta; sync all cars as delivered. */
 app.patch('/api/delivery-coordinator/drafts/:draftId', (req, res) => {
   const id = String(req.params.draftId || '').trim();
   const idx = store.drafts.findIndex((d) => d.id === id);
@@ -1489,21 +1559,30 @@ app.patch('/api/delivery-coordinator/drafts/:draftId', (req, res) => {
 
   const body = req.body || {};
   const draft = { ...store.drafts[idx] };
+  const markDelivered = body.markDelivered !== false;
 
   if (body.payload && typeof body.payload === 'object') {
     draft.payload = { ...(draft.payload || {}), ...body.payload };
     if (Array.isArray(body.payload.cars)) {
       draft.payload.cars = body.payload.cars;
     }
-    const firstCar = (draft.payload.cars || []).find((c) => c && c.chassis);
-    if (firstCar?.chassis) draft.vin = normVin(firstCar.chassis) || draft.vin;
-    if (firstCar?.model) {
-      draft.product = firstCar.model;
-      draft.model = firstCar.model;
-    }
-    if (firstCar?.plate != null) draft.plate = firstCar.plate;
-    if (draft.payload.company_rep) draft.customerName = draft.payload.company_rep;
   }
+
+  const vins = collectDraftVins(draft.payload, [draft.vin, ...(Array.isArray(draft.vins) ? draft.vins : [])]);
+  draft.vins = vins;
+  if (!draft.payload || typeof draft.payload !== 'object') draft.payload = {};
+  draft.payload.vins = vins;
+
+  const firstCar = (draft.payload.cars || []).find((c) => c && (c.chassis || c.vin));
+  if (firstCar?.chassis || firstCar?.vin) {
+    draft.vin = normVin(firstCar.chassis || firstCar.vin) || draft.vin;
+  }
+  if (firstCar?.model) {
+    draft.product = firstCar.model;
+    draft.model = firstCar.model;
+  }
+  if (firstCar?.plate != null) draft.plate = firstCar.plate;
+  if (draft.payload.company_rep) draft.customerName = draft.payload.company_rep;
 
   if (body.assignedTo != null) draft.assignedTo = String(body.assignedTo);
   if (body.customerName != null) draft.customerName = String(body.customerName);
@@ -1513,9 +1592,48 @@ app.patch('/api/delivery-coordinator/drafts/:draftId', (req, res) => {
   }
   draft.updatedAt = new Date().toISOString();
 
+  // Prefer explicit mode from admin editor (memo vs warehouse UI).
+  let warehouseDelivery = false;
+  if (body.deliveryMode === 'warehouse' || body.warehouseDelivery === true) {
+    warehouseDelivery = true;
+  } else if (body.deliveryMode === 'memo' || body.deliveryMode === '' || body.warehouseDelivery === false) {
+    warehouseDelivery = false;
+  } else {
+    warehouseDelivery = isWarehouseDraftPayload(draft.payload);
+  }
+
+  if (!draft.payload || typeof draft.payload !== 'object') draft.payload = {};
+  if (warehouseDelivery) {
+    draft.payload.warehouse_group = true;
+    draft.payload.deliveryMode = 'warehouse';
+  } else {
+    draft.payload.warehouse_group = false;
+    draft.payload.deliveryMode = '';
+  }
+
+  let deliveredCount = 0;
+  let deliveredItems = [];
+  if (markDelivered && vins.length) {
+    const result = markVinsDelivered(vins, {
+      assignedTo: draft.assignedTo || 'admin',
+      warehouseDelivery,
+      forceAssign: true
+    });
+    deliveredItems = result.deliveredItems;
+    deliveredCount = deliveredItems.length;
+  }
+
   store.drafts[idx] = draft;
   persistAndBroadcast();
-  res.json({ ok: true, draft });
+  res.json({
+    ok: true,
+    draft,
+    vins,
+    deliveredCount,
+    deliveryMode: warehouseDelivery ? 'warehouse' : 'memo',
+    statusLabel: warehouseDelivery ? 'تم التسليم في المستودع' : 'تم الترحيل',
+    items: deliveredItems
+  });
 });
 
 app.delete('/api/delivery-coordinator/drafts/:draftId', (req, res) => {

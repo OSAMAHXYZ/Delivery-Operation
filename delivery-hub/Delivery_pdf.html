@@ -909,6 +909,11 @@
             transition: transform .15s ease, filter .15s ease;
         }
         .stock-action-btns button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .stock-action-btns .sa-stock {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+        }
         .stock-action-btns .sa-issue {
             background: linear-gradient(135deg, #eb0a1e, #c8102e);
             color: #fff;
@@ -1279,6 +1284,7 @@
             <div class="stock-action-product" id="stockActionProduct"></div>
             <p class="stock-action-sub" id="stockActionSub">اختر نوع الإجراء لهذه السيارة</p>
             <div class="stock-action-btns">
+                <button type="button" class="sa-stock" id="stockActionKeep">متاحة لدي</button>
                 <button type="button" class="sa-issue" id="stockActionWarehouse">التسليم في المستودع</button>
                 <button type="button" class="sa-return" id="stockActionTransfer">الترحيل</button>
                 <button type="button" class="sa-cancel" id="stockActionBack">الرجوع للقائمة</button>
@@ -1730,6 +1736,13 @@
             }
             closeVinPicker();
             syncCarCount();
+            updatePreview();
+            if (isAdminEditMode()) {
+                refreshAdminEditBanner(
+                    getFormChassisList(),
+                    warehousePrintMode ? 'تم التسليم في المستودع' : 'تم الترحيل'
+                );
+            }
         }
 
         document.getElementById('vinModalClose').addEventListener('click', closeVinPicker);
@@ -2179,9 +2192,11 @@
             document.getElementById('stockActionVin').textContent = stockActionVin;
             document.getElementById('stockActionProduct').textContent = item.product || item.model || '—';
             const sub = document.getElementById('stockActionSub');
+            const keepBtn = document.getElementById('stockActionKeep');
+            if (keepBtn) keepBtn.hidden = stockActionMode !== 'available';
             if (sub) {
                 sub.textContent = stockActionMode === 'available'
-                    ? 'اختر: التسليم في المستودع أو الترحيل أو الرجوع للقائمة'
+                    ? 'اختر: متاحة لدي (مخزونك) أو التسليم في المستودع أو الترحيل أو الرجوع للقائمة'
                     : 'اختر نوع المذكرة لهذه السيارة أو ارجع للقائمة';
             }
             document.getElementById('stockActionModal').classList.add('open');
@@ -2265,30 +2280,61 @@
             if (!draftId) return;
             setStatus('جاري حفظ التعديلات…', 'ok');
             try {
+                const payload = collectPayload();
+                // Explicit memo vs warehouse so leftover warehouse fields don't mis-label cars
+                payload.warehouse_group = Boolean(warehousePrintMode);
+                payload.deliveryMode = warehousePrintMode ? 'warehouse' : '';
                 const res = await fetch(`/api/delivery-coordinator/drafts/${encodeURIComponent(draftId)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ payload: collectPayload() })
+                    body: JSON.stringify({
+                        payload,
+                        markDelivered: true,
+                        deliveryMode: warehousePrintMode ? 'warehouse' : 'memo',
+                        warehouseDelivery: Boolean(warehousePrintMode)
+                    })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل الحفظ');
-                setStatus('تم حفظ تعديلات المذكرة', 'ok');
+                const vins = Array.isArray(data.vins) ? data.vins : getFormChassisList();
+                const label = data.statusLabel || (warehousePrintMode ? 'تم التسليم في المستودع' : 'تم الترحيل');
+                const n = data.deliveredCount || vins.length || 0;
+                setStatus(
+                    n
+                        ? `تم الحفظ · ${n} شاسيه على نفس المذكرة · ${label}\n${vins.join(' · ')}`
+                        : 'تم حفظ تعديلات المذكرة',
+                    'ok'
+                );
+                refreshAdminEditBanner(vins, label);
             } catch (err) {
                 setStatus(err.message || 'فشل الحفظ', 'err');
             }
         }
 
+        function refreshAdminEditBanner(vins, statusLabel) {
+            const banner = document.getElementById('adminEditBanner');
+            if (!banner) return;
+            const list = (vins || []).filter(Boolean);
+            const title = banner.querySelector('[data-admin-banner-title]');
+            if (title) {
+                title.textContent = list.length
+                    ? `تعديل مسودة · ${list.length} شاسيه · ${statusLabel || 'تم الترحيل'}`
+                    : 'تعديل مسودة';
+            }
+            const vinEl = banner.querySelector('[data-admin-banner-vins]');
+            if (vinEl) {
+                vinEl.textContent = list.length ? list.join(' · ') : '';
+                vinEl.hidden = !list.length;
+            }
+        }
+
         function isWarehouseDraftPayload(payload) {
             if (!payload || typeof payload !== 'object') return false;
-            if (payload.warehouse_group) return true;
+            if (payload.deliveryMode === 'warehouse' || payload.warehouse_group === true) return true;
             if (String(payload.branch_to || '').trim() === 'المستودع') return true;
             const company = String(payload.company_rep || '').trim();
             if (company.includes('مستودع')) return true;
-            const wh = payload.warehouse || {};
-            return Boolean(
-                wh.owner_name || wh.user_name || wh.user_id || wh.user_phone
-                || wh.print_date || wh.print_time
-            );
+            return false;
         }
 
         function waitForPreviewImage() {
@@ -2411,20 +2457,34 @@
             buildOverlay();
             updatePreview();
             setStatus(isWh
-                ? 'تعديل قائمة فحص المستودع — عدّل ثم احفظ أو صدّر PDF'
-                : 'وضع تعديل المذكرة — عدّل الحقول ثم احفظ', 'ok');
+                ? 'تعديل قائمة فحص المستودع — أضف شاسيه ثم احفظ (تُسجَّل تم الترحيل على نفس PDF)'
+                : 'تعديل المذكرة — أضف سيارات ثم احفظ؛ كل شاسيه تُصبح تم الترحيل على نفس المذكرة', 'ok');
             const banner = document.createElement('div');
+            banner.id = 'adminEditBanner';
             banner.className = 'no-print';
-            banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;border-radius:999px;background:#111827;border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 40px rgba(0,0,0,.35);';
+            banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:10px 14px;border-radius:16px;background:#111827;border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 40px rgba(0,0,0,.35);max-width:min(920px,94vw)';
+            const vinsOnDraft = [
+                ...(Array.isArray(draft.vins) ? draft.vins : []),
+                draft.vin,
+                ...((draft.payload && draft.payload.vins) || []),
+                ...((draft.payload && draft.payload.cars) || []).map((c) => c && (c.chassis || c.vin))
+            ].filter(Boolean);
+            const uniqueVins = [...new Set(vinsOnDraft.map((v) => String(v).trim().toUpperCase()).filter(Boolean))];
             banner.innerHTML = `
-                <span style="color:#e2e8f0;font-size:.82rem;font-weight:700">تعديل مسودة · ${draft.vin || draftId}</span>
-                <button type="button" class="btn btn-primary" id="btnAdminSaveDraft" style="padding:8px 16px">حفظ التعديلات</button>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span data-admin-banner-title style="color:#e2e8f0;font-size:.82rem;font-weight:700">تعديل مسودة · ${uniqueVins.length} شاسيه</span>
+                    <span data-admin-banner-vins style="color:#94a3b8;font-size:.72rem;direction:ltr;text-align:left">${uniqueVins.join(' · ')}</span>
+                </div>
+                <button type="button" class="btn btn-primary" id="btnAdminSaveDraft" style="padding:8px 16px">حفظ + تم الترحيل</button>
                 <button type="button" class="btn" id="btnAdminEditPrint" style="padding:8px 16px">تصدير PDF</button>
                 <a href="admin-Delivery-pdf.html" class="btn" style="padding:8px 14px;text-decoration:none">العودة للإدارة</a>
             `;
             document.body.appendChild(banner);
             document.getElementById('btnAdminSaveDraft').addEventListener('click', saveAdminDraftEdit);
-            document.getElementById('btnAdminEditPrint').addEventListener('click', doPrintA4);
+            document.getElementById('btnAdminEditPrint').addEventListener('click', async () => {
+                await saveAdminDraftEdit();
+                doPrintA4();
+            });
             return true;
         }
 
@@ -2540,6 +2600,21 @@
         });
 
         document.getElementById('availableVinSearch').addEventListener('input', filterAvailableFleetByVin);
+
+        document.getElementById('stockActionKeep').addEventListener('click', async () => {
+            const vin = stockActionVin;
+            closeStockAction();
+            if (!vin) return;
+            const item = await claimWithStatus(vin, 'in_stock');
+            if (!item) return;
+            const statusEl = document.getElementById('queueStatus');
+            if (statusEl) {
+                statusEl.textContent = `تمت إضافة ${vin} إلى مخزونك (متاحة لدي)`;
+                statusEl.className = 'ws-toast ok';
+            }
+            // Stay on workspace — car appears under مخزوني / current stock
+            openWorkspace();
+        });
 
         document.getElementById('stockActionWarehouse').addEventListener('click', async () => {
             const vin = stockActionVin;
