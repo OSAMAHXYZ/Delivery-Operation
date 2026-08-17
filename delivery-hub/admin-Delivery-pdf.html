@@ -7,8 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260802h">
-    <link rel="stylesheet" href="admin-saas.css?v=20260802h">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260809dn">
+    <link rel="stylesheet" href="admin-saas.css?v=20260809dn">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
@@ -1302,6 +1302,268 @@
                 transform 0.2s ease;
         }
 
+        /* —— Delivery Management (DN) panel —— */
+        .dn-mgmt {
+            margin: 16px 0 20px;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            background:
+                linear-gradient(135deg, rgba(235, 10, 30, 0.12), transparent 42%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 50%),
+                #111827;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+        }
+        .dn-mgmt__head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 14px 20px;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .dn-mgmt__eyebrow {
+            margin: 0 0 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #fca5a5;
+        }
+        .dn-mgmt__title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #f8fafc;
+        }
+        .dn-mgmt__sub {
+            margin: 4px 0 0;
+            font-size: 0.82rem;
+            color: #94a3b8;
+        }
+        .dn-mgmt__month {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: min(240px, 100%);
+        }
+        .dn-mgmt__month span {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .dn-mgmt__month select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: #0f172a;
+            color: #f8fafc;
+            font: inherit;
+            font-weight: 600;
+        }
+        .dn-mgmt__month select:focus {
+            outline: none;
+            border-color: rgba(235, 10, 30, 0.55);
+            box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.15);
+        }
+        .dn-mgmt__stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+            gap: 10px;
+            padding: 16px 20px 18px;
+        }
+        .dn-stat {
+            position: relative;
+            padding: 14px 12px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.72);
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dn-stat:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+        .dn-stat::before {
+            content: '';
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--dn-accent, #64748b);
+        }
+        .dn-stat span {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .dn-stat b {
+            display: block;
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+        }
+        .dn-stat--notes { --dn-accent: #EB0A1E; }
+        .dn-stat--vins { --dn-accent: #3b82f6; }
+        .dn-stat--display { --dn-accent: #a855f7; }
+        .dn-stat--delivery { --dn-accent: #22c55e; }
+        .dn-stat--wh { --dn-accent: #0ea5e9; }
+        .dn-stat--memo { --dn-accent: #f59e0b; }
+        .dn-stat--showroom { --dn-accent: #f472b6; }
+        .dn-stat--month { --dn-accent: #94a3b8; }
+
+        .dn-vin-card {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent), #0f172a;
+        }
+        .dn-vin-card__head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px 12px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        .dn-vin-card__vin {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            letter-spacing: 0.02em;
+        }
+        .dn-vin-card__meta { color: #94a3b8; font-size: 0.82rem; }
+        .dn-vin-card__count {
+            margin-inline-start: auto;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(235, 10, 30, 0.15);
+            color: #fecaca;
+            border: 1px solid rgba(235, 10, 30, 0.28);
+        }
+        .dn-vin-note {
+            display: grid;
+            grid-template-columns: minmax(90px, auto) 1fr auto;
+            gap: 8px 12px;
+            align-items: center;
+            padding: 10px 12px;
+            margin: 6px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(15, 23, 42, 0.55);
+            border-inline-start: 3px solid rgba(59, 130, 246, 0.55);
+        }
+        .dn-vin-note--display { border-inline-start-color: rgba(168, 85, 247, 0.7); }
+        .dn-vin-note__dn {
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #93c5fd;
+            font-variant-numeric: tabular-nums;
+        }
+        .dn-vin-note__info {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+        }
+        .dn-vin-note__info em {
+            font-style: normal;
+            color: #64748b;
+        }
+        .pdf-vin-chip[data-vin-history] {
+            cursor: pointer;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.12);
+            color: #bfdbfe;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .pdf-vin-chip[data-vin-history]:hover {
+            background: rgba(59, 130, 246, 0.22);
+            border-color: rgba(59, 130, 246, 0.55);
+        }
+
+        .last-months-folders {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .last-months-folder {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 14px 14px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent), #0f172a;
+            cursor: pointer;
+            text-align: start;
+            color: inherit;
+            font: inherit;
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .last-months-folder:hover,
+        .last-months-folder.is-active {
+            transform: translateY(-2px);
+            border-color: rgba(235, 10, 30, 0.45);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+        .last-months-folder__name {
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #f8fafc;
+        }
+        .last-months-folder__meta {
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .last-months-folder__count {
+            margin-top: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #fecaca;
+        }
+        .last-months-detail {
+            margin-top: 8px;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.55);
+        }
+        .last-months-detail h3 {
+            margin: 0 0 10px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #e2e8f0;
+        }
+
+        @media (max-width: 700px) {
+            .dn-vin-note {
+                grid-template-columns: 1fr;
+            }
+            .dn-vin-card__count { margin-inline-start: 0; }
+        }
+
         .admin-gate-card {
             animation: adminRise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
             backdrop-filter: blur(16px);
@@ -1374,6 +1636,7 @@
                 <h1>لوحة متابعة الترحيل</h1>
             </div>
             <div class="saas-header__actions">
+                <a href="index.html" class="saas-btn saas-btn--ghost saas-btn--sm">المركز</a>
                 <a href="Delivery_coordinator.html" class="saas-btn saas-btn--ghost saas-btn--sm">المنسق</a>
                 <button type="button" class="saas-btn saas-btn--primary" id="btnExportExcel">تصدير Excel</button>
                 <button type="button" class="saas-btn saas-btn--sm" id="btnExpandAll">فتح الكل</button>
@@ -1494,6 +1757,64 @@
             <div class="ft-chips" id="filterChipsBar" aria-label="Active filters"></div>
             <p class="ft-meta admin-filter-meta" id="trackFilterMeta">Showing all records</p>
             <p class="hub-meta" id="trackFilterHint" hidden></p>
+
+            <section class="dn-mgmt" id="dnMonthBar" aria-label="Delivery Management">
+                <div class="dn-mgmt__head">
+                    <div>
+                        <p class="dn-mgmt__eyebrow">Delivery Management</p>
+                        <h2 class="dn-mgmt__title">إدارة مذكرات التسليم</h2>
+                        <p class="dn-mgmt__sub">إحصاءات المذكرات حسب الشهر — العدّ بعدد المذكرات وليس بعدد الشاسيه الفريد</p>
+                    </div>
+                    <label class="dn-mgmt__month">
+                        <span>Month / الشهر</span>
+                        <select id="dnMonthFilter" aria-label="Month filter"></select>
+                    </label>
+                </div>
+                <div class="dn-mgmt__stats" id="dnStatsBar"></div>
+            </section>
+
+            <section class="hub-section hub-fold" id="vinHistorySection" data-fold>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">سجل VIN المكرر — Duplicate VIN History</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">عدة مذكرات لنفس الشاسيه</span>
+                        <span class="hub-fold-count" id="vinHistoryFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <div class="pdf-browser-search" style="margin-bottom:12px;max-width:360px">
+                                <input type="search" id="vinHistorySearch" class="hub-input" placeholder="بحث VIN لعرض السجل الكامل…" autocomplete="off">
+                            </div>
+                            <div id="vinHistoryPanel" class="hub-meta">لا توجد بيانات</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="hub-section hub-fold" id="lastMonthsSection" data-fold>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">الأشهر السابقة — Last Months Archive</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">تم الترحيل المخفي من المنسق منذ يوم 1 لكل شهر</span>
+                        <span class="hub-fold-count" id="lastMonthsFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <p class="hub-meta" style="margin-bottom:12px">
+                                من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
+                            </p>
+                            <div id="lastMonthsFolders" class="last-months-folders"></div>
+                            <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <div class="ft-hidden-natives" aria-hidden="true">
                 <select id="trackDateType">
@@ -1800,7 +2121,7 @@
             <div class="hub-fold-body">
                 <div class="hub-fold-body-inner">
                     <div class="hub-fold-content">
-                        <p class="hub-meta" style="margin-bottom:12px">متاح · مع الفاضل/ياسين/البراء · تم الترحيل</p>
+                        <p class="hub-meta" style="margin-bottom:12px">Waiting for delivery · مع الفاضل/ياسين/البراء · تم الترحيل</p>
                         <div class="hub-table-wrap">
                             <table class="hub-table">
                                 <thead>
@@ -1845,6 +2166,9 @@
                                 <option value="all">كل الأنواع</option>
                                 <option value="memo">مذكرة ترحيل</option>
                                 <option value="warehouse">مستودع</option>
+                                <option value="showroom">عرض الصالة</option>
+                                <option value="display">عرض (Display)</option>
+                                <option value="delivery">تسليم (Delivery)</option>
                             </select>
                             <select id="pdfBrowserSort" class="ft-native" aria-label="ترتيب">
                                 <option value="date_desc">الأحدث أولاً</option>
@@ -1867,8 +2191,10 @@
                             <table class="hub-table" id="pdfBrowserTable">
                                 <thead>
                                     <tr>
+                                        <th>DN #</th>
                                         <th>التاريخ</th>
                                         <th>النوع</th>
+                                        <th>الحالة</th>
                                         <th>الشاسيه</th>
                                         <th>العدد</th>
                                         <th>Product</th>
@@ -1984,6 +2310,9 @@
         let lastDashboard = null;
         /** Warehouse deliveries show under this label — not as a transport company. */
         const WAREHOUSE_SPECIAL_NAME = 'مستودع الهاتفية';
+        /** Showroom cars (ياسين) — flagged separately in admin. */
+        const SHOWROOM_SPECIAL_NAME = 'سيارات عرض الصالة';
+        const SHOWROOM_AGENT = 'ياسين';
 
         function unlockAdmin() {
             adminAuthed = true;
@@ -2206,11 +2535,9 @@
                     'Status Label': item.statusLabel || '',
                     'Agent Status': item.agentStatus || '',
                     'Delivery Mode': isWh ? 'warehouse' : (item.agentStatus === 'delivered' ? 'memo' : ''),
-                    Classification: item.status === 'available'
-                        ? 'متاح'
-                        : (isWh
-                            ? 'تم التسليم في المستودع'
-                            : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'))),
+                    Classification: item.agentStatus === 'delivered'
+                        ? (isWh ? 'تم التسليم في المستودع' : (item.statusLabel || 'تم الترحيل'))
+                        : (item.statusLabel || 'Waiting for delivery'),
                     Plate: item.plate || '',
                     Customer: item.customerName || '',
                     'Added At': item.addedAt || '',
@@ -2226,6 +2553,7 @@
             const draftRows = allDrafts.map((d) => {
                 const p = d.payload || {};
                 const isWh = isWarehouseAdminDraft(d);
+                const isSh = isShowroomAdminDraft(d);
                 const vinList = [
                     ...(Array.isArray(d.vins) ? d.vins : []),
                     d.vin,
@@ -2235,6 +2563,11 @@
                 const uniqueVins = [...new Set(vinList)];
                 const ownerName = p.warehouse?.owner_name || p.customer_name || p.company_rep || d.customerName || '';
                 return {
+                    'Delivery Note Number': draftDeliveryNoteNumber(d) || '',
+                    'Delivery Note Date': draftEventIso(d) || '',
+                    'Branch Entry Date': d.branchEntryDate || p.branchEntryDate || '',
+                    'Vehicle Status': draftVehicleStatus(d),
+                    Agent: d.entryAgent || d.assignedTo || '',
                     'Draft ID': d.id || '',
                     'Printed At': d.printedAt || '',
                     'Chassis / VIN': uniqueVins[0] || d.vin || '',
@@ -2242,10 +2575,15 @@
                     'Car Count': uniqueVins.length || 1,
                     Product: d.product || d.model || '',
                     'Assigned To': d.assignedTo || '',
-                    Section: isWh ? 'في المستودع' : 'شركات النقل',
-                    'Delivery Type': isWh ? 'warehouse' : 'memo',
-                    'Company Name': isWh ? WAREHOUSE_SPECIAL_NAME : (p.company_rep || ''),
-                    'Company Rep': isWh ? ownerName : (p.customer_name || d.customerName || ''),
+                    Section: isSh ? 'سيارات عرض الصالة' : (isWh ? 'في المستودع' : 'شركات النقل'),
+                    'Delivery Type': isSh ? 'showroom' : (isWh ? 'warehouse' : 'memo'),
+                    Flag: isSh ? 'عرض الصالة' : (isWh ? 'مستودع' : ''),
+                    'Company Name': isSh
+                        ? SHOWROOM_SPECIAL_NAME
+                        : (isWh ? WAREHOUSE_SPECIAL_NAME : (p.company_rep || '')),
+                    'Company Rep': isSh
+                        ? (p.typed_company || p.company_rep || p.customer_name || '')
+                        : (isWh ? ownerName : (p.customer_name || d.customerName || '')),
                     'Branch To': isWh ? 'في المستودع' : (p.branch_to || ''),
                     'Branch From': p.branch_from || '',
                     Plate: p.plate || d.plate || '',
@@ -2262,9 +2600,17 @@
                 'Print Drafts'
             );
 
-            // Mirror admin «حساب كل شركة حسب المدن» — warehouse as مستودع الهاتفية
-            const { rows: companyCityAgg, warehouse: whAgg } = aggregateCompanyCities(allDrafts);
+            // Mirror admin «حساب كل شركة حسب المدن» — warehouse + showroom specials
+            const { rows: companyCityAgg, warehouse: whAgg, showroom: shAgg } = aggregateCompanyCities(allDrafts);
             const companyCityRows = [];
+            if (shAgg) {
+                companyCityRows.push({
+                    Section: 'سيارات عرض الصالة',
+                    Company: SHOWROOM_SPECIAL_NAME,
+                    City: 'عرض الصالة',
+                    Cars: shAgg.total
+                });
+            }
             if (whAgg) {
                 companyCityRows.push({
                     Section: 'في المستودع',
@@ -2336,11 +2682,14 @@
             const drafts = filteredDrafts();
             const vehicles = filteredVehicleList();
             const companies = new Set(
-                drafts.filter((d) => !isWarehouseAdminDraft(d)).map(draftCompanyName).filter(Boolean)
+                drafts
+                    .filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d))
+                    .map(draftCompanyName)
+                    .filter(Boolean)
             ).size;
             const branches = new Set(
                 drafts
-                    .filter((d) => !isWarehouseAdminDraft(d))
+                    .filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d))
                     .map((d) => String((d.payload || {}).branch_to || '').trim())
                     .filter((n) => n && n !== '-' && n !== 'المستودع')
             ).size;
@@ -2779,7 +3128,12 @@
             const draftsInRange = dateScopedDrafts();
 
             let hasWarehouse = false;
+            let hasShowroom = false;
             draftsInRange.forEach((d) => {
+                if (isShowroomAdminDraft(d)) {
+                    hasShowroom = true;
+                    return;
+                }
                 if (isWarehouseAdminDraft(d)) {
                     hasWarehouse = true;
                     return;
@@ -2790,6 +3144,7 @@
                 if (who) coordinators.add(who);
             });
             if (hasWarehouse) companies.add(WAREHOUSE_SPECIAL_NAME);
+            if (hasShowroom) companies.add(SHOWROOM_SPECIAL_NAME);
 
             const vins = scopedVinSet();
             let queueInRange = allQueue || [];
@@ -2821,7 +3176,12 @@
             const companies = new Set();
             const draftsInRange = dateScopedDrafts();
             let hasWarehouse = false;
+            let hasShowroom = false;
             draftsInRange.forEach((d) => {
+                if (isShowroomAdminDraft(d)) {
+                    hasShowroom = true;
+                    return;
+                }
                 if (isWarehouseAdminDraft(d)) {
                     hasWarehouse = true;
                     return;
@@ -2830,6 +3190,7 @@
                 if (c) companies.add(c);
             });
             if (hasWarehouse) companies.add(WAREHOUSE_SPECIAL_NAME);
+            if (hasShowroom) companies.add(SHOWROOM_SPECIAL_NAME);
             if (selectedCompany && !companies.has(selectedCompany)) selectedCompany = '';
 
             const coordinators = new Set();
@@ -3129,6 +3490,7 @@
         }
 
         function draftEventIso(d) {
+            // Prefer print/creation time for monthly grouping (never dump older months into "today")
             if (d && d.printedAt) {
                 const dt = new Date(d.printedAt);
                 if (!Number.isNaN(dt.getTime())) {
@@ -3140,10 +3502,58 @@
                     }).format(dt);
                 }
             }
+            const dn = String(d?.deliveryNoteDate || (d?.payload && d.payload.deliveryNoteDate) || '').trim();
+            if (/^\d{4}-\d{2}-\d{2}/.test(dn)) return dn.slice(0, 10);
             const p = (d && d.payload) || {};
             const fallback = String(p.transfer_date || p.doc_date || '').trim();
             if (/^\d{4}-\d{2}-\d{2}/.test(fallback)) return fallback.slice(0, 10);
             return '';
+        }
+
+        function draftMonthKey(d) {
+            const iso = draftEventIso(d);
+            return iso ? iso.slice(0, 7) : '';
+        }
+
+        function currentMonthKey() {
+            return getSaudiTodayIso().slice(0, 7);
+        }
+
+        function lastMonthKey() {
+            const [y, m] = currentMonthKey().split('-').map(Number);
+            return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+        }
+
+        function monthLabelAr(ym) {
+            if (!ym || ym === 'all') return 'كل الأشهر';
+            const [y, m] = String(ym).split('-');
+            const names = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            const mi = Number(m);
+            return `${names[mi] || m} ${y}`;
+        }
+
+        /** Admin month filter: YYYY-MM | all — default = current month only */
+        let adminMonthFilter = currentMonthKey();
+
+        function matchesAdminMonth(d) {
+            if (!adminMonthFilter || adminMonthFilter === 'all') return true;
+            const mk = draftMonthKey(d);
+            // Undated notes stay hidden until they have a real date — never leak into current month
+            if (!mk) return false;
+            return mk === adminMonthFilter;
+        }
+
+        function draftVehicleStatus(d) {
+            const raw = d?.vehicleStatus || (d?.payload && d.payload.vehicleStatus) || '';
+            const v = String(raw).trim().toLowerCase();
+            if (v === 'display' || v === 'عرض') return 'display';
+            if (v === 'delivery' || v === 'تسليم') return 'delivery';
+            if (typeof isShowroomAdminDraft === 'function' && isShowroomAdminDraft(d)) return 'display';
+            return 'delivery';
+        }
+
+        function draftDeliveryNoteNumber(d) {
+            return String(d?.deliveryNoteNumber || (d?.payload && d.payload.deliveryNoteNumber) || '').trim();
         }
 
         function normVinKey(vin) {
@@ -3270,7 +3680,7 @@
 
         function dateScopedDrafts() {
             const legacy = getXferDateFilter();
-            let list = allDrafts || [];
+            let list = (allDrafts || []).filter(matchesAdminMonth);
             if (legacy) {
                 list = list.filter((d) => draftEventIso(d) === legacy);
             }
@@ -3279,17 +3689,13 @@
             if (!from && !to) return list;
 
             if (type === 'delivery_note') {
-                // Keep drafts issued in the selected range (same PDF for all its cars)
+                // Stay inside the selected month — do not re-include other months via VIN scope
                 return list.filter((d) => {
                     const iso = draftEventIso(d);
-                    if (iso && isoInRange(iso, from, to)) return true;
-                    const vins = scopedVinSet();
-                    if (!vins || !vins.size) return false;
-                    return draftVinList(d).some((vin) => vins.has(vin));
+                    return Boolean(iso && isoInRange(iso, from, to));
                 });
             }
 
-            // Invoice: drafts that include any car invoiced in range
             const vins = scopedVinSet();
             if (!vins || !vins.size) return [];
             return list.filter((d) => draftVinList(d).some((vin) => vins.has(vin)));
@@ -3441,9 +3847,11 @@
             const withP = (allVehicles || []).filter((v) => v.proformaDate).length;
             const withI = (allVehicles || []).filter((v) => v.invoiceDate).length;
             const companyBit = selectedCompany
-                ? (isWarehouseAccountKey(selectedCompany)
-                    ? ` · <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> (في المستودع)`
-                    : ` · شركة <strong>${escapeHtml(selectedCompany)}</strong>`)
+                ? (isShowroomAccountKey(selectedCompany)
+                    ? ` · <strong>${escapeHtml(SHOWROOM_SPECIAL_NAME)}</strong> (عرض الصالة)`
+                    : isWarehouseAccountKey(selectedCompany)
+                        ? ` · <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> (في المستودع)`
+                        : ` · شركة <strong>${escapeHtml(selectedCompany)}</strong>`)
                 : '';
             const searchBit = searchQ
                 ? ` · VIN search <strong>${escapeHtml(searchQ)}</strong>`
@@ -3499,6 +3907,10 @@
             applyDeliveryNoteDateBounds();
             updateXferDateLabel();
             pruneStaleUiFilters();
+            populateDnMonthFilter();
+            renderDnStatsBar();
+            renderVinHistoryPanel();
+            renderLastMonthsFolders();
             const draftsBase = filteredDrafts();
             const queueBase = filteredQueue();
             if (selectedCompany && !draftsBase.some((d) => draftMatchesCompanyKey(d, selectedCompany))) {
@@ -3507,8 +3919,11 @@
                 if (panel) panel.classList.add('hidden');
             }
             const searchQ = String(uiFilters.search || '').trim();
+            const monthOk = (d) => matchesAdminMonth(d);
             const drafts = applyDisplayFilters(
-                searchQ ? (allDrafts || []).filter((d) => rowMatchesSearch(d, searchQ)) : filteredDrafts(),
+                searchQ
+                    ? (allDrafts || []).filter((d) => monthOk(d) && rowMatchesSearch(d, searchQ))
+                    : filteredDrafts(),
                 'draft'
             );
             const queue = applyDisplayFilters(
@@ -3543,6 +3958,283 @@
             updateTrackFilterMeta();
         }
 
+        function computeClientDnStats(drafts) {
+            const list = Array.isArray(drafts) ? drafts : [];
+            const vinSet = new Set();
+            const stats = {
+                deliveryNotes: list.length,
+                uniqueVins: 0,
+                display: 0,
+                delivery: 0,
+                warehouse: 0,
+                memo: 0,
+                showroom: 0
+            };
+            list.forEach((d) => {
+                draftVinList(d).forEach((v) => vinSet.add(v));
+                const st = draftVehicleStatus(d);
+                const isSh = isShowroomAdminDraft(d) || st === 'display';
+                const isWh = !isSh && isWarehouseAdminDraft(d);
+                if (st === 'display' || (isSh && st !== 'delivery')) stats.display += 1;
+                else stats.delivery += 1;
+                if (isSh) stats.showroom += 1;
+                else if (isWh) stats.warehouse += 1;
+                else stats.memo += 1;
+            });
+            stats.uniqueVins = vinSet.size;
+            const all = allDrafts || [];
+            stats.thisMonth = all.filter((d) => draftMonthKey(d) === currentMonthKey()).length;
+            stats.lastMonth = all.filter((d) => draftMonthKey(d) === lastMonthKey()).length;
+            return stats;
+        }
+
+        function populateDnMonthFilter() {
+            const sel = document.getElementById('dnMonthFilter');
+            if (!sel) return;
+            const months = new Set();
+            (allDrafts || []).forEach((d) => {
+                const mk = draftMonthKey(d);
+                if (mk) months.add(mk);
+            });
+            months.add(currentMonthKey());
+            months.add(lastMonthKey());
+            const sorted = [...months].sort().reverse();
+            let prev = adminMonthFilter || currentMonthKey();
+            // Never default to another month — stay on current unless user picked one
+            if (!prev) prev = currentMonthKey();
+            sel.innerHTML = [
+                `<option value="${currentMonthKey()}">الشهر الحالي — ${monthLabelAr(currentMonthKey())}</option>`,
+                `<option value="${lastMonthKey()}">الشهر الماضي — ${monthLabelAr(lastMonthKey())}</option>`,
+                ...sorted
+                    .filter((m) => m !== currentMonthKey() && m !== lastMonthKey())
+                    .map((m) => `<option value="${m}">${monthLabelAr(m)}</option>`),
+                '<option value="all">كل الأشهر / All Months</option>'
+            ].join('');
+            if (![...sel.options].some((o) => o.value === prev)) {
+                prev = currentMonthKey();
+            }
+            adminMonthFilter = prev;
+            sel.value = adminMonthFilter;
+        }
+
+        function renderDnStatsBar() {
+            const host = document.getElementById('dnStatsBar');
+            if (!host) return;
+            const s = computeClientDnStats(filteredDrafts());
+            const cards = [
+                { cls: 'dn-stat--notes', label: 'Delivery Notes', value: s.deliveryNotes },
+                { cls: 'dn-stat--vins', label: 'Unique VINs', value: s.uniqueVins },
+                { cls: 'dn-stat--display', label: 'Display', value: s.display },
+                { cls: 'dn-stat--delivery', label: 'Delivery', value: s.delivery },
+                { cls: 'dn-stat--wh', label: 'Warehouse', value: s.warehouse },
+                { cls: 'dn-stat--memo', label: 'Memo', value: s.memo },
+                { cls: 'dn-stat--showroom', label: 'Showroom', value: s.showroom },
+                { cls: 'dn-stat--month', label: 'This Month', value: s.thisMonth },
+                { cls: 'dn-stat--month', label: 'Last Month', value: s.lastMonth }
+            ];
+            host.innerHTML = cards.map((c) => `
+                <article class="dn-stat ${c.cls}">
+                    <span>${c.label}</span>
+                    <b>${c.value}</b>
+                </article>
+            `).join('');
+        }
+
+        function renderVinHistoryPanel() {
+            const panel = document.getElementById('vinHistoryPanel');
+            if (!panel) return;
+            const q = String(document.getElementById('vinHistorySearch')?.value || '').trim().toUpperCase();
+            const byVin = new Map();
+            filteredDrafts().forEach((d) => {
+                draftVinList(d).forEach((vin) => {
+                    if (!byVin.has(vin)) byVin.set(vin, []);
+                    byVin.get(vin).push(d);
+                });
+            });
+            let entries;
+            if (q) {
+                entries = [...byVin.entries()].filter(([vin]) => vin.includes(q));
+            } else {
+                entries = [...byVin.entries()].filter(([, drafts]) => drafts.length > 1);
+            }
+            entries.sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+            setFoldCount('vinHistoryFoldCount', entries.length);
+            if (!entries.length) {
+                panel.innerHTML = q
+                    ? '<p class="hub-empty">لا توجد مذكرات لهذا VIN في الشهر المحدد</p>'
+                    : '<p class="hub-empty">لا توجد شاسيه بمذكرات متعددة في هذا الشهر</p>';
+                return;
+            }
+            panel.innerHTML = entries.slice(0, 80).map(([vin, drafts]) => {
+                const sorted = drafts.slice().sort((a, b) => {
+                    const ta = a.printedAt ? new Date(a.printedAt).getTime() : 0;
+                    const tb = b.printedAt ? new Date(b.printedAt).getTime() : 0;
+                    return ta - tb;
+                });
+                const product = sorted[0]?.product || sorted[0]?.model || '—';
+                const rows = sorted.map((d) => {
+                    const dn = draftDeliveryNoteNumber(d) || d.id || '—';
+                    const isDisplay = draftVehicleStatus(d) === 'display';
+                    const st = isDisplay ? 'عرض' : 'تسليم';
+                    const br = draftBranchLabel(d) || '—';
+                    const dt = draftEventIso(d) || '—';
+                    return `<div class="dn-vin-note${isDisplay ? ' dn-vin-note--display' : ''}">
+                        <div class="dn-vin-note__dn">${escapeHtml(dn)}</div>
+                        <div class="dn-vin-note__info">
+                            <span>${escapeHtml(dt)}</span>
+                            <em>·</em>
+                            <span>${escapeHtml(st)}</span>
+                            <em>·</em>
+                            <span>${escapeHtml(br)}</span>
+                        </div>
+                        ${d.id
+                            ? `<button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">PDF</button>`
+                            : '<span></span>'}
+                    </div>`;
+                }).join('');
+                return `<article class="dn-vin-card">
+                    <div class="dn-vin-card__head">
+                        <span class="dn-vin-card__vin">${escapeHtml(vin)}</span>
+                        <span class="dn-vin-card__meta">${escapeHtml(product)}</span>
+                        <span class="dn-vin-card__count">${sorted.length} مذكرات</span>
+                    </div>
+                    ${rows}
+                </article>`;
+            }).join('');
+            bindDraftActionButtons(panel);
+        }
+
+        /** Archive folders for months before the current calendar month (coordinator-hidden delivered). */
+        function renderLastMonthsFolders() {
+            const host = document.getElementById('lastMonthsFolders');
+            const detail = document.getElementById('lastMonthsDetail');
+            if (!host) return;
+            const current = currentMonthKey();
+            const byMonth = new Map();
+
+            (allDrafts || []).forEach((d) => {
+                if (draftVehicleStatus(d) === 'display' || isShowroomAdminDraft(d)) return;
+                const mk = draftMonthKey(d);
+                if (!mk || mk >= current) return;
+                if (!byMonth.has(mk)) byMonth.set(mk, { notes: 0, vins: new Set() });
+                const bucket = byMonth.get(mk);
+                bucket.notes += 1;
+                draftVinList(d).forEach((v) => bucket.vins.add(v));
+            });
+
+            (allQueue || []).forEach((q) => {
+                if (q.agentStatus !== 'delivered') return;
+                if (String(q.vehicleStatus || '').toLowerCase() === 'display') return;
+                if (q.showroomDisplay || q.deliveryMode === 'showroom') return;
+                const mk = q.deliveredMonth || String(q.deliveredAt || q.assignedAt || '').slice(0, 7);
+                if (!mk || mk >= current) return;
+                if (!byMonth.has(mk)) byMonth.set(mk, { notes: 0, vins: new Set() });
+                const vin = normVinKey(q.vin);
+                if (vin) byMonth.get(mk).vins.add(vin);
+            });
+
+            const months = [...byMonth.keys()].sort().reverse();
+            setFoldCount('lastMonthsFoldCount', months.length);
+            if (!months.length) {
+                host.innerHTML = '<p class="hub-empty">لا توجد أشهر سابقة مؤرشفة بعد — تظهر هنا من يوم 1 لكل شهر جديد</p>';
+                if (detail) {
+                    detail.hidden = true;
+                    detail.innerHTML = '';
+                }
+                return;
+            }
+
+            host.innerHTML = months.map((mk) => {
+                const b = byMonth.get(mk);
+                const active = adminMonthFilter === mk ? ' is-active' : '';
+                return `<button type="button" class="last-months-folder${active}" data-month-folder="${mk}">
+                    <span class="last-months-folder__name">📁 ${monthLabelAr(mk)}</span>
+                    <span class="last-months-folder__meta">${mk}</span>
+                    <span class="last-months-folder__count">${b.notes} مذكرة · ${b.vins.size} شاسيه</span>
+                </button>`;
+            }).join('');
+
+            host.querySelectorAll('[data-month-folder]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const mk = btn.getAttribute('data-month-folder');
+                    adminMonthFilter = mk;
+                    const sel = document.getElementById('dnMonthFilter');
+                    if (sel) {
+                        if (![...sel.options].some((o) => o.value === mk)) {
+                            const opt = document.createElement('option');
+                            opt.value = mk;
+                            opt.textContent = monthLabelAr(mk);
+                            sel.appendChild(opt);
+                        }
+                        sel.value = mk;
+                    }
+                    refreshTransferDashboard();
+                    openFold('draftsSection');
+                    openFold('lastMonthsSection');
+                    renderLastMonthsDetail(mk);
+                    document.getElementById('draftsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+            if (adminMonthFilter && adminMonthFilter !== 'all' && adminMonthFilter < current) {
+                renderLastMonthsDetail(adminMonthFilter);
+            } else if (detail) {
+                detail.hidden = true;
+            }
+        }
+
+        function renderLastMonthsDetail(monthKey) {
+            const detail = document.getElementById('lastMonthsDetail');
+            if (!detail || !monthKey) return;
+            const drafts = (allDrafts || []).filter((d) => draftMonthKey(d) === monthKey
+                && draftVehicleStatus(d) !== 'display'
+                && !isShowroomAdminDraft(d));
+            const queue = (allQueue || []).filter((q) => {
+                if (q.agentStatus !== 'delivered') return false;
+                if (String(q.vehicleStatus || '').toLowerCase() === 'display') return false;
+                const mk = q.deliveredMonth || String(q.deliveredAt || q.assignedAt || '').slice(0, 7);
+                return mk === monthKey;
+            });
+            detail.hidden = false;
+            const rows = drafts.slice(0, 40).map((d) => {
+                const dn = draftDeliveryNoteNumber(d) || d.id || '—';
+                const vins = draftVinList(d).join(', ') || d.vin || '—';
+                return `<tr>
+                    <td><strong>${escapeHtml(dn)}</strong></td>
+                    <td class="hub-vin">${escapeHtml(vins)}</td>
+                    <td>${escapeHtml(draftEventIso(d) || '—')}</td>
+                    <td>${escapeHtml(d.assignedTo || '—')}</td>
+                    <td>${d.id ? `<button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">PDF</button>` : '—'}
+                        ${dn !== '—' ? `<button type="button" class="hub-btn hub-btn--sm" data-archive-dn="${escapeHtml(dn)}">ملف</button>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+            detail.innerHTML = `
+                <h3>أرشيف ${escapeHtml(monthLabelAr(monthKey))} · ${drafts.length} مذكرة · ${queue.length} شاسيه مرحّلة</h3>
+                <p class="hub-meta" style="margin-bottom:10px">مخفي عن المنسق · ظاهر في فلتر الشهر أعلاه وفي جميع ملفات PDF</p>
+                <div class="hub-table-wrap">
+                    <table class="hub-table">
+                        <thead><tr><th>DN #</th><th>VIN</th><th>التاريخ</th><th>المسؤول</th><th></th></tr></thead>
+                        <tbody>${rows || '<tr><td colspan="5" class="hub-empty">لا مذكرات</td></tr>'}</tbody>
+                    </table>
+                </div>
+            `;
+            bindDraftActionButtons(detail);
+        }
+
+        function initDnMonthFilter() {
+            const sel = document.getElementById('dnMonthFilter');
+            sel?.addEventListener('change', () => {
+                adminMonthFilter = sel.value || currentMonthKey();
+                refreshTransferDashboard();
+            });
+            let t = null;
+            document.getElementById('vinHistorySearch')?.addEventListener('input', () => {
+                clearTimeout(t);
+                t = setTimeout(() => renderVinHistoryPanel(), 160);
+            });
+        }
+
         function applyTrackFilter() {
             refreshTransferDashboard();
             openFold('xferDashSection');
@@ -3564,12 +4256,17 @@
             return String(key || '').trim() === WAREHOUSE_SPECIAL_NAME;
         }
 
-        /** Match drafts for company filter — warehouse deliveries use مستودع الهاتفية, not owner name. */
+        function isShowroomAccountKey(key) {
+            return String(key || '').trim() === SHOWROOM_SPECIAL_NAME;
+        }
+
+        /** Match drafts for company filter — warehouse / showroom use special labels. */
         function draftMatchesCompanyKey(d, key) {
             const k = String(key || '').trim();
             if (!k) return true;
+            if (isShowroomAccountKey(k)) return isShowroomAdminDraft(d);
             if (isWarehouseAccountKey(k)) return isWarehouseAdminDraft(d);
-            if (isWarehouseAdminDraft(d)) return false;
+            if (isShowroomAdminDraft(d) || isWarehouseAdminDraft(d)) return false;
             return draftCompanyName(d) === k;
         }
 
@@ -3602,15 +4299,19 @@
             const rows = draftsForCompany(company);
             panel.classList.remove('hidden');
             if (title) {
-                title.textContent = isWarehouseAccountKey(company)
-                    ? `في المستودع — ${WAREHOUSE_SPECIAL_NAME}`
-                    : company;
+                title.textContent = isShowroomAccountKey(company)
+                    ? `سيارات عرض الصالة — ${SHOWROOM_SPECIAL_NAME}`
+                    : isWarehouseAccountKey(company)
+                        ? `في المستودع — ${WAREHOUSE_SPECIAL_NAME}`
+                        : company;
             }
             if (meta) {
                 meta.textContent = rows.length
-                    ? (isWarehouseAccountKey(company)
-                        ? `${rows.length} سجل تسليم في المستودع ضمن الفلتر`
-                        : `${rows.length} سجل — كل بيانات هذه الشركة ضمن الفلتر`)
+                    ? (isShowroomAccountKey(company)
+                        ? `${rows.length} سجل عرض صالة (ياسين) ضمن الفلتر`
+                        : isWarehouseAccountKey(company)
+                            ? `${rows.length} سجل تسليم في المستودع ضمن الفلتر`
+                            : `${rows.length} سجل — كل بيانات هذه الشركة ضمن الفلتر`)
                     : 'لا توجد سجلات لهذه الشركة';
             }
 
@@ -3623,12 +4324,18 @@
                 const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
                 const p = d.payload || {};
                 const canExport = Boolean(d.id && d.payload);
+                const isSh = isShowroomAdminDraft(d);
+                const flag = isSh
+                    ? ' <span class="pdf-type-badge pdf-type-badge--showroom">عرض الصالة</span>'
+                    : (isWarehouseAdminDraft(d)
+                        ? ' <span class="pdf-type-badge pdf-type-badge--wh">مستودع</span>'
+                        : '');
                 return `<tr>
-                    <td>${escapeHtml(when)}</td>
+                    <td>${escapeHtml(when)}${flag}</td>
                     <td class="hub-vin">${escapeHtml(d.vin || '—')}</td>
                     <td>${escapeHtml(d.product || d.model || '—')}</td>
                     <td>${escapeHtml(d.assignedTo || '—')}</td>
-                    <td>${escapeHtml(p.customer_name || '—')}</td>
+                    <td>${escapeHtml(p.typed_company || p.customer_name || p.company_rep || '—')}</td>
                     <td>${escapeHtml(p.branch_to || '—')}</td>
                     <td style="white-space:nowrap">${canExport
                         ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
@@ -3964,13 +4671,12 @@
             const sel = document.getElementById('leadTimeCompanySelect');
             if (!sel) return;
             const names = tallyField(
-                dateScopedDrafts().filter((d) => !isWarehouseAdminDraft(d)),
+                dateScopedDrafts().filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d)),
                 (d) => draftCompanyName(d)
             ).map((r) => r.name);
-            if (dateScopedDrafts().some(isWarehouseAdminDraft)) {
-                names.push(WAREHOUSE_SPECIAL_NAME);
-                names.sort((a, b) => a.localeCompare(b, 'ar'));
-            }
+            if (dateScopedDrafts().some(isWarehouseAdminDraft)) names.push(WAREHOUSE_SPECIAL_NAME);
+            if (dateScopedDrafts().some(isShowroomAdminDraft)) names.push(SHOWROOM_SPECIAL_NAME);
+            names.sort((a, b) => a.localeCompare(b, 'ar'));
             const current = selectedCompany || sel.value || '';
             sel.innerHTML = '<option value="">— اختر شركة —</option>' + names.map((name) =>
                 `<option value="${escapeHtml(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`
@@ -4153,7 +4859,7 @@
                     stripClass: 'pct-status-pill--done'
                 },
                 {
-                    name: 'لم يُرحّل بعد',
+                    name: 'Waiting for delivery',
                     count: still,
                     color: '#f59e0b',
                     pctClass: 'is-amber',
@@ -4193,7 +4899,19 @@
             return { delivered, total, pct, remaining: Math.max(0, total - delivered) };
         }
 
+        function isShowroomAdminDraft(d) {
+            if (!d) return false;
+            if (d.showroomDisplay === true) return true;
+            const p = d.payload || {};
+            if (p.showroom_display === true || p.showroom_group === true) return true;
+            if (p.deliveryMode === 'showroom') return true;
+            if (String(d.vehicleStatus || p.vehicleStatus || '').toLowerCase() === 'display') return true;
+            if (String(d.assignedTo || '').trim() === SHOWROOM_AGENT && p.showroom_label) return true;
+            return false;
+        }
+
         function isWarehouseAdminDraft(d) {
+            if (isShowroomAdminDraft(d)) return false;
             const p = (d && d.payload) || {};
             if (p.deliveryMode === 'warehouse' || p.warehouse_group === true) return true;
             const branch = String(p.branch_to || '').trim();
@@ -4293,8 +5011,13 @@
         function aggregateCompanyCities(drafts) {
             const companies = new Map();
             let warehouseTotal = 0;
+            let showroomTotal = 0;
 
             drafts.forEach((d) => {
+                if (isShowroomAdminDraft(d)) {
+                    showroomTotal += draftCarWeight(d);
+                    return;
+                }
                 if (isWarehouseAdminDraft(d)) {
                     warehouseTotal += draftCarWeight(d);
                     return;
@@ -4325,6 +5048,9 @@
                 rows,
                 warehouse: warehouseTotal > 0
                     ? { company: WAREHOUSE_SPECIAL_NAME, total: warehouseTotal }
+                    : null,
+                showroom: showroomTotal > 0
+                    ? { company: SHOWROOM_SPECIAL_NAME, total: showroomTotal }
                     : null
             };
         }
@@ -4332,8 +5058,8 @@
         function renderCompanyCityBreakdown(drafts, emptyText) {
             const listEl = document.getElementById('companyCityBreakdown');
             const topEl = document.getElementById('companyCityTop');
-            const { rows, warehouse } = aggregateCompanyCities(drafts);
-            if (!rows.length && !warehouse) {
+            const { rows, warehouse, showroom } = aggregateCompanyCities(drafts);
+            if (!rows.length && !warehouse && !showroom) {
                 listEl.innerHTML = `<div class="xfer-dash-empty">${emptyText || 'لا توجد بيانات شركات/مدن بعد — اطبع مذكرة أولاً'}</div>`;
                 topEl.innerHTML = '';
                 if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
@@ -4342,6 +5068,21 @@
             }
 
             const parts = [];
+            if (showroom) {
+                const safeSh = escapeHtml(showroom.company);
+                parts.push(`<div class="xfer-warehouse-block">
+                    <div class="xfer-section-label">سيارات عرض الصالة</div>
+                    <div class="xfer-account-item xfer-account-item--showroom" data-company="${safeSh}" role="button" tabindex="0">
+                        <div class="xfer-account-head">
+                            <div class="xfer-account-name" title="${safeSh}">${safeSh} <span class="pdf-type-badge pdf-type-badge--showroom">عرض</span></div>
+                            <div class="xfer-account-total">${showroom.total} سيارة</div>
+                        </div>
+                        <div class="xfer-account-cities">
+                            <span class="xfer-account-chip">ياسين — إدخال يدوي <b>${showroom.total}</b></span>
+                        </div>
+                    </div>
+                </div>`);
+            }
             if (warehouse) {
                 const safeWh = escapeHtml(warehouse.company);
                 parts.push(`<div class="xfer-warehouse-block">
@@ -4390,11 +5131,14 @@
             const companyCount = rows.length;
             const cityPairs = rows.reduce((sum, row) => sum + row.cities.length, 0);
             const whBit = warehouse ? ` · <strong>${warehouse.total}</strong> في المستودع` : '';
+            const shBit = showroom ? ` · <strong>${showroom.total}</strong> عرض صالة` : '';
             topEl.innerHTML = selectedCompany
-                ? (isWarehouseAccountKey(selectedCompany)
-                    ? `عرض <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> فقط — اضغط نفس الصف للإلغاء`
-                    : `عرض شركة واحدة فقط — <strong>${escapeHtml(selectedCompany)}</strong> · اضغط نفس الاسم للإلغاء`)
-                : `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة${whBit} — اضغط اسم الشركة لعرض بياناتها فقط`;
+                ? (isShowroomAccountKey(selectedCompany)
+                    ? `عرض <strong>${escapeHtml(SHOWROOM_SPECIAL_NAME)}</strong> فقط — اضغط نفس الصف للإلغاء`
+                    : isWarehouseAccountKey(selectedCompany)
+                        ? `عرض <strong>${escapeHtml(WAREHOUSE_SPECIAL_NAME)}</strong> فقط — اضغط نفس الصف للإلغاء`
+                        : `عرض شركة واحدة فقط — <strong>${escapeHtml(selectedCompany)}</strong> · اضغط نفس الاسم للإلغاء`)
+                : `إجمالي <strong>${companyCount}</strong> شركة مع <strong>${cityPairs}</strong> علاقة شركة/مدينة${whBit}${shBit} — اضغط اسم الشركة لعرض بياناتها فقط`;
 
             if (selectedCompany) renderCompanyRecordsPanel(selectedCompany);
             else highlightSelectedCompany();
@@ -4403,8 +5147,8 @@
         function renderTransferDashboard(drafts) {
             const list = Array.isArray(drafts) ? drafts : filteredDrafts();
             const navList = dateScopedDrafts();
-            const memoNav = navList.filter((d) => !isWarehouseAdminDraft(d));
-            const memoList = list.filter((d) => !isWarehouseAdminDraft(d));
+            const memoNav = navList.filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d));
+            const memoList = list.filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d));
             const { type } = getTrackFilter();
             const dateFiltered = hasActiveTrackFilter() || Boolean(getXferDateFilter());
             const emptyDate = 'لا توجد بيانات في هذه الفترة حسب الفلتر';
@@ -4716,6 +5460,8 @@
                 allQueue = [];
                 allDrafts = [];
             }
+            // Backfill archived delivery-note files for admin (non-blocking)
+            fetch('/api/delivery-notes/archive-missing', { method: 'POST' }).catch(() => {});
             loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
             updateFoldCounts();
             refreshTransferDashboard();
@@ -4739,6 +5485,17 @@
                     const id = btn.dataset.editDraft;
                     window.open(
                         `Delivery_pdf.html?draft=${encodeURIComponent(id)}&adminEdit=1`,
+                        '_blank',
+                        'noopener'
+                    );
+                });
+            });
+            tbody.querySelectorAll('[data-archive-dn]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const num = btn.dataset.archiveDn;
+                    if (!num) return;
+                    window.open(
+                        `/api/delivery-notes/${encodeURIComponent(num)}/file`,
                         '_blank',
                         'noopener'
                     );
@@ -4785,13 +5542,22 @@
         function filterSortPdfs(list) {
             let rows = Array.isArray(list) ? list.slice() : [];
             if (pdfBrowserState.type === 'memo') {
-                rows = rows.filter((d) => !isWarehouseAdminDraft(d));
+                rows = rows.filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d));
             } else if (pdfBrowserState.type === 'warehouse') {
                 rows = rows.filter(isWarehouseAdminDraft);
+            } else if (pdfBrowserState.type === 'showroom') {
+                rows = rows.filter(isShowroomAdminDraft);
+            } else if (pdfBrowserState.type === 'display') {
+                rows = rows.filter((d) => draftVehicleStatus(d) === 'display');
+            } else if (pdfBrowserState.type === 'delivery') {
+                rows = rows.filter((d) => draftVehicleStatus(d) === 'delivery');
             }
             const q = String(pdfBrowserState.q || '').trim().toUpperCase();
             if (q) {
-                rows = rows.filter((d) => draftSearchBlob(d).includes(q));
+                rows = rows.filter((d) => {
+                    const blob = `${draftSearchBlob(d)} ${draftDeliveryNoteNumber(d)}`;
+                    return blob.includes(q);
+                });
             }
             const sort = pdfBrowserState.sort || 'date_desc';
             rows.sort((a, b) => {
@@ -4848,39 +5614,66 @@
             const tbody = document.getElementById('draftsBody');
             if (!tbody) return;
             if (!pageRows.length) {
-                tbody.innerHTML = '<tr><td colspan="9" class="hub-empty">لا توجد مسودات PDF — اطبع مذكرة أو استورد أرشيف</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="hub-empty">لا توجد مسودات PDF — اطبع مذكرة أو استورد أرشيف</td></tr>';
                 return;
             }
             tbody.innerHTML = pageRows.map((d) => {
-                const when = d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—';
+                const when = draftEventIso(d) || (d.printedAt ? new Date(d.printedAt).toLocaleString('ar-SA') : '—');
                 const p = d.payload || {};
                 const vins = draftVinList(d);
                 const isWh = isWarehouseAdminDraft(d);
+                const isSh = isShowroomAdminDraft(d);
+                const vStatus = draftVehicleStatus(d);
+                const dn = draftDeliveryNoteNumber(d) || '—';
                 const canExport = Boolean(d.id && d.payload);
                 const vinLabel = vins.length
-                    ? vins.map((v) => `<span class="pdf-vin-chip">${escapeHtml(v)}</span>`).join('')
+                    ? vins.map((v) => `<button type="button" class="pdf-vin-chip" data-vin-history="${escapeHtml(v)}" title="عرض سجل VIN">${escapeHtml(v)}</button>`).join('')
                     : escapeHtml(d.vin || '—');
-                const typeBadge = isWh
-                    ? '<span class="pdf-type-badge pdf-type-badge--wh">مستودع</span>'
-                    : '<span class="pdf-type-badge pdf-type-badge--memo">مذكرة</span>';
+                const typeBadge = isSh
+                    ? '<span class="pdf-type-badge pdf-type-badge--showroom">عرض الصالة</span>'
+                    : isWh
+                        ? '<span class="pdf-type-badge pdf-type-badge--wh">مستودع</span>'
+                        : '<span class="pdf-type-badge pdf-type-badge--memo">مذكرة</span>';
+                const statusBadge = vStatus === 'display'
+                    ? '<span class="pdf-type-badge pdf-type-badge--showroom">عرض</span>'
+                    : '<span class="pdf-type-badge pdf-type-badge--memo">تسليم</span>';
                 return `<tr>
-                    <td>${when}</td>
+                    <td><strong>${escapeHtml(dn)}</strong></td>
+                    <td>${escapeHtml(when)}</td>
                     <td>${typeBadge}</td>
+                    <td>${statusBadge}</td>
                     <td class="hub-vin pdf-vin-cell">${vinLabel}</td>
                     <td><strong>${vins.length || 1}</strong></td>
                     <td>${escapeHtml(d.product || d.model || '—')}</td>
                     <td>${escapeHtml(d.assignedTo || '—')}</td>
-                    <td>${escapeHtml(draftCompanyLabel(d) || '—')}</td>
+                    <td>${escapeHtml(
+                        isSh
+                            ? (SHOWROOM_SPECIAL_NAME + (p.typed_company || p.company_rep ? ` · ${p.typed_company || p.company_rep}` : ''))
+                            : (draftCompanyLabel(d) || '—')
+                    )}</td>
                     <td>${escapeHtml(draftBranchLabel(d) || (isWh ? 'المستودع' : '—'))}</td>
                     <td style="white-space:nowrap">
                         ${canExport
                             ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
-                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">PDF</button>`
+                               <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-export-pdf="${escapeHtml(d.id)}">PDF</button>
+                               ${dn && dn !== '—'
+                                    ? `<button type="button" class="hub-btn hub-btn--sm" data-archive-dn="${escapeHtml(dn)}" title="تحميل الملف المحفوظ">ملف</button>`
+                                    : ''}`
                             : '<span class="hub-meta">—</span>'}
                     </td>
                 </tr>`;
             }).join('');
             bindDraftActionButtons(tbody);
+            tbody.querySelectorAll('[data-vin-history]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const vin = btn.getAttribute('data-vin-history');
+                    const search = document.getElementById('vinHistorySearch');
+                    if (search) search.value = vin || '';
+                    openFold('vinHistorySection');
+                    renderVinHistoryPanel();
+                    document.getElementById('vinHistorySection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
         }
 
         function renderDraftsTable(drafts) {
@@ -4934,7 +5727,7 @@
             const s = stats || {};
             document.getElementById('queueStats').innerHTML = `
                 <div class="hub-stat"><span>قائمة المنسق</span><b>${s.total || 0}</b></div>
-                <div class="hub-stat hub-stat--avail"><span>متاح</span><b>${s.available || 0}</b></div>
+                <div class="hub-stat hub-stat--avail"><span>Waiting for delivery</span><b>${s.available || 0}</b></div>
                 <div class="hub-stat hub-stat--stock"><span>In Stock</span><b>${s.in_stock || 0}</b></div>
                 <div class="hub-stat hub-stat--ready"><span>Ready</span><b>${s.ready_for_delivery || 0}</b></div>
                 <div class="hub-stat hub-stat--primary"><span>Out</span><b>${s.out_of_delivery || 0}</b></div>
@@ -4960,7 +5753,9 @@
             }
             tbody.innerHTML = queue.map((item) => {
                 const avail = item.status === 'available';
-                const label = avail ? 'متاح' : (item.statusLabel || 'محجوز');
+                const delivered = item.agentStatus === 'delivered';
+                const label = item.statusLabel
+                    || (delivered ? 'تم الترحيل' : 'Waiting for delivery');
                 return `<tr class="${avail ? 'row-available' : ''}" data-vin="${item.vin}" data-available="${avail ? '1' : '0'}">
                     <td class="hub-vin">${item.vin}</td>
                     <td>${item.product || '—'}</td>
@@ -4968,8 +5763,8 @@
                     <td>${item.location || '—'}</td>
                     <td>${item.assignedTo || '—'}</td>
                     <td><span class="hub-badge ${queueBadgeClass(item)}">${label}</span></td>
-                    <td>${avail ? 'متاح' : (item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'))}</td>
-                    <td>${avail || item.agentStatus === 'delivered' ? '' : `<button type="button" class="hub-btn hub-btn--sm" data-release="${item.vin}">إتاحة</button>`}</td>
+                    <td>${label}</td>
+                    <td>${avail || delivered ? '' : `<button type="button" class="hub-btn hub-btn--sm" data-release="${item.vin}">إتاحة</button>`}</td>
                 </tr>`;
             }).join('');
             tbody.querySelectorAll('tr.row-available').forEach((row) => {
@@ -5025,6 +5820,7 @@
 
         initPremiumFilterToolbar();
         initPdfBrowserControls();
+        initDnMonthFilter();
     </script>
     <script src="delivery-hub-live.js"></script>
 </body>

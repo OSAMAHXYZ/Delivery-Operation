@@ -1,21 +1,25 @@
 # Delivery Hub (isolated)
 
-This folder is the **only place** for the delivery note / coordinator / admin delivery UI.
+This folder is the **only place** for the delivery note / coordinator / warehouse / admin delivery UI.
 
 ## Pages
 
 | File | Role |
 |------|------|
+| `index.html` | Hub home — links to all delivery tools |
+| `Delivery_coordinator.html` | Coordinator VIN upload / queue / yard alerts |
 | `Delivery_pdf.html` | Agent login + workspace + print form |
-| `Delivery_coordinator.html` | Coordinator VIN upload / queue |
+| `warehouse-entry.html` | Warehouse scan, Stock IN/OUT, zones A/B |
 | `admin-Delivery-pdf.html` | Admin inventory (password `1234`) |
+| `pdf-annotator.html` | PDF annotator |
 | `delivery-hub-theme.css` | Shared dark theme |
 | `delivery-hub-live.js` | Live WebSocket sync |
 
 ## URLs
 
-- New: `/delivery-hub/Delivery_pdf.html`
-- Old root URLs still redirect here (`/Delivery_pdf.html`, etc.)
+- Home: `/delivery-hub/`
+- Agent: `/delivery-hub/Delivery_pdf.html`
+- Old root URLs still redirect here (`/Delivery_pdf.html`, `/warehouse-entry.html`, etc.)
 
 ## Protection rules
 
@@ -30,6 +34,7 @@ See also `.cursor/rules/page-hubs-isolation.mdc` (all hubs) and `.cursor/rules/d
 ## Passwords
 
 - Agents (ياسين / الفاضل / البراء): `1234` via `POST /api/delivery-coordinator/auth`
+- Warehouse (مستودع / warehouse): `1234`
 - Admin page gate: `1234` (client-side only)
 
 Backend lives in repo-root `server.js` (served with this hub on Railway / `npm start`).

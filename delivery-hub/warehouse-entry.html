@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>إدخال المستودع — Warehouse Entry</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260813a">
+    <style>
+        :root {
+            --tot-primary: #EB0A1E;
+        }
+        body.delivery-hub { padding-bottom: 40px; }
+
+        #gateLogin {
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            background: #0b0f17;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(235,10,30,.18), transparent),
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: auto, 48px 48px, 48px 48px;
+        }
+        #gateLogin.hidden { display: none !important; }
+
+        .gate-card {
+            width: min(400px, 100%);
+            background: rgba(15,23,42,.92);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 24px 60px rgba(0,0,0,.45);
+        }
+        .gate-card h2 {
+            font-size: 1.2rem; font-weight: 800; color: #f8fafc;
+            margin-bottom: 8px; text-align: center;
+        }
+        .gate-card .sub {
+            text-align: center; color: #94a3b8; font-size: .85rem; margin-bottom: 22px;
+        }
+        .gate-user { display: grid; gap: 16px; }
+        .gate-user label {
+            display: block; font-size: .8rem; font-weight: 600;
+            color: #94a3b8; margin-bottom: 6px;
+        }
+        .gate-user input,
+        .gate-user select,
+        .wh-field input,
+        .wh-field select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.18);
+            background: #1e293b;
+            color: #f8fafc;
+            font: inherit;
+            font-size: .95rem;
+        }
+        .gate-user select,
+        .wh-field select {
+            cursor: pointer;
+            color-scheme: dark;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 14px center;
+            padding-left: 36px;
+        }
+        .gate-user input:focus,
+        .gate-user select:focus,
+        .wh-field input:focus,
+        .wh-field select:focus {
+            outline: none;
+            border-color: rgba(235,10,30,.55);
+            box-shadow: 0 0 0 3px rgba(235,10,30,.15);
+        }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--tot-primary);
+            color: #fff;
+            font: inherit;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 10px 28px rgba(235,10,30,.45);
+        }
+        .btn-login:hover { filter: brightness(1.05); }
+
+        #app.hidden { display: none !important; }
+
+        .wh-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .wh-grid { grid-template-columns: 1fr; }
+        }
+
+        .wh-card {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 18px;
+            padding: 18px;
+        }
+        .wh-card h2 {
+            font-size: .95rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+            color: #f8fafc;
+        }
+
+        .scanner-box {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #020617;
+            border: 1px solid rgba(255,255,255,.12);
+            aspect-ratio: 4 / 3;
+            max-height: 320px;
+        }
+        #scannerVideo, #qrReader {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        #qrReader { min-height: 240px; }
+        .scanner-overlay {
+            position: absolute;
+            inset: 28% 6%;
+            height: 22%;
+            border: 2px solid rgba(235,10,30,.85);
+            border-radius: 10px;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,.4);
+        }
+        .scanner-overlay::after {
+            content: 'الباركود الأول (الأعلى) — VIN 17';
+            position: absolute;
+            left: 50%;
+            top: -28px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #fecaca;
+            background: rgba(15,23,42,.85);
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+        .scanner-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .wh-field { margin-bottom: 14px; }
+        .wh-field label {
+            display: block;
+            font-size: .78rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .wh-field .hint {
+            font-size: .72rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .vin-input {
+            font-family: ui-monospace, Consolas, monospace;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            direction: ltr;
+            text-align: left;
+            font-size: 1.05rem !important;
+            font-weight: 700;
+        }
+
+        .zone-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .zone-opt {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.04);
+            cursor: pointer;
+            font-weight: 800;
+            color: #e2e8f0;
+        }
+        .zone-opt input { display: none; }
+        .zone-opt:has(input:checked) {
+            border-color: var(--tot-primary);
+            background: rgba(235,10,30,.14);
+            box-shadow: 0 0 0 1px rgba(235,10,30,.35);
+        }
+        .zone-map {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+            max-height: 180px;
+            overflow: auto;
+            padding: 4px;
+        }
+        .slot-chip {
+            font-size: .68rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.1);
+            background: rgba(34,197,94,.12);
+            color: #86efac;
+            cursor: pointer;
+        }
+        .slot-chip.used {
+            background: rgba(248,113,113,.12);
+            color: #fca5a5;
+            cursor: default;
+            opacity: .75;
+        }
+        .slot-chip.selected {
+            border-color: var(--tot-primary);
+            background: rgba(235,10,30,.2);
+            color: #fff;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .action-row .hub-btn {
+            padding: 14px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+        }
+        .btn-in {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: #fff;
+            box-shadow: 0 8px 22px rgba(22,163,74,.35);
+        }
+        .btn-out {
+            background: rgba(248,113,113,.12);
+            border-color: rgba(248,113,113,.4);
+            color: #fecaca;
+        }
+
+        .result-banner {
+            display: none;
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(34,197,94,.35);
+            background: rgba(34,197,94,.1);
+            color: #bbf7d0;
+        }
+        .result-banner.show { display: block; }
+        .result-banner .slot-big {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: .06em;
+            color: #fff;
+            margin: 6px 0;
+            direction: ltr;
+            text-align: left;
+        }
+        .result-banner.warn {
+            border-color: rgba(250,204,21,.4);
+            background: rgba(250,204,21,.1);
+            color: #fde68a;
+        }
+
+        .stock-list { display: grid; gap: 8px; max-height: 420px; overflow: auto; }
+        .stock-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        .stock-row .slot {
+            font-weight: 800;
+            color: #fff;
+            background: rgba(235,10,30,.2);
+            border: 1px solid rgba(235,10,30,.35);
+            border-radius: 8px;
+            padding: 6px 8px;
+            direction: ltr;
+            font-size: .85rem;
+        }
+        .stock-row .vin {
+            font-family: ui-monospace, Consolas, monospace;
+            direction: ltr;
+            text-align: left;
+            font-size: .82rem;
+            font-weight: 700;
+        }
+        .stock-row .meta { font-size: .72rem; color: #94a3b8; margin-top: 2px; }
+        .dup-pill {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: .68rem;
+            font-weight: 700;
+            color: #fde68a;
+            background: rgba(250,204,21,.12);
+            border: 1px solid rgba(250,204,21,.3);
+            border-radius: 999px;
+            padding: 2px 8px;
+        }
+        .zone-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .zone-stat {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.08);
+            text-align: center;
+        }
+        .zone-stat b { display: block; font-size: 1.2rem; color: #fff; }
+        .zone-stat span { font-size: .75rem; color: #94a3b8; }
+
+        /* Print slip */
+        #printSlip {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            color: #111;
+            z-index: 200;
+            padding: 24px;
+            font-family: Tajawal, Inter, sans-serif;
+        }
+        @media print {
+            body * { visibility: hidden !important; }
+            #printSlip, #printSlip * { visibility: visible !important; }
+            #printSlip {
+                display: block !important;
+                position: absolute;
+                inset: 0;
+                background: #fff;
+            }
+        }
+        .slip-sheet {
+            max-width: 420px;
+            margin: 40px auto;
+            border: 3px solid #111;
+            border-radius: 8px;
+            padding: 28px 24px;
+            text-align: center;
+        }
+        .slip-sheet .brand { font-weight: 800; font-size: 1.1rem; margin-bottom: 8px; }
+        .slip-sheet .label { color: #666; font-size: .9rem; margin-bottom: 6px; }
+        .slip-sheet .parking {
+            font-size: 4.2rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            line-height: 1;
+            margin: 12px 0 18px;
+            direction: ltr;
+        }
+        .slip-sheet .vin-line {
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            direction: ltr;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+        .slip-sheet .meta-line { font-size: .85rem; color: #444; }
+    </style>
+</head>
+<body class="delivery-hub">
+    <div id="gateLogin">
+        <div class="gate-card">
+            <h2>تسجيل الدخول</h2>
+            <p class="sub">إدخال ساحة المستودع — Warehouse Entry</p>
+            <div class="gate-user">
+                <div>
+                    <label for="loginUser">اسم المستخدم</label>
+                    <select id="loginUser" required>
+                        <option value="warehouse" selected>مستودع / warehouse</option>
+                        <option value="مستودع">مستودع</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="loginPass">كلمة المرور</label>
+                    <input id="loginPass" type="password" placeholder="1234" autocomplete="current-password">
+                </div>
+                <button type="button" class="btn-login" id="btnLogin">دخول</button>
+                <p class="hub-status" id="loginStatus"></p>
+                <p class="sub" style="margin:8px 0 0;font-size:.75rem">استخدم مستودع / warehouse — كلمة المرور الافتراضية 1234</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hub-shell hidden">
+        <header class="hub-topbar">
+            <div class="hub-brand">
+                <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                <div>
+                    <h1>إدخال المستودع <span class="live-pill" id="livePill" title="Live sync">● Live</span></h1>
+                    <p>مسح الشاسيه · Stock IN / OUT · مناطق A و B</p>
+                </div>
+            </div>
+            <div class="hub-actions">
+                <a href="index.html" class="hub-btn">المركز</a>
+                <a href="Delivery_coordinator.html" class="hub-btn">المنسق</a>
+                <strong id="loggedAs" style="font-size:.85rem;color:#cbd5e1"></strong>
+                <button type="button" class="hub-btn" id="btnLogout">خروج</button>
+            </div>
+        </header>
+
+        <div class="wh-grid">
+            <section class="wh-card">
+                <h2>١ — مسح / إدخال رقم الشاسيه</h2>
+                <div class="scanner-box" id="scannerBox">
+                    <video id="scannerVideo" playsinline muted></video>
+                    <div id="qrReader" style="display:none"></div>
+                    <div class="scanner-overlay" id="scannerOverlay"></div>
+                </div>
+                <div class="scanner-actions">
+                    <button type="button" class="hub-btn hub-btn--primary" id="btnStartCam">تشغيل الكاميرا</button>
+                    <button type="button" class="hub-btn" id="btnStopCam">إيقاف</button>
+                    <label class="hub-btn" for="vinPhotoInput" style="cursor:pointer">التقاط / رفع صورة الملصق</label>
+                    <input type="file" id="vinPhotoInput" accept="image/*" capture="environment" hidden>
+                </div>
+                <p class="hub-status" id="scanStatus" style="margin-top:10px"></p>
+
+                <div class="wh-field" style="margin-top:16px">
+                    <label for="vinInput">رقم الشاسيه (راجع وصحّح بعد المسح)</label>
+                    <input id="vinInput" class="vin-input" type="text" autocomplete="off" spellcheck="false"
+                           placeholder="اكتب أو امسح VIN" maxlength="32">
+                    <p class="hint">المسح يقرأ الباركود الأول فقط (رقم الشاسيه الكامل 17 حرفاً) ويتجاهل الباركود السفلي القصير — راجع وصحّح ثم Stock IN</p>
+                </div>
+
+                <div class="wh-field">
+                    <label>المنطقة — Zone</label>
+                    <div class="zone-toggle">
+                        <label class="zone-opt"><input type="radio" name="zone" value="A" checked> Zone A</label>
+                        <label class="zone-opt"><input type="radio" name="zone" value="B"> Zone B</label>
+                    </div>
+                </div>
+
+                <div class="wh-field">
+                    <label for="slotSelect">مكان الوقوف (اختياري — يُختار تلقائياً إن تُرك فارغاً)</label>
+                    <select id="slotSelect">
+                        <option value="">— تلقائي (أول موقف فارغ) —</option>
+                    </select>
+                    <div class="zone-map" id="zoneMap" aria-label="خريطة المواقف"></div>
+                </div>
+
+                <div class="action-row">
+                    <button type="button" class="hub-btn btn-in" id="btnStockIn">Stock IN</button>
+                    <button type="button" class="hub-btn btn-out" id="btnStockOut">Stock OUT</button>
+                </div>
+                <p class="hub-status" id="actionStatus" style="margin-top:12px"></p>
+
+                <div class="result-banner" id="resultBanner">
+                    <div>تم الإدخال — مكان الوقوف</div>
+                    <div class="slot-big" id="resultSlot">A-1</div>
+                    <div id="resultVin" class="vin-line" style="direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;font-weight:700"></div>
+                    <div id="resultDup" style="margin-top:8px;font-size:.85rem"></div>
+                    <div class="scanner-actions" style="margin-top:12px">
+                        <button type="button" class="hub-btn hub-btn--primary" id="btnPrintSlip">طباعة ورقة الموقف</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="wh-card">
+                <h2>٢ — الساحة الحالية</h2>
+                <div class="zone-stats" id="zoneStats"></div>
+                <div class="stock-list" id="stockList">
+                    <div class="hub-empty">لا توجد سيارات في الساحة</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="printSlip">
+        <div class="slip-sheet">
+            <div class="brand">TOYOTA · ساحة المستودع</div>
+            <div class="label">رقم الموقف / Parking</div>
+            <div class="parking" id="slipSlot">A-1</div>
+            <div class="label">رقم الشاسيه / VIN</div>
+            <div class="vin-line" id="slipVin">—</div>
+            <div class="meta-line" id="slipMeta"></div>
+            <div class="meta-line" id="slipProduct"></div>
+        </div>
+    </div>
+
+    <script src="delivery-hub-live.js?v=20260802b"></script>
+    <script>
+    (() => {
+        const PASS_KEY = 'wh_entry_pass';
+        const LOCAL_FALLBACK_PASSWORD = '1234';
+        let sessionUser = '';
+        let sessionPass = '';
+        let zonesData = {};
+        let lastEntry = null;
+        let mediaStream = null;
+        let detectTimer = null;
+        let zxingControls = null;
+        let zxingReader = null;
+        let lastScanAt = 0;
+        let lastHintAt = 0;
+        let zxingLoadPromise = null;
+
+        const $ = (id) => document.getElementById(id);
+
+        function setStatus(id, msg, kind) {
+            const el = $(id);
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'hub-status' + (kind ? ` ${kind}` : '');
+        }
+
+        function isWarehouseUsername(name) {
+            const u = String(name || '').trim();
+            const lower = u.toLowerCase();
+            return u === 'مستودع' || lower === 'warehouse' || lower === 'wh';
+        }
+
+        function loadZxingLibs() {
+            if (window.ZXingBrowser && window.ZXing) return Promise.resolve();
+            if (zxingLoadPromise) return zxingLoadPromise;
+            const loadScript = (src) => new Promise((resolve, reject) => {
+                const existing = document.querySelector(`script[src="${src}"]`);
+                if (existing) {
+                    existing.addEventListener('load', () => resolve());
+                    existing.addEventListener('error', () => reject(new Error('فشل تحميل مكتبة المسح')));
+                    if (window.ZXingBrowser || window.ZXing) resolve();
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = () => resolve();
+                s.onerror = () => reject(new Error('فشل تحميل مكتبة المسح من الإنترنت'));
+                document.head.appendChild(s);
+            });
+            zxingLoadPromise = loadScript('https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js')
+                .then(() => loadScript('https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js'))
+                .catch((err) => {
+                    zxingLoadPromise = null;
+                    throw err;
+                });
+            return zxingLoadPromise;
+        }
+
+        function selectedZone() {
+            const el = document.querySelector('input[name="zone"]:checked');
+            return el ? el.value : 'A';
+        }
+
+        function normVin(v) {
+            return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        /** Toyota windshield: top barcode = full 17 VIN; bottom = short serial. */
+        function extractFullVin(raw) {
+            const cleaned = normVin(raw);
+            if (!cleaned) return '';
+            const strict = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/);
+            if (strict) return strict[0];
+            const loose = cleaned.match(/[A-Z0-9]{17}/);
+            if (loose) return loose[0];
+            if (cleaned.length === 17) return cleaned;
+            return '';
+        }
+
+        function pickBestVinFromCodes(codes) {
+            const list = (codes || [])
+                .map((c) => {
+                    const raw = typeof c === 'string' ? c : (c.rawValue || c.decodedText || c.text || '');
+                    const vin = extractFullVin(raw);
+                    const box = c.boundingBox || {};
+                    const y = Number(box.y ?? c.cornerPoints?.[0]?.y ?? 1e9);
+                    return { vin, y, raw: normVin(raw) };
+                })
+                .filter((c) => c.vin && c.vin.length === 17);
+            if (!list.length) return '';
+            list.sort((a, b) => a.y - b.y);
+            return list[0].vin;
+        }
+
+        function authBody(extra = {}) {
+            return { username: sessionUser, password: sessionPass, ...extra };
+        }
+
+        async function login() {
+            const username = $('loginUser').value.trim();
+            const password = String($('loginPass').value || '').trim();
+            setStatus('loginStatus', 'جاري التحقق…');
+            if (!username) {
+                setStatus('loginStatus', 'اختر اسم المستخدم', 'err');
+                return;
+            }
+            if (!password) {
+                setStatus('loginStatus', 'أدخل كلمة المرور', 'err');
+                return;
+            }
+            try {
+                let authedUser = '';
+                let role = '';
+                let apiOk = false;
+                try {
+                    const res = await fetch('/api/delivery-coordinator/auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    let data = {};
+                    try { data = await res.json(); } catch { data = {}; }
+                    if (res.ok) {
+                        apiOk = true;
+                        authedUser = data.username || username;
+                        role = data.role || '';
+                    } else if (res.status === 401 || res.status === 403) {
+                        apiOk = true;
+                        throw new Error(data.error || 'فشل الدخول');
+                    }
+                } catch (err) {
+                    if (apiOk) throw err;
+                    // API unreachable — local fallback for warehouse page only
+                    if (password !== LOCAL_FALLBACK_PASSWORD) {
+                        throw new Error('تعذر الاتصال بالخادم · أو كلمة المرور غير صحيحة');
+                    }
+                    if (!isWarehouseUsername(username)) {
+                        throw new Error('استخدم حساب مستودع / warehouse');
+                    }
+                    authedUser = username;
+                    role = 'warehouse';
+                }
+
+                if (!isWarehouseUsername(authedUser) && role !== 'warehouse') {
+                    throw new Error('هذا الحساب ليس مستخدم إدخال المستودع — افتح صفحة مذكرة الترحيل للحسابات الأخرى');
+                }
+
+                sessionUser = authedUser;
+                sessionPass = password;
+                sessionStorage.setItem(PASS_KEY, password);
+                $('gateLogin').classList.add('hidden');
+                $('app').classList.remove('hidden');
+                $('loggedAs').textContent = sessionUser;
+                await refreshStock();
+                if (window.DeliveryHubLive) {
+                    DeliveryHubLive.start(refreshStock);
+                }
+            } catch (err) {
+                setStatus('loginStatus', err.message || 'فشل الدخول', 'err');
+            }
+        }
+
+        function logout() {
+            stopCamera();
+            sessionUser = '';
+            sessionPass = '';
+            sessionStorage.removeItem(PASS_KEY);
+            $('app').classList.add('hidden');
+            $('gateLogin').classList.remove('hidden');
+            $('loginPass').value = '';
+            if (window.DeliveryHubLive) DeliveryHubLive.stop();
+        }
+
+        function renderZoneMap() {
+            const zone = selectedZone();
+            const info = zonesData[zone] || { slots: [], nextSlot: null };
+            const map = $('zoneMap');
+            const sel = $('slotSelect');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">— تلقائي (أول موقف فارغ) —</option>';
+            (info.slots || []).forEach((s) => {
+                if (s.free) {
+                    const opt = document.createElement('option');
+                    opt.value = s.slot;
+                    opt.textContent = s.slot;
+                    sel.appendChild(opt);
+                }
+            });
+            if (current && [...sel.options].some((o) => o.value === current)) {
+                sel.value = current;
+            }
+
+            map.innerHTML = (info.slots || []).slice(0, 60).map((s) => {
+                const cls = [
+                    'slot-chip',
+                    s.free ? '' : 'used',
+                    sel.value === s.slot ? 'selected' : ''
+                ].filter(Boolean).join(' ');
+                return `<button type="button" class="${cls}" data-slot="${s.slot}" ${s.free ? '' : 'disabled'}>${s.slot}</button>`;
+            }).join('');
+        }
+
+        function renderStock(stock, zones) {
+            zonesData = zones || {};
+            const a = zonesData.A || {};
+            const b = zonesData.B || {};
+            $('zoneStats').innerHTML = `
+                <div class="zone-stat"><b>${a.used || 0}/${a.total || 0}</b><span>Zone A · التالي ${a.nextSlot || '—'}</span></div>
+                <div class="zone-stat"><b>${b.used || 0}/${b.total || 0}</b><span>Zone B · التالي ${b.nextSlot || '—'}</span></div>
+            `;
+            renderZoneMap();
+
+            const list = $('stockList');
+            if (!stock || !stock.length) {
+                list.innerHTML = '<div class="hub-empty">لا توجد سيارات في الساحة</div>';
+                return;
+            }
+            list.innerHTML = stock.map((e) => `
+                <div class="stock-row" data-vin="${e.vin}">
+                    <div class="slot">${e.slot}</div>
+                    <div>
+                        <div class="vin">${e.vin}</div>
+                        <div class="meta">${e.product || '—'} · ${e.stockedInBy || ''}</div>
+                        ${e.inCoordinatorQueue ? '<span class="dup-pill">موجود لدى المنسق</span>' : ''}
+                    </div>
+                    <button type="button" class="hub-btn hub-btn--sm" data-fill="${e.vin}">اختر</button>
+                </div>
+            `).join('');
+        }
+
+        async function refreshStock() {
+            if (!sessionUser) return;
+            try {
+                const res = await fetch('/api/warehouse/stock');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل التحميل');
+                renderStock(data.stock || [], data.zones || {});
+            } catch (err) {
+                setStatus('actionStatus', err.message, 'err');
+            }
+        }
+
+        function showResult(entry, inQueue) {
+            lastEntry = entry;
+            const banner = $('resultBanner');
+            banner.classList.add('show');
+            banner.classList.toggle('warn', Boolean(inQueue));
+            $('resultSlot').textContent = entry.slot;
+            $('resultVin').textContent = entry.vin;
+            $('resultDup').textContent = inQueue
+                ? '⚠ هذا الشاسيه موجود أيضاً في قائمة المنسق — سيظهر للمنسق أنه في الساحة'
+                : 'تم تسجيل الدخول للساحة';
+        }
+
+        function preparePrint(entry) {
+            if (!entry) return;
+            $('slipSlot').textContent = entry.slot || '—';
+            $('slipVin').textContent = entry.vin || '—';
+            $('slipMeta').textContent = `المنطقة ${entry.zone || ''} · ${new Date(entry.stockedInAt || Date.now()).toLocaleString('ar-SA')}`;
+            $('slipProduct').textContent = entry.product || '';
+        }
+
+        function printSlip(entry) {
+            preparePrint(entry || lastEntry);
+            if (!$('slipSlot').textContent || $('slipSlot').textContent === '—') {
+                setStatus('actionStatus', 'لا يوجد موقف للطباعة — أدخل سيارة أولاً', 'err');
+                return;
+            }
+            window.print();
+        }
+
+        async function stockIn() {
+            const vin = normVin($('vinInput').value);
+            if (vin.length < 8) {
+                return setStatus('actionStatus', 'راجع رقم الشاسيه وصحّحه قبل الإدخال', 'err');
+            }
+            const zone = selectedZone();
+            const slot = $('slotSelect').value || '';
+            setStatus('actionStatus', 'جاري Stock IN…');
+            try {
+                const res = await fetch('/api/warehouse/stock-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(authBody({ vin, zone, slot }))
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإدخال');
+                setStatus('actionStatus', `تم الإدخال في ${data.entry.slot}`, 'ok');
+                showResult(data.entry, data.inCoordinatorQueue);
+                $('vinInput').value = '';
+                $('slotSelect').value = '';
+                await refreshStock();
+            } catch (err) {
+                setStatus('actionStatus', err.message, 'err');
+            }
+        }
+
+        async function stockOut() {
+            const vin = normVin($('vinInput').value);
+            if (!vin) return setStatus('actionStatus', 'أدخل رقم الشاسيه للإخراج', 'err');
+            setStatus('actionStatus', 'جاري Stock OUT…');
+            try {
+                const res = await fetch('/api/warehouse/stock-out', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(authBody({ vin }))
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإخراج');
+                setStatus('actionStatus', `تم الإخراج من ${data.entry.slot}`, 'ok');
+                $('resultBanner').classList.remove('show');
+                lastEntry = null;
+                $('vinInput').value = '';
+                await refreshStock();
+            } catch (err) {
+                setStatus('actionStatus', err.message, 'err');
+            }
+        }
+
+        function onDetectedVin(vin) {
+            const now = Date.now();
+            if (now - lastScanAt < 1600) return;
+            if (!vin || vin.length !== 17) return;
+            lastScanAt = now;
+            $('vinInput').value = vin;
+            $('vinInput').focus();
+            setStatus('scanStatus', `تم قراءة الباركود الأول: ${vin}`, 'ok');
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function handleRawScan(raw, source) {
+            const cleaned = normVin(raw);
+            if (!cleaned) return;
+            const vin = extractFullVin(cleaned);
+            if (vin) {
+                onDetectedVin(vin);
+                return;
+            }
+            // Feedback when the short bottom barcode is hit
+            const now = Date.now();
+            if (now - lastHintAt < 1200) return;
+            lastHintAt = now;
+            if (cleaned.length >= 6 && cleaned.length < 17) {
+                setStatus(
+                    'scanStatus',
+                    `قُرئ الباركود القصير (${cleaned}) — ارفع الكاميرا للباركود الأعلى تحت رقم الشاسيه الكامل`,
+                    'err'
+                );
+            } else {
+                setStatus('scanStatus', `قراءة غير مكتملة (${cleaned.slice(0, 24)}) — ثبّت الكاميرا على الباركود الأول`, 'err');
+            }
+        }
+
+        function getZXing() {
+            return window.ZXingBrowser || window.ZXing || null;
+        }
+
+        function buildZXingHints(ZXingNS) {
+            const hints = new Map();
+            try {
+                const formats = [
+                    ZXingNS.BarcodeFormat.CODE_128,
+                    ZXingNS.BarcodeFormat.CODE_39,
+                    ZXingNS.BarcodeFormat.CODABAR,
+                    ZXingNS.BarcodeFormat.ITF,
+                    ZXingNS.BarcodeFormat.EAN_13,
+                    ZXingNS.BarcodeFormat.EAN_8,
+                    ZXingNS.BarcodeFormat.UPC_A,
+                    ZXingNS.BarcodeFormat.UPC_E
+                ];
+                hints.set(ZXingNS.DecodeHintType.POSSIBLE_FORMATS, formats);
+                hints.set(ZXingNS.DecodeHintType.TRY_HARDER, true);
+            } catch {
+                /* optional */
+            }
+            return hints;
+        }
+
+        async function openCameraStream() {
+            const video = $('scannerVideo');
+            const constraintsList = [
+                {
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                },
+                {
+                    audio: false,
+                    video: { facingMode: 'environment' }
+                },
+                {
+                    audio: false,
+                    video: true
+                }
+            ];
+            let lastErr = null;
+            for (const constraints of constraintsList) {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                }
+            }
+            if (!mediaStream) throw lastErr || new Error('تعذر فتح الكاميرا');
+            video.srcObject = mediaStream;
+            video.setAttribute('playsinline', 'true');
+            video.setAttribute('autoplay', 'true');
+            video.muted = true;
+            await video.play();
+            $('scannerVideo').style.display = '';
+            $('qrReader').style.display = 'none';
+            $('scannerOverlay').style.display = '';
+            return video;
+        }
+
+        function startBarcodeDetectorLoop(video) {
+            if (!('BarcodeDetector' in window)) return;
+            let detector;
+            try {
+                detector = new BarcodeDetector({
+                    formats: ['code_128', 'code_39', 'codabar', 'itf', 'ean_13', 'ean_8']
+                });
+            } catch {
+                try {
+                    detector = new BarcodeDetector();
+                } catch {
+                    return;
+                }
+            }
+            const tick = async () => {
+                if (!mediaStream) return;
+                try {
+                    if (video.readyState >= 2) {
+                        const codes = await detector.detect(video);
+                        if (codes && codes.length) {
+                            const vin = pickBestVinFromCodes(codes);
+                            if (vin) {
+                                onDetectedVin(vin);
+                            } else {
+                                const first = codes[0]?.rawValue || '';
+                                if (first) handleRawScan(first, 'native');
+                            }
+                        }
+                    }
+                } catch { /* ignore frame errors */ }
+                detectTimer = setTimeout(tick, 250);
+            };
+            tick();
+        }
+
+        async function startZxingOnVideo(video) {
+            const ZXingBrowser = window.ZXingBrowser;
+            const ZXingLib = window.ZXing;
+            if (!ZXingBrowser || !ZXingBrowser.BrowserMultiFormatReader) {
+                throw new Error('مكتبة ZXing غير محمّلة — حدّث الصفحة');
+            }
+            const hints = ZXingLib ? buildZXingHints(ZXingLib) : undefined;
+            zxingReader = hints
+                ? new ZXingBrowser.BrowserMultiFormatReader(hints, 200)
+                : new ZXingBrowser.BrowserMultiFormatReader(undefined, 200);
+
+            // Continuous decode from the live video element
+            if (typeof zxingReader.decodeFromVideoElementContinuously === 'function') {
+                await zxingReader.decodeFromVideoElementContinuously(video, (result) => {
+                    if (result) handleRawScan(result.getText(), 'zxing');
+                });
+                zxingControls = {
+                    stop: () => {
+                        try {
+                            if (typeof zxingReader.stopContinuousDecode === 'function') {
+                                zxingReader.stopContinuousDecode();
+                            }
+                            zxingReader.reset();
+                        } catch { /* ignore */ }
+                    }
+                };
+                return;
+            }
+
+            if (typeof zxingReader.decodeFromStream === 'function') {
+                zxingControls = await zxingReader.decodeFromStream(
+                    mediaStream,
+                    video,
+                    (result) => {
+                        if (result) handleRawScan(result.getText(), 'zxing');
+                    }
+                );
+                return;
+            }
+
+            if (typeof zxingReader.decodeFromVideoDevice === 'function') {
+                zxingControls = await zxingReader.decodeFromVideoDevice(
+                    undefined,
+                    video,
+                    (result) => {
+                        if (result) handleRawScan(result.getText(), 'zxing');
+                    }
+                );
+                return;
+            }
+
+            throw new Error('لا تتوفر طريقة مسح مستمرة في هذا المتصفح');
+        }
+
+        async function startCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setStatus('scanStatus', 'هذا المتصفح لا يدعم الكاميرا — اكتب الشاسيه يدوياً أو التقط صورة', 'err');
+                return;
+            }
+            setStatus('scanStatus', 'جاري فتح الكاميرا…');
+            try {
+                try {
+                    await loadZxingLibs();
+                } catch (libErr) {
+                    console.warn(libErr);
+                    setStatus('scanStatus', 'تعذر تحميل مكتبة المسح — سنحاول بالكاميرا الأصلية أو صورة الملصق', 'err');
+                }
+                await stopCamera(false);
+                const video = await openCameraStream();
+                let zxingOk = false;
+                try {
+                    await startZxingOnVideo(video);
+                    zxingOk = true;
+                } catch (err) {
+                    console.warn('ZXing start failed', err);
+                }
+                startBarcodeDetectorLoop(video);
+                if (zxingOk || ('BarcodeDetector' in window)) {
+                    setStatus(
+                        'scanStatus',
+                        'الكاميرا جاهزة — وجّه الإطار الأحمر على الباركود الأول (الأعلى) أفقياً وثبّت الصورة',
+                        'ok'
+                    );
+                } else {
+                    setStatus('scanStatus', 'الكاميرا تعمل — إن لم يُقرأ الباركود استخدم «التقاط صورة الملصق»', 'err');
+                }
+            } catch (err) {
+                const msg = String(err && err.message || err || '');
+                if (/NotAllowed|Permission|denied/i.test(msg)) {
+                    setStatus('scanStatus', 'ارفض/اسمح بالكاميرا من إعدادات المتصفح ثم أعد المحاولة', 'err');
+                } else {
+                    setStatus('scanStatus', msg || 'تعذر فتح الكاميرا — اكتب الشاسيه يدوياً', 'err');
+                }
+            }
+        }
+
+        async function stopCamera(clearMsg = true) {
+            if (detectTimer) {
+                clearTimeout(detectTimer);
+                detectTimer = null;
+            }
+            if (zxingControls && typeof zxingControls.stop === 'function') {
+                try { zxingControls.stop(); } catch { /* ignore */ }
+            }
+            zxingControls = null;
+            if (zxingReader) {
+                try {
+                    if (typeof zxingReader.reset === 'function') zxingReader.reset();
+                    if (typeof zxingReader.stopContinuousDecode === 'function') zxingReader.stopContinuousDecode();
+                } catch { /* ignore */ }
+            }
+            zxingReader = null;
+            if (mediaStream) {
+                mediaStream.getTracks().forEach((t) => t.stop());
+                mediaStream = null;
+            }
+            const video = $('scannerVideo');
+            if (video) {
+                video.srcObject = null;
+                video.style.display = '';
+            }
+            $('qrReader').style.display = 'none';
+            $('scannerOverlay').style.display = '';
+            if (clearMsg) setStatus('scanStatus', '');
+        }
+
+        $('btnLogin').addEventListener('click', login);
+        $('loginPass').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        $('btnLogout').addEventListener('click', logout);
+        $('btnStartCam').addEventListener('click', startCamera);
+        $('btnStopCam').addEventListener('click', () => stopCamera());
+        $('btnStockIn').addEventListener('click', stockIn);
+        $('btnStockOut').addEventListener('click', stockOut);
+        $('btnPrintSlip').addEventListener('click', () => printSlip(lastEntry));
+
+        $('vinPhotoInput').addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            setStatus('scanStatus', 'جاري قراءة الصورة…');
+            try {
+                try { await loadZxingLibs(); } catch { /* optional */ }
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+                const ZXingLib = window.ZXing;
+                const ZXingBrowser = window.ZXingBrowser;
+                let text = '';
+                if (ZXingBrowser && ZXingBrowser.BrowserMultiFormatReader) {
+                    const hints = ZXingLib ? buildZXingHints(ZXingLib) : undefined;
+                    const reader = hints
+                        ? new ZXingBrowser.BrowserMultiFormatReader(hints)
+                        : new ZXingBrowser.BrowserMultiFormatReader();
+                    const result = await reader.decodeFromImageElement(img);
+                    text = result && result.getText ? result.getText() : '';
+                } else if (ZXingLib && ZXingLib.BrowserMultiFormatReader) {
+                    const reader = new ZXingLib.BrowserMultiFormatReader(buildZXingHints(ZXingLib));
+                    const result = await reader.decodeFromImageElement(img);
+                    text = result && result.getText ? result.getText() : '';
+                } else if ('BarcodeDetector' in window) {
+                    const detector = new BarcodeDetector({
+                        formats: ['code_128', 'code_39', 'codabar', 'itf']
+                    });
+                    const codes = await detector.detect(img);
+                    text = pickBestVinFromCodes(codes) || (codes[0] && codes[0].rawValue) || '';
+                }
+                URL.revokeObjectURL(url);
+                if (!text) throw new Error('لم يُقرأ باركود — صوّر الباركود الأول أفقياً وبوضوح');
+                handleRawScan(text, 'photo');
+                if (!extractFullVin(text)) {
+                    /* handleRawScan already set short-barcode hint */
+                }
+            } catch (err) {
+                setStatus('scanStatus', err.message || 'فشل قراءة الصورة', 'err');
+            }
+        });
+
+        document.querySelectorAll('input[name="zone"]').forEach((el) => {
+            el.addEventListener('change', () => {
+                $('slotSelect').value = '';
+                renderZoneMap();
+            });
+        });
+
+        $('slotSelect').addEventListener('change', renderZoneMap);
+
+        $('zoneMap').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-slot]');
+            if (!btn || btn.disabled) return;
+            $('slotSelect').value = btn.getAttribute('data-slot');
+            renderZoneMap();
+        });
+
+        $('stockList').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-fill]');
+            if (!btn) return;
+            $('vinInput').value = btn.getAttribute('data-fill');
+            $('vinInput').focus();
+        });
+
+        $('vinInput').addEventListener('input', () => {
+            const el = $('vinInput');
+            const start = el.selectionStart;
+            el.value = normVin(el.value);
+            try { el.setSelectionRange(start, start); } catch { /* ignore */ }
+        });
+    })();
+    </script>
+</body>
+</html>
