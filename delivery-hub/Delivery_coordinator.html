@@ -49,36 +49,14 @@
         <section class="hub-section" id="vinSection">
             <div class="hub-section-head">
                 <h2>٢ — إضافة أرقام الشاسيه — Paste VINs</h2>
-                <span class="hub-hint" id="vinSectionHint">ارفع البيانات الخام أولاً</span>
+                <span class="hub-hint" id="vinSectionHint">ارفع البيانات الخام أولاً ثم الصق الشاسيه</span>
             </div>
             <div id="vinGateMsg" class="hub-status err" style="margin-bottom:12px">
                 ارفع ملف Excel أولاً — بعدها يمكنك لصق أرقام الشاسيه لعرضها في القائمة
             </div>
             <div id="vinPromptBanner" class="hub-status ok" style="display:none;margin-bottom:12px"></div>
             <textarea id="vinPaste" class="hub-textarea" placeholder="الصق أرقام الشاسيه هنا — سطر لكل VIN أو مفصولة بمسافة" disabled></textarea>
-            <div class="coord-assign-row" id="coordAssignRow">
-                <div class="coord-assign-field">
-                    <label for="coordCompany">شركة التوصيل</label>
-                    <select id="coordCompany" class="hub-input" disabled>
-                        <option value="">— اختر الشركة —</option>
-                    </select>
-                </div>
-                <div class="coord-assign-field">
-                    <label>نوع التسليم</label>
-                    <div class="coord-mode-toggle" role="group" aria-label="نوع التسليم">
-                        <label class="coord-mode-opt">
-                            <input type="radio" name="coordDeliveryMode" value="memo" checked disabled>
-                            <span>ترحيل</span>
-                        </label>
-                        <label class="coord-mode-opt">
-                            <input type="radio" name="coordDeliveryMode" value="warehouse" disabled>
-                            <span>مستودع</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <p class="hub-meta" id="coordAssignHint" style="margin-top:8px">اختر الشركة ونوع التسليم مرة واحدة لكل دفعة — كل الشاسيه المرسلة تأخذ نفس الشركة والنوع</p>
-            <div class="hub-actions-row">
+            <div class="hub-actions-row" style="margin-top:12px">
                 <button type="button" class="hub-btn hub-btn--primary" id="btnSubmitVins" disabled>إرسال الشاسيه للفريق</button>
             </div>
             <p class="hub-status" id="vinStatus"></p>
@@ -267,54 +245,6 @@
 
         let currentQueue = [];
         let rawUploaded = false;
-        let companyOptions = [];
-
-        function getSelectedDeliveryMode() {
-            const checked = document.querySelector('input[name="coordDeliveryMode"]:checked');
-            return checked ? checked.value : 'memo';
-        }
-
-        function syncCompanySelectForMode() {
-            const mode = getSelectedDeliveryMode();
-            const sel = document.getElementById('coordCompany');
-            const hint = document.getElementById('coordAssignHint');
-            if (!sel) return;
-            if (mode === 'warehouse') {
-                sel.disabled = true;
-                // Prefer مستودع الهاتفية if present
-                const wh = companyOptions.find((c) => String(c).includes('مستودع')) || 'مستودع الهاتفية';
-                if (![...sel.options].some((o) => o.value === wh)) {
-                    const opt = document.createElement('option');
-                    opt.value = wh;
-                    opt.textContent = wh;
-                    sel.appendChild(opt);
-                }
-                sel.value = wh;
-                if (hint) hint.textContent = 'مستودع: الشاسيه تظهر تحت المستودع في صفحة الفريق وتفتح نموذج المستودع تلقائياً';
-            } else {
-                sel.disabled = !rawUploaded;
-                if (hint) hint.textContent = 'اختر الشركة ونوع التسليم مرة واحدة لكل دفعة — كل الشاسيه المرسلة تأخذ نفس الشركة والنوع';
-            }
-        }
-
-        async function loadCompanyOptions() {
-            const sel = document.getElementById('coordCompany');
-            if (!sel) return;
-            try {
-                const res = await fetch('/api/delivery-options');
-                const data = await res.json();
-                if (res.ok && Array.isArray(data.companies)) {
-                    companyOptions = data.companies.slice();
-                }
-            } catch (_) {
-                /* keep empty / static */
-            }
-            const prev = sel.value;
-            sel.innerHTML = '<option value="">— اختر الشركة —</option>' +
-                companyOptions.map((c) => `<option value="${String(c).replace(/"/g, '&quot;')}">${c}</option>`).join('');
-            if (prev && companyOptions.includes(prev)) sel.value = prev;
-            syncCompanySelectForMode();
-        }
 
         function setVinSectionEnabled(enabled) {
             rawUploaded = Boolean(enabled);
@@ -322,17 +252,11 @@
             const btn = document.getElementById('btnSubmitVins');
             const gate = document.getElementById('vinGateMsg');
             const hint = document.getElementById('vinSectionHint');
-            const company = document.getElementById('coordCompany');
             paste.disabled = !rawUploaded;
             btn.disabled = !rawUploaded;
-            document.querySelectorAll('input[name="coordDeliveryMode"]').forEach((el) => {
-                el.disabled = !rawUploaded;
-            });
-            if (company) company.disabled = !rawUploaded || getSelectedDeliveryMode() === 'warehouse';
             if (rawUploaded) {
                 gate.style.display = 'none';
-                hint.textContent = 'اختر الشركة + ترحيل/مستودع · فقط الشاسيه الموجودة في Excel';
-                syncCompanySelectForMode();
+                hint.textContent = 'الصق الشاسيه فقط — الموجود في Excel يُضاف للقائمة';
             } else {
                 gate.style.display = '';
                 gate.textContent = 'ارفع ملف Excel أولاً — بعدها يمكنك لصق أرقام الشاسيه لعرضها في القائمة';
@@ -483,15 +407,6 @@
             const parsed = parseVinList(inputEl.value);
             if (!parsed.length) return setStatus('vinStatus', 'أدخل شاسيه واحد على الأقل', 'err');
 
-            const plannedDeliveryMode = getSelectedDeliveryMode();
-            const companySel = document.getElementById('coordCompany');
-            let company = String(companySel?.value || '').trim();
-            if (plannedDeliveryMode === 'warehouse') {
-                company = company || 'مستودع الهاتفية';
-            } else if (!company) {
-                return setStatus('vinStatus', 'اختر شركة التوصيل قبل الإرسال', 'err');
-            }
-
             const existing = new Set(currentQueue.map((item) => String(item.vin || '').trim().toUpperCase()).filter(Boolean));
             const seenInPaste = new Set();
             const newVins = [];
@@ -524,11 +439,7 @@
                 const res = await fetch('/api/delivery-coordinator/submit-vins', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        vins: newVins,
-                        company,
-                        plannedDeliveryMode
-                    })
+                    body: JSON.stringify({ vins: newVins })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل الإرسال');
@@ -537,10 +448,7 @@
                 inputEl.value = missing.length ? missing.join('\n') : '';
                 hideVinPrompt();
                 const parts = [];
-                if (data.added) {
-                    parts.push(`تم إضافة ${data.added}`);
-                    parts.push(plannedDeliveryMode === 'warehouse' ? 'مستودع' : `شركة ${company}`);
-                }
+                if (data.added) parts.push(`تم إضافة ${data.added}`);
                 if (pastedDuplicates) parts.push(`${pastedDuplicates} مكررة داخل اللصق`);
                 if (queueDuplicates) parts.push(`${queueDuplicates} موجودة مسبقاً`);
                 if (missing.length) parts.push(`${missing.length} غير موجودة في Excel`);
@@ -580,10 +488,6 @@
             } catch (err) {
                 setStatus('vinStatus', err.message, 'err');
             }
-        });
-
-        document.querySelectorAll('input[name="coordDeliveryMode"]').forEach((el) => {
-            el.addEventListener('change', syncCompanySelectForMode);
         });
 
         document.getElementById('fileInput').addEventListener('change', async (e) => {
@@ -669,9 +573,7 @@
         });
 
         setVinSectionEnabled(false);
-        loadCompanyOptions().finally(() => {
-            loadQueue().catch((err) => setStatus('vinStatus', err.message, 'err'));
-        });
+        loadQueue().catch((err) => setStatus('vinStatus', err.message, 'err'));
     </script>
     <script src="delivery-hub-live.js"></script>
     <script>DeliveryHubLive.start(loadQueue);</script>
