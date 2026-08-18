@@ -1613,9 +1613,10 @@
             if (!input) return;
             const hintId = 'branchAutoHint';
             let hint = document.getElementById(hintId);
+            // Always keep branch selectable from the city list (default is only a prefill).
+            input.readOnly = false;
+            input.classList.remove('branch-auto-locked');
             if (!branch) {
-                input.readOnly = false;
-                input.classList.remove('branch-auto-locked');
                 if (hint) hint.remove();
                 return;
             }
@@ -1624,9 +1625,9 @@
                     searchableSelectOptions.branch_to.push(branch);
                 }
             }
-            input.value = branch;
-            input.readOnly = true;
-            input.classList.add('branch-auto-locked');
+            if (!input.value.trim()) {
+                input.value = branch;
+            }
             input.classList.remove('is-invalid');
             input.setCustomValidity('');
             if (!hint) {
@@ -1635,7 +1636,7 @@
                 hint.className = 'branch-locked-hint no-print';
                 input.closest('div')?.parentElement?.appendChild(hint);
             }
-            hint.textContent = `الفرع تلقائي لهذا المستخدم: ${branch}`;
+            hint.textContent = `الفرع الافتراضي: ${branch} — يمكنك اختيار فرع آخر من القائمة`;
             updatePreview();
         }
 
@@ -1829,7 +1830,7 @@
                 car_count: String(filled || fd.get('car_count')?.trim() || ''),
                 branch_to: warehousePrintMode
                     ? (fd.get('branch_to')?.trim() || '')
-                    : (autoBranch || fd.get('branch_to')?.trim()),
+                    : (fd.get('branch_to')?.trim() || autoBranch || ''),
                 attachments: fd.get('attachments')?.trim(),
                 warehouse: {
                     branch_name: fd.get('wh_branch_name')?.trim(),
