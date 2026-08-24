@@ -7,8 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260809dn">
-    <link rel="stylesheet" href="admin-saas.css?v=20260809dn">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260824scroll">
+    <link rel="stylesheet" href="admin-saas.css?v=20260824scroll">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
@@ -461,14 +461,31 @@
             to { opacity: 1; transform: none; }
         }
         .admin-console .hub-topbar {
-            position: sticky;
-            top: 0;
-            z-index: 40;
+            position: relative;
+            top: auto;
+            z-index: 1;
             margin-bottom: 18px;
             padding: 14px 0 14px;
             background: linear-gradient(180deg, rgba(7, 10, 16, 0.96), rgba(7, 10, 16, 0.88) 70%, transparent);
             backdrop-filter: blur(12px);
             border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+        /* Archive folds must scroll away with the page — never stick over charts */
+        #vinHistorySection,
+        #lastMonthsSection,
+        .admin-archive-fold {
+            position: static !important;
+            top: auto !important;
+            z-index: 1 !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: #111827 !important;
+            transform: none !important;
+        }
+        #vinHistorySection:hover,
+        #lastMonthsSection:hover,
+        .admin-archive-fold:hover {
+            transform: none !important;
         }
         .admin-console .hub-section.hub-fold {
             padding: 0;
@@ -1785,49 +1802,6 @@
                 <div class="dn-mgmt__stats" id="dnStatsBar"></div>
             </section>
 
-            <section class="hub-section hub-fold" id="vinHistorySection" data-fold>
-                <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                    <span class="hub-fold-title">سجل VIN المكرر — Duplicate VIN History</span>
-                    <span class="hub-fold-meta">
-                        <span class="hub-hint">عدة مذكرات لنفس الشاسيه</span>
-                        <span class="hub-fold-count" id="vinHistoryFoldCount" data-empty="1"></span>
-                        <span class="hub-fold-chevron" aria-hidden="true"></span>
-                    </span>
-                </button>
-                <div class="hub-fold-body">
-                    <div class="hub-fold-body-inner">
-                        <div class="hub-fold-content">
-                            <div class="pdf-browser-search" style="margin-bottom:12px;max-width:360px">
-                                <input type="search" id="vinHistorySearch" class="hub-input" placeholder="بحث VIN لعرض السجل الكامل…" autocomplete="off">
-                            </div>
-                            <div id="vinHistoryPanel" class="hub-meta">لا توجد بيانات</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="hub-section hub-fold" id="lastMonthsSection" data-fold>
-                <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                    <span class="hub-fold-title">الأشهر السابقة — Last Months Archive</span>
-                    <span class="hub-fold-meta">
-                        <span class="hub-hint">تم الترحيل المخفي من المنسق منذ يوم 1 لكل شهر</span>
-                        <span class="hub-fold-count" id="lastMonthsFoldCount" data-empty="1"></span>
-                        <span class="hub-fold-chevron" aria-hidden="true"></span>
-                    </span>
-                </button>
-                <div class="hub-fold-body">
-                    <div class="hub-fold-body-inner">
-                        <div class="hub-fold-content">
-                            <p class="hub-meta" style="margin-bottom:12px">
-                                من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
-                            </p>
-                            <div id="lastMonthsFolders" class="last-months-folders"></div>
-                            <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
         <div class="company-filter-chip saas-chip-bar hidden" id="companyFilterChip" hidden>
             <span class="label">Company</span>
             <span class="name" id="companyFilterName">—</span>
@@ -1857,6 +1831,49 @@
             <div class="pct-donut-wrap" id="deliveredTotalDonut" hidden></div>
         </section>
         </div>
+
+        <section class="hub-section hub-fold admin-archive-fold" id="vinHistorySection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">سجل VIN المكرر — Duplicate VIN History</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">عدة مذكرات لنفس الشاسيه</span>
+                    <span class="hub-fold-count" id="vinHistoryFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="pdf-browser-search" style="margin-bottom:12px;max-width:360px">
+                            <input type="search" id="vinHistorySearch" class="hub-input" placeholder="بحث VIN لعرض السجل الكامل…" autocomplete="off">
+                        </div>
+                        <div id="vinHistoryPanel" class="hub-meta">لا توجد بيانات</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="hub-section hub-fold admin-archive-fold" id="lastMonthsSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">الأشهر السابقة — Last Months Archive</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">تم الترحيل المخفي من المنسق منذ يوم 1 لكل شهر</span>
+                    <span class="hub-fold-count" id="lastMonthsFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <p class="hub-meta" style="margin-bottom:12px">
+                            من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
+                        </p>
+                        <div id="lastMonthsFolders" class="last-months-folders"></div>
+                        <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <section class="hub-section hub-fold" id="statsFold" data-fold hidden>
             <button type="button" class="hub-fold-toggle" aria-expanded="false">
