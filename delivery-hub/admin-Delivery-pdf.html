@@ -1758,6 +1758,18 @@
             <p class="ft-meta admin-filter-meta" id="trackFilterMeta">Showing all records</p>
             <p class="hub-meta" id="trackFilterHint" hidden></p>
 
+            <div class="ft-hidden-natives" aria-hidden="true">
+                <select id="trackDateType">
+                    <option value="delivery_note" selected>Delivery note</option>
+                    <option value="invoice">Invoice</option>
+                </select>
+                <input type="date" id="trackDateFrom">
+                <input type="date" id="trackDateTo">
+                <button type="button" id="btnTrackToday" hidden>Today</button>
+                <button type="button" id="btnClearCompanyScope" hidden>Clear company</button>
+            </div>
+        </div>
+
             <section class="dn-mgmt" id="dnMonthBar" aria-label="Delivery Management">
                 <div class="dn-mgmt__head">
                     <div>
@@ -1815,18 +1827,6 @@
                     </div>
                 </div>
             </section>
-
-            <div class="ft-hidden-natives" aria-hidden="true">
-                <select id="trackDateType">
-                    <option value="delivery_note" selected>Delivery note</option>
-                    <option value="invoice">Invoice</option>
-                </select>
-                <input type="date" id="trackDateFrom">
-                <input type="date" id="trackDateTo">
-                <button type="button" id="btnTrackToday" hidden>Today</button>
-                <button type="button" id="btnClearCompanyScope" hidden>Clear company</button>
-            </div>
-        </div>
 
         <div class="company-filter-chip saas-chip-bar hidden" id="companyFilterChip" hidden>
             <span class="label">Company</span>
