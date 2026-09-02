@@ -644,7 +644,11 @@
             }).join('');
 
             wrap.querySelectorAll('[data-submit-company]').forEach((btn) => {
-                btn.addEventListener('click', () => submitBoardVins(btn.dataset.submitCompany));
+                btn.addEventListener('click', () => {
+                    const board = btn.closest('.company-board');
+                    const name = board?.dataset?.company || btn.dataset.submitCompany || '';
+                    submitBoardVins(name);
+                });
             });
             fillAssignCompanySelect();
             applyCoordSearch();

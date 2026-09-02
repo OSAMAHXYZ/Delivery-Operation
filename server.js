@@ -1379,14 +1379,52 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   }
 
   const vins = Array.isArray(req.body?.vins) ? req.body.vins : [];
+  const company = normalizeOptionName(req.body?.company || req.body?.deliveryCompany || '');
+  let plannedDeliveryMode = String(req.body?.plannedDeliveryMode || '').trim().toLowerCase();
+  if (plannedDeliveryMode !== 'warehouse' && plannedDeliveryMode !== 'memo') {
+    plannedDeliveryMode = company.includes('مستودع') ? 'warehouse' : (company ? 'memo' : '');
+  }
+  const forceReassign = Boolean(req.body?.forceReassign);
+
   store.queue = dedupeQueue(store.queue);
-  const existing = new Set(store.queue.map((q) => normVin(q.vin)));
+  const byVinQueue = new Map(store.queue.map((q) => [normVin(q.vin), q]));
   const byVin = vehicleIndex();
   let added = 0;
+  let reassigned = 0;
   let skipped = 0;
   const missingVins = [];
+  const alreadySameCompany = [];
+  const conflicts = [];
   const seenBatch = new Set();
   const now = new Date().toISOString();
+
+  function applyCompanyMeta(item) {
+    if (!company) return;
+    item.deliveryCompany = company;
+    item.company = company;
+    item.plannedDeliveryMode = plannedDeliveryMode || item.plannedDeliveryMode || 'memo';
+    if (plannedDeliveryMode === 'warehouse') {
+      item.deliveryMode = 'warehouse';
+    } else if (item.deliveryMode === 'warehouse' && plannedDeliveryMode === 'memo') {
+      item.deliveryMode = '';
+    }
+  }
+
+  function isSameCompany(item) {
+    if (!company) return true;
+    const prev = normalizeOptionName(item.deliveryCompany || item.company || '');
+    return Boolean(prev) && prev.toLowerCase() === company.toLowerCase();
+  }
+
+  function isOpenCompany(item) {
+    const prev = normalizeOptionName(item.deliveryCompany || item.company || '');
+    if (!prev) return true;
+    const key = prev.toLowerCase();
+    return key === 'بدون شركة'
+      || key === 'unassigned'
+      || key === 'no company'
+      || key === '—';
+  }
 
   for (const raw of vins) {
     const vin = normVin(raw);
@@ -1394,11 +1432,31 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
       skipped += 1;
       continue;
     }
-    if (seenBatch.has(vin) || existing.has(vin)) {
+    if (seenBatch.has(vin)) {
       skipped += 1;
       continue;
     }
     seenBatch.add(vin);
+
+    const existing = byVinQueue.get(vin);
+    if (existing) {
+      if (isSameCompany(existing)) {
+        alreadySameCompany.push(vin);
+        skipped += 1;
+        continue;
+      }
+      if (isOpenCompany(existing) || forceReassign) {
+        applyCompanyMeta(existing);
+        reassigned += 1;
+        continue;
+      }
+      conflicts.push({
+        vin,
+        company: normalizeOptionName(existing.deliveryCompany || existing.company || '') || 'بدون شركة'
+      });
+      skipped += 1;
+      continue;
+    }
 
     const veh = byVin.get(vin);
     if (!veh) {
@@ -1413,20 +1471,67 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
       agentStatus: '',
       assignedTo: '',
       addedAt: now,
-      assignedAt: ''
+      assignedAt: '',
+      deliveryCompany: company || '',
+      company: company || '',
+      plannedDeliveryMode: company ? (plannedDeliveryMode || 'memo') : '',
+      deliveryMode: plannedDeliveryMode === 'warehouse' ? 'warehouse' : ''
     };
-    store.queue.push(enrichFromVehicle(base, veh));
-    existing.add(vin);
+    const row = enrichFromVehicle(base, veh);
+    store.queue.push(row);
+    byVinQueue.set(vin, row);
     added += 1;
   }
 
   persistAndBroadcast();
   res.json({
     added,
+    reassigned,
     skipped,
     notInInventory: missingVins.length,
-    missingVins
+    missingVins,
+    alreadySameCompany,
+    conflicts
   });
+});
+
+app.post('/api/delivery-coordinator/assign-meta', (req, res) => {
+  const vins = Array.isArray(req.body?.vins) ? req.body.vins : [];
+  const company = normalizeOptionName(req.body?.company || req.body?.deliveryCompany || '');
+  if (!company) return res.status(400).json({ error: 'الشركة مطلوبة' });
+
+  let plannedDeliveryMode = String(req.body?.plannedDeliveryMode || '').trim().toLowerCase();
+  if (plannedDeliveryMode !== 'warehouse' && plannedDeliveryMode !== 'memo') {
+    plannedDeliveryMode = company.includes('مستودع') ? 'warehouse' : 'memo';
+  }
+
+  const updated = [];
+  const missing = [];
+  const seen = new Set();
+
+  for (const raw of vins) {
+    const vin = normVin(raw);
+    if (!vin || seen.has(vin)) continue;
+    seen.add(vin);
+    const item = findQueueItem(vin);
+    if (!item) {
+      missing.push(vin);
+      continue;
+    }
+    item.deliveryCompany = company;
+    item.company = company;
+    item.plannedDeliveryMode = plannedDeliveryMode;
+    if (plannedDeliveryMode === 'warehouse') item.deliveryMode = 'warehouse';
+    else if (item.deliveryMode === 'warehouse') item.deliveryMode = '';
+    updated.push(vin);
+  }
+
+  if (!updated.length && missing.length) {
+    return res.status(404).json({ error: 'لم يتم العثور على الشاسيه في القائمة', missing });
+  }
+
+  persistAndBroadcast();
+  res.json({ ok: true, updated, missing, company, plannedDeliveryMode });
 });
 
 app.post('/api/delivery-coordinator/claim', (req, res) => {
