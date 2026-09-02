@@ -921,7 +921,10 @@
                 return setBoardStatus(company, 'ارفع البيانات الخام أولاً', 'err');
             }
             const ta = [...document.querySelectorAll('[data-board-paste]')]
-                .find((node) => node.dataset.boardPaste === company);
+                .find((node) => {
+                    const board = node.closest('.company-board');
+                    return (board?.dataset?.company || node.dataset.boardPaste) === company;
+                });
             if (!ta) return;
             const parsed = parseVinList(ta.value);
             if (!parsed.length) return setBoardStatus(company, 'أدخل شاسيه واحد على الأقل', 'err');
