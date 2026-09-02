@@ -1,0 +1,1087 @@
+/* H-care style light SaaS shell — Delivery Admin */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap');
+
+body.delivery-hub.admin-console.admin-light {
+  --hc-bg: #f4f5f9;
+  --hc-surface: #ffffff;
+  --hc-primary: #6c5ce7;
+  --hc-primary-soft: #eeebff;
+  --hc-primary-deep: #5a4bd1;
+  --hc-text: #1f2430;
+  --hc-muted: #8b93a7;
+  --hc-line: #e8eaf2;
+  --hc-teal: #2ec4b6;
+  --hc-orange: #ff8a4c;
+  --hc-blue: #5b8def;
+  --hc-pink: #f472b6;
+  --hc-radius: 18px;
+  --hc-shadow: 0 10px 30px rgba(31, 36, 48, 0.06);
+  --hc-sidebar: 248px;
+  --saas-bg: var(--hc-bg);
+  --saas-card: var(--hc-surface);
+  --saas-card-2: #f8f9fc;
+  --saas-primary: var(--hc-primary);
+  --saas-success: var(--hc-teal);
+  --saas-warning: var(--hc-orange);
+  --saas-danger: #ef4444;
+  --saas-text: var(--hc-text);
+  --saas-muted: var(--hc-muted);
+  --saas-border: var(--hc-line);
+  --saas-radius: var(--hc-radius);
+  --saas-shadow: var(--hc-shadow);
+  --hub-bg: var(--hc-bg);
+  --hub-text: var(--hc-text);
+  --hub-muted: var(--hc-muted);
+  --hub-line: var(--hc-line);
+  --hub-card: var(--hc-surface);
+  --hub-stat: #f8f9fc;
+  --tot-primary: var(--hc-primary);
+
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Tajawal', Inter, sans-serif;
+  color: var(--hc-text);
+  background: var(--hc-bg) !important;
+  background-image: none !important;
+  min-height: 100vh;
+}
+
+body.delivery-hub.admin-console.admin-light .hub-shell,
+body.delivery-hub.admin-console.admin-light .saas-shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* —— Layout: sidebar + main —— */
+.admin-light .admin-layout {
+  display: grid;
+  grid-template-columns: var(--hc-sidebar) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.admin-light .admin-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  padding: 22px 18px;
+  background: var(--hc-surface);
+  border-inline-end: 1px solid var(--hc-line);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  z-index: 60;
+}
+
+.admin-light .admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 8px;
+}
+
+.admin-light .admin-sidebar__brand img {
+  height: 28px;
+  width: auto;
+}
+
+.admin-light .admin-sidebar__brand strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--hc-text);
+}
+
+.admin-light .admin-sidebar__brand span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--hc-muted);
+  font-weight: 600;
+}
+
+.admin-light .admin-sidebar__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--hc-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 12px 24px rgba(108, 92, 231, 0.28);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.admin-light .admin-sidebar__cta:hover {
+  filter: brightness(1.05);
+  color: #fff;
+}
+
+.admin-light .admin-sidebar__nav {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  overflow: auto;
+  padding-inline: 2px;
+}
+
+.admin-light .admin-nav__btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: start;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--hc-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 11px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-light .admin-nav__btn .nav-ico {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: #f3f4f8;
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.admin-light .admin-nav__btn:hover {
+  background: #f6f7fb;
+  color: var(--hc-text);
+}
+
+.admin-light .admin-nav__btn.is-active {
+  background: var(--hc-primary-soft);
+  color: var(--hc-primary);
+  box-shadow: none;
+  border: 0;
+}
+
+.admin-light .admin-nav__btn.is-active .nav-ico {
+  background: rgba(108, 92, 231, 0.15);
+  color: var(--hc-primary);
+}
+
+.admin-light .admin-nav__btn .nav-count {
+  margin-inline-start: auto;
+  min-width: 1.35rem;
+  height: 1.2rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: #eef0f6;
+  color: var(--hc-muted);
+}
+
+.admin-light .admin-nav__btn.is-active .nav-count {
+  background: rgba(108, 92, 231, 0.18);
+  color: var(--hc-primary);
+}
+
+.admin-light .admin-sidebar__foot {
+  margin-top: auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #f3efff, #ebe7ff);
+  color: var(--hc-primary-deep);
+}
+
+.admin-light .admin-sidebar__foot strong {
+  display: block;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+}
+
+.admin-light .admin-sidebar__foot p {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.admin-light .admin-main {
+  min-width: 0;
+  padding: 18px 22px 40px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+/* —— Top bar —— */
+.admin-light .admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--hc-surface);
+  border: 1px solid var(--hc-line);
+  border-radius: 16px;
+  box-shadow: var(--hc-shadow);
+}
+
+.admin-light .admin-topbar__search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #f4f5f9;
+  border: 1px solid transparent;
+}
+
+.admin-light .admin-topbar__search:focus-within {
+  border-color: rgba(108, 92, 231, 0.35);
+  background: #fff;
+}
+
+.admin-light .admin-topbar__search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--hc-text);
+  outline: none;
+}
+
+.admin-light .admin-topbar__search svg {
+  width: 18px;
+  height: 18px;
+  color: var(--hc-muted);
+  flex-shrink: 0;
+}
+
+.admin-light .admin-topbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-light .admin-topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-inline-start: 6px;
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--hc-line);
+}
+
+.admin-light .admin-topbar__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c5ce7, #a78bfa);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+}
+
+.admin-light .admin-topbar__user strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.admin-light .admin-topbar__user span {
+  font-size: 0.7rem;
+  color: var(--hc-muted);
+}
+
+/* —— Cards / surfaces —— */
+.admin-light .saas-card,
+.admin-light .hub-section,
+.admin-light .hub-fold,
+.admin-light .ft-shell,
+.admin-light .dn-mgmt,
+.admin-light .saas-hero,
+.admin-light .pct-chart-card,
+.admin-light .xfer-dash-card,
+.admin-light .admin-restore-box,
+.admin-light .saas-section {
+  background: var(--hc-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--hc-line) !important;
+  border-radius: var(--hc-radius) !important;
+  box-shadow: var(--hc-shadow) !important;
+  color: var(--hc-text);
+}
+
+.admin-light .hub-section.hub-fold::before,
+.admin-light .hub-section--xfer::before {
+  display: none !important;
+}
+
+.admin-light .hub-fold-title,
+.admin-light .hub-section-head h2,
+.admin-light .saas-section__head h3,
+.admin-light .admin-pane-head h2,
+.admin-light .dn-mgmt__title,
+.admin-light .saas-hero h2,
+.admin-light .pct-chart-card h3 {
+  color: var(--hc-text) !important;
+}
+
+.admin-light .hub-hint,
+.admin-light .hub-meta,
+.admin-light .admin-pane-head p,
+.admin-light .dn-mgmt__sub,
+.admin-light .dn-mgmt__eyebrow,
+.admin-light .saas-hero__eyebrow,
+.admin-light .saas-hero__caption,
+.admin-light .pct-chart-sub,
+.admin-light .ft-meta,
+.admin-light .saas-header__eyebrow {
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .hub-fold-title::before {
+  background: var(--hc-primary) !important;
+  box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.12) !important;
+}
+
+.admin-light .hub-fold-toggle:hover {
+  background: #f8f9fc !important;
+}
+
+.admin-light .hub-fold-count {
+  background: var(--hc-primary-soft) !important;
+  color: var(--hc-primary) !important;
+  border: 0 !important;
+}
+
+.admin-light .hub-fold-chevron {
+  background: #f3f4f8 !important;
+  color: var(--hc-muted) !important;
+}
+
+/* —— Buttons —— */
+.admin-light .saas-btn,
+.admin-light .hub-btn,
+.admin-light .ft-btn {
+  border-radius: 12px !important;
+  border: 1px solid var(--hc-line) !important;
+  background: #fff !important;
+  color: var(--hc-text) !important;
+  box-shadow: none !important;
+}
+
+.admin-light .saas-btn:hover,
+.admin-light .hub-btn:hover,
+.admin-light .ft-btn:hover {
+  background: #f6f7fb !important;
+  border-color: #d8dce8 !important;
+  color: var(--hc-text) !important;
+}
+
+.admin-light .saas-btn--primary,
+.admin-light .hub-btn--primary,
+.admin-light .ft-btn--primary {
+  background: var(--hc-primary) !important;
+  border-color: var(--hc-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(108, 92, 231, 0.25) !important;
+}
+
+.admin-light .saas-btn--primary:hover,
+.admin-light .hub-btn--primary:hover,
+.admin-light .ft-btn--primary:hover {
+  background: var(--hc-primary-deep) !important;
+  color: #fff !important;
+}
+
+.admin-light .saas-btn--danger,
+.admin-light .hub-btn--danger {
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+  background: #fff5f5 !important;
+}
+
+.admin-light .saas-btn--ghost {
+  background: transparent !important;
+}
+
+/* —— KPI cards (H-care style) —— */
+.admin-light .saas-kpi-grid,
+.admin-light .admin-overview-row .saas-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  margin: 0 !important;
+}
+
+.admin-light .saas-kpi,
+.admin-light .admin-overview-row .saas-kpi {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  grid-template-areas:
+    "icon value menu"
+    "icon label menu" !important;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-height: 0 !important;
+  padding: 16px 18px !important;
+  background: #fff !important;
+  border: 1px solid var(--hc-line) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--hc-shadow) !important;
+}
+
+.admin-light .saas-kpi:hover {
+  transform: translateY(-2px);
+  border-color: #ddd6fe !important;
+}
+
+.admin-light .saas-kpi__icon {
+  grid-area: icon;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
+  margin: 0 !important;
+  font-size: 1rem !important;
+}
+
+.admin-light .saas-kpi__value {
+  grid-area: value;
+  margin: 0 !important;
+  font-size: 1.45rem !important;
+  font-weight: 800 !important;
+  color: var(--hc-text) !important;
+  letter-spacing: -0.03em;
+}
+
+.admin-light .saas-kpi__label {
+  grid-area: label;
+  font-size: 0.78rem !important;
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .saas-kpi__trend {
+  display: none !important;
+}
+
+.admin-light .saas-kpi__accent {
+  display: none !important;
+}
+
+.admin-light .saas-kpi__menu {
+  grid-area: menu;
+  color: #c0c5d4;
+  font-size: 1.1rem;
+  line-height: 1;
+  align-self: start;
+}
+
+.admin-light .admin-overview-row {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+
+.admin-light .admin-overview-mid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.7fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.admin-light .admin-overview-row .saas-hero {
+  margin: 0 !important;
+  grid-template-columns: 1.1fr 1.2fr auto !important;
+  padding: 22px 24px !important;
+  background:
+    radial-gradient(420px 160px at 100% 0%, rgba(108, 92, 231, 0.12), transparent 60%),
+    #fff !important;
+}
+
+.admin-light .saas-hero__pct {
+  color: var(--hc-primary) !important;
+}
+
+.admin-light .saas-hero__bar {
+  background: #eef0f6 !important;
+}
+
+.admin-light .saas-hero__bar > span {
+  background: linear-gradient(90deg, var(--hc-primary), #a78bfa) !important;
+}
+
+.admin-light .saas-hero__stats b {
+  color: var(--hc-text) !important;
+}
+
+/* —— Filters —— */
+.admin-light .admin-filters-sticky {
+  position: static !important;
+  top: auto !important;
+}
+
+.admin-light .ft-shell {
+  padding: 14px !important;
+}
+
+.admin-light .ft-toolbar {
+  background: #f8f9fc !important;
+  border: 1px solid var(--hc-line) !important;
+  border-radius: 14px !important;
+}
+
+.admin-light .ft-input,
+.admin-light .ft-native,
+.admin-light .hub-input,
+.admin-light input,
+.admin-light select,
+.admin-light textarea {
+  background: #fff !important;
+  color: var(--hc-text) !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .ft-control__trigger {
+  background: #fff !important;
+  color: var(--hc-text) !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .ft-panel,
+.admin-light .ft-more__panel {
+  background: #fff !important;
+  border-color: var(--hc-line) !important;
+  color: var(--hc-text) !important;
+  box-shadow: 0 16px 40px rgba(31, 36, 48, 0.12) !important;
+}
+
+/* —— Tables / lists —— */
+.admin-light .hub-table th {
+  background: #f8f9fc !important;
+  color: var(--hc-muted) !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .hub-table td {
+  color: var(--hc-text) !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .hub-table tr:hover td {
+  background: #f8f9fc !important;
+}
+
+.admin-light .hub-badge,
+.admin-light .pdf-type-badge {
+  border-radius: 999px !important;
+}
+
+.admin-light .hub-empty {
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .xfer-dash-row:hover,
+.admin-light .saas-company-list > *:hover {
+  background: #f6f7fb !important;
+}
+
+.admin-light .xfer-dash-name,
+.admin-light .xfer-account-name,
+.admin-light .qv-vin {
+  color: var(--hc-text) !important;
+}
+
+.admin-light .xfer-dash-count {
+  color: var(--hc-primary) !important;
+}
+
+.admin-light .xfer-dash-bar {
+  background: #eef0f6 !important;
+}
+
+.admin-light .xfer-dash-bar > span {
+  background: linear-gradient(90deg, var(--hc-primary), #a78bfa) !important;
+}
+
+/* Highlight card like purple month card */
+.admin-light #heroProgressCard {
+  position: relative;
+}
+
+.admin-light .admin-highlight-card {
+  padding: 22px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #6c5ce7, #7c6cf0) !important;
+  color: #fff !important;
+  border: 0 !important;
+  box-shadow: 0 16px 36px rgba(108, 92, 231, 0.28) !important;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.admin-light .admin-highlight-card strong {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.admin-light .admin-highlight-card span {
+  opacity: 0.9;
+  font-size: 0.85rem;
+}
+
+.admin-light .admin-highlight-card .spark {
+  height: 36px;
+  margin-top: 16px;
+  opacity: 0.85;
+}
+
+/* DN month stats */
+.admin-light .dn-mgmt {
+  padding: 16px !important;
+}
+
+.admin-light .dn-stat {
+  background: #fff !important;
+  border: 1px solid var(--hc-line) !important;
+  box-shadow: none !important;
+}
+
+.admin-light .dn-stat b {
+  color: var(--hc-text) !important;
+}
+
+.admin-light .raw-gap-section {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(239, 68, 68, 0.05)), #fff !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .raw-gap-stat .val {
+  color: var(--hc-text) !important;
+}
+
+.admin-light .raw-gap-stat--raw .val { color: #4f46e5 !important; }
+.admin-light .raw-gap-stat--delivered .val { color: #059669 !important; }
+.admin-light .raw-gap-stat--gap .val { color: #dc2626 !important; }
+
+.admin-light .raw-gap-panel {
+  background: #f8fafc !important;
+  border-top-color: var(--hc-line) !important;
+}
+
+.admin-light .raw-gap-table th {
+  background: #f1f5f9 !important;
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .raw-gap-toolbar input,
+.admin-light .raw-gap-toolbar select {
+  background: #fff !important;
+  border-color: var(--hc-line) !important;
+  color: var(--hc-text) !important;
+}
+
+.admin-light .raw-gap-chip {
+  background: #fff !important;
+  border-color: var(--hc-line) !important;
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .raw-gap-chip.is-active {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #4338ca !important;
+}
+
+/* Pane chrome */
+.admin-light .admin-nav {
+  display: none !important; /* moved into sidebar */
+}
+
+.admin-light .admin-workspace {
+  gap: 16px;
+}
+
+.admin-light .admin-pane-head h2 {
+  font-size: 1.2rem !important;
+}
+
+.admin-light .saas-header {
+  display: none !important; /* replaced by topbar */
+}
+
+/* Gate stays dark-ish or lighten */
+.admin-light #adminGate {
+  background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(108, 92, 231, 0.2), transparent), #f4f5f9 !important;
+}
+
+.admin-light .admin-gate-card {
+  background: #fff !important;
+  border: 1px solid var(--hc-line) !important;
+  color: var(--hc-text);
+  box-shadow: var(--hc-shadow) !important;
+}
+
+.admin-light .admin-gate-card h2 { color: var(--hc-text) !important; }
+.admin-light .admin-gate-card p,
+.admin-light .admin-gate-card label { color: var(--hc-muted) !important; }
+.admin-light .admin-gate-card input {
+  background: #f8f9fc !important;
+  color: var(--hc-text) !important;
+  border-color: var(--hc-line) !important;
+}
+
+/* Hide emoji-heavy dark animations */
+.admin-light .hub-stat,
+.admin-light .hub-section.hub-fold {
+  animation: none !important;
+}
+
+@media (max-width: 1100px) {
+  .admin-light .saas-kpi-grid,
+  .admin-light .admin-overview-row .saas-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .admin-light .admin-overview-row .saas-hero {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-light .admin-overview-mid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-light .admin-layout {
+    grid-template-columns: 1fr;
+  }
+  .admin-light .admin-sidebar {
+    position: sticky;
+    top: 0;
+    height: auto;
+    max-height: none;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--hc-line);
+    padding: 12px;
+  }
+  .admin-light .admin-sidebar__nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+  }
+  .admin-light .admin-nav__btn {
+    width: auto;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .admin-light .admin-sidebar__foot,
+  .admin-light .admin-sidebar__cta { display: none; }
+  .admin-light .admin-main { padding: 12px; }
+  .admin-light .saas-kpi-grid,
+  .admin-light .admin-overview-row .saas-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* —— Kill leftover dark-theme colors from inline admin CSS —— */
+.admin-light,
+.admin-light * {
+  --tot-ink: #1f2430;
+}
+
+.admin-light .hub-shell {
+  width: 100% !important;
+  animation: none !important;
+  padding: 0 !important;
+}
+
+.admin-light .admin-layout {
+  direction: ltr; /* sidebar on left like reference */
+}
+
+.admin-light .admin-main,
+.admin-light .admin-sidebar__nav,
+.admin-light .admin-pane,
+.admin-light .ft-shell,
+.admin-light .dn-mgmt,
+.admin-light .hub-section,
+.admin-light .saas-hero,
+.admin-light .admin-gate-card {
+  direction: rtl; /* Arabic content */
+}
+
+.admin-light .admin-topbar {
+  direction: ltr;
+}
+.admin-light .admin-topbar__search input {
+  direction: rtl;
+  text-align: right;
+}
+
+.admin-light .hub-fold-title,
+.admin-light .hub-fold-toggle,
+.admin-light .saas-section__head h3,
+.admin-light .saas-section__head p,
+.admin-light .xfer-dash-name,
+.admin-light .xfer-dash-count,
+.admin-light .xfer-dash-top,
+.admin-light .xfer-dash-top strong,
+.admin-light .xfer-account-name,
+.admin-light .xfer-account-total,
+.admin-light .xfer-account-chip,
+.admin-light .pct-legend,
+.admin-light .pct-status-pill,
+.admin-light .pct-status-pill b,
+.admin-light .pct-status-pill span,
+.admin-light .invoice-status-stats,
+.admin-light .lead-company-row,
+.admin-light .hub-status,
+.admin-light .hub-badge,
+.admin-light .pdf-browser-search,
+.admin-light .last-months-folders,
+.admin-light .options-manage-card h3,
+.admin-light .options-list,
+.admin-light .qv-product,
+.admin-light pre,
+.admin-light .ft-control__value,
+.admin-light .ft-more__label,
+.admin-light .ft-date-inline__field span,
+.admin-light .ft-date-preset-wrap span,
+.admin-light .company-filter-chip,
+.admin-light .company-filter-chip .name,
+.admin-light .company-filter-chip .meta,
+.admin-light .company-filter-chip .label {
+  color: var(--hc-text) !important;
+}
+
+.admin-light .saas-section__head p,
+.admin-light .hub-hint,
+.admin-light .hub-meta,
+.admin-light .xfer-dash-sub,
+.admin-light .pct-chart-sub,
+.admin-light .ft-meta,
+.admin-light .qv-product,
+.admin-light .ft-date-inline__field span,
+.admin-light .ft-date-preset-wrap span,
+.admin-light .ft-more__label,
+.admin-light .company-filter-chip .label,
+.admin-light .company-filter-chip .meta {
+  color: var(--hc-muted) !important;
+}
+
+.admin-light .xfer-dash-card,
+.admin-light .xfer-mosaic-cell,
+.admin-light .pct-chart-card,
+.admin-light .saas-section,
+.admin-light .options-manage-card,
+.admin-light .hub-table-wrap,
+.admin-light .lead-time-table-wrap,
+.admin-light .pdf-browser,
+.admin-light .last-months-detail,
+.admin-light .company-filter-chip {
+  background: #fff !important;
+  border-color: var(--hc-line) !important;
+  color: var(--hc-text) !important;
+  box-shadow: var(--hc-shadow) !important;
+}
+
+.admin-light .xfer-dash-row,
+.admin-light .xfer-account-item,
+.admin-light .queue-vin-row,
+.admin-light .options-list button,
+.admin-light .hub-chips > * {
+  background: #f8f9fc !important;
+  border-color: var(--hc-line) !important;
+  color: var(--hc-text) !important;
+}
+
+.admin-light .xfer-dash-row.is-active,
+.admin-light .xfer-account-item.is-active {
+  background: var(--hc-primary-soft) !important;
+  border-color: #ddd6fe !important;
+}
+
+.admin-light .xfer-dash-bar,
+.admin-light .pct-donut-wrap,
+.admin-light .invoice-status-chart,
+.admin-light .xfer-trend-chart,
+.admin-light .xfer-city-chart {
+  background: #fafbff !important;
+  border-radius: 14px;
+}
+
+.admin-light .hub-input,
+.admin-light .ft-input,
+.admin-light .ft-native,
+.admin-light select,
+.admin-light input[type="search"],
+.admin-light input[type="date"],
+.admin-light input[type="text"],
+.admin-light input[type="password"],
+.admin-light textarea {
+  background: #fff !important;
+  color: var(--hc-text) !important;
+  border: 1px solid var(--hc-line) !important;
+  border-radius: 12px !important;
+}
+
+.admin-light .ft-panel,
+.admin-light .ft-more__panel,
+.admin-light .ft-control__trigger {
+  background: #fff !important;
+  color: var(--hc-text) !important;
+  border-color: var(--hc-line) !important;
+}
+
+.admin-light .hub-badge--avail,
+.admin-light .hub-badge--memo-plan { background: #e6faf7 !important; color: #0f766e !important; border-color: #99f6e4 !important; }
+.admin-light .hub-badge--stock { background: #eff6ff !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+.admin-light .hub-badge--ready { background: #fff7ed !important; color: #c2410c !important; border-color: #fed7aa !important; }
+.admin-light .hub-badge--delivered { background: #eeebff !important; color: #5a4bd1 !important; border-color: #ddd6fe !important; }
+.admin-light .hub-badge--wh { background: #eff6ff !important; color: #2563eb !important; border-color: #bfdbfe !important; }
+.admin-light .hub-badge--yard { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+.admin-light .hub-badge--unassigned { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
+
+.admin-light .pdf-type-badge--showroom { background: #fce7f3 !important; color: #be185d !important; }
+.admin-light .pdf-type-badge--warehouse { background: #e0f2fe !important; color: #0369a1 !important; }
+
+.admin-light .hub-stat {
+  background: #fff !important;
+  border: 1px solid var(--hc-line) !important;
+  box-shadow: var(--hc-shadow) !important;
+}
+.admin-light .hub-stat span { color: var(--hc-muted) !important; }
+.admin-light .hub-stat b { color: var(--hc-text) !important; }
+
+.admin-light .admin-restore-actions .hub-meta,
+.admin-light #restoreExportMeta { color: var(--hc-muted) !important; }
+
+.admin-light .hub-upload {
+  background: #f8f9fc !important;
+  border: 1px dashed #c7cbe0 !important;
+  color: var(--hc-text) !important;
+}
+
+/* Topbar: cleaner H-care actions */
+.admin-light .admin-topbar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 4px 2px 8px !important;
+}
+.admin-light .admin-topbar__search {
+  background: #fff !important;
+  border: 1px solid var(--hc-line) !important;
+  box-shadow: var(--hc-shadow);
+}
+.admin-light .admin-topbar__actions .saas-btn--sm {
+  padding: 8px 12px !important;
+  font-size: 0.75rem !important;
+}
+
+/* Soft filter card */
+.admin-light #adminFilterBar.ft-shell {
+  padding: 12px !important;
+  margin-bottom: 4px !important;
+}
+.admin-light .ft-toolbar {
+  background: #f8f9fc !important;
+  box-shadow: none !important;
+}
+
+/* Pane titles quieter */
+.admin-light .admin-pane-head {
+  margin-bottom: 4px;
+}
+.admin-light .admin-pane-head h2 {
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+}
+
+/* Apex light canvas */
+.admin-light .apexcharts-canvas,
+.admin-light .apexcharts-svg {
+  background: transparent !important;
+}
+.admin-light .apexcharts-text tspan,
+.admin-light .apexcharts-legend-text {
+  fill: #64748b !important;
+  color: #64748b !important;
+}
+
+/* Upload banner — last days data */
+.admin-light .admin-upload-banner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 14px 16px !important;
+  margin-bottom: 4px;
+  border: 1px solid #ddd6fe !important;
+  background:
+    radial-gradient(420px 120px at 100% 0%, rgba(108, 92, 231, 0.1), transparent 60%),
+    #fff !important;
+}
+.admin-light .admin-upload-banner strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--hc-text);
+  margin-bottom: 4px;
+}
+.admin-light .admin-upload-banner p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--hc-muted);
+  line-height: 1.45;
+}
+.admin-light .admin-upload-banner code {
+  font-size: 0.72rem;
+  background: #f3f4f8;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.admin-light .admin-upload-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.admin-light .hub-status.ok { color: #059669 !important; }
+.admin-light .hub-status.err { color: #dc2626 !important; }
+@media (max-width: 900px) {
+  .admin-light .admin-upload-banner {
+    grid-template-columns: 1fr;
+  }
+}
+

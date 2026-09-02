@@ -7,8 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260824scroll">
-    <link rel="stylesheet" href="admin-saas.css?v=20260824scroll">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260825c">
+    <link rel="stylesheet" href="admin-saas.css?v=20260902b">
+    <link rel="stylesheet" href="admin-hcare-light.css?v=20260902b">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
@@ -461,31 +462,14 @@
             to { opacity: 1; transform: none; }
         }
         .admin-console .hub-topbar {
-            position: relative;
-            top: auto;
-            z-index: 1;
+            position: sticky;
+            top: 0;
+            z-index: 40;
             margin-bottom: 18px;
             padding: 14px 0 14px;
             background: linear-gradient(180deg, rgba(7, 10, 16, 0.96), rgba(7, 10, 16, 0.88) 70%, transparent);
             backdrop-filter: blur(12px);
             border-bottom-color: rgba(255, 255, 255, 0.08);
-        }
-        /* Archive folds must scroll away with the page — never stick over charts */
-        #vinHistorySection,
-        #lastMonthsSection,
-        .admin-archive-fold {
-            position: static !important;
-            top: auto !important;
-            z-index: 1 !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-            background: #111827 !important;
-            transform: none !important;
-        }
-        #vinHistorySection:hover,
-        #lastMonthsSection:hover,
-        .admin-archive-fold:hover {
-            transform: none !important;
         }
         .admin-console .hub-section.hub-fold {
             padding: 0;
@@ -1442,6 +1426,187 @@
         .dn-stat--memo { --dn-accent: #f59e0b; }
         .dn-stat--showroom { --dn-accent: #f472b6; }
         .dn-stat--month { --dn-accent: #94a3b8; }
+        .dn-stat--raw { --dn-accent: #6366f1; }
+        .dn-stat--gap { --dn-accent: #ef4444; }
+        .dn-stat.is-clickable {
+            cursor: pointer;
+        }
+        .dn-stat.is-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .raw-gap-section {
+            margin: 0 0 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(239, 68, 68, 0.08)), #0f172a;
+            overflow: hidden;
+        }
+        .raw-gap-section.is-open {
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+        .raw-gap-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0;
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            text-align: inherit;
+            color: inherit;
+        }
+        .raw-gap-summary:focus-visible {
+            outline: 2px solid rgba(99, 102, 241, 0.8);
+            outline-offset: -2px;
+        }
+        .raw-gap-stat {
+            padding: 16px 18px;
+            border-inline-end: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .raw-gap-stat:last-child { border-inline-end: 0; }
+        .raw-gap-stat .lab {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .raw-gap-stat .val {
+            display: block;
+            font-size: 1.75rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            color: #f8fafc;
+        }
+        .raw-gap-stat .hint {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+        .raw-gap-stat--raw .val { color: #a5b4fc; }
+        .raw-gap-stat--delivered .val { color: #34d399; }
+        .raw-gap-stat--gap .val { color: #f87171; }
+        .raw-gap-stat--action .val {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            padding-top: 8px;
+        }
+        .raw-gap-panel {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 16px 16px;
+            background: rgba(0, 0, 0, 0.18);
+        }
+        .raw-gap-panel[hidden] { display: none; }
+        .raw-gap-panel__head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .raw-gap-panel__head h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+        }
+        .raw-gap-panel__head p {
+            margin: 4px 0 0;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .raw-gap-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .raw-gap-toolbar input,
+        .raw-gap-toolbar select {
+            min-height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 23, 42, 0.8);
+            color: #e2e8f0;
+            padding: 0 10px;
+            font-size: 0.82rem;
+        }
+        .raw-gap-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .raw-gap-chip {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #cbd5e1;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+        .raw-gap-chip.is-active {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.5);
+            color: #e0e7ff;
+        }
+        .raw-gap-table-wrap {
+            max-height: 420px;
+            overflow: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .raw-gap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .raw-gap-table th,
+        .raw-gap-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: start;
+        }
+        .raw-gap-table th {
+            position: sticky;
+            top: 0;
+            background: #0b1220;
+            color: #94a3b8;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .raw-gap-table td.num { text-align: end; font-variant-numeric: tabular-nums; }
+        .raw-gap-table .hub-vin {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.78rem;
+        }
+        .raw-gap-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .raw-gap-badge--not_uploaded { background: rgba(239,68,68,0.2); color: #fca5a5; }
+        .raw-gap-badge--no_queue { background: rgba(245,158,11,0.2); color: #fcd34d; }
+        .raw-gap-badge--not_assigned { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+        .raw-gap-badge--no_delivery_note { background: rgba(59,130,246,0.2); color: #93c5fd; }
+        .raw-gap-badge--in_progress { background: rgba(14,165,233,0.2); color: #7dd3fc; }
+        .raw-gap-badge--not_delivered { background: rgba(148,163,184,0.2); color: #cbd5e1; }
+        @media (max-width: 900px) {
+            .raw-gap-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .raw-gap-stat:nth-child(2) { border-inline-end: 0; }
+            .raw-gap-stat { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        }
 
         .dn-vin-card {
             margin-bottom: 12px;
@@ -1632,9 +1797,123 @@
                 transition: none !important;
             }
         }
+
+        /* —— Tabbed admin workspace layout —— */
+        .admin-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0 16px;
+            padding: 10px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(15, 23, 42, 0.55));
+            position: sticky;
+            top: 76px;
+            z-index: 40;
+            backdrop-filter: blur(14px);
+        }
+        .admin-nav__btn {
+            appearance: none;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #94a3b8;
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+        }
+        .admin-nav__btn:hover {
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .admin-nav__btn.is-active {
+            color: #fff;
+            background: rgba(235, 10, 30, 0.18);
+            border-color: rgba(235, 10, 30, 0.4);
+            box-shadow: 0 8px 20px rgba(235, 10, 30, 0.15);
+        }
+        .admin-nav__btn .nav-count {
+            display: inline-grid;
+            place-items: center;
+            min-width: 1.4rem;
+            height: 1.2rem;
+            margin-inline-start: 6px;
+            padding: 0 5px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+        }
+        .admin-nav__btn.is-active .nav-count {
+            background: rgba(235, 10, 30, 0.35);
+            color: #fecaca;
+        }
+        .admin-workspace {
+            display: grid;
+            gap: 14px;
+        }
+        .admin-pane {
+            display: none;
+            gap: 14px;
+            animation: adminPaneIn 0.28s ease;
+        }
+        .admin-pane.is-active {
+            display: grid;
+        }
+        @keyframes adminPaneIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+        .admin-pane-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 2px;
+        }
+        .admin-pane-head h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #f8fafc;
+            letter-spacing: -0.02em;
+        }
+        .admin-pane-head p {
+            margin: 0;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .admin-console .admin-pane .hub-section.hub-fold {
+            margin-bottom: 0;
+        }
+        .admin-console #adminFilterBar.ft-shell {
+            margin-bottom: 0;
+        }
+        .admin-filters-sticky {
+            position: sticky;
+            top: 148px;
+            z-index: 35;
+        }
+        @media (max-width: 900px) {
+            .admin-nav {
+                top: 8px;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            .admin-nav__btn { white-space: nowrap; flex: 0 0 auto; }
+            .admin-filters-sticky { top: 72px; }
+        }
     </style>
 </head>
-<body class="delivery-hub admin-console">
+<body class="delivery-hub admin-console admin-light">
     <div id="adminGate">
         <div class="admin-gate-card">
             <h2>دخول لوحة الإدارة</h2>
@@ -1647,49 +1926,89 @@
     </div>
 
     <div class="hub-shell hidden" id="adminApp">
-        <header class="saas-header saas-card">
-            <div>
-                <p class="saas-header__eyebrow">Toyota Delivery Hub</p>
-                <h1>لوحة متابعة الترحيل</h1>
-            </div>
-            <div class="saas-header__actions">
-                <a href="index.html" class="saas-btn saas-btn--ghost saas-btn--sm">المركز</a>
-                <a href="Delivery_coordinator.html" class="saas-btn saas-btn--ghost saas-btn--sm">المنسق</a>
-                <button type="button" class="saas-btn saas-btn--primary" id="btnExportExcel">تصدير Excel</button>
-                <button type="button" class="saas-btn saas-btn--sm" id="btnExpandAll">فتح الكل</button>
-                <button type="button" class="saas-btn saas-btn--sm" id="btnCollapseAll">طي الكل</button>
-                <button type="button" class="saas-btn saas-btn--danger saas-btn--sm" id="btnClear">مسح</button>
-                <button type="button" class="saas-btn" id="btnAdminLogout">خروج</button>
-            </div>
-        </header>
-
-        <div class="admin-restore-box saas-card saas-section hub-fold" id="adminRestoreBox" data-fold style="margin-top:10px">
-            <button type="button" class="hub-fold-toggle" aria-expanded="false" style="width:100%;background:transparent;border:0;padding:0;text-align:inherit;cursor:pointer">
-                <div class="saas-section__head" style="margin:0;width:100%">
+        <div class="admin-layout">
+            <aside class="admin-sidebar" aria-label="التنقل">
+                <div class="admin-sidebar__brand">
+                    <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
                     <div>
-                        <h3>الإعدادات والأرشيف</h3>
-                        <p>استعادة تصدير قديم · تحديث Sales Raw من صفحة المنسق</p>
-                    </div>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </div>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-            <div class="admin-restore-actions">
-                <label class="hub-btn hub-btn--primary restore-file-btn" id="btnRestoreExport">
-                    <input type="file" id="restoreExportInput" accept=".xlsx,.xls">
-                    استيراد أرشيف delivery_export
-                </label>
-                <span class="hub-meta" id="restoreExportMeta">لم يتم استيراد أرشيف بعد</span>
-                <a href="Delivery_coordinator.html" class="hub-btn" style="text-decoration:none">تحديث Sales Raw من المنسق</a>
-            </div>
-            <p class="hub-status" id="restoreExportStatus" style="min-height:1.4em"></p>
+                        <strong>Delivery Hub</strong>
+                        <span>لوحة متابعة الترحيل</span>
                     </div>
                 </div>
-            </div>
-        </div>
+                <a class="admin-sidebar__cta" href="Delivery_coordinator.html">فتح المنسق +</a>
+                <nav class="admin-sidebar__nav" id="adminNav" aria-label="أقسام لوحة الإدارة">
+                    <button type="button" class="admin-nav__btn is-active" data-pane-target="overview"><span class="nav-ico">OV</span>نظرة عامة</button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="analytics"><span class="nav-ico">TR</span>لوحة النقل <span class="nav-count" id="navCountXfer"></span></button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="users"><span class="nav-ico">US</span>المنسقين <span class="nav-count" id="navCountUsers"></span></button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="pdfs"><span class="nav-ico">PDF</span>ملفات PDF <span class="nav-count" id="navCountPdfs"></span></button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="queue"><span class="nav-ico">Q</span>القائمة <span class="nav-count" id="navCountQueue"></span></button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="yard"><span class="nav-ico">SR</span>العرض والمخزون <span class="nav-count" id="navCountYard"></span></button>
+                    <button type="button" class="admin-nav__btn" data-pane-target="tools"><span class="nav-ico">⚙</span>الإعدادات والأرشيف</button>
+                </nav>
+                <div class="admin-sidebar__foot">
+                    <strong>Toyota Delivery</strong>
+                    <p>فلاتر التاريخ والشركة تبقى أعلى المحتوى في كل الأقسام.</p>
+                </div>
+            </aside>
 
+            <div class="admin-main">
+                <header class="admin-topbar">
+                    <div class="admin-topbar__search" role="search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="m20 20-3.5-3.5"></path>
+                        </svg>
+                        <input type="search" id="topbarSearchProxy" placeholder="Search..." autocomplete="off" aria-label="Search">
+                    </div>
+                    <div class="admin-topbar__actions">
+                        <input type="file" id="restoreExportInputTop" accept=".xlsx,.xls" hidden>
+                        <input type="file" id="salesRawUploadInput" accept=".xlsx,.xls,.csv" hidden>
+                        <button type="button" class="saas-btn saas-btn--primary saas-btn--sm" id="btnUploadArchive" title="استيراد delivery_export من الأيام السابقة">رفع أرشيف</button>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnUploadSalesRaw" title="رفع Sales Raw لآخر الأيام">رفع Sales Raw</button>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnExportExcel">تصدير Excel</button>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnExpandAll" title="فتح الكل">فتح</button>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnCollapseAll" title="طي الكل">طي</button>
+                        <button type="button" class="saas-btn saas-btn--danger saas-btn--sm" id="btnClear">مسح</button>
+                        <a href="index.html" class="saas-btn saas-btn--ghost saas-btn--sm">المركز</a>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnAdminLogout">خروج</button>
+                        <div class="admin-topbar__user">
+                            <div class="admin-topbar__avatar">AD</div>
+                            <div>
+                                <strong>Admin</strong>
+                                <span>Delivery Hub</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="admin-upload-banner saas-card" id="adminUploadBanner">
+                    <div>
+                        <strong>رفع بيانات آخر الأيام</strong>
+                        <p>
+                            <b>أرشيف</b> = ملف <code>delivery_export_*.xlsx</code> من تصدير اللوحة ·
+                            <b>Sales Raw</b> = زر «رفع Sales Raw» فقط · أي Excel فيه VIN يُقبل
+                        </p>
+                    </div>
+                    <div class="admin-upload-banner__actions">
+                        <button type="button" class="saas-btn saas-btn--primary saas-btn--sm" id="btnUploadArchive2">رفع أرشيف delivery_export</button>
+                        <button type="button" class="saas-btn saas-btn--sm" id="btnUploadSalesRaw2">رفع Sales Raw</button>
+                        <a href="Delivery_coordinator.html" class="saas-btn saas-btn--ghost saas-btn--sm">المنسق</a>
+                    </div>
+                    <p class="hub-status" id="adminUploadStatus" style="grid-column:1/-1;margin:0;min-height:1.2em"></p>
+                </div>
+
+                <!-- legacy header kept for compatibility but hidden by CSS -->
+                <header class="saas-header saas-card" hidden>
+                    <div>
+                        <p class="saas-header__eyebrow">Toyota Delivery Hub</p>
+                        <h1>لوحة متابعة الترحيل</h1>
+                    </div>
+                    <div class="saas-header__actions">
+                        <a href="Delivery_coordinator.html" class="saas-btn saas-btn--ghost saas-btn--sm">المنسق</a>
+                    </div>
+                </header>
+
+                <div class="admin-filters-sticky">
         <div class="ft-shell" id="adminFilterBar">
             <div class="ft-toolbar" role="search" aria-label="Filter toolbar">
                 <div class="ft-search">
@@ -1709,15 +2028,28 @@
                 </div>
 
                 <div class="ft-date-inline" id="ftDateControl" aria-label="Delivery note date range">
-                    <label class="ft-date-inline__field">
-                        <span>Start date</span>
-                        <input type="date" id="ftDateFromUi" lang="en" aria-label="Start date">
+                    <label class="ft-date-preset-wrap">
+                        <span>Period</span>
+                        <select class="ft-native ft-date-preset" id="ftDatePreset" title="Quick date filter — applies instantly">
+                            <option value="today" selected>Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="last_7">Last 7 days</option>
+                            <option value="this_month">This month (MTD)</option>
+                            <option value="last_month">Last month</option>
+                            <option value="all">All dates</option>
+                            <option value="custom">Custom range</option>
+                        </select>
                     </label>
-                    <label class="ft-date-inline__field">
-                        <span>End date</span>
-                        <input type="date" id="ftDateToUi" lang="en" aria-label="End date">
-                    </label>
-                    <button type="button" class="ft-btn ft-btn--ghost" id="ftDateToday" title="Today">Today</button>
+                    <div class="ft-date-custom" id="ftDateCustomFields" hidden>
+                        <label class="ft-date-inline__field">
+                            <span>From</span>
+                            <input type="date" id="ftDateFromUi" lang="en" aria-label="Start date">
+                        </label>
+                        <label class="ft-date-inline__field">
+                            <span>To</span>
+                            <input type="date" id="ftDateToUi" lang="en" aria-label="End date">
+                        </label>
+                    </div>
                 </div>
 
                 <div class="ft-control" id="ftCompanyControl" data-ft-select="company">
@@ -1786,7 +2118,21 @@
                 <button type="button" id="btnClearCompanyScope" hidden>Clear company</button>
             </div>
         </div>
+        </div>
 
+        <div class="company-filter-chip saas-chip-bar hidden" id="companyFilterChip" hidden>
+            <span class="label">Company</span>
+            <span class="name" id="companyFilterName">—</span>
+            <span class="meta" id="companyFilterMeta"></span>
+        </div>
+
+        <div class="admin-workspace" id="adminWorkspace">
+
+        <div class="admin-pane is-active" data-pane="overview" id="pane-overview">
+            <div class="admin-pane-head">
+                <h2>نظرة عامة</h2>
+                <p>مؤشرات سريعة · تقدم الترحيل · إحصاءات الشهر</p>
+            </div>
             <section class="dn-mgmt" id="dnMonthBar" aria-label="Delivery Management">
                 <div class="dn-mgmt__head">
                     <div>
@@ -1801,153 +2147,148 @@
                 </div>
                 <div class="dn-mgmt__stats" id="dnStatsBar"></div>
             </section>
-
-        <div class="company-filter-chip saas-chip-bar hidden" id="companyFilterChip" hidden>
-            <span class="label">Company</span>
-            <span class="name" id="companyFilterName">—</span>
-            <span class="meta" id="companyFilterMeta"></span>
-        </div>
-
-        <div class="admin-overview-row">
-        <div class="saas-kpi-grid" id="premiumKpiGrid" aria-label="مؤشرات سريعة"></div>
-
-        <section class="saas-hero saas-card" id="heroProgressCard" aria-label="تقدم الترحيل">
-            <div>
-                <p class="saas-hero__eyebrow">Delivery Progress</p>
-                <h2>تقدم الترحيل</h2>
-                <p class="saas-hero__caption" id="deliveredTotalCaption">لا توجد بيانات بعد</p>
-            </div>
-            <div>
-                <div class="saas-hero__pct" id="deliveredTotalPct">0%</div>
-                <div class="saas-hero__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-                    <span id="deliveredTotalBarFill"></span>
-                </div>
-                <div class="saas-hero__stats">
-                    <div><b id="deliveredTotalDone">0</b><span>تم الترحيل</span></div>
-                    <div><b id="deliveredTotalRemaining">0</b><span>متبقي</span></div>
-                    <div><b id="deliveredTotalAll">0</b><span>الإجمالي</span></div>
-                </div>
-            </div>
-            <div class="pct-donut-wrap" id="deliveredTotalDonut" hidden></div>
-        </section>
-        </div>
-
-        <section class="hub-section hub-fold admin-archive-fold" id="vinHistorySection" data-fold>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">سجل VIN المكرر — Duplicate VIN History</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">عدة مذكرات لنفس الشاسيه</span>
-                    <span class="hub-fold-count" id="vinHistoryFoldCount" data-empty="1"></span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <div class="pdf-browser-search" style="margin-bottom:12px;max-width:360px">
-                            <input type="search" id="vinHistorySearch" class="hub-input" placeholder="بحث VIN لعرض السجل الكامل…" autocomplete="off">
+            <section class="raw-gap-section" id="rawGapSection" aria-label="Raw data gap">
+                <button type="button" class="raw-gap-summary" id="rawGapToggle" aria-expanded="false" aria-controls="rawGapPanel">
+                    <div class="raw-gap-stat raw-gap-stat--raw">
+                        <span class="lab">Raw Total · Col P</span>
+                        <strong class="val" id="rawGapTotal">0</strong>
+                        <span class="hint" id="rawGapPeriodHint">Proforma month</span>
+                    </div>
+                    <div class="raw-gap-stat raw-gap-stat--delivered">
+                        <span class="lab">Delivered · تم الترحيل</span>
+                        <strong class="val" id="rawGapDelivered">0</strong>
+                        <span class="hint">with delivery note</span>
+                    </div>
+                    <div class="raw-gap-stat raw-gap-stat--gap">
+                        <span class="lab">Gap · الفجوة</span>
+                        <strong class="val" id="rawGapCount">0</strong>
+                        <span class="hint" id="rawGapRateHint">Not delivered</span>
+                    </div>
+                    <div class="raw-gap-stat raw-gap-stat--action">
+                        <span class="lab">Details</span>
+                        <strong class="val" id="rawGapToggleLabel">Click to list cars ▾</strong>
+                        <span class="hint">VIN · status · assignee</span>
+                    </div>
+                </button>
+                <div class="raw-gap-panel" id="rawGapPanel" hidden>
+                    <div class="raw-gap-panel__head">
+                        <div>
+                            <h3>Not delivered — cars in raw data without delivery</h3>
+                            <p id="rawGapPanelMeta">Cars with Proforma date (Col P) in the selected month but not marked delivered</p>
                         </div>
-                        <div id="vinHistoryPanel" class="hub-meta">لا توجد بيانات</div>
+                        <div class="raw-gap-toolbar">
+                            <input type="search" id="rawGapSearch" placeholder="Search VIN, product, customer…" autocomplete="off" aria-label="Search gap cars">
+                            <select id="rawGapStatusFilter" aria-label="Filter by gap reason">
+                                <option value="all">All reasons</option>
+                                <option value="not_uploaded">Not in system</option>
+                                <option value="no_queue">Not on queue</option>
+                                <option value="not_assigned">Not assigned</option>
+                                <option value="no_delivery_note">No delivery note</option>
+                                <option value="in_progress">In progress</option>
+                                <option value="not_delivered">Other not delivered</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="raw-gap-chips" id="rawGapChips"></div>
+                    <div class="raw-gap-table-wrap">
+                        <table class="raw-gap-table">
+                            <thead>
+                                <tr>
+                                    <th>VIN / الشاسية</th>
+                                    <th>Product</th>
+                                    <th>Customer</th>
+                                    <th>Proforma (P)</th>
+                                    <th>Reason</th>
+                                    <th>Assigned</th>
+                                    <th>Queue</th>
+                                    <th>Note</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rawGapTableBody">
+                                <tr><td colspan="8" class="hub-empty">No gap cars in this period</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+            <div class="admin-overview-row">
+            <div class="saas-kpi-grid" id="premiumKpiGrid" aria-label="مؤشرات سريعة"></div>
 
-        <section class="hub-section hub-fold admin-archive-fold" id="lastMonthsSection" data-fold>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">الأشهر السابقة — Last Months Archive</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">تم الترحيل المخفي من المنسق منذ يوم 1 لكل شهر</span>
-                    <span class="hub-fold-count" id="lastMonthsFoldCount" data-empty="1"></span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <p class="hub-meta" style="margin-bottom:12px">
-                            من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
-                        </p>
-                        <div id="lastMonthsFolders" class="last-months-folders"></div>
-                        <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
+            <div class="admin-overview-mid">
+            <section class="saas-hero saas-card" id="heroProgressCard" aria-label="تقدم الترحيل">
+                <div>
+                    <p class="saas-hero__eyebrow">Delivery Progress</p>
+                    <h2>تقدم الترحيل</h2>
+                    <p class="saas-hero__caption" id="deliveredTotalCaption">لا توجد بيانات بعد</p>
+                </div>
+                <div>
+                    <div class="saas-hero__pct" id="deliveredTotalPct">0%</div>
+                    <div class="saas-hero__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                        <span id="deliveredTotalBarFill"></span>
+                    </div>
+                    <div class="saas-hero__stats">
+                        <div><b id="deliveredTotalDone">0</b><span>تم الترحيل · Delivered</span></div>
+                        <div><b id="deliveredTotalRemaining">0</b><span>الفجوة · Gap</span></div>
+                        <div><b id="deliveredTotalAll">0</b><span>مُسند · Assigned</span></div>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <section class="hub-section hub-fold" id="statsFold" data-fold hidden>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">ملخص المخزون — Inventory Stats</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">إجمالي المركبات والمنتجات</span>
-                    <span class="hub-fold-count" id="statsFoldCount" data-empty="1"></span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <div class="hub-stats" id="stats"></div>
-                    </div>
+                <div class="pct-donut-wrap" id="deliveredTotalDonut" hidden></div>
+            </section>
+            <aside class="admin-highlight-card" id="monthHighlightCard" aria-label="ملخص الشهر">
+                <div>
+                    <strong id="monthHighlightValue">0</strong>
+                    <span id="monthHighlightLabel">delivered · تم الترحيل</span>
                 </div>
+                <svg class="spark" viewBox="0 0 120 36" fill="none" aria-hidden="true">
+                    <path d="M0 28 C18 26 22 10 36 14 C50 18 54 30 68 24 C82 18 90 6 104 10 C112 12 116 16 120 14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M0 28 C18 26 22 10 36 14 C50 18 54 30 68 24 C82 18 90 6 104 10 C112 12 116 16 120 14 L120 36 L0 36 Z" fill="rgba(255,255,255,0.18)"/>
+                </svg>
+            </aside>
             </div>
-        </section>
-
-        <section class="hub-section hub-fold" id="queueStatsFold" data-fold hidden>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">ملخص القائمة — Queue Stats</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">حالات الترحيل الحية</span>
-                    <span class="hub-fold-count" id="queueStatsFoldCount" data-empty="1"></span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <div class="hub-stats" id="queueStats"></div>
-                    </div>
-                </div>
             </div>
-        </section>
-
-        <section class="hub-section hub-fold" id="optionsManagerSection" data-fold>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">إدارة القوائم — Companies & Cities</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">إضافة أو حذف الشركات والمدن</span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <div class="options-manage-grid">
-                            <div class="options-manage-card">
-                                <h3>شركات النقل</h3>
-                                <div class="options-add-row">
-                                    <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
-                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
-                                </div>
-                                <p class="hub-status" id="companyOptionsStatus"></p>
-                                <div class="options-list" id="companyOptionsList"></div>
-                            </div>
-                            <div class="options-manage-card">
-                                <h3>المدن / الفروع</h3>
-                                <div class="options-add-row">
-                                    <input type="text" id="newCityInput" class="hub-input" placeholder="اسم المدينة أو الفرع…" autocomplete="off">
-                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCity">إضافة</button>
-                                </div>
-                                <p class="hub-status" id="cityOptionsStatus"></p>
-                                <div class="options-list" id="cityOptionsList"></div>
-                            </div>
+            <section class="hub-section hub-fold" id="statsFold" data-fold hidden>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">ملخص المخزون — Inventory Stats</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">إجمالي المركبات والمنتجات</span>
+                        <span class="hub-fold-count" id="statsFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <div class="hub-stats" id="stats"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+            <section class="hub-section hub-fold" id="queueStatsFold" data-fold hidden>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">ملخص القائمة — Queue Stats</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">حالات الترحيل الحية</span>
+                        <span class="hub-fold-count" id="queueStatsFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <div class="hub-stats" id="queueStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-        <section class="hub-section hub-section--xfer hub-fold is-open" id="xferDashSection" data-fold>
+        <div class="admin-pane" data-pane="analytics" id="pane-analytics">
+            <div class="admin-pane-head">
+                <h2>لوحة النقل</h2>
+                <p>اتجاهات · شركات · فروع · حالة الترحيل</p>
+            </div>
+
+            <section class="hub-section hub-section--xfer hub-fold is-open" id="xferDashSection" data-fold>
             <button type="button" class="hub-fold-toggle" aria-expanded="true">
                 <span class="hub-fold-title">لوحة النقل — Companies & Cities</span>
                 <span class="hub-fold-meta">
@@ -2125,45 +2466,101 @@
                 </div>
             </div>
         </section>
+        </div>
 
-        <section class="hub-section hub-fold" id="queueSection" data-fold>
-            <button type="button" class="hub-fold-toggle" aria-expanded="false">
-                <span class="hub-fold-title">قائمة المنسق — Coordinator Queue</span>
-                <span class="hub-fold-meta">
-                    <span class="hub-hint">تحديث فوري — Live sync</span>
-                    <span class="hub-fold-count" id="queueFoldCount" data-empty="1"></span>
-                    <span class="hub-fold-chevron" aria-hidden="true"></span>
-                </span>
-            </button>
-            <div class="hub-fold-body">
-                <div class="hub-fold-body-inner">
-                    <div class="hub-fold-content">
-                        <p class="hub-meta" style="margin-bottom:12px">Waiting for delivery · مع الفاضل/ياسين/البراء · تم الترحيل</p>
-                        <div class="hub-table-wrap">
-                            <table class="hub-table">
-                                <thead>
-                                    <tr>
-                                        <th>الشاسيه</th>
-                                        <th>Product</th>
-                                        <th>GT</th>
-                                        <th>Location</th>
-                                        <th>المسؤول</th>
-                                        <th>التصنيف</th>
-                                        <th>الحالة</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="queueBody">
-                                    <tr><td colspan="8" class="hub-empty">لا توجد شاسيه في القائمة</td></tr>
-                                </tbody>
-                            </table>
+        <div class="admin-pane" data-pane="users" id="pane-users">
+            <div class="admin-pane-head">
+                <h2>المنسقين</h2>
+                <p>Submitted vs Delivered · مقارنة المُسلَّم وتم الترحيل لكل منسق</p>
+            </div>
+            <section class="dh-user-dash saas-card" aria-label="User dashboard">
+                <div class="pbi-page">
+                    <aside class="pbi-slicer card">
+                        <h2>Coordinators</h2>
+                        <p class="pbi-slicer-hint">اضغط اسمًا لتصفية اللوحة · اضغط مرة أخرى للإلغاء</p>
+                        <input type="search" class="dh-user-search" id="userDashSearch" placeholder="Search user…" autocomplete="off" aria-label="Search coordinators">
+                        <div class="pbi-name-list" id="userDashNameList"></div>
+                    </aside>
+                    <div class="pbi-canvas">
+                        <article class="dh-coord-compare saas-card" id="userDashCompare" aria-label="Submitted vs delivered comparison">
+                            <div class="dh-coord-compare__head">
+                                <div>
+                                    <h2>Submitted vs Delivered</h2>
+                                    <p class="dh-coord-compare__sub">مقارنة السيارات المُسلَّمة (مذكرات) مع تم الترحيل · يتبع فلتر التاريخ</p>
+                                </div>
+                                <span class="dh-user-period" id="userDashComparePeriod"></span>
+                            </div>
+                            <div class="dh-coord-compare__totals">
+                                <div class="dh-coord-compare__stat is-submitted">
+                                    <span class="lab">Submitted · مُسلَّم</span>
+                                    <strong id="userDashCompareSubmitted">0</strong>
+                                    <span class="hint">cars on delivery notes</span>
+                                </div>
+                                <div class="dh-coord-compare__meter">
+                                    <div class="dh-coord-compare__rate" id="userDashCompareRate">0%</div>
+                                    <div class="dh-coord-compare__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                                        <span id="userDashCompareBarDelivered"></span>
+                                    </div>
+                                    <span class="dh-coord-compare__gap" id="userDashCompareGap">—</span>
+                                </div>
+                                <div class="dh-coord-compare__stat is-delivered">
+                                    <span class="lab">Delivered · تم الترحيل</span>
+                                    <strong id="userDashCompareDelivered">0</strong>
+                                    <span class="hint">marked delivered on queue</span>
+                                </div>
+                            </div>
+                            <div id="userDashCompareChart" class="dh-coord-compare__chart"></div>
+                        </article>
+                        <div class="pbi-filter-bar" id="userDashFilterBar" hidden>
+                            <span>Filtered to <strong id="userDashFilterName"></strong></span>
+                            <button type="button" id="userDashClearSel">Clear filter</button>
+                        </div>
+                        <div class="pbi-kpis dh-user-kpis" id="userDashKpis"></div>
+                        <div class="pbi-visuals dh-user-visuals">
+                            <article class="card pbi-viz saas-section">
+                                <div class="pbi-viz-head">
+                                    <h2>Cars per coordinator</h2>
+                                    <span class="dh-user-period" id="userDashPeriodLabel"></span>
+                                </div>
+                                <div id="userDashChart" class="dh-user-chart"></div>
+                            </article>
+                            <article class="card pbi-viz saas-section pbi-viz--wide">
+                                <div class="pbi-viz-head">
+                                    <h2>Summary by user</h2>
+                                    <span class="dh-user-period">Submitted = cars on notes · Delivered = queue status</span>
+                                </div>
+                                <div class="xl-table-wrap">
+                                    <table class="xl-table dh-user-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="tl">User / المنسق</th>
+                                                <th class="num">Submitted</th>
+                                                <th class="num">Delivered</th>
+                                                <th class="num">Pending</th>
+                                                <th class="num">Rate %</th>
+                                                <th class="num">Notes</th>
+                                                <th class="num">In stock</th>
+                                                <th class="num">Ready</th>
+                                                <th class="num">Waiting</th>
+                                                <th class="num">Share %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="userDashTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </article>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
 
-        <section class="hub-section hub-fold is-open" id="draftsSection" data-fold>
+        <div class="admin-pane" data-pane="pdfs" id="pane-pdfs">
+            <div class="admin-pane-head">
+                <h2>ملفات PDF</h2>
+                <p>جميع مذكرات الترحيل · تسليم المستودع</p>
+            </div>
+            <section class="hub-section hub-fold is-open" id="draftsSection" data-fold>
             <button type="button" class="hub-fold-toggle" aria-expanded="true">
                 <span class="hub-fold-title">جميع ملفات PDF — All Car PDFs</span>
                 <span class="hub-fold-meta">
@@ -2236,8 +2633,7 @@
                 </div>
             </div>
         </section>
-
-        <section class="hub-section hub-fold" id="warehouseDraftsSection" data-fold hidden>
+            <section class="hub-section hub-fold" id="warehouseDraftsSection" data-fold hidden>
             <button type="button" class="hub-fold-toggle" aria-expanded="false">
                 <span class="hub-fold-title">التسليم في المستودع — Warehouse Delivery</span>
                 <span class="hub-fold-meta">
@@ -2254,11 +2650,91 @@
                 </div>
             </div>
         </section>
+        </div>
 
-        <p class="hub-status" id="uploadStatus"></p>
-        <p class="hub-meta" id="uploadMeta" style="display:none"></p>
+        <div class="admin-pane" data-pane="queue" id="pane-queue">
+            <div class="admin-pane-head">
+                <h2>قائمة المنسق</h2>
+                <p>الشاسيه المرسلة للفريق وحالاتها</p>
+            </div>
+            <section class="hub-section hub-fold" id="queueSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">قائمة المنسق — Coordinator Queue</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">تحديث فوري — Live sync</span>
+                    <span class="hub-fold-count" id="queueFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <p class="hub-meta" style="margin-bottom:12px">Waiting for delivery · مع الفاضل/ياسين/البراء · تم الترحيل</p>
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>الشاسيه</th>
+                                        <th>Product</th>
+                                        <th>GT</th>
+                                        <th>Location</th>
+                                        <th>المسؤول</th>
+                                        <th>التصنيف</th>
+                                        <th>الحالة</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="queueBody">
+                                    <tr><td colspan="8" class="hub-empty">لا توجد شاسيه في القائمة</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
 
-        <section class="hub-section hub-fold" id="productsSection" data-fold>
+        <div class="admin-pane" data-pane="yard" id="pane-yard">
+            <div class="admin-pane-head">
+                <h2>العرض والمخزون</h2>
+                <p>موقف العرض · المنتجات · سجل المركبات</p>
+            </div>
+            <section class="hub-section hub-fold" id="showroomParkingSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">Showroom Cars — موقف العرض (7 أماكن)</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">من Showroom Admin</span>
+                    <span class="hub-fold-count" id="showroomParkingFoldCount" data-empty="1"></span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <p class="hub-meta" style="margin-bottom:12px" id="showroomParkingMeta">سيارات متوقفة في موقف العرض — مرتبطة بحساب showroom admin</p>
+                        <div class="hub-table-wrap">
+                            <table class="hub-table">
+                                <thead>
+                                    <tr>
+                                        <th>الموقف</th>
+                                        <th>الشاسيه</th>
+                                        <th>Product</th>
+                                        <th>اللوحة</th>
+                                        <th>أدخل بواسطة</th>
+                                        <th>وقت الدخول</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="showroomParkingBody">
+                                    <tr><td colspan="6" class="hub-empty">لا توجد سيارات في موقف العرض</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+            <section class="hub-section hub-fold" id="productsSection" data-fold>
             <button type="button" class="hub-fold-toggle" aria-expanded="false">
                 <span class="hub-fold-title">توزيع المنتجات — Products</span>
                 <span class="hub-fold-meta">
@@ -2276,8 +2752,7 @@
                 </div>
             </div>
         </section>
-
-        <section class="hub-section hub-fold" id="inventorySection" data-fold>
+            <section class="hub-section hub-fold" id="inventorySection" data-fold>
             <button type="button" class="hub-fold-toggle" aria-expanded="false">
                 <span class="hub-fold-title">سجل المركبات — Vehicle Inventory</span>
                 <span class="hub-fold-meta">
@@ -2316,7 +2791,121 @@
                 </div>
             </div>
         </section>
-    </div>
+        </div>
+
+        <div class="admin-pane" data-pane="tools" id="pane-tools">
+            <div class="admin-pane-head">
+                <h2>الإعدادات والأرشيف</h2>
+                <p>استيراد · شركات ومدن · سجل VIN · الأشهر السابقة</p>
+            </div>
+            <div class="admin-restore-box saas-card saas-section hub-fold" id="adminRestoreBox" data-fold style="margin-top:10px">
+            <button type="button" class="hub-fold-toggle" aria-expanded="false" style="width:100%;background:transparent;border:0;padding:0;text-align:inherit;cursor:pointer">
+                <div class="saas-section__head" style="margin:0;width:100%">
+                    <div>
+                        <h3>الإعدادات والأرشيف</h3>
+                        <p>استعادة تصدير قديم · تحديث Sales Raw من صفحة المنسق</p>
+                    </div>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </div>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+            <div class="admin-restore-actions">
+                <label class="hub-btn hub-btn--primary restore-file-btn" id="btnRestoreExport">
+                    <input type="file" id="restoreExportInput" accept=".xlsx,.xls">
+                    استيراد أرشيف delivery_export
+                </label>
+                <span class="hub-meta" id="restoreExportMeta">لم يتم استيراد أرشيف بعد</span>
+                <a href="Delivery_coordinator.html" class="hub-btn" style="text-decoration:none">تحديث Sales Raw من المنسق</a>
+            </div>
+            <p class="hub-status" id="restoreExportStatus" style="min-height:1.4em"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+            <section class="hub-section hub-fold" id="optionsManagerSection" data-fold>
+            <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                <span class="hub-fold-title">إدارة القوائم — Companies & Cities</span>
+                <span class="hub-fold-meta">
+                    <span class="hub-hint">إضافة أو حذف الشركات والمدن</span>
+                    <span class="hub-fold-chevron" aria-hidden="true"></span>
+                </span>
+            </button>
+            <div class="hub-fold-body">
+                <div class="hub-fold-body-inner">
+                    <div class="hub-fold-content">
+                        <div class="options-manage-grid">
+                            <div class="options-manage-card">
+                                <h3>شركات النقل</h3>
+                                <div class="options-add-row">
+                                    <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
+                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
+                                </div>
+                                <p class="hub-status" id="companyOptionsStatus"></p>
+                                <div class="options-list" id="companyOptionsList"></div>
+                            </div>
+                            <div class="options-manage-card">
+                                <h3>المدن / الفروع</h3>
+                                <div class="options-add-row">
+                                    <input type="text" id="newCityInput" class="hub-input" placeholder="اسم المدينة أو الفرع…" autocomplete="off">
+                                    <button type="button" class="hub-btn hub-btn--primary" id="btnAddCity">إضافة</button>
+                                </div>
+                                <p class="hub-status" id="cityOptionsStatus"></p>
+                                <div class="options-list" id="cityOptionsList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+            <section class="hub-section hub-fold" id="vinHistorySection" data-fold>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">سجل VIN المكرر — Duplicate VIN History</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">عدة مذكرات لنفس الشاسيه</span>
+                        <span class="hub-fold-count" id="vinHistoryFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <div class="pdf-browser-search" style="margin-bottom:12px;max-width:360px">
+                                <input type="search" id="vinHistorySearch" class="hub-input" placeholder="بحث VIN لعرض السجل الكامل…" autocomplete="off">
+                            </div>
+                            <div id="vinHistoryPanel" class="hub-meta">لا توجد بيانات</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="hub-section hub-fold" id="lastMonthsSection" data-fold>
+                <button type="button" class="hub-fold-toggle" aria-expanded="false">
+                    <span class="hub-fold-title">الأشهر السابقة — Last Months Archive</span>
+                    <span class="hub-fold-meta">
+                        <span class="hub-hint">تم الترحيل المخفي من المنسق منذ يوم 1 لكل شهر</span>
+                        <span class="hub-fold-count" id="lastMonthsFoldCount" data-empty="1"></span>
+                        <span class="hub-fold-chevron" aria-hidden="true"></span>
+                    </span>
+                </button>
+                <div class="hub-fold-body">
+                    <div class="hub-fold-body-inner">
+                        <div class="hub-fold-content">
+                            <p class="hub-meta" style="margin-bottom:12px">
+                                من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
+                            </p>
+                            <div id="lastMonthsFolders" class="last-months-folders"></div>
+                            <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        </div><!-- /admin-workspace -->
+            </div><!-- /admin-main -->
+        </div><!-- /admin-layout -->
+    </div><!-- /adminApp -->
 
     <script>
         const ADMIN_PASSWORD = '1234';
@@ -2324,24 +2913,90 @@
         let allVehicles = [];
         let allQueue = [];
         let allDrafts = [];
+        let allShowroomParking = [];
+        let showroomParkingOccupancy = null;
         let lastDashboard = null;
+        let dashboardLoading = false;
+        let dashboardLoadSeq = 0;
+        let refreshDashboardTimer = null;
+        let _cachedDraftCount = -1;
+        let _userDashCount = 0;
+        let _vinLookup = null;
+        let userDashSearch = '';
+        let rawGapPanelOpen = false;
+        let rawGapSearch = '';
+        let rawGapStatusFilter = 'all';
+        let _lastRawGapData = null;
+        const UNASSIGNED_USER = 'غير معيّن';
         /** Warehouse deliveries show under this label — not as a transport company. */
         const WAREHOUSE_SPECIAL_NAME = 'مستودع الهاتفية';
         /** Showroom cars (ياسين) — flagged separately in admin. */
         const SHOWROOM_SPECIAL_NAME = 'سيارات عرض الصالة';
         const SHOWROOM_AGENT = 'ياسين';
 
+        function onLiveSync() {
+            if (!adminAuthed || dashboardLoading) return;
+            return loadDashboard({ quiet: true });
+        }
+
+        function pauseLiveSync() {
+            if (window.DeliveryHubLive) DeliveryHubLive.stop();
+        }
+
+        function resumeLiveSync() {
+            if (!adminAuthed || !window.DeliveryHubLive) return;
+            DeliveryHubLive.start(onLiveSync, { pollMs: 45000, minRefreshGapMs: 25000 });
+        }
+
+        function isAdminPaneActive(paneId) {
+            const pane = document.querySelector(`.admin-pane[data-pane="${paneId}"]`);
+            return Boolean(pane && pane.classList.contains('is-active'));
+        }
+
+        function rebuildVinLookup() {
+            const draftByVin = new Map();
+            const queueByVin = new Map();
+            (allDrafts || []).forEach((d) => {
+                draftVinList(d).forEach((vin) => {
+                    if (!draftByVin.has(vin)) draftByVin.set(vin, d);
+                });
+            });
+            (allQueue || []).forEach((q) => {
+                const vin = normVinKey(q.vin);
+                if (vin) queueByVin.set(vin, q);
+            });
+            _vinLookup = { draftByVin, queueByVin };
+        }
+
+        function countCoordinatorsQuick() {
+            const set = new Set();
+            filteredDrafts({ coordinator: false }).forEach((d) => {
+                if (isWarehouseAdminDraft(d) || isShowroomAdminDraft(d)) return;
+                const name = userLabelFromDraft(d);
+                if (name && name !== UNASSIGNED_USER) set.add(name);
+            });
+            filteredQueue({ coordinator: false }).forEach((q) => {
+                const name = userLabelFromQueue(q);
+                if (name && name !== UNASSIGNED_USER) set.add(name);
+            });
+            return set.size;
+        }
+
         function unlockAdmin() {
             adminAuthed = true;
             document.getElementById('adminGate').classList.add('hidden');
             document.getElementById('adminApp').classList.remove('hidden');
+            initPremiumFilterToolbar();
+            initPdfBrowserControls();
+            initDnMonthFilter();
+            initRawGapControls();
+            document.getElementById('userDashSearch')?.addEventListener('input', (e) => {
+                userDashSearch = e.target.value || '';
+                renderUserDashboard();
+            });
+            document.getElementById('userDashClearSel')?.addEventListener('click', clearUserDashboardSelection);
             loadDashboard().catch((err) => setUploadStatus(err.message, 'err'));
-            if (window.DeliveryHubLive) {
-                DeliveryHubLive.start(() => {
-                    if (!adminAuthed) return;
-                    return loadDashboard();
-                });
-            }
+            resumeLiveSync();
         }
 
         function lockAdmin() {
@@ -2372,9 +3027,15 @@
 
         function setRestoreStatus(msg, type) {
             const el = document.getElementById('restoreExportStatus');
-            if (!el) return;
-            el.textContent = msg || '';
-            el.className = 'hub-status' + (type ? ` ${type}` : '');
+            if (el) {
+                el.textContent = msg || '';
+                el.className = 'hub-status' + (type ? ` ${type}` : '');
+            }
+            const top = document.getElementById('adminUploadStatus');
+            if (top) {
+                top.textContent = msg || '';
+                top.className = 'hub-status' + (type ? ` ${type}` : '');
+            }
         }
 
         function syncRestoreMetaFromDashboard() {
@@ -2383,6 +3044,44 @@
             const name = String((lastDashboard && lastDashboard.filename) || '').trim();
             if (!name) return;
             meta.textContent = `${name} · ${allVehicles.length} مركبة · ${allDrafts.length} مسودة · ${allQueue.length} قائمة`;
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('فشل قراءة الملف من الجهاز'));
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function postArchiveFile(file) {
+            const buffer = await file.arrayBuffer();
+            let res = await fetch('/api/delivery-inventory/restore-export-bin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'X-Filename': encodeURIComponent(file.name || 'delivery_export.xlsx')
+                },
+                body: buffer
+            });
+            if (res.status === 404) {
+                const readerResult = await readFileAsDataUrl(file);
+                res = await fetch('/api/delivery-inventory/restore-export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileData: readerResult, filename: file.name })
+                });
+            }
+            const text = await res.text();
+            let data = {};
+            try { data = text ? JSON.parse(text) : {}; } catch (_) {
+                throw new Error(res.status === 413
+                    ? 'الملف كبير جداً — جرّب ملفاً أصغر أو قسّم البيانات'
+                    : `فشل الاستيراد (HTTP ${res.status})`);
+            }
+            if (!res.ok) throw new Error(data.error || 'فشل الاستيراد');
+            return data;
         }
 
         async function restoreExportFile(file) {
@@ -2396,48 +3095,83 @@
                 return;
             }
             setRestoreStatus('جاري استيراد الأرشيف…');
+            pauseLiveSync();
             try {
-                const readerResult = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onerror = () => reject(new Error('فشل قراءة الملف من الجهاز'));
-                    reader.onload = () => resolve(reader.result);
-                    reader.readAsDataURL(file);
-                });
-                const res = await fetch('/api/delivery-inventory/restore-export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fileData: readerResult, filename: file.name })
-                });
-                const text = await res.text();
-                let data = {};
-                try { data = text ? JSON.parse(text) : {}; } catch (_) {
-                    throw new Error(res.status === 413
-                        ? 'الملف كبير جداً للخادم'
-                        : `فشل الاستيراد (HTTP ${res.status})`);
-                }
-                if (!res.ok) throw new Error(data.error || 'فشل الاستيراد');
+                setRestoreStatus(`جاري رفع ${file.name} (${Math.round(file.size / 1024)} KB)…`);
+                const data = await postArchiveFile(file);
                 const meta = document.getElementById('restoreExportMeta');
                 if (meta) {
                     meta.textContent = `${file.name} · ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة`;
                 }
+                const modeNote = data.mode === 'inventory_only'
+                    ? ' · مركبات فقط (المسودات/القائمة لم تُستبدَل)'
+                    : '';
                 setRestoreStatus(
-                    `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} في القائمة`,
+                    `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة${modeNote}`,
                     'ok'
                 );
-                await loadDashboard();
+                await loadDashboard({ force: true, quiet: true });
                 if (data.draftsImported) openFold('draftsSection', { scroll: true });
                 else openFold('inventorySection', { scroll: true });
             } catch (err) {
                 setRestoreStatus(err.message || 'فشل الاستيراد', 'err');
+            } finally {
+                resumeLiveSync();
             }
         }
 
+        async function uploadSalesRawFile(file) {
+            if (!file) {
+                setRestoreStatus('اختر ملف Sales Raw أولاً', 'err');
+                return;
+            }
+            setRestoreStatus(`جاري رفع Sales Raw: ${file.name}…`);
+            pauseLiveSync();
+            try {
+                const readerResult = await readFileAsDataUrl(file);
+                const res = await fetch('/api/delivery-inventory/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileData: readerResult, filename: file.name })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'فشل رفع Sales Raw');
+                setRestoreStatus(
+                    `تم رفع Sales Raw · ${data.imported || 0} صف · حدّثت القائمة من البيانات الجديدة`,
+                    'ok'
+                );
+                await loadDashboard({ force: true });
+                showAdminPane('overview');
+            } catch (err) {
+                setRestoreStatus(err.message || 'فشل رفع Sales Raw', 'err');
+            } finally {
+                resumeLiveSync();
+            }
+        }
+
+        function wireFileInput(inputId, handler) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) handler(file);
+                e.target.value = '';
+            });
+        }
+
+        function triggerInput(id) {
+            document.getElementById(id)?.click();
+        }
+
         // Native file input sits on top of the blue label — no programmatic .click() needed.
-        document.getElementById('restoreExportInput')?.addEventListener('change', (e) => {
-            const file = e.target.files && e.target.files[0];
-            if (file) restoreExportFile(file);
-            e.target.value = '';
-        });
+        wireFileInput('restoreExportInput', restoreExportFile);
+        wireFileInput('restoreExportInputTop', restoreExportFile);
+        wireFileInput('salesRawUploadInput', uploadSalesRawFile);
+
+        document.getElementById('btnUploadArchive')?.addEventListener('click', () => triggerInput('restoreExportInputTop'));
+        document.getElementById('btnUploadArchive2')?.addEventListener('click', () => triggerInput('restoreExportInputTop'));
+        document.getElementById('btnUploadSalesRaw')?.addEventListener('click', () => triggerInput('salesRawUploadInput'));
+        document.getElementById('btnUploadSalesRaw2')?.addEventListener('click', () => triggerInput('salesRawUploadInput'));
 
         function setFoldOpen(section, open) {
             if (!section) return;
@@ -2446,10 +3180,36 @@
             if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
 
+        function showAdminPane(paneId, { openFolds = true } = {}) {
+            const id = String(paneId || 'overview');
+            document.querySelectorAll('.admin-pane').forEach((pane) => {
+                pane.classList.toggle('is-active', pane.dataset.pane === id);
+            });
+            document.querySelectorAll('[data-pane-target]').forEach((btn) => {
+                btn.classList.toggle('is-active', btn.dataset.paneTarget === id);
+            });
+            if (openFolds) {
+                const pane = document.querySelector(`.admin-pane[data-pane="${id}"]`);
+                pane?.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, true));
+            }
+            try { sessionStorage.setItem('deliveryAdminPane', id); } catch (_) { /* ignore */ }
+            // Charts in newly visible panes need a size refresh
+            requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('resize'));
+                if (adminAuthed) refreshTransferDashboard();
+            });
+        }
+
+        function paneForSection(section) {
+            return section?.closest?.('.admin-pane')?.dataset?.pane || '';
+        }
+
         function openFold(sectionOrId, { scroll = false } = {}) {
             const section = typeof sectionOrId === 'string'
                 ? document.getElementById(sectionOrId)
                 : sectionOrId;
+            const pane = paneForSection(section);
+            if (pane) showAdminPane(pane, { openFolds: false });
             setFoldOpen(section, true);
             if (scroll && section) {
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2464,19 +3224,34 @@
             el.dataset.empty = n > 0 ? '0' : '1';
         }
 
+        function setNavCount(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const n = Number(value) || 0;
+            el.textContent = n > 0 ? String(n) : '';
+            el.hidden = n <= 0;
+        }
+
         function updateFoldCounts() {
             const vehicleCount = allVehicles.length;
             const queueCount = allQueue.length;
             const draftCount = allDrafts.length;
             const productCount = (lastDashboard && lastDashboard.uniqueProducts) || 0;
+            const yardCount = (allShowroomParking || []).length;
             setFoldCount('statsFoldCount', vehicleCount);
             setFoldCount('queueStatsFoldCount', queueCount);
             setFoldCount('queueFoldCount', queueCount);
             setFoldCount('draftsFoldCount', draftCount);
             setFoldCount('warehouseDraftsFoldCount', (allDrafts || []).filter(isWarehouseAdminDraft).length);
+            setFoldCount('showroomParkingFoldCount', yardCount);
             setFoldCount('xferFoldCount', draftCount);
             setFoldCount('inventoryFoldCount', vehicleCount);
             setFoldCount('productsFoldCount', productCount);
+            setNavCount('navCountXfer', draftCount);
+            setNavCount('navCountUsers', _userDashCount || countCoordinatorsQuick());
+            setNavCount('navCountPdfs', draftCount);
+            setNavCount('navCountQueue', queueCount);
+            setNavCount('navCountYard', yardCount);
         }
 
         document.querySelectorAll('[data-fold]').forEach((section) => {
@@ -2487,17 +3262,52 @@
             });
         });
 
-        document.getElementById('btnExpandAll')?.addEventListener('click', () => {
-            document.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, true));
-        });
-        document.getElementById('btnCollapseAll')?.addEventListener('click', () => {
-            document.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, false));
+        document.getElementById('adminNav')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-pane-target]');
+            if (!btn) return;
+            showAdminPane(btn.dataset.paneTarget);
         });
 
+        document.getElementById('topbarSearchProxy')?.addEventListener('focus', () => {
+            const vin = document.getElementById('ftSearchInput');
+            if (vin) {
+                vin.focus();
+                vin.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+        document.getElementById('topbarSearchProxy')?.addEventListener('input', (e) => {
+            const vin = document.getElementById('ftSearchInput');
+            if (!vin) return;
+            vin.value = e.target.value;
+            vin.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        document.getElementById('btnExpandAll')?.addEventListener('click', () => {
+            const active = document.querySelector('.admin-pane.is-active') || document;
+            active.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, true));
+        });
+        document.getElementById('btnCollapseAll')?.addEventListener('click', () => {
+            const active = document.querySelector('.admin-pane.is-active') || document;
+            active.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, false));
+        });
+
+        try {
+            const savedPane = sessionStorage.getItem('deliveryAdminPane');
+            if (savedPane) showAdminPane(savedPane);
+        } catch (_) { /* ignore */ }
+
         function setUploadStatus(msg, type) {
+            const cls = 'hub-status' + (type ? ` ${type}` : '');
             const el = document.getElementById('uploadStatus');
-            el.textContent = msg || '';
-            el.className = 'hub-status' + (type ? ` ${type}` : '');
+            if (el) {
+                el.textContent = msg || '';
+                el.className = cls;
+            }
+            const top = document.getElementById('adminUploadStatus');
+            if (top) {
+                top.textContent = msg || '';
+                top.className = cls;
+            }
         }
 
         function excelStamp() {
@@ -2694,7 +3504,7 @@
         function renderPremiumKpis() {
             const host = document.getElementById('premiumKpiGrid');
             if (!host) return;
-            const progress = deliveredOfTotalStats();
+            const progress = rawAssignedDeliveredStats();
             const warehouse = warehouseDeliveredStats();
             const drafts = filteredDrafts();
             const vehicles = filteredVehicleList();
@@ -2710,21 +3520,24 @@
                     .map((d) => String((d.payload || {}).branch_to || '').trim())
                     .filter((n) => n && n !== '-' && n !== 'المستودع')
             ).size;
+            const assignedLabel = progress.source === 'raw' ? 'مُسند · Assigned' : 'إجمالي المركبات';
+            const assignedVal = progress.source === 'raw' ? progress.assigned : vehicles.length;
             const cards = [
-                { label: 'إجمالي المركبات', value: vehicles.length, trend: 'ضمن النطاق الحالي', accent: '#3B82F6', icon: '🚗' },
-                { label: 'تم الترحيل', value: progress.delivered, trend: `${progress.pct}% من الإجمالي`, accent: '#22C55E', icon: '✓' },
-                { label: 'تم التسليم في المستودع', value: warehouse.count, trend: `${warehouse.pct}% من الإجمالي`, accent: '#0EA5E9', icon: '🏭' },
-                { label: 'متبقي', value: progress.remaining, trend: 'قيد التنفيذ / غير مرحّل', accent: '#F59E0B', icon: '⏳' },
-                { label: 'الشركات', value: companies, trend: 'من المذكرات المصفّاة', accent: '#3B82F6', icon: '🏢' },
-                { label: 'الفروع', value: branches, trend: 'وجهات التحويل', accent: '#64748B', icon: '📍' },
-                { label: 'نسبة الترحيل', value: `${progress.pct}%`, trend: `${progress.delivered} من ${progress.total}`, accent: '#22C55E', icon: '%' },
-                { label: 'نسبة التسليم في المستودع', value: `${warehouse.pct}%`, trend: `${warehouse.count} من ${warehouse.total}`, accent: '#0EA5E9', icon: '%' }
+                { label: assignedLabel, value: assignedVal, trend: progress.source === 'raw' ? (progress.period?.label || 'Col P month') : 'ضمن النطاق الحالي', accent: '#6C5CE7', soft: '#eeebff', icon: '▣' },
+                { label: 'تم الترحيل · Delivered', value: progress.delivered, trend: `${progress.pct}% delivered`, accent: '#2EC4B6', soft: '#e6faf7', icon: '✓' },
+                { label: 'الفجوة · Gap', value: progress.gap ?? progress.remaining, trend: 'without delivery note', accent: '#FF8A4C', soft: '#fff1e8', icon: '◷' },
+                { label: 'سيارات العرض', value: (allShowroomParking || []).length, trend: 'موقف SR', accent: '#F472B6', soft: '#fce7f3', icon: '✚' }
             ];
+            // Keep secondary metrics available for logic/tooltips via data attributes
+            host.dataset.warehouse = String(warehouse.count);
+            host.dataset.companies = String(companies);
+            host.dataset.branches = String(branches);
             host.innerHTML = cards.map((c) => `
                 <article class="saas-kpi saas-card">
-                    <div class="saas-kpi__icon" style="color:${c.accent};background:${c.accent}22">${c.icon}</div>
-                    <div class="saas-kpi__label">${c.label}</div>
+                    <div class="saas-kpi__icon" style="color:${c.accent};background:${c.soft}">${c.icon}</div>
                     <div class="saas-kpi__value">${c.value}</div>
+                    <div class="saas-kpi__label">${c.label}</div>
+                    <div class="saas-kpi__menu" aria-hidden="true">⋯</div>
                     <div class="saas-kpi__trend">${c.trend}</div>
                     <span class="saas-kpi__accent" style="background:${c.accent}"></span>
                 </article>
@@ -2820,7 +3633,7 @@
                         dynamicAnimation: { enabled: true, speed: 280 }
                     }
                 },
-                theme: { mode: 'dark' },
+                theme: { mode: 'light' },
                 plotOptions: {
                     bar: {
                         borderRadius: 7,
@@ -2842,11 +3655,11 @@
                         stops: [0, 100]
                     }
                 },
-                colors: ['#3B82F6'],
+                colors: ['#6C5CE7'],
                 dataLabels: {
                     enabled: true,
                     offsetY: -14,
-                    style: { colors: ['#E2E8F0'], fontSize: '11px', fontWeight: 700 },
+                    style: { colors: ['#64748B'], fontSize: '11px', fontWeight: 700 },
                     formatter: (val) => (val ? String(val) : '')
                 },
                 grid: {
@@ -2883,6 +3696,71 @@
             });
         }
 
+        function renderSubmittedDeliveredChart(el, rows) {
+            if (!el) return;
+            const top = (rows || [])
+                .filter((r) => r.submitted > 0 || r.delivered > 0)
+                .slice(0, 12);
+            if (!top.length) {
+                el.innerHTML = '<div class="saas-empty">لا توجد بيانات للمقارنة في هذه الفترة</div>';
+                return;
+            }
+            renderApex(el, {
+                chart: {
+                    type: 'bar',
+                    height: Math.max(220, top.length * 36),
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    fontFamily: 'Inter, Tajawal, sans-serif',
+                    animations: { enabled: true, speed: 400 }
+                },
+                theme: { mode: 'light' },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                        borderRadius: 4,
+                        barHeight: '72%',
+                        dataLabels: { position: 'top' }
+                    }
+                },
+                colors: ['#6C5CE7', '#2EC4B6'],
+                dataLabels: {
+                    enabled: true,
+                    offsetX: 6,
+                    style: { colors: ['#64748B'], fontSize: '10px', fontWeight: 700 }
+                },
+                grid: {
+                    borderColor: 'rgba(15,23,42,0.08)',
+                    strokeDashArray: 3,
+                    xaxis: { lines: { show: true } },
+                    yaxis: { lines: { show: false } },
+                    padding: { left: 8, right: 20 }
+                },
+                series: [
+                    { name: 'Submitted', data: top.map((r) => r.submitted) },
+                    { name: 'Delivered', data: top.map((r) => r.delivered) }
+                ],
+                xaxis: {
+                    categories: top.map((r) => r.name),
+                    labels: { style: { colors: '#64748B', fontSize: '11px' } }
+                },
+                yaxis: {
+                    labels: { style: { colors: '#64748B', fontSize: '11px' } }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    fontSize: '12px',
+                    labels: { colors: '#64748B' }
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: { formatter: (val) => `${val} cars` }
+                }
+            });
+        }
+
         function renderHorizontalBars(el, rows, color) {
             if (!el) return;
             if (!rows.length) {
@@ -2899,7 +3777,7 @@
                     fontFamily: 'Inter, Tajawal, sans-serif',
                     animations: { enabled: true, speed: 400 }
                 },
-                theme: { mode: 'dark' },
+                theme: { mode: 'light' },
                 plotOptions: {
                     bar: {
                         horizontal: true,
@@ -2923,7 +3801,7 @@
                 dataLabels: {
                     enabled: true,
                     offsetX: 6,
-                    style: { colors: ['#E2E8F0'], fontSize: '11px', fontWeight: 700 }
+                    style: { colors: ['#64748B'], fontSize: '11px', fontWeight: 700 }
                 },
                 grid: {
                     borderColor: 'rgba(255,255,255,0.06)',
@@ -2974,6 +3852,7 @@
 
         function renderTable(list) {
             const tbody = document.getElementById('tableBody');
+            if (!tbody) return;
             if (!list.length) {
                 tbody.innerHTML = '<tr><td colspan="9" class="hub-empty">لا توجد نتائج</td></tr>';
                 return;
@@ -3302,17 +4181,20 @@
             const chips = [];
             const { type, from, to } = getTrackFilter();
             if (from || to) {
+                const presetLabel = trackDatePresetLabel(trackDatePreset);
+                const rangeLabel = from === to ? from : `${from || '…'} → ${to || '…'}`;
                 chips.push({
                     key: 'date',
-                    label: `${type === 'invoice' ? 'Invoice' : 'DN'} ${from || '…'} → ${to || '…'}`,
-                    clear: () => {
-                        document.getElementById('trackDateFrom').value = '';
-                        document.getElementById('trackDateTo').value = '';
-                        document.getElementById('ftDateFromUi').value = '';
-                        document.getElementById('ftDateToUi').value = '';
-                        syncDateControlsFromNatives();
-                        applyTrackFilter();
-                    }
+                    label: trackDatePreset === 'custom'
+                        ? `${type === 'invoice' ? 'Invoice' : 'DN'} ${rangeLabel}`
+                        : `${presetLabel}${from && to && from !== to ? ` · ${rangeLabel}` : from ? ` · ${from}` : ''}`,
+                    clear: () => applyTrackDatePreset('today')
+                });
+            } else if (trackDatePreset === 'all') {
+                chips.push({
+                    key: 'date',
+                    label: 'All dates',
+                    clear: () => applyTrackDatePreset('today')
                 });
             }
             if (type === 'invoice') {
@@ -3385,9 +4267,14 @@
         }
 
         function initPremiumFilterToolbar() {
+            initTrackDateFromStorage();
             syncDateControlsFromNatives();
             renderAllFtSelects();
             renderFilterChips();
+
+            document.getElementById('ftDatePreset')?.addEventListener('change', (e) => {
+                applyTrackDatePreset(e.target.value || 'today');
+            });
 
             document.querySelectorAll('[data-ft-select] .ft-control__trigger').forEach((btn) => {
                 btn.addEventListener('click', (e) => {
@@ -3414,23 +4301,22 @@
 
             const dateControl = document.getElementById('ftDateControl');
             const syncAndApplyDates = () => {
+                trackDatePreset = 'custom';
+                const presetSel = document.getElementById('ftDatePreset');
+                if (presetSel) presetSel.value = 'custom';
+                syncTrackDateCustomVisibility();
                 pushDatesToNatives();
+                saveTrackDateFilter();
                 renderFilterChips();
                 applyTrackFilter();
             };
             document.getElementById('ftDateFromUi')?.addEventListener('change', syncAndApplyDates);
             document.getElementById('ftDateToUi')?.addEventListener('change', syncAndApplyDates);
+            document.getElementById('ftDateFromUi')?.addEventListener('input', syncAndApplyDates);
+            document.getElementById('ftDateToUi')?.addEventListener('input', syncAndApplyDates);
             document.getElementById('ftDateFromUi')?.addEventListener('click', (e) => e.stopPropagation());
             document.getElementById('ftDateToUi')?.addEventListener('click', (e) => e.stopPropagation());
             dateControl?.addEventListener('click', (e) => e.stopPropagation());
-            document.getElementById('ftDateToday')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const today = getSaudiTodayIso();
-                document.getElementById('ftDateFromUi').value = today;
-                document.getElementById('ftDateToUi').value = today;
-                syncAndApplyDates();
-            });
 
             document.getElementById('ftMoreBtn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3490,6 +4376,14 @@
         let managedCompanies = [];
         let managedCities = [];
 
+        function userLabelFromDraft(d) {
+            return String(d?.assignedTo || d?.entryAgent || '').trim() || UNASSIGNED_USER;
+        }
+
+        function userLabelFromQueue(q) {
+            return String(q?.entryAgent || q?.assignedTo || '').trim() || UNASSIGNED_USER;
+        }
+
         function escapeHtml(value) {
             return String(value || '')
                 .replace(/&/g, '&amp;')
@@ -3504,6 +4398,123 @@
                 month: '2-digit',
                 day: '2-digit'
             }).format(new Date());
+        }
+
+        const TRACK_DATE_FILTER_KEY = 'toyota_delivery_track_date_v1';
+        let trackDatePreset = 'today';
+
+        function trackDatePresetLabel(preset) {
+            const labels = {
+                today: 'Today',
+                yesterday: 'Yesterday',
+                last_7: 'Last 7 days',
+                this_month: 'This month (MTD)',
+                last_month: 'Last month',
+                all: 'All dates',
+                custom: 'Custom range'
+            };
+            return labels[preset] || preset || 'Today';
+        }
+
+        function loadTrackDateFilter() {
+            try {
+                const raw = localStorage.getItem(TRACK_DATE_FILTER_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (_) { /* ignore */ }
+            return { preset: 'today', from: '', to: '' };
+        }
+
+        function saveTrackDateFilter() {
+            try {
+                const { from, to } = getTrackFilter();
+                localStorage.setItem(TRACK_DATE_FILTER_KEY, JSON.stringify({
+                    preset: trackDatePreset,
+                    from,
+                    to
+                }));
+            } catch (_) { /* ignore */ }
+        }
+
+        function addDaysIso(iso, delta) {
+            const parts = String(iso || '').split('-').map(Number);
+            if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return iso;
+            const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + delta, 12, 0, 0));
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Riyadh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(d);
+        }
+
+        function resolveTrackDatePeriod(preset) {
+            const key = preset || trackDatePreset || 'today';
+            const today = getSaudiTodayIso();
+            const [y, m] = today.split('-').map(Number);
+            if (key === 'today') return { from: today, to: today };
+            if (key === 'yesterday') {
+                const yd = addDaysIso(today, -1);
+                return { from: yd, to: yd };
+            }
+            if (key === 'last_7') return { from: addDaysIso(today, -6), to: today };
+            if (key === 'this_month') {
+                return { from: `${y}-${String(m).padStart(2, '0')}-01`, to: today };
+            }
+            if (key === 'last_month') {
+                const ly = m === 1 ? y - 1 : y;
+                const lm = m === 1 ? 12 : m - 1;
+                const monthStr = `${ly}-${String(lm).padStart(2, '0')}`;
+                const lastDay = new Date(ly, lm, 0).getDate();
+                return {
+                    from: `${monthStr}-01`,
+                    to: `${monthStr}-${String(lastDay).padStart(2, '0')}`
+                };
+            }
+            if (key === 'all') return { from: '', to: '' };
+            return {
+                from: String(document.getElementById('ftDateFromUi')?.value || '').trim(),
+                to: String(document.getElementById('ftDateToUi')?.value || '').trim()
+            };
+        }
+
+        function syncTrackDateCustomVisibility() {
+            const customEl = document.getElementById('ftDateCustomFields');
+            if (customEl) customEl.hidden = trackDatePreset !== 'custom';
+        }
+
+        function applyTrackDatePreset(preset, opts = {}) {
+            trackDatePreset = preset || 'today';
+            const sel = document.getElementById('ftDatePreset');
+            if (sel && sel.value !== trackDatePreset) sel.value = trackDatePreset;
+            syncTrackDateCustomVisibility();
+            const { from, to } = resolveTrackDatePeriod(trackDatePreset);
+            ['trackDateFrom', 'ftDateFromUi'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = from;
+            });
+            ['trackDateTo', 'ftDateToUi'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = to;
+            });
+            if (!opts.skipSave) saveTrackDateFilter();
+            if (!opts.skipApply) {
+                renderFilterChips();
+                applyTrackFilter();
+            }
+        }
+
+        function initTrackDateFromStorage() {
+            const saved = loadTrackDateFilter();
+            trackDatePreset = saved.preset || 'today';
+            const sel = document.getElementById('ftDatePreset');
+            if (sel) sel.value = trackDatePreset;
+            if (trackDatePreset === 'custom') {
+                const fromUi = document.getElementById('ftDateFromUi');
+                const toUi = document.getElementById('ftDateToUi');
+                if (fromUi) fromUi.value = saved.from || '';
+                if (toUi) toUi.value = saved.to || '';
+            }
+            applyTrackDatePreset(trackDatePreset, { skipSave: true, skipApply: true });
         }
 
         function draftEventIso(d) {
@@ -3697,7 +4708,9 @@
 
         function dateScopedDrafts() {
             const legacy = getXferDateFilter();
-            let list = (allDrafts || []).filter(matchesAdminMonth);
+            let list = hasActiveTrackFilter() || trackDatePreset === 'all'
+                ? (allDrafts || [])
+                : (allDrafts || []).filter(matchesAdminMonth);
             if (legacy) {
                 list = list.filter((d) => draftEventIso(d) === legacy);
             }
@@ -3738,15 +4751,18 @@
             return set;
         }
 
-        function filteredDrafts() {
+        function filteredDrafts(opts = {}) {
             let list = dateScopedDrafts();
             if (selectedCompany) {
                 list = list.filter((d) => draftMatchesCompanyKey(d, selectedCompany));
             }
+            if (opts.coordinator !== false && uiFilters.coordinator) {
+                list = list.filter((d) => userLabelFromDraft(d) === uiFilters.coordinator);
+            }
             return list;
         }
 
-        function filteredQueue() {
+        function filteredQueue(opts = {}) {
             let queue;
             const vins = scopedVinSet();
             if (!vins) queue = allQueue || [];
@@ -3757,11 +4773,16 @@
             if (companyVins) {
                 queue = queue.filter((q) => companyVins.has(normVinKey(q.vin)));
             }
+            if (opts.coordinator !== false && uiFilters.coordinator) {
+                queue = queue.filter((q) => userLabelFromQueue(q) === uiFilters.coordinator);
+            }
             return queue;
         }
 
         function vehiclesFromVinSet(vins) {
             const byVin = vehicleByVin();
+            if (!_vinLookup) rebuildVinLookup();
+            const { draftByVin, queueByVin } = _vinLookup;
             const list = [];
             (vins || new Set()).forEach((vin) => {
                 const v = byVin.get(vin);
@@ -3769,8 +4790,8 @@
                     list.push(v);
                     return;
                 }
-                const draft = (allDrafts || []).find((d) => normVinKey(d.vin) === vin);
-                const q = (allQueue || []).find((item) => normVinKey(item.vin) === vin);
+                const draft = draftByVin.get(vin);
+                const q = queueByVin.get(vin);
                 list.push({
                     vin,
                     product: draft?.product || q?.product || '',
@@ -3876,12 +4897,16 @@
             const showing = `Showing <strong>${vehiclesShown}</strong> of <strong>${vehiclesAll || (allVehicles || []).length}</strong> vehicles`;
 
             if (!from && !to) {
-                meta.innerHTML = `Showing <strong>all</strong> · <strong>${(allVehicles || []).length}</strong> vehicles · <strong>${(allDrafts || []).length}</strong> drafts · queue <strong>${(allQueue || []).length}</strong> (delivered <strong>${(allQueue || []).filter((q) => q.agentStatus === 'delivered').length}</strong>)${searchBit}${companyBit} · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
+                const presetLabel = trackDatePresetLabel(trackDatePreset);
+                meta.innerHTML = `Showing <strong>all</strong> · <strong>${(allVehicles || []).length}</strong> vehicles · <strong>${(allDrafts || []).length}</strong> drafts · queue <strong>${(allQueue || []).length}</strong> (delivered <strong>${(allQueue || []).filter((q) => q.agentStatus === 'delivered').length}</strong>)${searchBit}${companyBit} · period <strong>${presetLabel}</strong> · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
                 updateCompanyFilterChip();
                 renderFilterChips();
                 return;
             }
-            meta.innerHTML = `${showing}${searchBit}${companyBit} · filter <strong>${typeLabel}</strong> ${from || '…'} → ${to || '…'} · 
+            const presetBit = trackDatePreset !== 'custom'
+                ? ` · <strong>${escapeHtml(trackDatePresetLabel(trackDatePreset))}</strong>`
+                : '';
+            meta.innerHTML = `${showing}${searchBit}${companyBit}${presetBit} · filter <strong>${typeLabel}</strong> ${from || '…'} → ${to || '…'} · 
                 <strong>${drafts}</strong> drafts · queue <strong>${queue}</strong> 
                 (delivered <strong>${delivered}</strong> · remaining <strong>${still}</strong>)`;
             updateCompanyFilterChip();
@@ -3913,7 +4938,6 @@
         }
 
         function updateXferDateLabel() {
-            updateTrackFilterMeta();
             const label = document.getElementById('xferDateLabel');
             if (!label) return;
             const date = getXferDateFilter();
@@ -3921,13 +4945,20 @@
         }
 
         function refreshTransferDashboard() {
+            if (!adminAuthed) return;
+            if (refreshDashboardTimer) clearTimeout(refreshDashboardTimer);
+            refreshDashboardTimer = setTimeout(() => {
+                refreshDashboardTimer = null;
+                refreshTransferDashboardImpl();
+            }, 80);
+        }
+
+        function refreshTransferDashboardImpl() {
+            try {
             applyDeliveryNoteDateBounds();
             updateXferDateLabel();
             pruneStaleUiFilters();
-            populateDnMonthFilter();
-            renderDnStatsBar();
-            renderVinHistoryPanel();
-            renderLastMonthsFolders();
+            populateDnMonthFilterIfNeeded();
             const draftsBase = filteredDrafts();
             const queueBase = filteredQueue();
             if (selectedCompany && !draftsBase.some((d) => draftMatchesCompanyKey(d, selectedCompany))) {
@@ -3950,19 +4981,43 @@
             const vehicles = searchQ
                 ? applyDisplayFilters(searchSystemVehicles(searchQ), 'vehicle')
                 : applyDisplayFilters(filteredVehicleList(), 'vehicle');
-            renderTransferDashboard(searchQ ? drafts : filteredDrafts());
-            renderTable(vehicles);
-            renderQueueTable(queue);
+
+            _userDashCount = countCoordinatorsQuick();
+            setNavCount('navCountUsers', _userDashCount);
+
+            if (isAdminPaneActive('overview')) {
+                renderDnStatsBar();
+                renderRawDeliveryGap();
+                renderVinHistoryPanel();
+                renderLastMonthsFolders();
+                renderDeliveredOfTotalChart();
+            }
+            if (isAdminPaneActive('analytics')) {
+                renderTransferDashboard(searchQ ? drafts : filteredDrafts());
+            }
+            if (isAdminPaneActive('users')) {
+                renderUserDashboard();
+            }
+            if (isAdminPaneActive('pdfs') || searchQ) {
+                renderAllPdfsBrowser(drafts);
+            }
+            if (isAdminPaneActive('queue') || searchQ) {
+                renderQueueTable(queue);
+                renderQueueStats(computeQueueStats(queue));
+                setFoldCount('queueStatsFoldCount', queue.length);
+            }
             const warehouseDrafts = drafts.filter(isWarehouseAdminDraft);
-            const memoDrafts = drafts.filter((d) => !isWarehouseAdminDraft(d));
-            renderAllPdfsBrowser(drafts);
-            renderWarehouseDraftsTable(warehouseDrafts);
-            renderQueueStats(computeQueueStats(queue));
-            setFoldCount('queueStatsFoldCount', queue.length);
+            if (isAdminPaneActive('pdfs') || isAdminPaneActive('yard') || searchQ) {
+                renderWarehouseDraftsTable(warehouseDrafts);
+            }
+            if (isAdminPaneActive('overview') || searchQ) {
+                renderTable(vehicles);
+                setFoldCount('inventoryFoldCount', vehicles.length);
+            }
+
             setFoldCount('draftsFoldCount', drafts.length);
             setFoldCount('warehouseDraftsFoldCount', warehouseDrafts.length);
             setFoldCount('xferFoldCount', searchQ ? drafts.length : filteredDrafts().length);
-            setFoldCount('inventoryFoldCount', vehicles.length);
             if (searchQ) {
                 openFold('inventorySection');
                 openFold('queueSection');
@@ -3973,6 +5028,16 @@
             renderFilterChips();
             syncDateControlsFromNatives();
             updateTrackFilterMeta();
+            } catch (err) {
+                console.error('[admin refresh]', err);
+            }
+        }
+
+        function populateDnMonthFilterIfNeeded() {
+            const n = (allDrafts || []).length;
+            if (n === _cachedDraftCount) return;
+            _cachedDraftCount = n;
+            populateDnMonthFilter();
         }
 
         function computeClientDnStats(drafts) {
@@ -4003,6 +5068,324 @@
             stats.thisMonth = all.filter((d) => draftMonthKey(d) === currentMonthKey()).length;
             stats.lastMonth = all.filter((d) => draftMonthKey(d) === lastMonthKey()).length;
             return stats;
+        }
+
+        /** Period for raw-vs-delivered gap: Proforma date (Sales Raw column P) vs admin month filter. */
+        function getProformaGapPeriod() {
+            const mk = adminMonthFilter;
+            if (mk && mk !== 'all') {
+                const parts = mk.split('-').map(Number);
+                const y = parts[0];
+                const m = parts[1];
+                if (y && m) {
+                    const from = `${mk}-01`;
+                    const lastDay = new Date(y, m, 0).getDate();
+                    const to = `${mk}-${String(lastDay).padStart(2, '0')}`;
+                    return {
+                        from,
+                        to,
+                        monthKey: mk,
+                        label: monthLabelAr(mk)
+                    };
+                }
+            }
+            const { from, to } = getTrackFilter();
+            return {
+                from,
+                to,
+                monthKey: '',
+                label: from || to
+                    ? `${trackDatePresetLabel(trackDatePreset)} · ${from || '…'} → ${to || '…'}`
+                    : 'All dates'
+            };
+        }
+
+        function classifyRawGapStatus(vin, v, q, hasDraft, inInventory) {
+            if (!inInventory) {
+                return {
+                    status: 'not_uploaded',
+                    statusLabel: 'Not in system',
+                    statusAr: 'غير موجود في النظام'
+                };
+            }
+            if (!q) {
+                return {
+                    status: 'no_queue',
+                    statusLabel: 'Not on queue',
+                    statusAr: 'غير مضاف للقائمة'
+                };
+            }
+            if ((q.status === 'available' || !q.assignedTo) && q.agentStatus !== 'delivered' && q.agentStatus !== 'display') {
+                return {
+                    status: 'not_assigned',
+                    statusLabel: 'Not assigned',
+                    statusAr: 'غير مسند لمنسق'
+                };
+            }
+            if (!hasDraft) {
+                return {
+                    status: 'no_delivery_note',
+                    statusLabel: 'No delivery note',
+                    statusAr: 'بدون مذكرة تسليم'
+                };
+            }
+            if (q.agentStatus && q.agentStatus !== 'delivered') {
+                const label = String(q.statusLabel || q.agentStatus || '').replace(/_/g, ' ');
+                return {
+                    status: 'in_progress',
+                    statusLabel: label || 'In progress',
+                    statusAr: q.statusLabel || 'قيد التنفيذ'
+                };
+            }
+            return {
+                status: 'not_delivered',
+                statusLabel: 'Not delivered',
+                statusAr: 'لم يُرحَّل'
+            };
+        }
+
+        /** Delivery notes for the same month as the raw Proforma (Col P) scope. */
+        function draftsForProformaGapPeriod() {
+            const period = getProformaGapPeriod();
+            if (period.monthKey && period.monthKey !== 'all') {
+                return (allDrafts || []).filter((d) => draftMonthKey(d) === period.monthKey);
+            }
+            const { from, to } = period;
+            if (from || to) {
+                return (allDrafts || []).filter((d) => {
+                    const iso = draftEventIso(d);
+                    return Boolean(iso && isoInRange(iso, from, to));
+                });
+            }
+            return filteredDrafts();
+        }
+
+        /** Compare raw inventory (Proforma / Col P) vs delivery notes for the active month. */
+        function computeRawDeliveryGap() {
+            const period = getProformaGapPeriod();
+            const { from, to } = period;
+            if (!_vinLookup) rebuildVinLookup();
+            const { queueByVin } = _vinLookup;
+
+            const draftVinSet = new Set();
+            draftsForProformaGapPeriod().forEach((d) => {
+                draftVinList(d).forEach((vin) => draftVinSet.add(vin));
+            });
+
+            const inventoryVinSet = new Set();
+            (allVehicles || []).forEach((v) => {
+                const vin = normVinKey(v.vin);
+                if (vin) inventoryVinSet.add(vin);
+            });
+
+            const rawInPeriod = [];
+            (allVehicles || []).forEach((v) => {
+                const iso = vehicleDateIso(v, 'proforma');
+                if (!iso) return;
+                if (from && iso < from) return;
+                if (to && iso > to) return;
+                rawInPeriod.push({ v, iso });
+            });
+
+            let delivered = 0;
+            const gapRows = [];
+
+            rawInPeriod.forEach(({ v, iso }) => {
+                const vin = normVinKey(v.vin);
+                if (!vin) return;
+                const q = queueByVin.get(vin);
+                const hasDraft = draftVinSet.has(vin);
+                const inInventory = inventoryVinSet.has(vin);
+
+                if (hasDraft) {
+                    delivered += 1;
+                    return;
+                }
+
+                const meta = classifyRawGapStatus(vin, v, q, hasDraft, inInventory);
+                gapRows.push({
+                    vin,
+                    product: v.product || v.model || '—',
+                    plate: v.plate || '—',
+                    customerName: v.customerName || '—',
+                    proformaDate: iso,
+                    assignedTo: q ? String(q.entryAgent || q.assignedTo || '').trim() || '—' : '—',
+                    queueStatus: q ? String(q.statusLabel || q.agentStatus || q.status || '—') : '—',
+                    hasDraft: 'No',
+                    ...meta
+                });
+            });
+
+            gapRows.sort((a, b) => a.status.localeCompare(b.status) || a.vin.localeCompare(b.vin));
+
+            const rawTotal = rawInPeriod.length;
+            const gap = gapRows.length;
+            const rate = rawTotal ? Math.round((delivered / rawTotal) * 1000) / 10 : 0;
+
+            return {
+                rawTotal,
+                delivered,
+                gap,
+                rate,
+                period,
+                rows: gapRows,
+                noProformaInPeriod: (allVehicles || []).length > 0 && !rawTotal
+            };
+        }
+
+        /** Hero + KPI progress: raw assigned (Col P) vs delivery notes in the same month. */
+        function rawAssignedDeliveredStats() {
+            const gapData = computeRawDeliveryGap();
+            if (gapData.rawTotal > 0) {
+                return {
+                    delivered: gapData.delivered,
+                    total: gapData.rawTotal,
+                    assigned: gapData.rawTotal,
+                    pct: gapData.rate,
+                    remaining: gapData.gap,
+                    gap: gapData.gap,
+                    period: gapData.period,
+                    source: 'raw'
+                };
+            }
+            const legacy = deliveredOfTotalStats();
+            return {
+                ...legacy,
+                assigned: legacy.total,
+                gap: legacy.remaining,
+                source: 'legacy'
+            };
+        }
+
+        function rawGapStatusBadgeClass(status) {
+            return `raw-gap-badge raw-gap-badge--${String(status || 'not_delivered').replace(/[^a-z0-9_]/gi, '_')}`;
+        }
+
+        function renderRawGapTableBody(data) {
+            const tbody = document.getElementById('rawGapTableBody');
+            if (!tbody) return;
+            const q = String(rawGapSearch || '').trim().toLowerCase();
+            const statusFilter = rawGapStatusFilter || 'all';
+            let rows = (data && data.rows) ? data.rows.slice() : [];
+            if (statusFilter !== 'all') rows = rows.filter((r) => r.status === statusFilter);
+            if (q) {
+                rows = rows.filter((r) => [
+                    r.vin, r.product, r.customerName, r.plate, r.assignedTo, r.statusLabel, r.statusAr
+                ].join(' ').toLowerCase().includes(q));
+            }
+            if (!rows.length) {
+                tbody.innerHTML = `<tr><td colspan="8" class="hub-empty">${data && data.gap ? 'No cars match this filter' : 'No gap — all raw cars in this period are delivered'}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = rows.map((r) => `<tr>
+                <td class="hub-vin">${escapeHtml(r.vin)}</td>
+                <td>${escapeHtml(r.product)}</td>
+                <td>${escapeHtml(r.customerName)}</td>
+                <td>${escapeHtml(r.proformaDate)}</td>
+                <td><span class="${rawGapStatusBadgeClass(r.status)}" title="${escapeHtml(r.statusLabel)}">${escapeHtml(r.statusAr)}</span></td>
+                <td>${escapeHtml(r.assignedTo)}</td>
+                <td>${escapeHtml(r.queueStatus)}</td>
+                <td>${escapeHtml(r.hasDraft)}</td>
+            </tr>`).join('');
+        }
+
+        function renderRawGapChips(data) {
+            const host = document.getElementById('rawGapChips');
+            if (!host || !data) return;
+            const counts = new Map();
+            (data.rows || []).forEach((r) => {
+                counts.set(r.status, (counts.get(r.status) || 0) + 1);
+            });
+            const labels = {
+                not_uploaded: 'Not in system',
+                no_queue: 'Not on queue',
+                not_assigned: 'Not assigned',
+                no_delivery_note: 'No delivery note',
+                in_progress: 'In progress',
+                not_delivered: 'Not delivered'
+            };
+            const chips = [['all', 'All', data.gap || 0], ...Array.from(counts.entries()).map(([k, n]) => [k, labels[k] || k, n])];
+            host.innerHTML = chips.map(([key, label, n]) => {
+                const active = (rawGapStatusFilter || 'all') === key ? ' is-active' : '';
+                return `<button type="button" class="raw-gap-chip${active}" data-gap-status="${escapeHtml(key)}">${escapeHtml(label)} · ${n}</button>`;
+            }).join('');
+            host.querySelectorAll('[data-gap-status]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    rawGapStatusFilter = btn.dataset.gapStatus || 'all';
+                    const sel = document.getElementById('rawGapStatusFilter');
+                    if (sel) sel.value = rawGapStatusFilter;
+                    renderRawGapChips(data);
+                    renderRawGapTableBody(data);
+                });
+            });
+        }
+
+        function renderRawDeliveryGap() {
+            try {
+            const data = computeRawDeliveryGap();
+            _lastRawGapData = data;
+
+            const totalEl = document.getElementById('rawGapTotal');
+            const deliveredEl = document.getElementById('rawGapDelivered');
+            const gapEl = document.getElementById('rawGapCount');
+            const rateHint = document.getElementById('rawGapRateHint');
+            const periodHint = document.getElementById('rawGapPeriodHint');
+            const toggleLabel = document.getElementById('rawGapToggleLabel');
+            const panelMeta = document.getElementById('rawGapPanelMeta');
+            const section = document.getElementById('rawGapSection');
+            const toggle = document.getElementById('rawGapToggle');
+            const panel = document.getElementById('rawGapPanel');
+
+            if (totalEl) totalEl.textContent = String(data.rawTotal);
+            if (deliveredEl) deliveredEl.textContent = String(data.delivered);
+            if (gapEl) gapEl.textContent = String(data.gap);
+            if (rateHint) {
+                rateHint.textContent = data.rawTotal
+                    ? `${data.rate}% delivered · ${data.gap} not delivered`
+                    : (data.noProformaInPeriod ? 'No Proforma (Col P) dates in period' : 'No raw cars in period');
+            }
+            if (periodHint) periodHint.textContent = data.period.label || 'Proforma month';
+            if (toggleLabel) {
+                toggleLabel.textContent = rawGapPanelOpen
+                    ? `Hide list · ${data.gap} cars ▴`
+                    : (data.gap ? `Click to list ${data.gap} cars ▾` : 'Click to view details ▾');
+            }
+            if (panelMeta) {
+                panelMeta.textContent = data.noProformaInPeriod
+                    ? `No Proforma dates (column P) found for ${data.period.label}. Re-upload Sales Raw or check column P.`
+                    : `${data.gap} of ${data.rawTotal} cars with Proforma in ${data.period.label} are not delivered — compare raw upload vs system.`;
+            }
+            if (section) section.classList.toggle('is-open', rawGapPanelOpen && data.gap > 0);
+            if (toggle) toggle.setAttribute('aria-expanded', rawGapPanelOpen ? 'true' : 'false');
+            if (panel) panel.hidden = !rawGapPanelOpen;
+
+            renderRawGapChips(data);
+            renderRawGapTableBody(data);
+            } catch (err) {
+                console.error('[raw gap]', err);
+            }
+        }
+
+        function initRawGapControls() {
+            const toggle = document.getElementById('rawGapToggle');
+            toggle?.addEventListener('click', () => {
+                rawGapPanelOpen = !rawGapPanelOpen;
+                renderRawDeliveryGap();
+                if (rawGapPanelOpen) {
+                    document.getElementById('rawGapPanel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+            let searchTimer = null;
+            document.getElementById('rawGapSearch')?.addEventListener('input', (e) => {
+                rawGapSearch = e.target.value || '';
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => renderRawGapTableBody(_lastRawGapData), 120);
+            });
+            document.getElementById('rawGapStatusFilter')?.addEventListener('change', (e) => {
+                rawGapStatusFilter = e.target.value || 'all';
+                renderRawGapChips(_lastRawGapData);
+                renderRawGapTableBody(_lastRawGapData);
+            });
         }
 
         function populateDnMonthFilter() {
@@ -4038,7 +5421,11 @@
             const host = document.getElementById('dnStatsBar');
             if (!host) return;
             const s = computeClientDnStats(filteredDrafts());
+            const gapData = computeRawDeliveryGap();
             const cards = [
+                { cls: 'dn-stat--raw', label: 'Raw Col P', value: gapData.rawTotal, title: 'Cars in raw data with Proforma date (column P) in selected month' },
+                { cls: 'dn-stat--delivery', label: 'Delivered', value: gapData.delivered, title: 'Raw cars with a delivery note in the selected month' },
+                { cls: 'dn-stat--gap is-clickable', label: 'Gap', value: gapData.gap, title: 'Click Raw Gap section below to list each car', click: 'rawGap' },
                 { cls: 'dn-stat--notes', label: 'Delivery Notes', value: s.deliveryNotes },
                 { cls: 'dn-stat--vins', label: 'Unique VINs', value: s.uniqueVins },
                 { cls: 'dn-stat--display', label: 'Display', value: s.display },
@@ -4046,15 +5433,30 @@
                 { cls: 'dn-stat--wh', label: 'Warehouse', value: s.warehouse },
                 { cls: 'dn-stat--memo', label: 'Memo', value: s.memo },
                 { cls: 'dn-stat--showroom', label: 'Showroom', value: s.showroom },
+                { cls: 'dn-stat--showroom', label: 'SR Parked', value: (allShowroomParking || []).length },
                 { cls: 'dn-stat--month', label: 'This Month', value: s.thisMonth },
                 { cls: 'dn-stat--month', label: 'Last Month', value: s.lastMonth }
             ];
             host.innerHTML = cards.map((c) => `
-                <article class="dn-stat ${c.cls}">
+                <article class="dn-stat ${c.cls}"${c.title ? ` title="${escapeHtml(c.title)}"` : ''}${c.click ? ` data-gap-open="1" role="button" tabindex="0"` : ''}>
                     <span>${c.label}</span>
                     <b>${c.value}</b>
                 </article>
             `).join('');
+            host.querySelectorAll('[data-gap-open]').forEach((el) => {
+                const open = () => {
+                    rawGapPanelOpen = true;
+                    renderRawDeliveryGap();
+                    document.getElementById('rawGapSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+                el.addEventListener('click', open);
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        open();
+                    }
+                });
+            });
         }
 
         function renderVinHistoryPanel() {
@@ -4813,10 +6215,10 @@
                     background: 'transparent',
                     fontFamily: 'Inter, sans-serif'
                 },
-                theme: { mode: 'dark' },
+                theme: { mode: 'light' },
                 labels: ['١ يوم', '٢ يوم', '٣+ أيام'],
                 series: [stats.day1, stats.day2, stats.day3plus],
-                colors: ['#22C55E', '#3B82F6', '#F59E0B'],
+                colors: ['#2EC4B6', '#6C5CE7', '#FF8A4C'],
                 stroke: { width: 0 },
                 legend: {
                     position: 'bottom',
@@ -4916,14 +6318,44 @@
             return { delivered, total, pct, remaining: Math.max(0, total - delivered) };
         }
 
+        function renderShowroomParkingTable() {
+            const tbody = document.getElementById('showroomParkingBody');
+            const meta = document.getElementById('showroomParkingMeta');
+            if (!tbody) return;
+            const list = Array.isArray(allShowroomParking) ? allShowroomParking.slice() : [];
+            list.sort((a, b) => String(a.slot || '').localeCompare(String(b.slot || ''), 'en'));
+            if (meta) {
+                const occ = showroomParkingOccupancy || {};
+                meta.textContent = `مشغول ${occ.used || list.length} من ${occ.total || 7} · فارغ ${occ.free != null ? occ.free : Math.max(0, 7 - list.length)} · Showroom Admin`;
+            }
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="hub-empty">لا توجد سيارات في موقف العرض — أضف من Showroom Admin</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map((e) => `
+                <tr>
+                    <td><strong style="color:#f9a8d4">${escapeHtml(e.slot || '—')}</strong></td>
+                    <td class="hub-vin">${escapeHtml(e.vin || '—')}</td>
+                    <td>${escapeHtml(e.product || e.model || '—')}</td>
+                    <td>${escapeHtml(e.plate || '—')}</td>
+                    <td>${escapeHtml(e.stockedInBy || '—')}</td>
+                    <td>${escapeHtml((e.stockedInAt || '').replace('T', ' ').slice(0, 19) || '—')}</td>
+                </tr>
+            `).join('');
+        }
+
         function isShowroomAdminDraft(d) {
             if (!d) return false;
-            if (d.showroomDisplay === true) return true;
+            if (d.showroomDisplay === true || d.showroomParking === true) return true;
             const p = d.payload || {};
-            if (p.showroom_display === true || p.showroom_group === true) return true;
+            if (p.showroom_display === true || p.showroom_group === true || p.showroom_parking === true) return true;
             if (p.deliveryMode === 'showroom') return true;
             if (String(d.vehicleStatus || p.vehicleStatus || '').toLowerCase() === 'display') return true;
             if (String(d.assignedTo || '').trim() === SHOWROOM_AGENT && p.showroom_label) return true;
+            const agent = String(d.assignedTo || d.entryAgent || p.entryAgent || '').trim().toLowerCase();
+            if (agent === 'showroom admin' || agent === 'سيارات العرض') return true;
+            const label = String(p.showroom_label || p.company_rep || d.customerName || '').trim();
+            if (label === 'Showroom Cars' || label === SHOWROOM_SPECIAL_NAME) return true;
             return false;
         }
 
@@ -4983,7 +6415,7 @@
         }
 
         function renderDeliveredOfTotalChart() {
-            const stats = deliveredOfTotalStats();
+            const stats = rawAssignedDeliveredStats();
             const doneEl = document.getElementById('deliveredTotalDone');
             const allEl = document.getElementById('deliveredTotalAll');
             const pctEl = document.getElementById('deliveredTotalPct');
@@ -4992,23 +6424,33 @@
             const donutEl = document.getElementById('deliveredTotalDonut');
 
             if (doneEl) doneEl.textContent = String(stats.delivered);
-            if (allEl) allEl.textContent = String(stats.total);
+            if (allEl) allEl.textContent = String(stats.assigned ?? stats.total);
             const remEl = document.getElementById('deliveredTotalRemaining');
-            if (remEl) remEl.textContent = String(stats.remaining);
+            if (remEl) remEl.textContent = String(stats.gap ?? stats.remaining);
             if (pctEl) pctEl.textContent = `${stats.pct}%`;
             if (barEl) barEl.style.width = `${Math.min(100, stats.pct)}%`;
+            const highlight = document.getElementById('monthHighlightValue');
+            if (highlight) {
+                const n = stats.source === 'raw' ? stats.delivered : (typeof filteredDrafts === 'function' ? filteredDrafts() : []).length;
+                highlight.textContent = String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
             const heroBar = document.querySelector('#heroProgressCard .saas-hero__bar');
             if (heroBar) heroBar.setAttribute('aria-valuenow', String(stats.pct));
             if (capEl) {
-                const { type } = getTrackFilter();
-                const scope =
-                    type === 'proforma' ? 'نطاق البروفورما'
-                        : type === 'invoice' ? 'نطاق الفاتورة'
-                            : hasActiveTrackFilter() ? 'نطاق مذكرة الترحيل'
-                                : 'كل البيانات';
-                capEl.innerHTML = stats.total
-                    ? `<strong>${stats.delivered}</strong> مُرحَّلة من أصل <strong>${stats.total}</strong> (${scope}) · متبقي <strong>${stats.remaining}</strong>`
-                    : 'لا توجد بيانات في النطاق الحالي';
+                if (stats.source === 'raw' && stats.total) {
+                    const periodLabel = stats.period?.label || 'selected month';
+                    capEl.innerHTML = `<strong>${stats.delivered}</strong> delivered of <strong>${stats.assigned ?? stats.total}</strong> assigned (${periodLabel}) · gap <strong>${stats.gap ?? stats.remaining}</strong>`;
+                } else if (stats.total) {
+                    const { type } = getTrackFilter();
+                    const scope =
+                        type === 'proforma' ? 'نطاق البروفورما'
+                            : type === 'invoice' ? 'نطاق الفاتورة'
+                                : hasActiveTrackFilter() ? 'نطاق مذكرة الترحيل'
+                                    : 'كل البيانات';
+                    capEl.innerHTML = `<strong>${stats.delivered}</strong> مُرحَّلة من أصل <strong>${stats.total}</strong> (${scope}) · متبقي <strong>${stats.remaining}</strong>`;
+                } else {
+                    capEl.textContent = 'لا توجد بيانات في النطاق الحالي';
+                }
             }
 
             // Hero replaces the old delivered-total donut; keep call soft if element hidden
@@ -5161,6 +6603,223 @@
             else highlightSelectedCompany();
         }
 
+        /** Cars / notes / queue status per coordinator within the active date filter. */
+        function buildUserDashboardRows() {
+            const drafts = filteredDrafts({ coordinator: false })
+                .filter((d) => !isWarehouseAdminDraft(d) && !isShowroomAdminDraft(d));
+            const queue = filteredQueue({ coordinator: false });
+            const map = new Map();
+
+            const ensure = (name) => {
+                if (!map.has(name)) {
+                    map.set(name, {
+                        name,
+                        submitted: 0,
+                        cars: 0,
+                        notes: 0,
+                        delivered: 0,
+                        pending: 0,
+                        inStock: 0,
+                        ready: 0
+                    });
+                }
+                return map.get(name);
+            };
+
+            drafts.forEach((d) => {
+                const row = ensure(userLabelFromDraft(d));
+                row.notes += 1;
+                row.submitted += draftCarWeight(d);
+            });
+
+            queue.forEach((q) => {
+                const row = ensure(userLabelFromQueue(q));
+                const st = q.agentStatus || '';
+                if (st === 'delivered') row.delivered += 1;
+                else if (st === 'in_stock') row.inStock += 1;
+                else if (st === 'ready_for_delivery') row.ready += 1;
+                else row.pending += 1;
+            });
+
+            return Array.from(map.values())
+                .map((r) => {
+                    const gap = Math.max(0, r.submitted - r.delivered);
+                    const rate = r.submitted ? Math.round((r.delivered / r.submitted) * 1000) / 10 : (r.delivered ? 100 : 0);
+                    return { ...r, cars: r.submitted, gap, rate };
+                })
+                .sort((a, b) => b.submitted - a.submitted || b.delivered - a.delivered || a.name.localeCompare(b.name, 'ar'));
+        }
+
+        function userDashPeriodLabel() {
+            const { from, to } = getTrackFilter();
+            if (from && to && from === to) return `${trackDatePresetLabel(trackDatePreset)} · ${from}`;
+            if (from || to) {
+                return `${trackDatePresetLabel(trackDatePreset)} · ${from || '…'} → ${to || '…'}`;
+            }
+            return trackDatePresetLabel(trackDatePreset);
+        }
+
+        function selectUserDashboard(name) {
+            const next = String(name || '').trim();
+            if (!next || next === UNASSIGNED_USER) return;
+            uiFilters.coordinator = uiFilters.coordinator === next ? '' : next;
+            renderAllFtSelects();
+            renderFilterChips();
+            refreshTransferDashboard();
+        }
+
+        function clearUserDashboardSelection() {
+            if (!uiFilters.coordinator) return;
+            uiFilters.coordinator = '';
+            renderAllFtSelects();
+            renderFilterChips();
+            refreshTransferDashboard();
+        }
+
+        function renderUserDashboard() {
+            try {
+            const rowsAll = buildUserDashboardRows();
+            _userDashCount = rowsAll.length;
+            setNavCount('navCountUsers', rowsAll.length);
+
+            const periodEl = document.getElementById('userDashPeriodLabel');
+            if (periodEl) periodEl.textContent = userDashPeriodLabel();
+
+            const selected = String(uiFilters.coordinator || '').trim();
+            const q = String(userDashSearch || '').trim().toLowerCase();
+            const rows = q
+                ? rowsAll.filter((r) => r.name.toLowerCase().includes(q))
+                : rowsAll;
+
+            const filterBar = document.getElementById('userDashFilterBar');
+            const filterName = document.getElementById('userDashFilterName');
+            if (filterBar) filterBar.hidden = !selected;
+            if (filterName) filterName.textContent = selected || '';
+
+            const nameList = document.getElementById('userDashNameList');
+            if (nameList) {
+                if (!rowsAll.length) {
+                    nameList.innerHTML = '<p class="dh-user-empty">لا توجد بيانات في هذه الفترة</p>';
+                } else {
+                    nameList.innerHTML = rows.map((r) => {
+                        const active = selected === r.name ? ' active' : '';
+                        return `<button type="button" class="pbi-name${active}" data-user-name="${escapeHtml(r.name)}">
+                            <span class="nm">${escapeHtml(r.name)}</span>
+                            <span class="meta">${r.submitted} submitted · ${r.delivered} delivered · ${r.notes} notes</span>
+                        </button>`;
+                    }).join('') || '<p class="dh-user-empty">No users match search.</p>';
+                    nameList.querySelectorAll('[data-user-name]').forEach((btn) => {
+                        btn.addEventListener('click', () => selectUserDashboard(btn.dataset.userName));
+                    });
+                }
+            }
+
+            const totalSubmitted = rowsAll.reduce((s, r) => s + r.submitted, 0);
+            const totalDelivered = rowsAll.reduce((s, r) => s + r.delivered, 0);
+            const totalGap = Math.max(0, totalSubmitted - totalDelivered);
+            const totalRate = totalSubmitted ? Math.round((totalDelivered / totalSubmitted) * 1000) / 10 : (totalDelivered ? 100 : 0);
+            const totalNotes = rowsAll.reduce((s, r) => s + r.notes, 0);
+            const focus = selected ? rowsAll.find((r) => r.name === selected) : null;
+
+            const comparePeriod = document.getElementById('userDashComparePeriod');
+            if (comparePeriod) comparePeriod.textContent = userDashPeriodLabel();
+            const cmpSubmitted = document.getElementById('userDashCompareSubmitted');
+            const cmpDelivered = document.getElementById('userDashCompareDelivered');
+            const cmpRate = document.getElementById('userDashCompareRate');
+            const cmpGap = document.getElementById('userDashCompareGap');
+            const cmpBar = document.getElementById('userDashCompareBarDelivered');
+            const cmpScope = focus || { submitted: totalSubmitted, delivered: totalDelivered, gap: totalGap, rate: totalRate };
+            if (cmpSubmitted) cmpSubmitted.textContent = String(cmpScope.submitted);
+            if (cmpDelivered) cmpDelivered.textContent = String(cmpScope.delivered);
+            if (cmpRate) cmpRate.textContent = `${cmpScope.rate}%`;
+            if (cmpBar) cmpBar.style.width = `${Math.min(100, cmpScope.rate)}%`;
+            if (cmpGap) {
+                cmpGap.textContent = cmpScope.gap > 0
+                    ? `${cmpScope.gap} pending · ${cmpScope.submitted - cmpScope.gap} matched`
+                    : cmpScope.submitted
+                        ? 'All submitted cars are delivered'
+                        : 'No submissions in this period';
+            }
+            renderSubmittedDeliveredChart(
+                document.getElementById('userDashCompareChart'),
+                focus ? [focus] : rowsAll
+            );
+
+            const kpiHost = document.getElementById('userDashKpis');
+            if (kpiHost) {
+                const cards = focus
+                    ? [
+                        { lab: 'Submitted', val: focus.submitted, ok: true },
+                        { lab: 'Delivered', val: focus.delivered, ok: true },
+                        { lab: 'Pending gap', val: focus.gap },
+                        { lab: 'Delivery rate', val: `${focus.rate}%`, ok: true },
+                        { lab: 'Delivery notes', val: focus.notes },
+                        { lab: 'Share submitted', val: totalSubmitted ? `${Math.round((focus.submitted / totalSubmitted) * 1000) / 10}%` : '0%' }
+                    ]
+                    : [
+                        { lab: 'Coordinators', val: rowsAll.length },
+                        { lab: 'Total submitted', val: totalSubmitted, ok: true },
+                        { lab: 'Total delivered', val: totalDelivered, ok: true },
+                        { lab: 'Pending gap', val: totalGap },
+                        { lab: 'Delivery rate', val: `${totalRate}%`, ok: true },
+                        { lab: 'Delivery notes', val: totalNotes }
+                    ];
+                kpiHost.innerHTML = cards.map((c) => `
+                    <div class="pbi-kpi${c.ok ? ' is-ok' : ''}">
+                        <div class="lab">${c.lab}</div>
+                        <div class="val">${c.val}</div>
+                    </div>
+                `).join('');
+            }
+
+            const chartRows = (focus ? [focus] : rowsAll)
+                .filter((r) => r.submitted > 0)
+                .map((r) => ({ name: r.name, count: r.submitted }));
+            renderHorizontalBars(
+                document.getElementById('userDashChart'),
+                chartRows,
+                '#6C5CE7'
+            );
+
+            const tbody = document.getElementById('userDashTableBody');
+            if (tbody) {
+                if (!rowsAll.length) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="hub-empty">لا توجد بيانات مستخدمين في هذه الفترة</td></tr>';
+                } else {
+                tbody.innerHTML = rowsAll.map((r) => {
+                    const share = totalSubmitted ? Math.round((r.submitted / totalSubmitted) * 1000) / 10 : 0;
+                    const active = selected === r.name ? ' is-active' : '';
+                    const rateClass = r.rate >= 90 ? ' is-good' : (r.rate >= 50 ? ' is-mid' : ' is-low');
+                    return `<tr class="emp-row dh-user-row${active}" data-user-name="${escapeHtml(r.name)}" tabindex="0" role="button">
+                        <td class="tl"><span class="emp-name">${escapeHtml(r.name)}</span></td>
+                        <td class="num"><strong>${r.submitted}</strong></td>
+                        <td class="num">${r.delivered}</td>
+                        <td class="num">${r.gap}</td>
+                        <td class="num${rateClass}">${r.rate}%</td>
+                        <td class="num">${r.notes}</td>
+                        <td class="num">${r.inStock}</td>
+                        <td class="num">${r.ready}</td>
+                        <td class="num">${r.pending}</td>
+                        <td class="num">${share}%</td>
+                    </tr>`;
+                }).join('');
+                tbody.querySelectorAll('[data-user-name]').forEach((row) => {
+                    const open = () => selectUserDashboard(row.dataset.userName);
+                    row.addEventListener('click', open);
+                    row.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            open();
+                        }
+                    });
+                });
+                }
+            }
+            } catch (err) {
+                console.error('[user dashboard]', err);
+            }
+        }
+
         function renderTransferDashboard(drafts) {
             const list = Array.isArray(drafts) ? drafts : filteredDrafts();
             const navList = dateScopedDrafts();
@@ -5295,34 +6954,18 @@
 
         document.getElementById('btnTrackApply')?.addEventListener('click', () => {
             pushDatesToNatives();
+            saveTrackDateFilter();
             applyTrackFilter();
         });
         document.getElementById('btnTrackToday')?.addEventListener('click', () => {
-            const today = getSaudiTodayIso();
-            document.getElementById('trackDateFrom').value = today;
-            document.getElementById('trackDateTo').value = today;
-            const fromUi = document.getElementById('ftDateFromUi');
-            const toUi = document.getElementById('ftDateToUi');
-            if (fromUi) fromUi.value = today;
-            if (toUi) toUi.value = today;
-            syncDateControlsFromNatives();
-            applyTrackFilter();
+            applyTrackDatePreset('today');
         });
         document.getElementById('btnTrackClear')?.addEventListener('click', () => {
-            document.getElementById('trackDateFrom').value = '';
-            document.getElementById('trackDateTo').value = '';
             document.getElementById('trackDateType').value = 'delivery_note';
             document.getElementById('xferDateFilter').value = '';
-            const fromUi = document.getElementById('ftDateFromUi');
-            const toUi = document.getElementById('ftDateToUi');
-            const typeUi = document.getElementById('ftDateTypeUi');
-            if (fromUi) fromUi.value = '';
-            if (toUi) toUi.value = '';
-            if (typeUi) typeUi.value = 'delivery_note';
             selectedCompany = '';
             uiFilters = { search: '', branch: '', status: '', coordinator: '' };
-            const typeEl = document.getElementById('trackDateType');
-            if (typeEl) typeEl.value = 'delivery_note';
+            const typeUi = document.getElementById('ftDateTypeUi');
             if (typeUi) typeUi.value = 'delivery_note';
             applyDeliveryNoteDateBounds();
             const ftSearch = document.getElementById('ftSearchInput');
@@ -5330,10 +6973,8 @@
             if (ftSearch) ftSearch.value = '';
             if (legacySearch) legacySearch.value = '';
             document.getElementById('ftSearchClear')?.classList.remove('is-visible');
-            syncDateControlsFromNatives();
             renderAllFtSelects();
-            renderFilterChips();
-            applyTrackFilter();
+            applyTrackDatePreset('today');
         });
         document.getElementById('trackDateType')?.addEventListener('change', () => {
             updateTrackFilterHint();
@@ -5459,30 +7100,49 @@
             if (e.key === 'Enter') addManagedOption('cities', 'newCityInput', 'cityOptionsStatus');
         });
 
-        async function loadDashboard() {
-            const [invRes, queueRes] = await Promise.all([
-                fetch('/api/delivery-inventory'),
-                fetch('/api/delivery-coordinator/queue?admin=1')
-            ]);
-            const data = await invRes.json();
-            const queueData = await queueRes.json();
-            if (!invRes.ok) throw new Error(data.error || 'فشل تحميل البيانات');
-            allVehicles = data.vehicles || [];
-            lastDashboard = data.dashboard || null;
-            renderStats(data.dashboard);
-            if (queueRes.ok) {
-                allQueue = queueData.queue || [];
-                allDrafts = queueData.drafts || [];
-            } else {
-                allQueue = [];
-                allDrafts = [];
+        async function loadDashboard(opts = {}) {
+            if (dashboardLoading && !opts.force) return;
+            dashboardLoading = true;
+            const seq = ++dashboardLoadSeq;
+            if (!opts.quiet) setUploadStatus('جاري تحميل البيانات…', '');
+            try {
+                const [invRes, queueRes] = await Promise.all([
+                    fetch('/api/delivery-inventory'),
+                    fetch('/api/delivery-coordinator/queue?admin=1')
+                ]);
+                if (seq !== dashboardLoadSeq) return;
+                const data = await invRes.json();
+                const queueData = await queueRes.json();
+                if (!invRes.ok) throw new Error(data.error || 'فشل تحميل البيانات');
+                allVehicles = data.vehicles || [];
+                lastDashboard = data.dashboard || null;
+                renderStats(data.dashboard);
+                if (queueRes.ok) {
+                    allQueue = queueData.queue || [];
+                    allDrafts = queueData.drafts || [];
+                    allShowroomParking = queueData.showroomParking || [];
+                    showroomParkingOccupancy = queueData.showroomParkingOccupancy || null;
+                } else {
+                    allQueue = [];
+                    allDrafts = [];
+                    allShowroomParking = [];
+                    showroomParkingOccupancy = null;
+                }
+                _cachedDraftCount = -1;
+                _vinLookup = null;
+                rebuildVinLookup();
+                fetch('/api/delivery-notes/archive-missing', { method: 'POST' }).catch(() => {});
+                loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
+                renderShowroomParkingTable();
+                updateFoldCounts();
+                refreshTransferDashboard();
+                syncRestoreMetaFromDashboard();
+            } catch (err) {
+                if (!opts.quiet) setUploadStatus(err.message, 'err');
+                throw err;
+            } finally {
+                dashboardLoading = false;
             }
-            // Backfill archived delivery-note files for admin (non-blocking)
-            fetch('/api/delivery-notes/archive-missing', { method: 'POST' }).catch(() => {});
-            loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
-            updateFoldCounts();
-            refreshTransferDashboard();
-            syncRestoreMetaFromDashboard();
         }
 
         function bindDraftActionButtons(tbody) {
@@ -5741,8 +7401,10 @@
         }
 
         function renderQueueStats(stats) {
+            const host = document.getElementById('queueStats');
+            if (!host) return;
             const s = stats || {};
-            document.getElementById('queueStats').innerHTML = `
+            host.innerHTML = `
                 <div class="hub-stat"><span>قائمة المنسق</span><b>${s.total || 0}</b></div>
                 <div class="hub-stat hub-stat--avail"><span>Waiting for delivery</span><b>${s.available || 0}</b></div>
                 <div class="hub-stat hub-stat--stock"><span>In Stock</span><b>${s.in_stock || 0}</b></div>
@@ -5764,6 +7426,7 @@
 
         function renderQueueTable(queue) {
             const tbody = document.getElementById('queueBody');
+            if (!tbody) return;
             if (!queue.length) {
                 tbody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد شاسيه — أضف من صفحة المنسق</td></tr>';
                 return;
@@ -5834,10 +7497,6 @@
             updateTrackFilterMeta();
             setUploadStatus('تم مسح البيانات', 'ok');
         });
-
-        initPremiumFilterToolbar();
-        initPdfBrowserControls();
-        initDnMonthFilter();
     </script>
     <script src="delivery-hub-live.js"></script>
 </body>

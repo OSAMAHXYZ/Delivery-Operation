@@ -8,14 +8,20 @@
     let debounceTimer = null;
     let onRefreshFn = null;
     let connected = false;
+    let pollMs = 3000;
+    let minRefreshGapMs = 0;
+    let lastRefreshAt = 0;
 
     function scheduleRefresh() {
         if (!onRefreshFn) return;
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             debounceTimer = null;
+            const now = Date.now();
+            if (minRefreshGapMs && now - lastRefreshAt < minRefreshGapMs) return;
+            lastRefreshAt = now;
             Promise.resolve(onRefreshFn()).catch(() => {});
-        }, 100);
+        }, 250);
     }
 
     function wsUrl() {
@@ -25,7 +31,7 @@
 
     function startFallbackPoll() {
         if (fallbackTimer) return;
-        fallbackTimer = setInterval(() => scheduleRefresh(), 3000);
+        fallbackTimer = setInterval(() => scheduleRefresh(), pollMs);
     }
 
     function stopFallbackPoll() {
@@ -90,7 +96,10 @@
     }
 
     global.DeliveryHubLive = {
-        start(onRefresh) {
+        start(onRefresh, options) {
+            const opts = options && typeof options === 'object' ? options : {};
+            pollMs = Math.max(5000, Number(opts.pollMs) || 3000);
+            minRefreshGapMs = Math.max(0, Number(opts.minRefreshGapMs) || 0);
             onRefreshFn = typeof onRefresh === 'function' ? onRefresh : null;
             connect();
             document.addEventListener('visibilitychange', () => {

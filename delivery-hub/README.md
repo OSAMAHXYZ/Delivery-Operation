@@ -10,6 +10,7 @@ This folder is the **only place** for the delivery note / coordinator / warehous
 | `Delivery_coordinator.html` | Coordinator VIN upload / queue / yard alerts |
 | `Delivery_pdf.html` | Agent login + workspace + print form |
 | `warehouse-entry.html` | Warehouse scan, Stock IN/OUT, zones A/B |
+| `showroom-parking.html` | Showroom Admin — 7 parking slots + delivery notes |
 | `admin-Delivery-pdf.html` | Admin inventory (password `1234`) |
 | `pdf-annotator.html` | PDF annotator |
 | `delivery-hub-theme.css` | Shared dark theme |
@@ -33,7 +34,7 @@ See also `.cursor/rules/page-hubs-isolation.mdc` (all hubs) and `.cursor/rules/d
 
 ## Passwords
 
-- Agents (ياسين / الفاضل / البراء): `1234` via `POST /api/delivery-coordinator/auth`
+- Agents (ياسين / showroom admin / الفاضل / البراء): `1234` via `POST /api/delivery-coordinator/auth`
 - Warehouse (مستودع / warehouse): `1234`
 - Admin page gate: `1234` (client-side only)
 
