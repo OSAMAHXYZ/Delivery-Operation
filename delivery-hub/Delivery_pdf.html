@@ -1181,7 +1181,8 @@
             font-size: .75rem; color: var(--tot-muted); margin-top: 4px;
         }
         input.branch-auto-locked {
-            background: #f3f4f6 !important; cursor: not-allowed;
+            background: #fff !important;
+            cursor: text;
         }
     </style>
 </head>
@@ -1747,16 +1748,18 @@
             return AGENT_AUTO_BRANCH[String(agent?.username || '').trim()] || '';
         }
 
-        function applyAgentAutoBranch({ allowChange = false } = {}) {
+        function applyAgentAutoBranch() {
             const branch = agentAutoBranchName();
             const input = document.getElementById('branch_to');
             if (!input) return;
             const hintId = 'branchAutoHint';
             let hint = document.getElementById(hintId);
-            const canChange = allowChange || agentEditLockActive;
+            // Always keep city/branch selectable before print (default is only a prefill).
+            input.readOnly = false;
+            input.disabled = false;
+            input.classList.remove('branch-auto-locked', 'field-locked');
+            input.classList.add('field-editable');
             if (!branch) {
-                input.readOnly = false;
-                input.classList.remove('branch-auto-locked');
                 if (hint) hint.remove();
                 return;
             }
@@ -1765,30 +1768,18 @@
                     searchableSelectOptions.branch_to.push(branch);
                 }
             }
-            input.value = branch;
+            if (!input.value.trim()) {
+                input.value = branch;
+            }
             input.classList.remove('is-invalid');
             input.setCustomValidity('');
-            if (canChange) {
-                input.readOnly = false;
-                input.classList.remove('branch-auto-locked');
-                if (!hint) {
-                    hint = document.createElement('p');
-                    hint.id = hintId;
-                    hint.className = 'branch-locked-hint no-print';
-                    input.closest('div')?.parentElement?.appendChild(hint);
-                }
-                hint.textContent = `اقتراح الفرع: ${branch} — يمكنك تغييره من القائمة`;
-            } else {
-                input.readOnly = true;
-                input.classList.add('branch-auto-locked');
-                if (!hint) {
-                    hint = document.createElement('p');
-                    hint.id = hintId;
-                    hint.className = 'branch-locked-hint no-print';
-                    input.closest('div')?.parentElement?.appendChild(hint);
-                }
-                hint.textContent = `الفرع تلقائي لهذا المستخدم: ${branch}`;
+            if (!hint) {
+                hint = document.createElement('p');
+                hint.id = hintId;
+                hint.className = 'branch-locked-hint no-print';
+                input.closest('div')?.parentElement?.appendChild(hint);
             }
+            hint.textContent = `اقتراح الفرع: ${branch} — اختر أي مدينة من القائمة قبل الطباعة`;
             updatePreview();
         }
 
@@ -1846,6 +1837,14 @@
                 el.classList.add('field-locked');
                 el.classList.remove('field-editable');
             });
+            // City/branch must always stay choosable before print
+            const branch = document.getElementById('branch_to');
+            if (branch) {
+                branch.readOnly = false;
+                branch.disabled = false;
+                branch.classList.remove('field-locked', 'branch-auto-locked');
+                branch.classList.add('field-editable');
+            }
         }
 
         function clearAgentEditLock() {
@@ -2068,7 +2067,7 @@
                 car_count: String(filled || fd.get('car_count')?.trim() || ''),
                 branch_to: warehousePrintMode
                     ? (fd.get('branch_to')?.trim() || '')
-                    : (autoBranch || fd.get('branch_to')?.trim()),
+                    : (fd.get('branch_to')?.trim() || autoBranch || ''),
                 attachments: fd.get('attachments')?.trim(),
                 warehouse: {
                     branch_name: fd.get('wh_branch_name')?.trim(),
@@ -2949,7 +2948,7 @@
                     companyEl.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
-            applyAgentAutoBranch({ allowChange: true });
+            applyAgentAutoBranch();
             // Display → new delivery note: stamp status on form for paper + save
             if (fromDisplay || item.agentStatus === 'display'
                 || String(item.vehicleStatus || '').toLowerCase() === 'display') {
@@ -3818,6 +3817,12 @@
         function validateListOnlyFields() {
             if (warehousePrintMode || showroomMode || isShowroomAgent()) return true;
             const companyOk = enforceListOnlyValue('company_rep', { clearIfInvalid: false });
+            const branchInput = document.getElementById('branch_to');
+            if (branchInput) {
+                branchInput.readOnly = false;
+                branchInput.disabled = false;
+                branchInput.classList.remove('branch-auto-locked', 'field-locked');
+            }
             const branchOk = enforceListOnlyValue('branch_to', { clearIfInvalid: false });
             if (!companyOk || !branchOk) {
                 const firstBad = !companyOk
@@ -3825,7 +3830,13 @@
                     : document.getElementById('branch_to');
                 firstBad?.reportValidity();
                 firstBad?.focus();
-                setStatus('شركة والنقل: اختر الشركة والفرع من القائمة فقط', 'err');
+                firstBad?.dispatchEvent(new Event('focus', { bubbles: true }));
+                setStatus(
+                    !branchOk
+                        ? 'اختر المدينة / الفرع من القائمة قبل الطباعة'
+                        : 'اختر الشركة من القائمة قبل الطباعة',
+                    'err'
+                );
                 return false;
             }
             return true;
@@ -3859,7 +3870,12 @@
                     closeMenu();
                     return;
                 }
-                if (input.readOnly || input.classList.contains('field-locked')) {
+                // Branch/city must always open for selection before print
+                if (fieldId === 'branch_to') {
+                    input.readOnly = false;
+                    input.disabled = false;
+                    input.classList.remove('field-locked', 'branch-auto-locked');
+                } else if (input.readOnly || input.classList.contains('field-locked')) {
                     closeMenu();
                     return;
                 }
