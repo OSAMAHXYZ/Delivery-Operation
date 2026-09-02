@@ -6,6 +6,7 @@
     <title>مذكرة ترحيل — Delivery PDF</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-user-ui.css?v=20260825b">
     <style>
         :root {
             --tot-primary: #EB0A1E;
@@ -570,30 +571,30 @@
                 linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
             background-size: auto, auto, auto, 48px 48px, 48px 48px;
             color: #e8edf5;
-            padding: 0 0 120px;
+            padding: 0 0 88px;
         }
-        .ws-shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 24px; }
+        .ws-shell { max-width: 1280px; margin: 0 auto; padding: 12px 14px 20px; }
         .ws-topbar {
-            display: flex; align-items: center; justify-content: space-between; gap: 16px;
-            flex-wrap: wrap; margin-bottom: 22px;
-            padding: 14px 18px;
-            border-radius: 20px;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            flex-wrap: wrap; margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 14px;
             background: rgba(14, 20, 34, 0.72);
             border: 1px solid rgba(255,255,255,.1);
             backdrop-filter: blur(16px);
-            box-shadow: 0 12px 40px rgba(0,0,0,.35);
+            box-shadow: 0 8px 24px rgba(0,0,0,.28);
         }
-        .ws-brand { display: flex; align-items: center; gap: 12px; }
-        .ws-brand img { height: 34px; filter: brightness(1.1); }
+        .ws-brand { display: flex; align-items: center; gap: 10px; }
+        .ws-brand img { height: 28px; filter: brightness(1.1); }
         .ws-brand h1 {
             font-family: 'Plus Jakarta Sans', 'Tajawal', 'Inter', sans-serif;
-            font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em; color: #f8fafc;
-            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            font-size: 1.02rem; font-weight: 800; letter-spacing: -.02em; color: #f8fafc;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
         }
         .live-pill {
             display: inline-flex; align-items: center; gap: 4px;
-            font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em;
-            text-transform: uppercase; padding: 4px 9px; border-radius: 999px;
+            font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em;
+            text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
             background: rgba(74, 222, 128, 0.12); color: #4ade80;
             border: 1px solid rgba(74, 222, 128, 0.35);
             animation: livePulse 2s ease-in-out infinite;
@@ -607,49 +608,44 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.65; }
         }
-        .ws-brand p { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
+        .ws-brand p { font-size: .72rem; color: #94a3b8; margin-top: 1px; }
         .ws-user-pill {
-            display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+            display: flex; align-items: center; gap: 8px; padding: 6px 12px;
             border-radius: 999px; background: rgba(255,255,255,.05);
             border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(12px);
         }
-        .ws-user-pill strong { color: #f8fafc; font-size: .88rem; }
+        .ws-user-pill strong { color: #f8fafc; font-size: .82rem; }
         .ws-stats {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px; margin-bottom: 22px;
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 8px; margin-bottom: 12px;
+        }
+        @media (max-width: 720px) {
+            .ws-stats { grid-template-columns: repeat(2, 1fr); }
         }
         .ws-stat {
             position: relative;
             overflow: hidden;
-            padding: 16px 18px; border-radius: 18px;
+            padding: 8px 12px; border-radius: 12px;
             background: linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
             border: 1px solid rgba(255,255,255,.1);
-            backdrop-filter: blur(10px);
-            transition: transform .2s ease, border-color .2s ease;
         }
-        .ws-stat::before {
-            content: "";
-            position: absolute; top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
-        }
-        .ws-stat:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.18); }
         .ws-stat span {
-            display: block; font-size: .7rem; color: #94a3b8; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .06em;
+            display: block; font-size: .65rem; color: #94a3b8; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .05em;
         }
         .ws-stat b {
-            display: block; font-size: 1.75rem; font-weight: 800; margin-top: 6px;
+            display: block; font-size: 1.2rem; font-weight: 800; margin-top: 2px;
             letter-spacing: -.03em; color: #f1f5f9;
         }
-        .ws-stat--avail b { color: #4ade80; text-shadow: 0 0 24px rgba(74,222,128,.35); }
+        .ws-stat--avail b { color: #4ade80; }
         .ws-stat--ready b { color: #fbbf24; }
-        .ws-stat--stock b { color: #60a5fa; text-shadow: 0 0 24px rgba(96,165,250,.35); }
-        .ws-stat--out b { color: #f87171; text-shadow: 0 0 24px rgba(248,113,113,.35); }
+        .ws-stat--stock b { color: #60a5fa; }
+        .ws-stat--out b { color: #f87171; }
         .ws-section {
-            margin-bottom: 22px; padding: 20px; border-radius: 22px;
+            margin-bottom: 14px; padding: 12px 14px; border-radius: 16px;
             background: rgba(14, 20, 34, 0.78);
             border: 1px solid rgba(255,255,255,.1);
-            backdrop-filter: blur(16px); box-shadow: 0 20px 50px rgba(0,0,0,.28);
+            backdrop-filter: blur(16px); box-shadow: 0 12px 32px rgba(0,0,0,.22);
         }
         .ws-section--out {
             border-color: rgba(248, 113, 113, 0.22);
@@ -657,89 +653,115 @@
         }
         .ws-section-head {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+            gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
         }
         .ws-section-head h2 {
-            font-size: .95rem; font-weight: 800; color: #f1f5f9;
+            font-size: .88rem; font-weight: 800; color: #f1f5f9;
             display: flex; align-items: center; gap: 8px;
         }
         .ws-section-head h2::before {
-            content: ''; width: 8px; height: 8px; border-radius: 50%;
-            background: var(--tot-primary); box-shadow: 0 0 12px rgba(235,10,30,.8);
+            content: ''; width: 7px; height: 7px; border-radius: 50%;
+            background: var(--tot-primary); box-shadow: 0 0 10px rgba(235,10,30,.7);
         }
-        .ws-section-head .hint { font-size: .75rem; color: #94a3b8; }
+        .ws-section-head .hint { font-size: .7rem; color: #94a3b8; }
         .fleet-search-wrap {
+            position: sticky;
+            top: 8px;
+            z-index: 20;
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 10px;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 12px;
+            background: rgba(7, 11, 20, 0.92);
+            border: 1px solid rgba(255,255,255,.1);
+            backdrop-filter: blur(12px);
         }
         .fleet-search {
             flex: 1;
-            min-width: 200px;
-            padding: 12px 14px;
-            border-radius: 12px;
+            min-width: 180px;
+            padding: 10px 12px;
+            border-radius: 10px;
             border: 1px solid rgba(255,255,255,.14);
-            background: rgba(0,0,0,.28);
+            background: rgba(0,0,0,.35);
             color: #f1f5f9;
             font: inherit;
-            font-size: .9rem;
+            font-size: .86rem;
+            font-family: ui-monospace, Consolas, monospace;
             letter-spacing: 0.04em;
             direction: ltr;
             text-align: left;
             transition: border-color .2s ease, box-shadow .2s ease;
         }
-        .fleet-search::placeholder { color: #64748b; letter-spacing: 0; }
+        .fleet-search::placeholder {
+            color: #64748b; letter-spacing: 0;
+            font-family: 'Tajawal', sans-serif; direction: rtl; text-align: right;
+        }
         .fleet-search:focus {
             outline: none;
             border-color: rgba(255, 59, 74, 0.55);
             box-shadow: 0 0 0 3px rgba(255, 59, 74, 0.15);
         }
         .fleet-search-count {
-            font-size: .75rem;
+            font-size: .72rem;
+            font-weight: 700;
             color: #94a3b8;
             white-space: nowrap;
         }
         .fleet-card.fleet-card--hidden { display: none !important; }
         .fleet-search-empty.hidden { display: none !important; }
+        .fleet-companies {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
         .fleet-company-group {
-            margin-bottom: 18px;
-            padding: 14px;
-            border-radius: 18px;
+            margin-bottom: 0;
+            padding: 8px 10px;
+            border-radius: 12px;
             border: 1px solid rgba(255,255,255,.08);
-            background: rgba(15, 23, 42, 0.35);
+            background: rgba(15, 23, 42, 0.45);
         }
         .fleet-company-group.fleet-company-group--hidden { display: none !important; }
         .fleet-company-group--warehouse {
             border-color: rgba(14, 165, 233, 0.28);
             background: rgba(14, 165, 233, 0.06);
         }
+        .fleet-company-group--match {
+            border-color: rgba(74, 222, 128, 0.4);
+            box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.15);
+        }
         .fleet-company-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
         }
         .fleet-company-name {
-            font-size: 1rem;
+            font-size: .84rem;
             font-weight: 800;
             color: #f8fafc;
+            line-height: 1.3;
         }
         .fleet-company-count {
-            font-size: 0.78rem;
+            font-size: 0.7rem;
             font-weight: 700;
             color: #94a3b8;
+            white-space: nowrap;
         }
         .fleet-company-badge {
             display: inline-flex;
             align-items: center;
-            padding: 3px 8px;
+            padding: 2px 7px;
             border-radius: 999px;
-            font-size: 0.72rem;
+            font-size: 0.65rem;
             font-weight: 700;
-            margin-inline-start: 8px;
+            margin-inline-start: 6px;
         }
         .fleet-company-badge--wh {
             background: rgba(14, 165, 233, 0.14);
@@ -752,48 +774,72 @@
             border: 1px solid rgba(34, 197, 94, 0.28);
         }
         .fleet-grid {
-            display: grid; gap: 14px;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            display: grid;
+            gap: 6px;
+            grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+        }
+        .fleet-company-group .fleet-grid {
+            max-height: 148px;
+            overflow: auto;
+            padding: 2px;
+            scrollbar-width: thin;
+        }
+        .fleet-company-group.is-expanded .fleet-grid,
+        .fleet-companies.is-searching .fleet-company-group .fleet-grid {
+            max-height: none;
         }
         .fleet-card {
             position: relative; text-align: right; padding: 0;
-            border-radius: 18px; border: 1px solid rgba(255,255,255,.1);
-            background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
-            cursor: pointer; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+            border-radius: 10px; border: 1px solid rgba(255,255,255,.1);
+            background: rgba(255,255,255,.04);
+            cursor: pointer; transition: border-color .15s ease, background .15s ease;
             font: inherit; color: inherit; width: 100%;
             overflow: hidden;
         }
         .fleet-card:hover {
-            transform: translateY(-3px);
             border-color: rgba(74,222,128,.45);
-            box-shadow: 0 16px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(74,222,128,.15);
+            background: rgba(74,222,128,.08);
         }
-        .fleet-card .fc-media {
-            height: 110px;
-            display: flex; align-items: center; justify-content: center;
-            background:
-                radial-gradient(120px 60px at 50% 100%, rgba(255,59,74,.18), transparent 70%),
-                linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-            border-bottom: 1px solid rgba(255,255,255,.06);
+        .fleet-card .fc-media { display: none; }
+        .fleet-card .fc-body {
+            padding: 7px 9px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
-        .fleet-card .fc-media img {
-            max-width: 88%; max-height: 88%; object-fit: contain;
-            filter: drop-shadow(0 8px 18px rgba(0,0,0,.45));
-        }
-        .fleet-card .fc-body { padding: 14px 16px 16px; }
         .fleet-card .fc-vin {
-            font-family: ui-monospace, monospace; font-size: .74rem;
-            direction: ltr; font-weight: 800; color: #e2e8f0; word-break: break-all;
+            font-family: ui-monospace, Consolas, monospace; font-size: .68rem;
+            direction: ltr; text-align: left; font-weight: 800; color: #f1f5f9;
+            word-break: break-all; line-height: 1.25;
         }
-        .fleet-card .fc-product { font-weight: 800; margin-top: 8px; font-size: .95rem; color: #f8fafc; }
-        .fleet-card .fc-meta { font-size: .74rem; color: #94a3b8; margin-top: 6px; }
+        .fleet-card .fc-product {
+            font-weight: 700; font-size: .72rem; color: #cbd5e1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .fleet-card .fc-meta {
+            font-size: .62rem; color: #64748b;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
         .fleet-card .fc-badge {
-            display: inline-flex; margin-top: 10px; padding: 4px 10px;
-            border-radius: 999px; font-size: .68rem; font-weight: 700;
+            display: inline-flex; align-self: flex-start; margin-top: 3px;
+            padding: 1px 7px; border-radius: 999px; font-size: .6rem; font-weight: 700;
         }
-        .fleet-card .fc-actions {
-            display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+        .fleet-card .fc-actions { display: none; }
+        .fleet-card--hit {
+            border-color: rgba(74, 222, 128, 0.55);
+            background: rgba(74, 222, 128, 0.12);
         }
+        .fleet-expand-btn {
+            border: 0;
+            background: transparent;
+            color: #7dd3fc;
+            font: inherit;
+            font-size: .68rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .fleet-expand-btn:hover { color: #bae6fd; }
         .fc-btn {
             flex: 1; min-width: 90px; padding: 8px 10px; border-radius: 10px;
             border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05);
@@ -814,39 +860,33 @@
         .fc-badge--stock { background: rgba(96,165,250,.15); color: #60a5fa; border: 1px solid rgba(96,165,250,.35); }
         .fc-badge--out { background: rgba(235,10,30,.15); color: #f87171; border: 1px solid rgba(235,10,30,.35); }
         .fleet-card--ready { border-color: rgba(251,191,36,.25); }
-        .fleet-card--ready:hover { border-color: rgba(251,191,36,.5); box-shadow: 0 12px 32px rgba(251,191,36,.1); }
+        .fleet-card--ready:hover { border-color: rgba(251,191,36,.5); }
         .fleet-card--out { border-color: rgba(248,113,113,.28); }
-        .fleet-card--out:hover {
-            border-color: rgba(248,113,113,.5);
-            box-shadow: 0 16px 40px rgba(248,113,113,.12);
-        }
-        .fleet-card--actionable::after {
-            content: '↗'; position: absolute; top: 12px; left: 12px;
-            font-size: .85rem; color: #94a3b8; z-index: 2;
-        }
+        .fleet-card--out:hover { border-color: rgba(248,113,113,.5); }
+        .fleet-card--actionable::after { display: none; }
         .ws-empty {
-            text-align: center; padding: 36px 16px; color: #64748b; font-size: .88rem;
-            border: 1px dashed rgba(255,255,255,.12); border-radius: 16px;
+            text-align: center; padding: 18px 12px; color: #64748b; font-size: .8rem;
+            border: 1px dashed rgba(255,255,255,.12); border-radius: 12px;
             background: rgba(255,255,255,.02);
-            line-height: 1.6;
+            line-height: 1.5;
         }
-        .ws-empty strong { display: block; color: #94a3b8; margin-bottom: 4px; font-size: .95rem; }
+        .ws-empty strong { display: block; color: #94a3b8; margin-bottom: 4px; font-size: .85rem; }
         .stock-dock {
             position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
             background: rgba(7, 11, 20, .94);
             border-top: 1px solid rgba(96,165,250,.25);
-            backdrop-filter: blur(22px); padding: 14px 16px 18px;
-            box-shadow: 0 -24px 60px rgba(0,0,0,.5);
+            backdrop-filter: blur(22px); padding: 8px 12px 10px;
+            box-shadow: 0 -16px 40px rgba(0,0,0,.45);
         }
-        .stock-dock-inner { max-width: 1200px; margin: 0 auto; }
+        .stock-dock-inner { max-width: 1280px; margin: 0 auto; }
         .stock-dock-head {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 12px; gap: 10px;
+            margin-bottom: 6px; gap: 8px;
         }
         .stock-dock-head h3 {
-            font-size: .82rem; font-weight: 800; color: #93c5fd; letter-spacing: .04em;
+            font-size: .75rem; font-weight: 800; color: #93c5fd; letter-spacing: .04em;
         }
-        .stock-dock-head span { font-size: .78rem; color: #94a3b8; }
+        .stock-dock-head span { font-size: .7rem; color: #94a3b8; }
         .stock-scroll {
             display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;
             scrollbar-width: thin;
@@ -981,6 +1021,62 @@
         }
         .stock-action-btns .sa-cancel:hover { color: #cbd5e1; transform: none; filter: none; }
 
+        .quick-print-strip {
+            border: 1px solid rgba(235, 10, 30, 0.35) !important;
+            background: linear-gradient(165deg, rgba(235, 10, 30, 0.1), rgba(15, 23, 42, 0.04)) !important;
+        }
+        .quick-print-strip h2 { color: var(--tot-primary); }
+        .quick-print-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .quick-print-meta {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.04);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .quick-print-meta span {
+            display: block;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .quick-print-meta strong {
+            font-size: .92rem;
+            color: #0f172a;
+        }
+        .field-spotlight {
+            outline: 2px solid rgba(235, 10, 30, 0.45);
+            outline-offset: 4px;
+            border-radius: 8px;
+        }
+        body.agent-edit-lock input.field-locked,
+        body.agent-edit-lock textarea.field-locked,
+        body.agent-edit-lock select.field-locked {
+            opacity: 0.78;
+            background: #eef2f7 !important;
+            color: #475569 !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        body.agent-edit-lock .chassis-pick {
+            pointer-events: none !important;
+            cursor: default !important;
+        }
+        body.agent-edit-lock .field-editable,
+        body.agent-edit-lock input.field-editable,
+        body.agent-edit-lock textarea.field-editable {
+            outline: 2px solid rgba(34, 197, 94, 0.35);
+            outline-offset: 1px;
+            background: #fff !important;
+        }
+        @media (max-width: 640px) {
+            .quick-print-grid { grid-template-columns: 1fr; }
+        }
 
         /* ——— Futuristic agent workspace ——— */
         .status-modal {
@@ -1089,16 +1185,19 @@
         }
     </style>
 </head>
-<body>
+<body class="user-ui">
     <div id="gateLogin" class="gate-wrap">
         <div class="gate-card">
-            <h2>تسجيل الدخول</h2>
+            <div class="gate-eyebrow">Agent · Delivery Memo</div>
+            <h2>مذكرة الترحيل</h2>
+            <p class="gate-lead">اختر اسمك · افتح الشركات والشاسيه · مدينة + مرفقات · طباعة</p>
             <div class="gate-user">
                 <div>
                     <label for="loginUser">اسم المستخدم</label>
                     <select id="loginUser" required>
                         <option value="">— اختر الاسم —</option>
                         <option value="ياسين">ياسين</option>
+                        <option value="showroom admin">showroom admin</option>
                         <option value="الفاضل">الفاضل</option>
                         <option value="البراء">البراء</option>
                     </select>
@@ -1120,7 +1219,7 @@
                     <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
                     <div>
                         <h1>لوحة الترحيل <span class="live-pill" id="livePill" title="Live sync">● Live</span></h1>
-                        <p>اختر السيارات وحدد حالتها — يمكنك إدارة عدة سيارات</p>
+                        <p>شركات المنسق · انقر الشاسيه · مدينة + مرفقات · طباعة</p>
                     </div>
                 </div>
                 <div class="ws-user-pill">
@@ -1136,22 +1235,22 @@
 
             <section class="ws-section">
                 <div class="ws-section-head">
-                    <h2>السيارات المتاحة</h2>
-                    <span class="hint">مجمّعة حسب الشركة من المنسق — انقر الشاسيه لفتح المذكرة</span>
+                    <h2>حسب الشركة — VINs جاهزة للطباعة</h2>
+                    <span class="hint">كل الشركات ظاهرة · ابحث بأي جزء من رقم الشاسيه · انقر للطباعة</span>
                 </div>
                 <div class="fleet-search-wrap">
                     <input
                         type="search"
                         id="availableVinSearch"
                         class="fleet-search"
-                        placeholder="ابحث بالشاسيه / VIN…"
+                        placeholder="ابحث برقم الشاسيه أو جزء منه… مثال 7022 أو JTNB"
                         autocomplete="off"
                         spellcheck="false"
                         inputmode="search"
                     />
                     <span class="fleet-search-count" id="availableVinSearchCount"></span>
                 </div>
-                <div class="fleet-grid" id="availableFleet"></div>
+                <div class="fleet-companies" id="availableFleet"></div>
                 <p class="ws-empty fleet-search-empty hidden" id="availableVinSearchEmpty">لا توجد نتائج مطابقة للبحث</p>
                 <p class="ws-toast" id="queueStatus"></p>
             </section>
@@ -1254,11 +1353,47 @@
     <div class="layout">
         <header class="hero no-print">
             <h1>مذكرة ترحيل السيارات</h1>
-            <p>املأ البيانات — شاهد المعاينة — اطبع على ورق A4</p>
+            <p>مفتوح للتعديل: المندوب · الفرع · اللوحة · الملاحظات · المرفقات — الباقي مقفل</p>
         </header>
 
         <div class="form-col">
             <form id="deliveryForm">
+                <section class="card no-print quick-print-strip" id="quickPrintStrip" hidden>
+                    <h2>خطوات سريعة للطباعة</h2>
+                    <p class="hint" id="quickPrintHint">مفتوح فقط: المندوب · الفرع · اللوحة · الملاحظات · المرفقات</p>
+                    <div class="quick-print-grid">
+                        <div class="quick-print-meta">
+                            <span>الشركة</span>
+                            <strong id="quickCompanyLabel">—</strong>
+                        </div>
+                        <div class="quick-print-meta">
+                            <span>الشاسيه</span>
+                            <strong id="quickVinLabel" style="direction:ltr;font-family:ui-monospace,Consolas,monospace">—</strong>
+                        </div>
+                    </div>
+                    <div class="grid grid-2" style="margin-top:12px">
+                        <div>
+                            <label>مندوب الشركة</label>
+                            <button type="button" class="btn btn-secondary" id="btnFocusRep" style="width:100%">اسم المندوب ↓</button>
+                        </div>
+                        <div>
+                            <label>الفرع / المدينة</label>
+                            <button type="button" class="btn btn-secondary" id="btnFocusCity" style="width:100%">اختر الفرع ↓</button>
+                        </div>
+                        <div>
+                            <label>المرفقات</label>
+                            <button type="button" class="btn btn-secondary" id="btnFocusAttachments" style="width:100%">مرفقات (اختياري) ↓</button>
+                        </div>
+                        <div>
+                            <label>لوحة / ملاحظات</label>
+                            <button type="button" class="btn btn-secondary" id="btnFocusPlate" style="width:100%">اللوحة والملاحظات ↓</button>
+                        </div>
+                    </div>
+                    <div class="actions" style="margin-top:14px;margin-bottom:0">
+                        <button type="button" class="btn btn-primary" id="btnQuickPrint">🖨 طباعة A4</button>
+                    </div>
+                </section>
+
                 <section class="card memo-only-section">
                     <h2>بيانات المذكرة — Header</h2>
                     <div class="grid grid-4">
@@ -1546,6 +1681,11 @@
             return String(agent?.username || '').trim() === SHOWROOM_AGENT;
         }
 
+        function isShowroomAdminAgent(agent = getAgent()) {
+            const u = String(agent?.username || '').trim().toLowerCase();
+            return u === 'showroom admin' || u === 'سيارات العرض' || u === 'showroom cars';
+        }
+
         function applyShowroomUi(enabled) {
             showroomMode = Boolean(enabled);
             document.body.classList.toggle('showroom-agent-mode', showroomMode);
@@ -1607,16 +1747,16 @@
             return AGENT_AUTO_BRANCH[String(agent?.username || '').trim()] || '';
         }
 
-        function applyAgentAutoBranch() {
+        function applyAgentAutoBranch({ allowChange = false } = {}) {
             const branch = agentAutoBranchName();
             const input = document.getElementById('branch_to');
             if (!input) return;
             const hintId = 'branchAutoHint';
             let hint = document.getElementById(hintId);
-            // Always keep branch selectable from the city list (default is only a prefill).
-            input.readOnly = false;
-            input.classList.remove('branch-auto-locked');
+            const canChange = allowChange || agentEditLockActive;
             if (!branch) {
+                input.readOnly = false;
+                input.classList.remove('branch-auto-locked');
                 if (hint) hint.remove();
                 return;
             }
@@ -1625,19 +1765,117 @@
                     searchableSelectOptions.branch_to.push(branch);
                 }
             }
-            if (!input.value.trim()) {
-                input.value = branch;
-            }
+            input.value = branch;
             input.classList.remove('is-invalid');
             input.setCustomValidity('');
-            if (!hint) {
-                hint = document.createElement('p');
-                hint.id = hintId;
-                hint.className = 'branch-locked-hint no-print';
-                input.closest('div')?.parentElement?.appendChild(hint);
+            if (canChange) {
+                input.readOnly = false;
+                input.classList.remove('branch-auto-locked');
+                if (!hint) {
+                    hint = document.createElement('p');
+                    hint.id = hintId;
+                    hint.className = 'branch-locked-hint no-print';
+                    input.closest('div')?.parentElement?.appendChild(hint);
+                }
+                hint.textContent = `اقتراح الفرع: ${branch} — يمكنك تغييره من القائمة`;
+            } else {
+                input.readOnly = true;
+                input.classList.add('branch-auto-locked');
+                if (!hint) {
+                    hint = document.createElement('p');
+                    hint.id = hintId;
+                    hint.className = 'branch-locked-hint no-print';
+                    input.closest('div')?.parentElement?.appendChild(hint);
+                }
+                hint.textContent = `الفرع تلقائي لهذا المستخدم: ${branch}`;
             }
-            hint.textContent = `الفرع الافتراضي: ${branch} — يمكنك اختيار فرع آخر من القائمة`;
             updatePreview();
+        }
+
+        let agentEditLockActive = false;
+        const AGENT_EDIT_UNLOCKED_IDS = new Set([
+            'customer_name',
+            'branch_to',
+            'attachments'
+        ]);
+
+        function isAgentUnlockedControl(el) {
+            if (!el) return false;
+            const id = el.id || '';
+            const name = el.name || '';
+            if (AGENT_EDIT_UNLOCKED_IDS.has(id) || AGENT_EDIT_UNLOCKED_IDS.has(name)) return true;
+            if (/^car_plate_\d+$/.test(name) || /^car_remarks_\d+$/.test(name)) return true;
+            return false;
+        }
+
+        function setAgentEditLock(enabled) {
+            agentEditLockActive = Boolean(enabled);
+            document.body.classList.toggle('agent-edit-lock', agentEditLockActive);
+            if (!form) return;
+            form.querySelectorAll('input, textarea, select').forEach((el) => {
+                const type = String(el.type || '').toLowerCase();
+                if (type === 'hidden' || type === 'button' || type === 'submit' || type === 'reset' || type === 'file') {
+                    return;
+                }
+                if (isAgentUnlockedControl(el)) {
+                    el.readOnly = false;
+                    if ('disabled' in el) el.disabled = false;
+                    el.classList.remove('field-locked');
+                    el.classList.add('field-editable');
+                    if (el.dataset.wasRequired === '1') {
+                        el.required = true;
+                    }
+                    return;
+                }
+                if (enabled) {
+                    if (el.required) el.dataset.wasRequired = '1';
+                    el.required = false;
+                } else if (el.dataset.wasRequired === '1') {
+                    el.required = true;
+                    delete el.dataset.wasRequired;
+                }
+                el.readOnly = true;
+                el.classList.add('field-locked');
+                el.classList.remove('field-editable');
+            });
+            // day_name / car_count stay readonly always
+            ['day_name', 'car_count'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.readOnly = true;
+                el.classList.add('field-locked');
+                el.classList.remove('field-editable');
+            });
+        }
+
+        function clearAgentEditLock() {
+            agentEditLockActive = false;
+            document.body.classList.remove('agent-edit-lock');
+            if (!form) return;
+            form.querySelectorAll('.field-locked, .field-editable').forEach((el) => {
+                el.classList.remove('field-locked', 'field-editable');
+            });
+            form.querySelectorAll('[data-was-required]').forEach((el) => {
+                el.required = true;
+                delete el.dataset.wasRequired;
+            });
+            // Restore defaults that should remain readonly
+            const day = document.getElementById('day_name');
+            const count = document.getElementById('car_count');
+            if (day) day.readOnly = true;
+            if (count) count.readOnly = true;
+            form.querySelectorAll('.chassis-pick').forEach((el) => {
+                if (!showroomMode) el.readOnly = true;
+            });
+            const companyEl = document.getElementById('company_rep');
+            if (companyEl) {
+                companyEl.readOnly = false;
+                companyEl.style.opacity = '';
+            }
+            const branch = document.getElementById('branch_to');
+            if (branch && !branch.classList.contains('branch-auto-locked')) {
+                branch.readOnly = false;
+            }
         }
 
         function openShowroomForm() {
@@ -1830,7 +2068,7 @@
                 car_count: String(filled || fd.get('car_count')?.trim() || ''),
                 branch_to: warehousePrintMode
                     ? (fd.get('branch_to')?.trim() || '')
-                    : (fd.get('branch_to')?.trim() || autoBranch || ''),
+                    : (autoBranch || fd.get('branch_to')?.trim()),
                 attachments: fd.get('attachments')?.trim(),
                 warehouse: {
                     branch_name: fd.get('wh_branch_name')?.trim(),
@@ -2100,6 +2338,10 @@
         }
 
         function openVinPicker(rowIndex) {
+            if (agentEditLockActive) {
+                setStatus('الشاسيه مقفلة من المنسق — يمكن تعديل اللوحة والملاحظات فقط', 'ok');
+                return;
+            }
             if (showroomMode || isShowroomAgent()) {
                 setStatus('اكتب رقم الشاسيه يدوياً — وضع عرض الصالة', 'ok');
                 return;
@@ -2371,6 +2613,9 @@
             syncCarCount();
             setWarehousePrintMode(false);
             setStatus('');
+            const strip = document.getElementById('quickPrintStrip');
+            if (strip) strip.hidden = true;
+            clearAgentEditLock();
             applyAgentAutoBranch();
         }
 
@@ -2432,16 +2677,14 @@
             const extraClass = (kind === 'ready' || kind === 'stock')
                 ? ' fleet-card--ready fleet-card--actionable'
                 : ' fleet-card--actionable';
-            const img = item.imageUrl
-                ? `<img src="${item.imageUrl}" alt="" onerror="this.style.display='none'">`
-                : '';
             const company = item.deliveryCompany || item.company || '';
-            return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}" data-company="${String(company).replace(/"/g, '&quot;')}" data-planned="${planned}">
-                <div class="fc-media">${img}</div>
+            const product = item.product || item.model || '—';
+            const gt = item.gt || item.location || '';
+            return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}" data-company="${String(company).replace(/"/g, '&quot;')}" data-product="${String(product).replace(/"/g, '&quot;')}" data-planned="${planned}">
                 <div class="fc-body">
                     <div class="fc-vin">${item.vin}</div>
-                    <div class="fc-product">${item.product || item.model || '—'}</div>
-                    <div class="fc-meta">${company ? company + ' · ' : ''}GT: ${item.gt || '—'} · ${item.location || '—'}</div>
+                    <div class="fc-product">${product}</div>
+                    <div class="fc-meta">${gt ? 'GT: ' + gt : '—'}</div>
                     <span class="fc-badge ${badgeClass}">${badgeText}</span>
                 </div>
             </div>`;
@@ -2475,6 +2718,7 @@
             if (!input || !availEl) return;
 
             const q = String(input.value || '').trim().toUpperCase().replace(/\s+/g, '');
+            availEl.classList.toggle('is-searching', Boolean(q));
             const cards = Array.from(availEl.querySelectorAll('.fleet-card'));
             if (!cards.length) {
                 if (countEl) countEl.textContent = '';
@@ -2488,20 +2732,31 @@
                     .toUpperCase()
                     .replace(/\s+/g, '');
                 const company = String(card.dataset.company || '').toUpperCase().replace(/\s+/g, '');
-                const match = !q || vin.includes(q) || company.includes(q);
+                const product = String(card.dataset.product || '').toUpperCase().replace(/\s+/g, '');
+                const match = !q || vin.includes(q) || company.includes(q) || product.includes(q);
                 card.classList.toggle('fleet-card--hidden', !match);
+                card.classList.toggle('fleet-card--hit', Boolean(q) && match);
                 if (match) visible += 1;
             });
 
             availEl.querySelectorAll('.fleet-company-group').forEach((group) => {
-                const anyVisible = Array.from(group.querySelectorAll('.fleet-card'))
-                    .some((c) => !c.classList.contains('fleet-card--hidden'));
+                const visibleCards = Array.from(group.querySelectorAll('.fleet-card'))
+                    .filter((c) => !c.classList.contains('fleet-card--hidden'));
+                const anyVisible = visibleCards.length > 0;
                 group.classList.toggle('fleet-company-group--hidden', !anyVisible);
+                group.classList.toggle('fleet-company-group--match', Boolean(q) && anyVisible);
+                const countElLocal = group.querySelector('.fleet-company-count');
+                if (countElLocal) {
+                    const total = group.querySelectorAll('.fleet-card').length;
+                    countElLocal.textContent = q
+                        ? `${visibleCards.length} من ${total}`
+                        : `${total} سيارة`;
+                }
             });
 
             if (countEl) {
                 countEl.textContent = q
-                    ? `${visible} من ${cards.length}`
+                    ? `${visible} نتيجة`
                     : `${cards.length} سيارة`;
             }
             if (emptyEl) {
@@ -2540,16 +2795,43 @@
                         ? '<span class="fleet-company-badge fleet-company-badge--wh">مستودع</span>'
                         : '<span class="fleet-company-badge fleet-company-badge--memo">ترحيل</span>';
                     const cards = g.items.map((item) => fleetCardHtml(item, 'avail')).join('');
+                    const expand = g.items.length > 8
+                        ? `<button type="button" class="fleet-expand-btn" data-expand-company>عرض الكل</button>`
+                        : '';
                     return `<div class="fleet-company-group${g.isWh ? ' fleet-company-group--warehouse' : ''}" data-company-group="${String(g.company).replace(/"/g, '&quot;')}">
                         <div class="fleet-company-head">
                             <div class="fleet-company-name">${g.company}${badge}</div>
-                            <div class="fleet-company-count">${g.items.length} سيارة</div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                ${expand}
+                                <div class="fleet-company-count">${g.items.length} سيارة</div>
+                            </div>
                         </div>
                         <div class="fleet-grid">${cards}</div>
                     </div>`;
                 }).join('');
+                availEl.querySelectorAll('[data-expand-company]').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const group = btn.closest('.fleet-company-group');
+                        if (!group) return;
+                        const open = group.classList.toggle('is-expanded');
+                        btn.textContent = open ? 'طي القائمة' : 'عرض الكل';
+                    });
+                });
                 availEl.querySelectorAll('.fleet-card').forEach((card) => {
-                    card.addEventListener('click', () => openCarAction(card.dataset.vin, 'available'));
+                    card.addEventListener('click', () => {
+                        const vin = card.dataset.vin;
+                        const item = workspaceQueue.find((q) => q.vin === vin) || { vin };
+                        const planned = String(
+                            item.plannedDeliveryMode || card.dataset.planned || ''
+                        ).toLowerCase();
+                        // Coordinator already assigned company + type → open memo directly
+                        if (planned === 'memo' || planned === 'warehouse') {
+                            startDeliveryNote(vin);
+                            return;
+                        }
+                        openCarAction(vin, 'available');
+                    });
                 });
             }
             filterAvailableFleetByVin();
@@ -2651,6 +2933,7 @@
             const mode = String(forceMode || item.plannedDeliveryMode || '').toLowerCase();
             if (mode === 'warehouse') {
                 applyWarehouseDelivery();
+                showQuickPrintStrip(item, { warehouse: true });
                 return;
             }
             setWarehousePrintMode(false);
@@ -2660,11 +2943,13 @@
                 const companyEl = document.getElementById('company_rep');
                 if (companyEl) {
                     companyEl.value = company;
+                    companyEl.readOnly = true;
+                    companyEl.style.opacity = '0.85';
                     companyEl.dispatchEvent(new Event('input', { bubbles: true }));
                     companyEl.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
-            applyAgentAutoBranch();
+            applyAgentAutoBranch({ allowChange: true });
             // Display → new delivery note: stamp status on form for paper + save
             if (fromDisplay || item.agentStatus === 'display'
                 || String(item.vehicleStatus || '').toLowerCase() === 'display') {
@@ -2680,7 +2965,42 @@
             } else {
                 window.__forceVehicleStatus = '';
             }
+            showQuickPrintStrip(item, { warehouse: false });
+            setAgentEditLock(true);
             updatePreview();
+            // Focus company rep first (editable), then branch is available
+            setTimeout(() => {
+                const rep = document.getElementById('customer_name');
+                if (rep) {
+                    rep.focus();
+                    rep.classList.add('field-spotlight');
+                    setTimeout(() => rep.classList.remove('field-spotlight'), 2200);
+                }
+            }, 180);
+        }
+
+        function showQuickPrintStrip(item, { warehouse = false } = {}) {
+            const strip = document.getElementById('quickPrintStrip');
+            if (!strip) return;
+            const company = String(item.deliveryCompany || item.company || '').trim() || '—';
+            const vin = String(item.vin || '').trim() || '—';
+            const companyLabel = document.getElementById('quickCompanyLabel');
+            const vinLabel = document.getElementById('quickVinLabel');
+            const hint = document.getElementById('quickPrintHint');
+            if (companyLabel) companyLabel.textContent = warehouse ? `${company} · مستودع` : company;
+            if (vinLabel) vinLabel.textContent = vin;
+            if (hint) {
+                hint.textContent = warehouse
+                    ? 'نموذج المستودع — أكمل الحقول المطلوبة ثم اطبع'
+                    : 'مفتوح فقط: المندوب · الفرع · اللوحة · الملاحظات · المرفقات';
+            }
+            strip.hidden = false;
+        }
+
+        function hideQuickPrintStrip() {
+            const strip = document.getElementById('quickPrintStrip');
+            if (strip) strip.hidden = true;
+            clearAgentEditLock();
         }
 
         /** Allow coordinator-assigned company even if not yet in local options list. */
@@ -3165,6 +3485,10 @@
 
                 setAgent(username, password);
                 statusEl.textContent = '';
+                if (isShowroomAdminAgent()) {
+                    location.href = 'showroom-parking.html';
+                    return;
+                }
                 if (isShowroomAgent()) {
                     openShowroomForm();
                     return;
@@ -3271,8 +3595,38 @@
             setWarehousePrintMode(false);
             applyShowroomUi(false);
             clearClaimedVin();
+            hideQuickPrintStrip();
             openWorkspace();
         });
+
+        const btnQuickPrint = document.getElementById('btnQuickPrint');
+        if (btnQuickPrint) btnQuickPrint.addEventListener('click', () => doPrintA4());
+        function spotlightField(el) {
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus();
+            el.classList.add('field-spotlight');
+            setTimeout(() => el.classList.remove('field-spotlight'), 1800);
+        }
+        const btnFocusRep = document.getElementById('btnFocusRep');
+        if (btnFocusRep) {
+            btnFocusRep.addEventListener('click', () => spotlightField(document.getElementById('customer_name')));
+        }
+        const btnFocusCity = document.getElementById('btnFocusCity');
+        if (btnFocusCity) {
+            btnFocusCity.addEventListener('click', () => spotlightField(document.getElementById('branch_to')));
+        }
+        const btnFocusAttachments = document.getElementById('btnFocusAttachments');
+        if (btnFocusAttachments) {
+            btnFocusAttachments.addEventListener('click', () => spotlightField(document.getElementById('attachments')));
+        }
+        const btnFocusPlate = document.getElementById('btnFocusPlate');
+        if (btnFocusPlate) {
+            btnFocusPlate.addEventListener('click', () => {
+                const plate = form.querySelector('[name="car_plate_0"]');
+                spotlightField(plate);
+            });
+        }
 
         buildCarRows();
         buildOverlay();
@@ -3501,6 +3855,14 @@
             }
 
             function openMenu(filterText) {
+                if (agentEditLockActive && fieldId === 'company_rep') {
+                    closeMenu();
+                    return;
+                }
+                if (input.readOnly || input.classList.contains('field-locked')) {
+                    closeMenu();
+                    return;
+                }
                 const q = String(filterText || '').trim().toLowerCase();
                 const matches = options().filter((name) => !q || String(name).toLowerCase().includes(q));
                 if (!matches.length) {
