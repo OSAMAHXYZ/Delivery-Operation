@@ -8345,7 +8345,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ company, phone: phoneRaw, fromAdmin: true })
             });
-            const data = await res.json();
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                throw new Error(res.ok ? 'رد غير متوقع من الخادم' : 'تعذر حفظ الرقم — حدّث الصفحة بعد اكتمال النشر');
+            }
             if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
             managedCompanyPhones = data.companyPhones || managedCompanyPhones;
             if (Array.isArray(data.companies)) managedCompanies = data.companies;

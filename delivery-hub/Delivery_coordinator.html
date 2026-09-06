@@ -778,13 +778,26 @@
                 }
                 return false;
             }
+            if (!phone) {
+                if (statusEl) {
+                    statusEl.textContent = 'أدخل رقم الجوال أولاً';
+                    statusEl.className = 'company-board-status err';
+                }
+                return false;
+            }
             try {
                 const res = await fetch('/api/delivery-options/company-phone', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ company, phone })
                 });
-                const data = await res.json();
+                const raw = await res.text();
+                let data = {};
+                try {
+                    data = raw ? JSON.parse(raw) : {};
+                } catch {
+                    throw new Error(res.ok ? 'رد غير متوقع من الخادم' : 'تعذر حفظ الرقم — حدّث الصفحة بعد اكتمال النشر');
+                }
                 if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
                 companyPhones = data.companyPhones || companyPhones;
                 boardPhoneDraft.delete(company);

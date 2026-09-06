@@ -49,7 +49,8 @@ function uniqueSorted(list) {
 function defaultOptions() {
   return {
     companies: uniqueSorted(DEFAULT_COMPANIES),
-    cities: uniqueSorted(DEFAULT_CITIES)
+    cities: uniqueSorted(DEFAULT_CITIES),
+    companyPhones: {}
   };
 }
 
@@ -84,6 +85,31 @@ function ensureOptions() {
   } else {
     store.options.cities = uniqueSorted(store.options.cities);
   }
+  if (!store.options.companyPhones || typeof store.options.companyPhones !== 'object' || Array.isArray(store.options.companyPhones)) {
+    store.options.companyPhones = {};
+  }
+}
+
+function companyPhoneKey(name) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getCompanyPhonesMap() {
+  ensureOptions();
+  return store.options.companyPhones;
+}
+
+function findCompanyPhoneEntry(company) {
+  const key = companyPhoneKey(company);
+  if (!key) return null;
+  const phones = getCompanyPhonesMap();
+  if (Object.prototype.hasOwnProperty.call(phones, key)) {
+    return { key, phone: String(phones[key] || '') };
+  }
+  for (const [k, v] of Object.entries(phones)) {
+    if (companyPhoneKey(k) === key) return { key: k, phone: String(v || '') };
+  }
+  return null;
 }
 
 function loadStore() {
@@ -101,7 +127,10 @@ function loadStore() {
       options: parsed.options && typeof parsed.options === 'object'
         ? {
             companies: Array.isArray(parsed.options.companies) ? parsed.options.companies : [],
-            cities: Array.isArray(parsed.options.cities) ? parsed.options.cities : []
+            cities: Array.isArray(parsed.options.cities) ? parsed.options.cities : [],
+            companyPhones: parsed.options.companyPhones && typeof parsed.options.companyPhones === 'object' && !Array.isArray(parsed.options.companyPhones)
+              ? parsed.options.companyPhones
+              : {}
           }
         : defaultOptions(),
       meta: {
@@ -1034,7 +1063,46 @@ app.get('/api/delivery-options', (_req, res) => {
   ensureOptions();
   res.json({
     companies: store.options.companies,
-    cities: store.options.cities
+    cities: store.options.cities,
+    companyPhones: store.options.companyPhones || {}
+  });
+});
+
+app.put('/api/delivery-options/company-phone', (req, res) => {
+  ensureOptions();
+  const company = normalizeOptionName(req.body?.company);
+  const phone = String(req.body?.phone || '').trim();
+  const fromAdmin = Boolean(req.body?.fromAdmin);
+  if (!company) return res.status(400).json({ error: 'اسم الشركة مطلوب' });
+
+  const phones = getCompanyPhonesMap();
+  const existing = findCompanyPhoneEntry(company);
+  if (!fromAdmin && existing && existing.phone) {
+    return res.status(409).json({
+      error: 'الرقم محفوظ — التعديل من لوحة الإدارة فقط',
+      phone: existing.phone,
+      companyPhones: phones,
+      companies: store.options.companies
+    });
+  }
+
+  const listed = store.options.companies.find((c) => companyPhoneKey(c) === companyPhoneKey(company));
+  const storeKey = companyPhoneKey(listed || company);
+  if (existing && existing.key !== storeKey) {
+    delete phones[existing.key];
+  }
+  if (!phone) {
+    delete phones[storeKey];
+  } else {
+    phones[storeKey] = phone;
+  }
+  store.options.companyPhones = phones;
+  persistAndBroadcast();
+  res.json({
+    ok: true,
+    phone: phone || '',
+    companyPhones: phones,
+    companies: store.options.companies
   });
 });
 
@@ -1052,7 +1120,7 @@ app.post('/api/delivery-options/:kind', (req, res) => {
   list.push(name);
   store.options[kind] = uniqueSorted(list);
   persistAndBroadcast();
-  res.json({ ok: true, name, [kind]: store.options[kind] });
+  res.json({ ok: true, name, [kind]: store.options[kind], companyPhones: store.options.companyPhones || {} });
 });
 
 app.delete('/api/delivery-options/:kind', (req, res) => {
@@ -1068,8 +1136,17 @@ app.delete('/api/delivery-options/:kind', (req, res) => {
   if (store.options[kind].length === before) {
     return res.status(404).json({ error: 'الاسم غير موجود', [kind]: store.options[kind] });
   }
+  if (kind === 'companies') {
+    const hit = findCompanyPhoneEntry(name);
+    if (hit) delete store.options.companyPhones[hit.key];
+  }
   persistAndBroadcast();
-  res.json({ ok: true, name, [kind]: store.options[kind] });
+  res.json({
+    ok: true,
+    name,
+    [kind]: store.options[kind],
+    companyPhones: store.options.companyPhones || {}
+  });
 });
 
 app.get('/api/delivery-inventory', (_req, res) => {
