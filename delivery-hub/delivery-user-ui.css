@@ -355,14 +355,15 @@ body.delivery-hub.user-ui .hub-section {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Agent login (light page) */
+/* Agent login (light card on dark grid) */
 body.user-ui #gateLogin .gate-card {
     border-radius: 22px;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-    border: 1px solid rgba(235, 10, 30, 0.18);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    border: 1px solid rgba(235, 10, 30, 0.16);
     background:
         radial-gradient(380px 160px at 100% 0%, rgba(235, 10, 30, 0.1), transparent 60%),
-        #fff;
+        #ffffff;
+    color: #0f172a;
 }
 body.user-ui #gateLogin .gate-eyebrow {
     font-size: 0.68rem;
@@ -371,12 +372,59 @@ body.user-ui #gateLogin .gate-eyebrow {
     text-transform: uppercase;
     color: #eb0a1e;
     margin-bottom: 8px;
+    text-align: center;
+}
+body.user-ui #gateLogin .gate-card h2 {
+    margin: 0 0 8px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    letter-spacing: -0.02em;
 }
 body.user-ui #gateLogin .gate-lead {
-    margin: 0 0 16px;
-    color: #64748b;
+    margin: 0 0 20px;
+    color: #475569;
     font-size: 0.88rem;
-    line-height: 1.5;
+    line-height: 1.55;
+    text-align: center;
+}
+body.user-ui #gateLogin .gate-user label {
+    color: #334155;
+    font-weight: 700;
+}
+body.user-ui #gateLogin .gate-user input,
+body.user-ui #gateLogin .gate-user select {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    color-scheme: light;
+}
+body.user-ui #gateLogin .gate-user select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
+}
+body.user-ui #gateLogin .gate-user select option {
+    background: #ffffff;
+    color: #0f172a;
+}
+body.user-ui #gateLogin .gate-user input::placeholder {
+    color: #94a3b8;
+}
+body.user-ui #gateLogin .gate-user input:focus,
+body.user-ui #gateLogin .gate-user select:focus {
+    border-color: rgba(235, 10, 30, 0.55);
+    box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.12);
+    background: #fff;
+}
+body.user-ui #gateLogin .ws-toast {
+    color: #64748b;
+    text-align: center;
+}
+body.user-ui #gateLogin .ws-toast.err {
+    color: #dc2626;
+}
+body.user-ui #gateLogin .ws-toast.ok {
+    color: #059669;
 }
 
 /* Warehouse login wraps user-gate */

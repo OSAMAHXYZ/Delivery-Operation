@@ -1,27 +1,52 @@
 /**
- * Live sync for delivery hub pages — WebSocket push + fast debounced refresh.
+ * Live sync for delivery hub pages — WebSocket push + slow fallback poll.
+ * Debounced + gap-limited so admin charts are not rebuilt constantly.
  */
 (function (global) {
     let ws = null;
     let reconnectTimer = null;
     let fallbackTimer = null;
     let debounceTimer = null;
+    let trailingTimer = null;
     let onRefreshFn = null;
     let connected = false;
-    let pollMs = 3000;
+    let started = false;
+    let pollMs = 8000;
     let minRefreshGapMs = 0;
+    let debounceMs = 400;
+    let pollWhenConnected = true;
     let lastRefreshAt = 0;
+    let visibilityBound = false;
+
+    function clearTimer(ref) {
+        if (ref) clearTimeout(ref);
+        return null;
+    }
+
+    function runRefresh() {
+        if (!onRefreshFn) return;
+        const now = Date.now();
+        if (minRefreshGapMs && lastRefreshAt && now - lastRefreshAt < minRefreshGapMs) {
+            const wait = minRefreshGapMs - (now - lastRefreshAt);
+            if (!trailingTimer) {
+                trailingTimer = setTimeout(() => {
+                    trailingTimer = null;
+                    runRefresh();
+                }, wait + 50);
+            }
+            return;
+        }
+        lastRefreshAt = now;
+        Promise.resolve(onRefreshFn()).catch(() => {});
+    }
 
     function scheduleRefresh() {
         if (!onRefreshFn) return;
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             debounceTimer = null;
-            const now = Date.now();
-            if (minRefreshGapMs && now - lastRefreshAt < minRefreshGapMs) return;
-            lastRefreshAt = now;
-            Promise.resolve(onRefreshFn()).catch(() => {});
-        }, 250);
+            runRefresh();
+        }, debounceMs);
     }
 
     function wsUrl() {
@@ -29,9 +54,13 @@
         return `${protocol}//${global.location.host}`;
     }
 
-    function startFallbackPoll() {
+        function startFallbackPoll() {
         if (fallbackTimer) return;
-        fallbackTimer = setInterval(() => scheduleRefresh(), pollMs);
+        // When WS is connected and pollWhenConnected is false, use a slow backup only.
+        const interval = connected && !pollWhenConnected
+            ? Math.max(pollMs, 180000)
+            : pollMs;
+        fallbackTimer = setInterval(() => scheduleRefresh(), interval);
     }
 
     function stopFallbackPoll() {
@@ -41,22 +70,27 @@
         }
     }
 
+    function restartFallbackPoll() {
+        stopFallbackPoll();
+        startFallbackPoll();
+    }
+
     function connect() {
         if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
         try {
             ws = new WebSocket(wsUrl());
         } catch {
+            connected = false;
             startFallbackPoll();
-            reconnectTimer = setTimeout(connect, 1500);
+            reconnectTimer = setTimeout(connect, 2500);
             return;
         }
 
         ws.onopen = () => {
             connected = true;
-            // Keep a light poll even with WS so UI stays fresh if a push is missed
-            startFallbackPoll();
-            scheduleRefresh();
+            restartFallbackPoll();
+            // Do not force an immediate full refresh on connect — page already loads once.
         };
 
         ws.onmessage = (event) => {
@@ -71,9 +105,9 @@
         ws.onclose = () => {
             connected = false;
             ws = null;
-            startFallbackPoll();
+            restartFallbackPoll();
             if (reconnectTimer) clearTimeout(reconnectTimer);
-            reconnectTimer = setTimeout(connect, 1200);
+            reconnectTimer = setTimeout(connect, 2000);
         };
 
         ws.onerror = () => {
@@ -82,11 +116,11 @@
     }
 
     function disconnect() {
-        if (reconnectTimer) clearTimeout(reconnectTimer);
-        if (debounceTimer) clearTimeout(debounceTimer);
+        started = false;
+        reconnectTimer = clearTimer(reconnectTimer);
+        debounceTimer = clearTimer(debounceTimer);
+        trailingTimer = clearTimer(trailingTimer);
         stopFallbackPoll();
-        reconnectTimer = null;
-        debounceTimer = null;
         onRefreshFn = null;
         connected = false;
         if (ws) {
@@ -95,17 +129,31 @@
         }
     }
 
+    function ensureVisibilityListener() {
+        if (visibilityBound) return;
+        visibilityBound = true;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') scheduleRefresh();
+        });
+    }
+
     global.DeliveryHubLive = {
         start(onRefresh, options) {
             const opts = options && typeof options === 'object' ? options : {};
-            pollMs = Math.max(5000, Number(opts.pollMs) || 3000);
-            minRefreshGapMs = Math.max(0, Number(opts.minRefreshGapMs) || 0);
+            pollMs = Math.max(5000, Number(opts.pollMs) || 8000);
+            minRefreshGapMs = Math.max(0, opts.minRefreshGapMs != null ? Number(opts.minRefreshGapMs) : 0);
+            debounceMs = Math.max(200, Number(opts.debounceMs) || 400);
+            pollWhenConnected = opts.pollWhenConnected !== false;
             onRefreshFn = typeof onRefresh === 'function' ? onRefresh : null;
+            ensureVisibilityListener();
+            if (started) {
+                restartFallbackPoll();
+                return;
+            }
+            started = true;
             connect();
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') scheduleRefresh();
-            });
-            scheduleRefresh();
+            startFallbackPoll();
+            // Initial page load should call its own loadDashboard — avoid double refresh here.
         },
         stop: disconnect,
         isConnected: () => connected,

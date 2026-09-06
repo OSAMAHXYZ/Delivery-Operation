@@ -117,11 +117,141 @@
             justify-content: space-between;
             gap: 8px;
         }
+        .company-board-name-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+            flex: 1;
+        }
+        .company-board-name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
         .company-board-name {
             font-size: .9rem;
             font-weight: 800;
             color: #f8fafc;
             line-height: 1.3;
+        }
+        .company-board-phone-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .company-board-phone-row input {
+            flex: 1;
+            min-width: 120px;
+            padding: 7px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: rgba(0,0,0,.28);
+            color: #e2e8f0;
+            font: inherit;
+            font-size: .78rem;
+            direction: ltr;
+            text-align: left;
+        }
+        .company-board-phone-locked {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .company-board-phone-locked strong {
+            font-size: .82rem;
+            font-weight: 700;
+            color: #a7f3d0;
+            direction: ltr;
+            text-align: left;
+            font-variant-numeric: tabular-nums;
+        }
+        .company-board-phone-locked span {
+            font-size: .68rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .hub-btn--wa {
+            background: linear-gradient(145deg, #128C7E, #075E54) !important;
+            border-color: transparent !important;
+            color: #fff !important;
+        }
+        .hub-btn--wa:hover { filter: brightness(1.08); }
+        .hub-btn--wa:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            filter: none;
+        }
+        .qv-agent {
+            font-size: .72rem;
+            font-weight: 700;
+            color: #93c5fd;
+            white-space: nowrap;
+        }
+        .qv-agent.is-open { color: #86efac; }
+        .qv-company-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: .68rem;
+            font-weight: 700;
+            color: #fde68a;
+            background: rgba(245, 158, 11, .16);
+            border: 1px solid rgba(245, 158, 11, .35);
+            white-space: normal;
+            line-height: 1.35;
+            max-width: 100%;
+        }
+        .qv-reassign {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .qv-reassign select {
+            max-width: 140px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(0,0,0,.35);
+            color: #e2e8f0;
+            font: inherit;
+            font-size: .72rem;
+        }
+        .queue-company-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .add-company-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .add-company-row input[type="text"],
+        .add-company-row input[type="tel"] {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: rgba(0,0,0,.28);
+            color: #f1f5f9;
+            font: inherit;
+        }
+        .add-company-row input[type="tel"] {
+            direction: ltr;
+            text-align: left;
+            max-width: 180px;
         }
         .company-board-count {
             flex-shrink: 0;
@@ -291,7 +421,7 @@
         .queue-company.collapsed .queue-company-body { display: none; }
         .queue-vin-row {
             display: grid;
-            grid-template-columns: minmax(150px, 1.2fr) minmax(90px, 1fr) auto auto auto;
+            grid-template-columns: minmax(140px, 1.1fr) minmax(80px, .9fr) auto auto auto minmax(70px, auto) minmax(160px, 1.2fr);
             gap: 8px;
             align-items: center;
             padding: 8px 10px;
@@ -468,6 +598,7 @@
             <div class="company-boards" id="companyBoards"></div>
             <div class="add-company-row" id="addCompanyRow" hidden>
                 <input type="text" id="newCompanyName" placeholder="إضافة شركة جديدة…" autocomplete="off">
+                <input type="tel" id="newCompanyPhone" placeholder="جوال الشركة 05…" autocomplete="off">
                 <button type="button" class="hub-btn" id="btnAddCompany">إضافة لوحة</button>
             </div>
             <div id="missingVinBox" class="hub-section" style="display:none;margin-top:12px;padding:14px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.28)">
@@ -543,7 +674,162 @@
         let currentQueue = [];
         let rawUploaded = false;
         let companyOptions = [];
+        let companyPhones = {};
         const boardPasteCache = new Map();
+        const boardPhoneDraft = new Map();
+
+        function companyPhoneLookup(name) {
+            const key = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            if (!key) return '';
+            if (companyPhones[key]) return String(companyPhones[key]);
+            for (const [k, v] of Object.entries(companyPhones || {})) {
+                if (String(k).trim().toLowerCase().replace(/\s+/g, ' ') === key) return String(v || '');
+            }
+            return '';
+        }
+
+        function normalizeWaPhone(raw) {
+            let digits = String(raw || '').replace(/[^\d+]/g, '').trim();
+            if (!digits) return '';
+            if (digits.startsWith('+')) digits = digits.slice(1);
+            digits = digits.replace(/\D/g, '');
+            if (digits.length === 10 && digits.startsWith('05')) digits = `966${digits.slice(1)}`;
+            else if (digits.length === 9 && digits.startsWith('5')) digits = `966${digits}`;
+            return digits;
+        }
+
+        function itemsForCompany(company) {
+            const key = String(company || '').trim();
+            return currentQueue.filter((q) => {
+                const c = String(q.deliveryCompany || q.company || '').trim();
+                if (isWarehouseCompany(key)) {
+                    const mode = String(q.plannedDeliveryMode || '').toLowerCase();
+                    return mode === 'warehouse' || isWarehouseCompany(c);
+                }
+                return c === key;
+            });
+        }
+
+        /** Cars still pending — exclude تم الترحيل from WhatsApp messages. */
+        function waItemsForCompany(company) {
+            return itemsForCompany(company).filter((q) => q.agentStatus !== 'delivered');
+        }
+
+        function formatWaDateTime(d = new Date()) {
+            try {
+                return new Intl.DateTimeFormat('ar-SA', {
+                    timeZone: 'Asia/Riyadh',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).format(d);
+            } catch {
+                return d.toLocaleString('ar-SA');
+            }
+        }
+
+        function buildCompanyWhatsAppText(company, items) {
+            const when = formatWaDateTime();
+            const lines = [
+                `شركة: ${company}`,
+                `التاريخ والوقت: ${when}`,
+                `عدد السيارات: ${items.length}`,
+                ''
+            ];
+            items.forEach((item, i) => {
+                const vin = String(item.vin || '').trim().toUpperCase();
+                const product = String(item.product || item.model || '—').trim();
+                lines.push(`${i + 1}) ${vin} — ${product}`);
+            });
+            return lines.join('\n');
+        }
+
+        function openCompanyWhatsApp(company) {
+            const items = waItemsForCompany(company);
+            if (!items.length) {
+                const all = itemsForCompany(company);
+                if (all.length) {
+                    alert('كل سيارات هذه الشركة تم ترحيلها — لا يوجد ما يُرسل في واتساب');
+                } else {
+                    alert('لا توجد شاسيه مرسلة لهذه الشركة بعد');
+                }
+                return;
+            }
+            const phoneRaw = companyPhoneLookup(company) || boardPhoneDraft.get(company) || '';
+            const phone = normalizeWaPhone(phoneRaw);
+            if (!phone) {
+                alert('أدخل رقم جوال الشركة أولاً ثم احفظه (مرة واحدة) — أو عدّله من لوحة الإدارة');
+                return;
+            }
+            const text = buildCompanyWhatsAppText(company, items);
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        async function saveCompanyPhone(company, phoneRaw, statusEl) {
+            const phone = String(phoneRaw || '').trim();
+            if (companyPhoneLookup(company)) {
+                if (statusEl) {
+                    statusEl.textContent = 'الرقم محفوظ — التعديل من لوحة الإدارة فقط';
+                    statusEl.className = 'company-board-status err';
+                }
+                return false;
+            }
+            try {
+                const res = await fetch('/api/delivery-options/company-phone', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ company, phone })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
+                companyPhones = data.companyPhones || companyPhones;
+                boardPhoneDraft.delete(company);
+                if (statusEl) {
+                    statusEl.textContent = data.phone ? `تم حفظ الرقم · ${data.phone}` : 'تم مسح الرقم';
+                    statusEl.className = 'company-board-status ok';
+                }
+                renderCompanyBoards();
+                return true;
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.textContent = err.message || 'فشل حفظ الرقم';
+                    statusEl.className = 'company-board-status err';
+                }
+                return false;
+            }
+        }
+
+        function agentLabel(item) {
+            const name = String(item?.assignedTo || '').trim();
+            if (name) return name;
+            if (item?.status === 'available') return 'متاح للفريق';
+            return '—';
+        }
+
+        function companyChangeLabel(item) {
+            const from = String(item?.companyChangedFrom || '').trim();
+            const to = String(item?.companyChangedTo || item?.deliveryCompany || item?.company || '').trim();
+            if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
+            return `<span class="qv-company-change" title="تم تغيير الشركة من الموظف">من «${from}» → «${to}»</span>`;
+        }
+
+        function companySelectHtml(selected, vin) {
+            const opts = companyOptions.filter((c) => !isWarehouseCompany(c));
+            const sel = String(selected || '').trim();
+            return `<select data-reassign-vin="${String(vin || '').replace(/"/g, '&quot;')}" title="إعادة تعيين الشركة">
+                <option value="">— شركة —</option>
+                ${opts.map((c) => {
+                    const esc = String(c).replace(/"/g, '&quot;');
+                    return `<option value="${esc}"${c === sel ? ' selected' : ''}>${c}</option>`;
+                }).join('')}
+                <option value="__warehouse__">مستودع الهاتفية</option>
+            </select>
+            <button type="button" class="hub-btn hub-btn--sm" data-reassign-btn="${String(vin || '').replace(/"/g, '&quot;')}">تعيين</button>`;
+        }
 
         function isUnassignedCompany(item) {
             const c = String(item?.deliveryCompany || item?.company || '').trim();
@@ -608,9 +894,13 @@
             }
             addRow.hidden = false;
 
-            // Persist open paste text while re-rendering
+            // Persist open paste text / phone drafts while re-rendering
             wrap.querySelectorAll('[data-board-paste]').forEach((ta) => {
                 boardPasteCache.set(ta.dataset.boardPaste, ta.value);
+            });
+            wrap.querySelectorAll('[data-company-phone]').forEach((inp) => {
+                const company = inp.closest('.company-board')?.dataset?.company || '';
+                if (company && !companyPhoneLookup(company)) boardPhoneDraft.set(company, inp.value);
             });
 
             const boards = companyOptions.slice();
@@ -622,11 +912,32 @@
             wrap.innerHTML = boards.map((company) => {
                 const wh = isWarehouseCompany(company);
                 const count = countForCompany(company);
+                const waCount = waItemsForCompany(company).length;
                 const cached = boardPasteCache.get(company) || '';
+                const savedPhone = companyPhoneLookup(company);
+                const phoneVal = savedPhone
+                    || (boardPhoneDraft.has(company) ? boardPhoneDraft.get(company) : '');
                 const esc = String(company).replace(/"/g, '&quot;');
+                const phoneRow = savedPhone
+                    ? `<div class="company-board-phone-row">
+                            <div class="company-board-phone-locked">
+                                <strong>${String(savedPhone).replace(/</g, '&lt;')}</strong>
+                                <span>محفوظ · التعديل من الإدارة فقط</span>
+                            </div>
+                        </div>`
+                    : `<div class="company-board-phone-row">
+                            <input type="tel" data-company-phone="${esc}" placeholder="جوال الشركة 05… (مرة واحدة)" value="${String(phoneVal || '').replace(/"/g, '&quot;')}" autocomplete="off">
+                            <button type="button" class="hub-btn hub-btn--sm" data-save-phone="${esc}">حفظ الرقم</button>
+                        </div>`;
                 return `<div class="company-board${wh ? ' company-board--warehouse' : ''}" data-company="${esc}" data-search="${esc.toLowerCase()}">
                     <div class="company-board-head">
-                        <div class="company-board-name">${company}${wh ? ' · مستودع' : ''}</div>
+                        <div class="company-board-name-wrap">
+                            <div class="company-board-name-row">
+                                <div class="company-board-name">${company}${wh ? ' · مستودع' : ''}</div>
+                                <button type="button" class="hub-btn hub-btn--sm hub-btn--wa" data-wa-company="${esc}" title="واتساب — بدون تم الترحيل · مع التاريخ والوقت" ${waCount ? '' : 'disabled'}>واتساب</button>
+                            </div>
+                            ${phoneRow}
+                        </div>
                         <span class="company-board-count${count ? ' has-vins' : ''}">${count} في القائمة</span>
                     </div>
                     <textarea
@@ -648,6 +959,32 @@
                     const board = btn.closest('.company-board');
                     const name = board?.dataset?.company || btn.dataset.submitCompany || '';
                     submitBoardVins(name);
+                });
+            });
+            wrap.querySelectorAll('[data-wa-company]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const board = btn.closest('.company-board');
+                    const name = board?.dataset?.company || btn.dataset.waCompany || '';
+                    const phoneInp = board?.querySelector('[data-company-phone]');
+                    if (phoneInp && !companyPhoneLookup(name)) boardPhoneDraft.set(name, phoneInp.value);
+                    openCompanyWhatsApp(name);
+                });
+            });
+            wrap.querySelectorAll('[data-save-phone]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const board = btn.closest('.company-board');
+                    const name = board?.dataset?.company || btn.dataset.savePhone || '';
+                    const phoneInp = board?.querySelector('[data-company-phone]');
+                    const statusEl = board?.querySelector('[data-board-status]');
+                    btn.disabled = true;
+                    await saveCompanyPhone(name, phoneInp?.value || '', statusEl);
+                    btn.disabled = false;
+                });
+            });
+            wrap.querySelectorAll('[data-company-phone]').forEach((inp) => {
+                inp.addEventListener('change', () => {
+                    const company = inp.closest('.company-board')?.dataset?.company || '';
+                    if (company && !companyPhoneLookup(company)) boardPhoneDraft.set(company, inp.value);
                 });
             });
             fillAssignCompanySelect();
@@ -802,14 +1139,21 @@
                         : '';
                     const state = item.agentStatus === 'delivered'
                         ? 'تم الترحيل'
-                        : (item.agentStatus === 'display' ? 'عرض' : (avail ? 'متاح' : (item.assignedTo || 'محجوز')));
-                    const searchBits = `${item.vin} ${item.product || ''} ${item.model || ''} ${g.company}`;
+                        : (item.agentStatus === 'display' ? 'عرض' : (avail ? 'متاح' : 'محجوز'));
+                    const agent = agentLabel(item);
+                    const agentCls = item.assignedTo ? 'qv-agent' : 'qv-agent is-open';
+                    const changeLbl = companyChangeLabel(item);
+                    const vin = String(item.vin || '').trim().toUpperCase();
+                    const currentCo = String(item.deliveryCompany || item.company || g.company || '').trim();
+                    const searchBits = `${item.vin} ${item.product || ''} ${item.model || ''} ${g.company} ${agent} ${item.companyChangedFrom || ''}`;
                     return `<div class="queue-vin-row" data-search="${searchBits.replace(/"/g, '&quot;').toLowerCase()}">
-                        <div class="qv-vin">${item.vin}</div>
+                        <div class="qv-vin">${vin}${changeLbl ? `<div>${changeLbl}</div>` : ''}</div>
                         <div class="qv-product">${item.product || '—'}</div>
                         <div>${yard || '—'}</div>
                         <div><span class="hub-badge ${queueBadgeClass(item)}">${label}</span></div>
                         <div style="color:#94a3b8">${state}</div>
+                        <div class="${agentCls}" title="الموظف الحالي">${agent}</div>
+                        <div class="qv-reassign">${g.unassigned ? '' : companySelectHtml(currentCo, vin)}</div>
                     </div>`;
                 }).join('');
                 const badge = g.unassigned
@@ -818,20 +1162,69 @@
                         ? '<span class="hub-badge hub-badge--wh">مستودع</span>'
                         : '<span class="hub-badge hub-badge--memo-plan">ترحيل</span>');
                 const searchHay = `${g.company} ${g.items.map((i) => `${i.vin} ${i.product || ''}`).join(' ')}`.toLowerCase().replace(/"/g, '');
-                return `<div class="queue-company${g.isWh ? ' queue-company--warehouse' : ''}${g.unassigned ? ' queue-company--unassigned' : ''}" data-q-company="${String(g.company).replace(/"/g, '&quot;')}" data-search="${searchHay}">
+                const waPending = g.items.filter((i) => i.agentStatus !== 'delivered').length;
+                const waDisabled = g.unassigned || !waPending ? 'disabled' : '';
+                const escCo = String(g.company).replace(/"/g, '&quot;');
+                return `<div class="queue-company${g.isWh ? ' queue-company--warehouse' : ''}${g.unassigned ? ' queue-company--unassigned' : ''}" data-q-company="${escCo}" data-search="${searchHay}">
                     <div class="queue-company-head">
                         <div class="queue-company-title">
                             <strong>${g.company}</strong>
                             ${badge}
                         </div>
-                        <span class="hub-meta">${g.items.length} سيارة</span>
+                        <div class="queue-company-actions">
+                            <span class="hub-meta">${g.items.length} سيارة</span>
+                            <button type="button" class="hub-btn hub-btn--sm hub-btn--wa" data-wa-queue-company="${escCo}" ${waDisabled} title="واتساب — بدون تم الترحيل · مع التاريخ والوقت">واتساب</button>
+                        </div>
                     </div>
                     <div class="queue-company-body">${rows}</div>
                 </div>`;
             }).join('');
 
             wrap.querySelectorAll('.queue-company-head').forEach((head) => {
-                head.addEventListener('click', () => head.parentElement.classList.toggle('collapsed'));
+                head.addEventListener('click', (e) => {
+                    if (e.target.closest('button,select,a,input')) return;
+                    head.parentElement.classList.toggle('collapsed');
+                });
+            });
+            wrap.querySelectorAll('[data-wa-queue-company]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openCompanyWhatsApp(btn.dataset.waQueueCompany || '');
+                });
+            });
+            wrap.querySelectorAll('[data-reassign-btn]').forEach((btn) => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const vin = btn.dataset.reassignBtn || '';
+                    const sel = wrap.querySelector(`select[data-reassign-vin="${CSS.escape(vin)}"]`)
+                        || btn.parentElement?.querySelector('select');
+                    let company = String(sel?.value || '').trim();
+                    if (!company) return alert('اختري الشركة');
+                    let mode = 'memo';
+                    if (company === '__warehouse__') {
+                        company = 'مستودع الهاتفية';
+                        mode = 'warehouse';
+                    }
+                    btn.disabled = true;
+                    try {
+                        const res = await fetch('/api/delivery-coordinator/assign-meta', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                vins: [vin],
+                                company,
+                                plannedDeliveryMode: mode
+                            })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'فشل إعادة التعيين');
+                        await loadQueue();
+                    } catch (err) {
+                        alert(err.message || 'فشل إعادة التعيين');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
             });
             renderYardAlert(unique);
             renderUnassignedPanel();
@@ -866,6 +1259,9 @@
                 const data = await res.json();
                 if (res.ok && Array.isArray(data.companies)) {
                     companyOptions = data.companies.slice();
+                }
+                if (res.ok && data.companyPhones && typeof data.companyPhones === 'object') {
+                    companyPhones = data.companyPhones;
                 }
             } catch (_) {
                 /* keep empty */
@@ -1090,10 +1486,15 @@
 
         document.getElementById('btnAddCompany').addEventListener('click', async () => {
             const input = document.getElementById('newCompanyName');
+            const phoneInput = document.getElementById('newCompanyPhone');
             const name = String(input.value || '').trim();
+            const phone = String(phoneInput?.value || '').trim();
             if (!name) return;
             if (companyOptions.some((c) => c.toLowerCase() === name.toLowerCase())) {
+                if (phone && !companyPhoneLookup(name)) await saveCompanyPhone(name, phone);
                 input.value = '';
+                if (phoneInput) phoneInput.value = '';
+                renderCompanyBoards();
                 return;
             }
             try {
@@ -1113,12 +1514,16 @@
                     companyOptions.push(name);
                     companyOptions.sort((a, b) => a.localeCompare(b, 'ar'));
                 }
+                if (phone) await saveCompanyPhone(name, phone);
                 input.value = '';
+                if (phoneInput) phoneInput.value = '';
                 renderCompanyBoards();
             } catch (err) {
                 companyOptions.push(name);
                 companyOptions.sort((a, b) => a.localeCompare(b, 'ar'));
+                if (phone) await saveCompanyPhone(name, phone);
                 input.value = '';
+                if (phoneInput) phoneInput.value = '';
                 renderCompanyBoards();
             }
         });

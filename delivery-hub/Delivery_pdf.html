@@ -6,7 +6,7 @@
     <title>مذكرة ترحيل — Delivery PDF</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="delivery-user-ui.css?v=20260825b">
+    <link rel="stylesheet" href="delivery-user-ui.css?v=20260906a">
     <style>
         :root {
             --tot-primary: #EB0A1E;
@@ -480,6 +480,8 @@
 
         .gate-wrap { max-width: 1200px; margin: 0 auto 120px; padding: 0 16px; }
         .gate-wrap.hidden, #agentWorkspace.hidden, #mainApp.hidden { display: none !important; }
+        #automallApp.hidden,
+        #manualEntryApp.hidden { display: none !important; }
 
         #gateLogin {
             position: fixed;
@@ -513,6 +515,22 @@
         .gate-card h2 {
             font-size: 1.2rem; font-weight: 800; color: #f8fafc;
             margin-bottom: 22px; text-align: center;
+        }
+        .gate-eyebrow {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #fda4af;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .gate-lead {
+            margin: 0 0 18px;
+            color: #94a3b8;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            text-align: center;
         }
         .gate-user { display: grid; gap: 16px; }
         .gate-user label {
@@ -1184,6 +1202,178 @@
             background: #fff !important;
             cursor: text;
         }
+        /* Yassin · Automall board */
+        .automall-shell { max-width: 1100px; margin: 0 auto; padding: 18px 16px 40px; }
+        .automall-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .automall-stat {
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.1);
+            background: rgba(0,0,0,.22);
+        }
+        .automall-stat span { display: block; font-size: .72rem; color: #94a3b8; margin-bottom: 4px; }
+        .automall-stat b { font-size: 1.35rem; color: #f8fafc; }
+        .automall-stat--pending b { color: #fca5a5; }
+        .automall-stat--printed b { color: #86efac; }
+        .automall-section { margin-bottom: 18px; }
+        .automall-section h2 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .automall-list { display: flex; flex-direction: column; gap: 8px; }
+        .automall-card {
+            display: grid;
+            grid-template-columns: minmax(140px, 1.2fr) minmax(90px, 1fr) minmax(90px, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.1);
+            background: rgba(15, 23, 42, .55);
+            cursor: pointer;
+            transition: border-color .15s ease, transform .15s ease;
+            text-align: right;
+        }
+        .automall-card:hover { border-color: rgba(255,255,255,.28); transform: translateY(-1px); }
+        .automall-card.is-pending {
+            border-color: rgba(239, 68, 68, .55);
+            background: rgba(127, 29, 29, .28);
+            box-shadow: inset 0 0 0 1px rgba(239, 68, 68, .25);
+        }
+        .automall-card.is-printed {
+            border-color: rgba(34, 197, 94, .35);
+            background: rgba(6, 78, 59, .22);
+        }
+        .automall-card .am-vin {
+            font-family: ui-monospace, Consolas, monospace;
+            font-weight: 800;
+            direction: ltr;
+            text-align: left;
+            color: #f8fafc;
+        }
+        .automall-card .am-meta { font-size: .78rem; color: #cbd5e1; }
+        .automall-card .am-sub { font-size: .7rem; color: #94a3b8; margin-top: 2px; }
+        .automall-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: .68rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .automall-badge--pending {
+            background: rgba(239, 68, 68, .2);
+            color: #fecaca;
+            border: 1px solid rgba(239, 68, 68, .4);
+        }
+        .automall-badge--printed {
+            background: rgba(34, 197, 94, .18);
+            color: #bbf7d0;
+            border: 1px solid rgba(34, 197, 94, .35);
+        }
+        .automall-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .ys-slots {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .ys-slot {
+            border-radius: 14px;
+            border: 1px dashed rgba(148, 163, 184, .45);
+            background: rgba(15, 23, 42, .4);
+            padding: 12px 10px;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .ys-slot.is-used {
+            border-style: solid;
+            border-color: rgba(56, 189, 248, .45);
+            background: rgba(8, 47, 73, .45);
+        }
+        .ys-slot.is-delivery {
+            border-color: rgba(250, 204, 21, .55);
+            background: rgba(66, 32, 6, .4);
+        }
+        .ys-slot-id { font-weight: 800; color: #e2e8f0; font-size: .85rem; }
+        .ys-slot-vin { font-family: ui-monospace, Consolas, monospace; font-size: .72rem; direction: ltr; text-align: left; color: #f8fafc; }
+        .ys-slot-meta { font-size: .68rem; color: #94a3b8; line-height: 1.35; }
+        .ys-cars-list { display: flex; flex-direction: column; gap: 8px; }
+        .ys-car-row {
+            display: grid;
+            grid-template-columns: minmax(130px, 1.1fr) minmax(80px, .9fr) minmax(90px, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.1);
+            background: rgba(15, 23, 42, .5);
+        }
+        .ys-car-row .am-vin { font-family: ui-monospace, Consolas, monospace; font-weight: 800; direction: ltr; text-align: left; }
+        .ys-modal-backdrop {
+            position: fixed; inset: 0; z-index: 80;
+            background: rgba(2, 6, 23, .72);
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .ys-modal-backdrop.hidden { display: none !important; }
+        .ys-modal {
+            width: min(440px, 100%);
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 18px;
+            padding: 18px;
+            color: #e2e8f0;
+            box-shadow: 0 24px 60px rgba(0,0,0,.45);
+        }
+        .ys-modal h3 { margin: 0 0 8px; font-size: 1.05rem; }
+        .ys-modal .field { margin-bottom: 12px; }
+        .ys-modal label { display: block; font-size: .75rem; color: #94a3b8; margin-bottom: 4px; font-weight: 700; }
+        .ys-modal input, .ys-modal select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(0,0,0,.35);
+            color: #f8fafc;
+            font: inherit;
+        }
+        .ys-modal .guest-box {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(34, 197, 94, .1);
+            border: 1px solid rgba(34, 197, 94, .28);
+            font-size: .8rem;
+            margin-bottom: 12px;
+        }
+        .ys-modal .guest-box.missing {
+            background: rgba(239, 68, 68, .12);
+            border-color: rgba(239, 68, 68, .35);
+            color: #fecaca;
+        }
+        .ys-modal-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .ys-type-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .ys-type-row label { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: #e2e8f0; font-weight: 700; cursor: pointer; }
+        @media (max-width: 900px) {
+            .ys-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .ys-car-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 720px) {
+            .automall-stats { grid-template-columns: 1fr; }
+            .automall-card { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body class="user-ui">
@@ -1259,7 +1449,7 @@
             <section class="ws-section" id="displayFleetSection">
                 <div class="ws-section-head">
                     <h2>سيارات العرض — Display</h2>
-                    <span class="hint">من ياسين · اختر لإصدار مذكرة تسليم جديدة (يُسمح بتكرار الشاسيه)</span>
+                    <span class="hint">سيارات العرض · اختر لإصدار مذكرة تسليم جديدة</span>
                 </div>
                 <div class="fleet-grid" id="displayFleet"></div>
             </section>
@@ -1278,6 +1468,85 @@
         </aside>
     </div>
 
+    <div id="automallApp" class="hidden">
+        <div class="ws-shell automall-shell">
+            <div class="ws-topbar">
+                <div class="ws-brand">
+                    <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                    <div>
+                        <h1>اوتومول — ياسين <span class="live-pill" id="automallLivePill" title="Live sync">● Live</span></h1>
+                        <p>سيارات مدينة اوتومول / الاوتومول · المطبوعة من الفريق · والغير مطبوعة بالأحمر</p>
+                    </div>
+                </div>
+                <div class="ws-user-pill">
+                    <a href="index.html" class="btn-ghost">المركز</a>
+                    <strong id="automallLoggedAs">مرحباً</strong>
+                    <button type="button" class="btn-ghost" id="btnAutomallManual">إضافة مركبة</button>
+                    <button type="button" class="btn-ghost" id="btnAutomallRefresh">تحديث</button>
+                    <button type="button" class="btn-ghost" id="btnAutomallLogout">خروج</button>
+                </div>
+            </div>
+            <div class="automall-stats" id="automallStats"></div>
+            <div class="automall-actions">
+                <input type="search" id="automallSearch" class="fleet-search" placeholder="بحث VIN / شركة / منتج…" autocomplete="off" style="flex:1;min-width:180px">
+            </div>
+
+            <section class="automall-section">
+                <h2>موقفي — 10 أماكن</h2>
+                <p style="margin:0 0 10px;color:#94a3b8;font-size:.78rem">تسليم = موقف + وقت حضور الضيف · عرض = بدون موقف إلزامي · الضيف والجوال من البيانات الخام (عمود O / Y)</p>
+                <div class="ys-slots" id="yassinSlots"></div>
+                <div class="automall-actions" style="margin-top:8px">
+                    <input type="text" id="yassinLookupVin" class="fleet-search" placeholder="الصق VIN من البيانات الخام…" style="flex:1;min-width:160px;direction:ltr;text-align:left" spellcheck="false">
+                    <button type="button" class="btn btn-primary" id="btnYassinLookup">تحقق + تعيين</button>
+                </div>
+            </section>
+
+            <section class="automall-section">
+                <h2>سياراتي — عرض / تسليم</h2>
+                <div class="ys-cars-list" id="yassinCarsList"></div>
+            </section>
+
+            <section class="automall-section">
+                <h2>بانتظار المذكرة <span class="automall-badge automall-badge--pending">أحمر · اضغط لإنشاء مذكرة</span></h2>
+                <div class="automall-list" id="automallPending"></div>
+            </section>
+            <section class="automall-section">
+                <h2>مطبوع من الفريق <span class="automall-badge automall-badge--printed">مذكرة اوتومول</span></h2>
+                <div class="automall-list" id="automallPrinted"></div>
+            </section>
+            <p class="ws-toast" id="automallStatus"></p>
+        </div>
+    </div>
+
+    <div id="yassinAssignModal" class="ys-modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="ys-modal">
+            <h3>تعيين سيارة — ياسين</h3>
+            <p id="ysAssignVinLabel" style="direction:ltr;text-align:left;font-family:ui-monospace,Consolas,monospace;margin:0 0 10px;font-weight:800"></p>
+            <div id="ysGuestBox" class="guest-box">جاري جلب بيانات الضيف من البيانات الخام…</div>
+            <div class="field">
+                <label>نوع السيارة</label>
+                <div class="ys-type-row">
+                    <label><input type="radio" name="ysCarType" value="display"> عرض (Display)</label>
+                    <label><input type="radio" name="ysCarType" value="delivery" checked> تسليم (Delivery)</label>
+                </div>
+            </div>
+            <div class="field" id="ysSlotField">
+                <label for="ysAssignSlot">الموقف (10 أماكن)</label>
+                <select id="ysAssignSlot"></select>
+            </div>
+            <div class="field" id="ysTimeField">
+                <label for="ysAssignTime">وقت حضور الضيف</label>
+                <input id="ysAssignTime" type="datetime-local">
+            </div>
+            <div class="ys-modal-actions">
+                <button type="button" class="btn btn-primary" id="btnYsAssignSave">حفظ التعيين</button>
+                <button type="button" class="btn" id="btnYsAssignRelease">إخراج من الموقف</button>
+                <button type="button" class="btn" id="btnYsAssignClose">إغلاق</button>
+            </div>
+            <p class="ws-toast" id="ysAssignStatus" style="margin-top:10px"></p>
+        </div>
+    </div>
+
     <div id="manualEntryApp" class="hidden">
         <nav class="page-nav no-print">
             <a href="../simple-app.html" class="page-nav-brand">
@@ -1286,6 +1555,7 @@
             </a>
             <div style="display:flex;gap:8px;align-items:center">
                 <strong id="manualLoggedAs" style="font-size:.85rem"></strong>
+                <button type="button" class="nav-btn" id="btnManualToAutomall">لوحة اوتومول</button>
                 <button type="button" class="nav-btn" id="btnManualLogout">خروج</button>
             </div>
         </nav>
@@ -1718,7 +1988,11 @@
                     : 'للطباعة: اختر حجم الورق A4، هوامش = صفر. بعد الطباعة تُحفظ المسودة ويُوسم الشاسيه «تم الترحيل» في لوحة الإدارة.';
             }
             if (backBtn) {
-                backBtn.textContent = showroomMode ? 'مذكرة جديدة' : '← لوحة السيارات';
+                if (isShowroomAgent()) {
+                    backBtn.textContent = '← لوحة اوتومول';
+                } else {
+                    backBtn.textContent = showroomMode ? 'مذكرة جديدة' : '← لوحة السيارات';
+                }
             }
             // Allow free typing for company/branch in showroom mode
             ['company_rep', 'branch_to'].forEach((id) => {
@@ -1754,41 +2028,39 @@
             if (!input) return;
             const hintId = 'branchAutoHint';
             let hint = document.getElementById(hintId);
-            // Always keep city/branch selectable before print (default is only a prefill).
+            // City/branch stays empty — user must choose from the list before print.
             input.readOnly = false;
             input.disabled = false;
-            input.classList.remove('branch-auto-locked', 'field-locked');
+            input.value = '';
+            input.classList.remove('branch-auto-locked', 'field-locked', 'is-invalid');
             input.classList.add('field-editable');
-            if (!branch) {
-                if (hint) hint.remove();
-                return;
-            }
-            if (typeof searchableSelectOptions !== 'undefined' && Array.isArray(searchableSelectOptions.branch_to)) {
+            input.setCustomValidity('');
+            if (typeof searchableSelectOptions !== 'undefined' && Array.isArray(searchableSelectOptions.branch_to) && branch) {
                 if (!searchableSelectOptions.branch_to.some((x) => String(x).trim() === branch)) {
                     searchableSelectOptions.branch_to.push(branch);
                 }
             }
-            if (!input.value.trim()) {
-                input.value = branch;
-            }
-            input.classList.remove('is-invalid');
-            input.setCustomValidity('');
             if (!hint) {
                 hint = document.createElement('p');
                 hint.id = hintId;
                 hint.className = 'branch-locked-hint no-print';
                 input.closest('div')?.parentElement?.appendChild(hint);
             }
-            hint.textContent = `اقتراح الفرع: ${branch} — اختر أي مدينة من القائمة قبل الطباعة`;
+            hint.textContent = branch
+                ? `اختر الفرع / المدينة من القائمة (اقتراح: ${branch})`
+                : 'اختر الفرع / المدينة من القائمة قبل الطباعة';
             updatePreview();
         }
 
         let agentEditLockActive = false;
         const AGENT_EDIT_UNLOCKED_IDS = new Set([
+            'company_rep',
             'customer_name',
             'branch_to',
             'attachments'
         ]);
+        /** Coordinator-assigned company when the note was opened (for change detection). */
+        let assignedCompanyAtOpen = '';
 
         function isAgentUnlockedControl(el) {
             if (!el) return false;
@@ -1837,7 +2109,15 @@
                 el.classList.add('field-locked');
                 el.classList.remove('field-editable');
             });
-            // City/branch must always stay choosable before print
+            // Company + city/branch stay choosable before print
+            const company = document.getElementById('company_rep');
+            if (company) {
+                company.readOnly = false;
+                company.disabled = false;
+                company.style.opacity = '';
+                company.classList.remove('field-locked');
+                company.classList.add('field-editable');
+            }
             const branch = document.getElementById('branch_to');
             if (branch) {
                 branch.readOnly = false;
@@ -1878,8 +2158,486 @@
         }
 
         function openShowroomForm() {
-            // Legacy name — Yassin now uses dedicated manual entry page
-            openManualEntry();
+            openAutomallBoard();
+        }
+
+        const AUTOMALL_CITY = 'اوتومول';
+        let automallBoardData = { printed: [], pending: [], stats: {} };
+
+        function isAutomallCityName(raw) {
+            let s = String(raw || '').trim().toLowerCase().replace(/\s+/g, '');
+            if (!s) return false;
+            if (s.startsWith('ال')) s = s.slice(2);
+            return s.includes('اوتومول') || s.includes('أوتومول') || s.includes('automall');
+        }
+
+        async function savePlannedBranch(vin, branch) {
+            const agent = getAgent();
+            if (!agent?.username || !vin) return;
+            try {
+                await fetch('/api/delivery-coordinator/planned-branch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: agent.username,
+                        password: agent.password,
+                        vin,
+                        branch
+                    })
+                });
+            } catch (_) { /* ignore */ }
+        }
+
+        function setAutomallStatus(msg, type) {
+            const el = document.getElementById('automallStatus');
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'ws-toast' + (type ? ` ${type}` : '');
+        }
+
+        function automallCardHtml(row) {
+            const pending = !row.printed;
+            const when = row.printedAt
+                ? new Date(row.printedAt).toLocaleString('ar-SA')
+                : '';
+            const badge = pending
+                ? '<span class="automall-badge automall-badge--pending">غير مطبوع — أنشئ مذكرة</span>'
+                : '<span class="automall-badge automall-badge--printed">مطبوع</span>';
+            const dn = row.deliveryNoteNumber ? `DN: ${row.deliveryNoteNumber}` : '';
+            return `<button type="button" class="automall-card ${pending ? 'is-pending' : 'is-printed'}"
+                data-am-vin="${String(row.vin || '').replace(/"/g, '&quot;')}"
+                data-am-printed="${pending ? '0' : '1'}"
+                data-am-draft="${String(row.draftId || '').replace(/"/g, '&quot;')}"
+                data-search="${`${row.vin} ${row.product || ''} ${row.company || ''} ${row.assignedTo || ''}`.replace(/"/g, '').toLowerCase()}">
+                <div>
+                    <div class="am-vin">${row.vin || '—'}</div>
+                    <div class="am-sub">${dn || (pending ? 'اضغط لإنشاء مذكرة الترحيل' : '')}</div>
+                </div>
+                <div class="am-meta">
+                    <div>${row.product || '—'}</div>
+                    <div class="am-sub">${row.company || '—'}</div>
+                </div>
+                <div class="am-meta">
+                    <div>${row.assignedTo || '—'}</div>
+                    <div class="am-sub">${when || row.agentStatus || ''}</div>
+                </div>
+                <div>${badge}</div>
+            </button>`;
+        }
+
+        function renderAutomallBoard(data) {
+            automallBoardData = data || { printed: [], pending: [], stats: {} };
+            const stats = automallBoardData.stats || {};
+            const statsEl = document.getElementById('automallStats');
+            if (statsEl) {
+                statsEl.innerHTML = `
+                    <div class="automall-stat automall-stat--pending"><span>بانتظار المذكرة</span><b>${stats.pending || 0}</b></div>
+                    <div class="automall-stat automall-stat--printed"><span>مطبوع (كل الفريق)</span><b>${stats.printed || 0}</b></div>
+                    <div class="automall-stat"><span>الإجمالي · اوتومول</span><b>${stats.total || 0}</b></div>`;
+            }
+            const pendingEl = document.getElementById('automallPending');
+            const printedEl = document.getElementById('automallPrinted');
+            const pending = automallBoardData.pending || [];
+            const printed = automallBoardData.printed || [];
+            if (pendingEl) {
+                pendingEl.innerHTML = pending.length
+                    ? pending.map(automallCardHtml).join('')
+                    : '<div class="ws-empty">لا توجد سيارات اوتومول بانتظار المذكرة</div>';
+            }
+            if (printedEl) {
+                printedEl.innerHTML = printed.length
+                    ? printed.map(automallCardHtml).join('')
+                    : '<div class="ws-empty">لا توجد مذكرات اوتومول مطبوعة بعد</div>';
+            }
+            document.querySelectorAll('#automallApp .automall-card').forEach((card) => {
+                card.addEventListener('click', () => onAutomallCardClick(card));
+            });
+            filterAutomallBoard();
+        }
+
+        function filterAutomallBoard() {
+            const q = String(document.getElementById('automallSearch')?.value || '').trim().toLowerCase();
+            document.querySelectorAll('#automallApp .automall-card').forEach((card) => {
+                const hay = card.dataset.search || '';
+                card.hidden = Boolean(q) && !hay.includes(q);
+            });
+        }
+
+        async function loadAutomallBoard() {
+            const agent = getAgent();
+            const qs = new URLSearchParams({
+                username: agent?.username || '',
+                password: agent?.password || ''
+            });
+            setAutomallStatus('جاري التحميل…');
+            try {
+                const res = await fetch(`/api/delivery-coordinator/automall-board?${qs}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل التحميل');
+                renderAutomallBoard(data);
+                await loadYassinParkingBoard();
+                setAutomallStatus(
+                    `اوتومول · ${data.stats?.pending || 0} بانتظار · ${data.stats?.printed || 0} مطبوع`,
+                    'ok'
+                );
+            } catch (err) {
+                setAutomallStatus(err.message || 'فشل التحميل', 'err');
+            }
+        }
+
+        let yassinParkingData = { occupancy: { slots: [] }, cars: [] };
+        let ysAssignVin = '';
+
+        function ysAuthBody(extra) {
+            const agent = getAgent();
+            return {
+                username: agent?.username || '',
+                password: agent?.password || '',
+                ...(extra || {})
+            };
+        }
+
+        function formatGuestArrival(isoOrLocal) {
+            const s = String(isoOrLocal || '').trim();
+            if (!s) return '—';
+            const d = new Date(s);
+            if (Number.isNaN(d.getTime())) return s;
+            return d.toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        function renderYassinSlots(occupancy) {
+            const el = document.getElementById('yassinSlots');
+            if (!el) return;
+            const slots = occupancy?.slots || [];
+            if (!slots.length) {
+                el.innerHTML = '<div class="ws-empty">لا توجد أماكن</div>';
+                return;
+            }
+            el.innerHTML = slots.map((s) => {
+                const e = s.entry;
+                if (!e) {
+                    return `<div class="ys-slot" data-ys-slot="${s.slot}">
+                        <div class="ys-slot-id">${s.slot}</div>
+                        <div class="ys-slot-meta">فارغ</div>
+                    </div>`;
+                }
+                const delivery = String(e.carType || '') === 'delivery';
+                return `<button type="button" class="ys-slot is-used${delivery ? ' is-delivery' : ''}" data-ys-vin="${String(e.vin || '').replace(/"/g, '&quot;')}">
+                    <div class="ys-slot-id">${s.slot} · ${delivery ? 'تسليم' : 'عرض'}</div>
+                    <div class="ys-slot-vin">${e.vin || ''}</div>
+                    <div class="ys-slot-meta">${e.guestName || 'ضيف —'} · ${e.guestPhone || '—'}</div>
+                    <div class="ys-slot-meta">${delivery ? `حضور: ${formatGuestArrival(e.guestArrivalTime)}` : (e.product || '')}</div>
+                </button>`;
+            }).join('');
+            el.querySelectorAll('[data-ys-vin]').forEach((btn) => {
+                btn.addEventListener('click', () => openYassinAssignModal(btn.dataset.ysVin));
+            });
+            el.querySelectorAll('.ys-slot[data-ys-slot]').forEach((slotEl) => {
+                slotEl.addEventListener('click', () => {
+                    const vin = String(document.getElementById('yassinLookupVin')?.value || '').trim().toUpperCase();
+                    if (!vin) {
+                        setAutomallStatus('الصق VIN أولاً ثم اختر الموقف', 'err');
+                        return;
+                    }
+                    openYassinAssignModal(vin, { slot: slotEl.dataset.ysSlot, type: 'delivery' });
+                });
+            });
+        }
+
+        function renderYassinCars(cars) {
+            const el = document.getElementById('yassinCarsList');
+            if (!el) return;
+            if (!cars?.length) {
+                el.innerHTML = '<div class="ws-empty">لا توجد سيارات معيّنة لك بعد — الصق VIN أو عيّن من القائمة</div>';
+                return;
+            }
+            el.innerHTML = cars.map((c) => {
+                const typeLabel = c.carType === 'delivery' ? 'تسليم' : (c.carType === 'display' ? 'عرض' : '—');
+                const park = c.parked ? c.parkingSlot : (c.isDisplayOnly ? 'عرض بدون موقف' : 'بدون موقف');
+                return `<div class="ys-car-row">
+                    <div>
+                        <div class="am-vin">${c.vin}</div>
+                        <div class="am-sub">${c.product || '—'}</div>
+                    </div>
+                    <div class="am-meta">
+                        <div>${c.guestName || '—'}</div>
+                        <div class="am-sub" style="direction:ltr;text-align:left">${c.guestPhone || '—'}</div>
+                    </div>
+                    <div class="am-meta">
+                        <div>${typeLabel} · ${park}</div>
+                        <div class="am-sub">${c.guestArrivalTime ? formatGuestArrival(c.guestArrivalTime) : ''}</div>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" data-ys-edit="${String(c.vin).replace(/"/g, '&quot;')}">تعيين</button>
+                    </div>
+                </div>`;
+            }).join('');
+            el.querySelectorAll('[data-ys-edit]').forEach((btn) => {
+                btn.addEventListener('click', () => openYassinAssignModal(btn.dataset.ysEdit));
+            });
+        }
+
+        async function loadYassinParkingBoard() {
+            const agent = getAgent();
+            const qs = new URLSearchParams({
+                username: agent?.username || '',
+                password: agent?.password || ''
+            });
+            try {
+                const res = await fetch(`/api/yassin-parking/board?${qs}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تحميل الموقف');
+                yassinParkingData = data;
+                renderYassinSlots(data.occupancy);
+                renderYassinCars(data.cars || []);
+            } catch (err) {
+                const slotsEl = document.getElementById('yassinSlots');
+                if (slotsEl) slotsEl.innerHTML = `<div class="ws-empty">${err.message || 'فشل الموقف'}</div>`;
+            }
+        }
+
+        function syncYsTypeFields() {
+            const type = document.querySelector('input[name="ysCarType"]:checked')?.value || 'delivery';
+            const slotField = document.getElementById('ysSlotField');
+            const timeField = document.getElementById('ysTimeField');
+            if (slotField) slotField.style.opacity = type === 'delivery' ? '1' : '.7';
+            if (timeField) timeField.style.display = type === 'delivery' ? '' : 'none';
+        }
+
+        function fillYsSlotOptions(preferred) {
+            const sel = document.getElementById('ysAssignSlot');
+            if (!sel) return;
+            const slots = yassinParkingData?.occupancy?.slots || [];
+            const opts = ['<option value="">— اختر الموقف —</option>'];
+            slots.forEach((s) => {
+                const taken = s.entry && String(s.entry.vin || '').toUpperCase() !== String(ysAssignVin || '').toUpperCase();
+                const label = taken ? `${s.slot} (مشغول)` : (s.free ? `${s.slot} · فارغ` : s.slot);
+                opts.push(`<option value="${s.slot}"${taken ? ' disabled' : ''}${preferred === s.slot ? ' selected' : ''}>${label}</option>`);
+            });
+            sel.innerHTML = opts.join('');
+            if (preferred && [...sel.options].some((o) => o.value === preferred && !o.disabled)) {
+                sel.value = preferred;
+            }
+        }
+
+        async function openYassinAssignModal(vin, presets = {}) {
+            ysAssignVin = String(vin || '').trim().toUpperCase();
+            if (!ysAssignVin) return;
+            const modal = document.getElementById('yassinAssignModal');
+            const label = document.getElementById('ysAssignVinLabel');
+            const guestBox = document.getElementById('ysGuestBox');
+            const status = document.getElementById('ysAssignStatus');
+            if (label) label.textContent = ysAssignVin;
+            if (status) {
+                status.textContent = '';
+                status.className = 'ws-toast';
+            }
+            if (guestBox) {
+                guestBox.className = 'guest-box';
+                guestBox.textContent = 'جاري التحقق من البيانات الخام (عمود O الاسم · عمود Y الجوال)…';
+            }
+            const type = presets.type || 'delivery';
+            document.querySelectorAll('input[name="ysCarType"]').forEach((r) => {
+                r.checked = r.value === type;
+            });
+            fillYsSlotOptions(presets.slot || '');
+            syncYsTypeFields();
+            const timeEl = document.getElementById('ysAssignTime');
+            if (timeEl && !timeEl.value) {
+                const d = new Date();
+                d.setMinutes(d.getMinutes() - (d.getTimezoneOffset() % 60), 0, 0);
+                // default +1 hour local
+                const local = new Date(Date.now() + 60 * 60 * 1000);
+                local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+                timeEl.value = local.toISOString().slice(0, 16);
+            }
+            modal?.classList.remove('hidden');
+
+            const agent = getAgent();
+            const qs = new URLSearchParams({
+                username: agent?.username || '',
+                password: agent?.password || '',
+                vin: ysAssignVin
+            });
+            try {
+                const res = await fetch(`/api/yassin-parking/lookup-vin?${qs}`);
+                const data = await res.json();
+                if (!res.ok) {
+                    if (guestBox) {
+                        guestBox.className = 'guest-box missing';
+                        guestBox.textContent = data.error || 'VIN غير موجود في البيانات الخام';
+                    }
+                    return;
+                }
+                if (guestBox) {
+                    guestBox.className = 'guest-box';
+                    guestBox.innerHTML = `<strong>اسم الضيف (O):</strong> ${data.guestName || '—'}<br>
+                        <strong>الجوال (Y):</strong> <span style="direction:ltr;display:inline-block">${data.guestPhone || '—'}</span><br>
+                        <strong>المنتج:</strong> ${data.product || '—'}`;
+                }
+                const parked = data.parked;
+                if (parked?.carType) {
+                    document.querySelectorAll('input[name="ysCarType"]').forEach((r) => {
+                        r.checked = r.value === parked.carType;
+                    });
+                }
+                if (parked?.slot) fillYsSlotOptions(parked.slot);
+                if (parked?.guestArrivalTime && timeEl) {
+                    const d = new Date(parked.guestArrivalTime);
+                    if (!Number.isNaN(d.getTime())) {
+                        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+                        timeEl.value = local.toISOString().slice(0, 16);
+                    }
+                }
+                syncYsTypeFields();
+            } catch (err) {
+                if (guestBox) {
+                    guestBox.className = 'guest-box missing';
+                    guestBox.textContent = err.message || 'فشل جلب بيانات الضيف';
+                }
+            }
+        }
+
+        function closeYassinAssignModal() {
+            document.getElementById('yassinAssignModal')?.classList.add('hidden');
+            ysAssignVin = '';
+        }
+
+        async function saveYassinAssign() {
+            const status = document.getElementById('ysAssignStatus');
+            const setSt = (msg, type) => {
+                if (!status) return;
+                status.textContent = msg || '';
+                status.className = 'ws-toast' + (type ? ` ${type}` : '');
+            };
+            const carType = document.querySelector('input[name="ysCarType"]:checked')?.value || '';
+            const slot = document.getElementById('ysAssignSlot')?.value || '';
+            const guestArrivalTime = document.getElementById('ysAssignTime')?.value || '';
+            if (!ysAssignVin) return;
+            setSt('جاري الحفظ…');
+            try {
+                const res = await fetch('/api/yassin-parking/assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ysAuthBody({
+                        vin: ysAssignVin,
+                        carType,
+                        slot: carType === 'delivery' ? slot : slot,
+                        guestArrivalTime: carType === 'delivery' ? guestArrivalTime : ''
+                    }))
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل التعيين');
+                yassinParkingData.occupancy = data.occupancy || yassinParkingData.occupancy;
+                renderYassinSlots(data.occupancy);
+                renderYassinCars(data.cars || []);
+                setSt(
+                    carType === 'delivery'
+                        ? `تم · موقف ${data.entry?.slot || slot} · ضيف: ${data.guest?.guestName || '—'} · ${data.guest?.guestPhone || ''}`
+                        : `تم تسجيل السيارة كعرض${data.entry?.slot ? ` · ${data.entry.slot}` : ''}`,
+                    'ok'
+                );
+                setTimeout(closeYassinAssignModal, 700);
+            } catch (err) {
+                setSt(err.message || 'فشل التعيين', 'err');
+            }
+        }
+
+        async function releaseYassinParking() {
+            if (!ysAssignVin) return;
+            const status = document.getElementById('ysAssignStatus');
+            try {
+                const res = await fetch('/api/yassin-parking/release', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ysAuthBody({ vin: ysAssignVin }))
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإخراج');
+                renderYassinSlots(data.occupancy);
+                renderYassinCars(data.cars || []);
+                closeYassinAssignModal();
+            } catch (err) {
+                if (status) {
+                    status.textContent = err.message || 'فشل الإخراج';
+                    status.className = 'ws-toast err';
+                }
+            }
+        }
+
+        function openAutomallBoard() {
+            if (!isShowroomAgent()) {
+                openWorkspace();
+                return;
+            }
+            applyShowroomUi(false);
+            const agent = getAgent();
+            const as = document.getElementById('automallLoggedAs');
+            if (as) as.textContent = agent?.username || 'ياسين';
+            showView('automall');
+            loadAutomallBoard();
+        }
+
+        async function onAutomallCardClick(card) {
+            const vin = String(card.dataset.amVin || '').trim().toUpperCase();
+            const printed = card.dataset.amPrinted === '1';
+            const draftId = String(card.dataset.amDraft || '').trim();
+            if (!vin) return;
+            if (printed && draftId) {
+                // Open existing Automall memo for view/print
+                location.href = `Delivery_pdf.html?draft=${encodeURIComponent(draftId)}&adminExport=1`;
+                return;
+            }
+            // Pending → create delivery note with Automall city preselected
+            setAutomallStatus(`فتح مذكرة لـ ${vin}…`, 'ok');
+            await savePlannedBranch(vin, AUTOMALL_CITY);
+            const agent = getAgent();
+            // Claim if available so Yassin can print
+            try {
+                await fetch('/api/delivery-coordinator/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        vin,
+                        username: agent.username,
+                        password: agent.password,
+                        agentStatus: 'in_stock'
+                    })
+                });
+            } catch (_) { /* may already be claimed / display */ }
+            // Ensure item exists in local queue cache
+            if (!workspaceQueue.some((q) => String(q.vin || '').toUpperCase() === vin)) {
+                try {
+                    const res = await fetch(`/api/delivery-coordinator/queue?username=${encodeURIComponent(agent.username)}`);
+                    const data = await res.json();
+                    if (Array.isArray(data.queue)) workspaceQueue = data.queue;
+                } catch (_) { /* ignore */ }
+            }
+            await startDeliveryNote(vin, { forceMode: 'memo', fromDisplay: true });
+            applyAutomallBranchOnForm();
+        }
+
+        function applyAutomallBranchOnForm() {
+            const branch = document.getElementById('branch_to');
+            if (!branch) return;
+            if (typeof searchableSelectOptions !== 'undefined' && Array.isArray(searchableSelectOptions.branch_to)) {
+                [AUTOMALL_CITY, 'الاوتومول'].forEach((c) => {
+                    if (!searchableSelectOptions.branch_to.some((x) => String(x).trim() === c)) {
+                        searchableSelectOptions.branch_to.push(c);
+                    }
+                });
+            }
+            branch.readOnly = false;
+            branch.disabled = false;
+            branch.value = AUTOMALL_CITY;
+            branch.classList.remove('field-locked', 'branch-auto-locked', 'is-invalid');
+            branch.classList.add('field-editable');
+            branch.setCustomValidity('');
+            branch.dispatchEvent(new Event('input', { bubbles: true }));
+            branch.dispatchEvent(new Event('change', { bubbles: true }));
+            const hint = document.getElementById('branchAutoHint');
+            if (hint) hint.textContent = 'الفرع: اوتومول — يمكن تغييره من القائمة عند الحاجة';
+            updatePreview();
         }
 
         function openManualEntry() {
@@ -2052,22 +2810,21 @@
                 remarks: fd.get(`car_remarks_${i}`)?.trim() || ''
             }));
             const filled = countFilledChassis();
-            const autoBranch = agentAutoBranchName();
+            const companyRep = fd.get('company_rep')?.trim() || '';
             return {
                 doc_date: fd.get('doc_date'),
                 invoice_number: fd.get('invoice_number')?.trim(),
                 dep_hour: fd.get('dep_hour')?.trim(),
                 dep_minute: fd.get('dep_minute')?.trim(),
                 customer_name: fd.get('customer_name')?.trim(),
-                company_rep: fd.get('company_rep')?.trim(),
+                company_rep: companyRep,
+                assigned_company: assignedCompanyAtOpen || '',
                 transfer_date: fd.get('transfer_date') || fd.get('doc_date'),
                 corresponding_date: fd.get('corresponding_date') || fd.get('transfer_date') || fd.get('doc_date'),
                 day_name: fd.get('day_name')?.trim(),
                 trailer_number: fd.get('trailer_number')?.trim(),
                 car_count: String(filled || fd.get('car_count')?.trim() || ''),
-                branch_to: warehousePrintMode
-                    ? (fd.get('branch_to')?.trim() || '')
-                    : (fd.get('branch_to')?.trim() || autoBranch || ''),
+                branch_to: fd.get('branch_to')?.trim() || '',
                 attachments: fd.get('attachments')?.trim(),
                 warehouse: {
                     branch_name: fd.get('wh_branch_name')?.trim(),
@@ -2657,12 +3414,16 @@
         }
 
         function showView(which) {
-            document.body.classList.toggle('workspace-mode', which === 'workspace');
-            document.getElementById('gateLogin').classList.toggle('hidden', which !== 'login');
-            document.getElementById('agentWorkspace').classList.toggle('hidden', which !== 'workspace');
-            document.getElementById('mainApp').classList.toggle('hidden', which !== 'app');
+            const yassin = typeof isShowroomAgent === 'function' && isShowroomAgent();
+            const view = (which === 'automall' && !yassin) ? 'workspace' : which;
+            document.body.classList.toggle('workspace-mode', view === 'workspace' || view === 'automall');
+            document.getElementById('gateLogin').classList.toggle('hidden', view !== 'login');
+            document.getElementById('agentWorkspace').classList.toggle('hidden', view !== 'workspace');
+            document.getElementById('mainApp').classList.toggle('hidden', view !== 'app');
             const manual = document.getElementById('manualEntryApp');
-            if (manual) manual.classList.toggle('hidden', which !== 'manual');
+            if (manual) manual.classList.toggle('hidden', view !== 'manual');
+            const automall = document.getElementById('automallApp');
+            if (automall) automall.classList.toggle('hidden', view !== 'automall');
         }
 
         function fleetCardHtml(item, kind) {
@@ -2776,6 +3537,11 @@
             const available = workspaceQueue.filter((q) => q.status === 'available' && !isDisplayItem(q));
             const stock = mine.filter((q) => q.agentStatus === 'in_stock');
             const delivered = mine.filter((q) => q.agentStatus === 'delivered');
+            const yassinOnly = isShowroomAgent(agent);
+
+            // Automall / ياسين board is separate — never show it to other agents.
+            const automall = document.getElementById('automallApp');
+            if (automall && !yassinOnly) automall.classList.add('hidden');
 
             document.getElementById('wsStats').innerHTML = `
                 <div class="ws-stat ws-stat--avail"><span>متاح</span><b>${available.length}</b></div>
@@ -2783,6 +3549,13 @@
                 <div class="ws-stat"><span>عرض</span><b>${displayCars.length}</b></div>
                 <div class="ws-stat ws-stat--avail"><span>تم الترحيل</span><b>${delivered.length}</b></div>
             `;
+
+            const displayHint = document.querySelector('#displayFleetSection .ws-section-head .hint');
+            if (displayHint) {
+                displayHint.textContent = yassinOnly
+                    ? 'سيارات العرض · اختر لإصدار مذكرة تسليم جديدة (يُسمح بتكرار الشاسيه)'
+                    : 'سيارات العرض · اختر لإصدار مذكرة تسليم جديدة';
+            }
 
             const availEl = document.getElementById('availableFleet');
             if (!available.length) {
@@ -2838,7 +3611,7 @@
             const displayEl = document.getElementById('displayFleet');
             if (displayEl) {
                 if (!displayCars.length) {
-                    displayEl.innerHTML = '<div class="ws-empty"><strong>لا توجد سيارات عرض</strong>عندما يضيف ياسين بحالة «عرض» تظهر هنا</div>';
+                    displayEl.innerHTML = '<div class="ws-empty"><strong>لا توجد سيارات عرض</strong>عندما تُضاف بحالة «عرض» تظهر هنا</div>';
                 } else {
                     displayEl.innerHTML = displayCars.map((item) => fleetCardHtml(item, 'avail')).join('');
                     displayEl.querySelectorAll('.fleet-card').forEach((card) => {
@@ -2937,13 +3710,18 @@
             }
             setWarehousePrintMode(false);
             const company = String(item.deliveryCompany || item.company || '').trim();
-            if (company && company !== 'المستودع' && company !== 'سيارات عرض الصالة') {
-                ensureSearchableOptionAllow(company);
+            assignedCompanyAtOpen = (company && company !== 'المستودع' && company !== 'سيارات عرض الصالة')
+                ? company
+                : '';
+            if (assignedCompanyAtOpen) {
+                ensureSearchableOptionAllow(assignedCompanyAtOpen);
                 const companyEl = document.getElementById('company_rep');
                 if (companyEl) {
-                    companyEl.value = company;
-                    companyEl.readOnly = true;
-                    companyEl.style.opacity = '0.85';
+                    companyEl.value = assignedCompanyAtOpen;
+                    companyEl.readOnly = false;
+                    companyEl.style.opacity = '';
+                    companyEl.classList.remove('field-locked');
+                    companyEl.classList.add('field-editable');
                     companyEl.dispatchEvent(new Event('input', { bubbles: true }));
                     companyEl.dispatchEvent(new Event('change', { bubbles: true }));
                 }
@@ -2991,7 +3769,7 @@
             if (hint) {
                 hint.textContent = warehouse
                     ? 'نموذج المستودع — أكمل الحقول المطلوبة ثم اطبع'
-                    : 'مفتوح فقط: المندوب · الفرع · اللوحة · الملاحظات · المرفقات';
+                    : 'مفتوح: الشركة (محددة مسبقاً وقابلة للتغيير) · المندوب · الفرع (اختر) · اللوحة · الملاحظات · المرفقات';
             }
             strip.hidden = false;
         }
@@ -2999,6 +3777,7 @@
         function hideQuickPrintStrip() {
             const strip = document.getElementById('quickPrintStrip');
             if (strip) strip.hidden = true;
+            assignedCompanyAtOpen = '';
             clearAgentEditLock();
         }
 
@@ -3566,6 +4345,7 @@
             showView('login');
             document.getElementById('loginPass').value = '';
         });
+        document.getElementById('btnManualToAutomall')?.addEventListener('click', () => openAutomallBoard());
 
         document.getElementById('manualVehicleForm')?.addEventListener('submit', submitManualVehicle);
         document.getElementById('btnManualAnother')?.addEventListener('click', () => openManualEntry());
@@ -3588,7 +4368,10 @@
 
         document.getElementById('btnBackWorkspace').addEventListener('click', () => {
             if (isShowroomAgent()) {
-                openManualEntry();
+                setWarehousePrintMode(false);
+                clearClaimedVin();
+                hideQuickPrintStrip();
+                openAutomallBoard();
                 return;
             }
             setWarehousePrintMode(false);
@@ -3596,6 +4379,39 @@
             clearClaimedVin();
             hideQuickPrintStrip();
             openWorkspace();
+        });
+
+        document.getElementById('btnAutomallManual')?.addEventListener('click', () => openManualEntry());
+        document.getElementById('btnAutomallRefresh')?.addEventListener('click', () => loadAutomallBoard());
+        document.getElementById('btnAutomallLogout')?.addEventListener('click', () => {
+            clearAgent();
+            showView('login');
+            document.body.classList.remove('workspace-mode');
+            document.getElementById('loginPass').value = '';
+        });
+        document.getElementById('automallSearch')?.addEventListener('input', filterAutomallBoard);
+        document.getElementById('btnYassinLookup')?.addEventListener('click', () => {
+            const vin = String(document.getElementById('yassinLookupVin')?.value || '').trim().toUpperCase();
+            if (!vin) {
+                setAutomallStatus('أدخل رقم الشاسيه', 'err');
+                return;
+            }
+            openYassinAssignModal(vin, { type: 'delivery' });
+        });
+        document.getElementById('yassinLookupVin')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btnYassinLookup')?.click();
+            }
+        });
+        document.querySelectorAll('input[name="ysCarType"]').forEach((r) => {
+            r.addEventListener('change', syncYsTypeFields);
+        });
+        document.getElementById('btnYsAssignSave')?.addEventListener('click', saveYassinAssign);
+        document.getElementById('btnYsAssignRelease')?.addEventListener('click', releaseYassinParking);
+        document.getElementById('btnYsAssignClose')?.addEventListener('click', closeYassinAssignModal);
+        document.getElementById('yassinAssignModal')?.addEventListener('click', (e) => {
+            if (e.target?.id === 'yassinAssignModal') closeYassinAssignModal();
         });
 
         const btnQuickPrint = document.getElementById('btnQuickPrint');
@@ -3863,18 +4679,22 @@
                 closeMenu();
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
+                if (fieldId === 'branch_to') {
+                    const vin = (typeof getClaimedVin === 'function' && getClaimedVin())
+                        || (typeof getFormChassisList === 'function' && getFormChassisList()[0])
+                        || '';
+                    if (vin && name) savePlannedBranch(vin, name);
+                }
             }
 
             function openMenu(filterText) {
-                if (agentEditLockActive && fieldId === 'company_rep') {
-                    closeMenu();
-                    return;
-                }
-                // Branch/city must always open for selection before print
-                if (fieldId === 'branch_to') {
+                // Company + branch/city must open for selection before print
+                if (fieldId === 'company_rep' || fieldId === 'branch_to') {
                     input.readOnly = false;
                     input.disabled = false;
+                    input.style.opacity = '';
                     input.classList.remove('field-locked', 'branch-auto-locked');
+                    input.classList.add('field-editable');
                 } else if (input.readOnly || input.classList.contains('field-locked')) {
                     closeMenu();
                     return;
@@ -3990,10 +4810,20 @@
         }
         DeliveryHubLive.start(() => {
             updateLivePill();
+            const amPill = document.getElementById('automallLivePill');
+            if (amPill && window.DeliveryHubLive) {
+                amPill.classList.toggle('off', !DeliveryHubLive.isConnected());
+                amPill.textContent = DeliveryHubLive.isConnected() ? '● Live' : '○ Syncing';
+            }
             const agent = typeof getAgent === 'function' ? getAgent() : null;
             if (!agent || !agent.username) return;
             // Always refresh workspace data when logged in (even if form is open)
             if (!document.getElementById('gateLogin').classList.contains('hidden')) return;
+            if (typeof isShowroomAgent === 'function' && isShowroomAgent()
+                && document.getElementById('automallApp')
+                && !document.getElementById('automallApp').classList.contains('hidden')) {
+                return loadAutomallBoard();
+            }
             return loadWorkspace();
         });
         setInterval(updateLivePill, 2000);

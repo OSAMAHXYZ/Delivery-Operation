@@ -54,18 +54,23 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
   min-height: 100vh;
 }
 
-/* —— Layout: sidebar + main —— */
+/* —— Layout: fixed sidebar; page shell (#adminApp) scrolls —— */
 .admin-light .admin-layout {
-  display: grid;
-  grid-template-columns: var(--hc-sidebar) minmax(0, 1fr);
-  min-height: 100vh;
+  display: block;
+  min-height: 100%;
+  height: auto;
+  overflow: visible;
 }
 
 .admin-light .admin-sidebar {
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
-  align-self: start;
+  bottom: 0;
+  width: var(--hc-sidebar);
   height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   padding: 22px 18px;
   background: var(--hc-surface);
   border-inline-end: 1px solid var(--hc-line);
@@ -225,7 +230,11 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 
 .admin-light .admin-main {
   min-width: 0;
-  padding: 18px 22px 40px;
+  margin-left: var(--hc-sidebar);
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  padding: 18px 22px 48px;
   display: grid;
   gap: 16px;
   align-content: start;
@@ -782,13 +791,19 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 
 @media (max-width: 900px) {
   .admin-light .admin-layout {
-    grid-template-columns: 1fr;
+    display: block;
+    height: auto;
+    overflow: visible;
   }
   .admin-light .admin-sidebar {
     position: sticky;
+    left: auto;
     top: 0;
+    bottom: auto;
+    width: 100%;
     height: auto;
     max-height: none;
+    overflow: visible;
     border-inline-end: 0;
     border-bottom: 1px solid var(--hc-line);
     padding: 12px;
@@ -806,7 +821,10 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
   }
   .admin-light .admin-sidebar__foot,
   .admin-light .admin-sidebar__cta { display: none; }
-  .admin-light .admin-main { padding: 12px; }
+  .admin-light .admin-main {
+    margin-left: 0;
+    padding: 12px;
+  }
   .admin-light .saas-kpi-grid,
   .admin-light .admin-overview-row .saas-kpi-grid {
     grid-template-columns: 1fr !important;
@@ -909,10 +927,10 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light .pdf-browser,
 .admin-light .last-months-detail,
 .admin-light .company-filter-chip {
-  background: #fff !important;
+  background: var(--hc-surface) !important;
   border-color: var(--hc-line) !important;
   color: var(--hc-text) !important;
-  box-shadow: var(--hc-shadow) !important;
+  box-shadow: none !important;
 }
 
 .admin-light .xfer-dash-row,
@@ -920,7 +938,7 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light .queue-vin-row,
 .admin-light .options-list button,
 .admin-light .hub-chips > * {
-  background: #f8f9fc !important;
+  background: var(--hc-stat) !important;
   border-color: var(--hc-line) !important;
   color: var(--hc-text) !important;
 }
@@ -928,15 +946,18 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light .xfer-dash-row.is-active,
 .admin-light .xfer-account-item.is-active {
   background: var(--hc-primary-soft) !important;
-  border-color: #ddd6fe !important;
+  border-color: rgba(235, 10, 30, 0.35) !important;
 }
 
 .admin-light .xfer-dash-bar,
 .admin-light .pct-donut-wrap,
 .admin-light .invoice-status-chart,
 .admin-light .xfer-trend-chart,
-.admin-light .xfer-city-chart {
-  background: #fafbff !important;
+.admin-light .xfer-city-chart,
+.admin-light .dh-user-chart,
+.admin-light .ops-board__chart-el {
+  background: var(--hc-stat) !important;
+  border: 1px solid var(--hc-line) !important;
   border-radius: 14px;
 }
 
@@ -949,7 +970,7 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light input[type="text"],
 .admin-light input[type="password"],
 .admin-light textarea {
-  background: #fff !important;
+  background: var(--hc-stat) !important;
   color: var(--hc-text) !important;
   border: 1px solid var(--hc-line) !important;
   border-radius: 12px !important;
@@ -958,7 +979,7 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light .ft-panel,
 .admin-light .ft-more__panel,
 .admin-light .ft-control__trigger {
-  background: #fff !important;
+  background: var(--hc-surface) !important;
   color: var(--hc-text) !important;
   border-color: var(--hc-line) !important;
 }
@@ -976,9 +997,9 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light .pdf-type-badge--warehouse { background: #e0f2fe !important; color: #0369a1 !important; }
 
 .admin-light .hub-stat {
-  background: #fff !important;
+  background: var(--hc-surface) !important;
   border: 1px solid var(--hc-line) !important;
-  box-shadow: var(--hc-shadow) !important;
+  box-shadow: none !important;
 }
 .admin-light .hub-stat span { color: var(--hc-muted) !important; }
 .admin-light .hub-stat b { color: var(--hc-text) !important; }
@@ -987,8 +1008,8 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
 .admin-light #restoreExportMeta { color: var(--hc-muted) !important; }
 
 .admin-light .hub-upload {
-  background: #f8f9fc !important;
-  border: 1px dashed #c7cbe0 !important;
+  background: var(--hc-stat) !important;
+  border: 1px dashed var(--hc-line) !important;
   color: var(--hc-text) !important;
 }
 
@@ -1000,9 +1021,9 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
   padding: 4px 2px 8px !important;
 }
 .admin-light .admin-topbar__search {
-  background: #fff !important;
+  background: var(--hc-surface) !important;
   border: 1px solid var(--hc-line) !important;
-  box-shadow: var(--hc-shadow);
+  box-shadow: none;
 }
 .admin-light .admin-topbar__actions .saas-btn--sm {
   padding: 8px 12px !important;
@@ -1015,7 +1036,7 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
   margin-bottom: 4px !important;
 }
 .admin-light .ft-toolbar {
-  background: #f8f9fc !important;
+  background: var(--hc-stat) !important;
   box-shadow: none !important;
 }
 
@@ -1083,5 +1104,562 @@ body.delivery-hub.admin-console.admin-light .saas-shell {
   .admin-light .admin-upload-banner {
     grid-template-columns: 1fr;
   }
+}
+
+/* —— True black admin —— */
+html {
+  height: auto;
+}
+body.delivery-hub.admin-console.admin-light {
+  --hc-bg: #000000;
+  --hc-surface: #0a0a0a;
+  --hc-primary: #EB0A1E;
+  --hc-primary-soft: rgba(235, 10, 30, 0.16);
+  --hc-primary-deep: #c40818;
+  --hc-text: #f1f5f9;
+  --hc-muted: #94a3b8;
+  --hc-line: rgba(255, 255, 255, 0.1);
+  --hc-shadow: none;
+  --saas-bg: #000000;
+  --saas-card: #0a0a0a;
+  --saas-card-2: #111111;
+  --saas-primary: #EB0A1E;
+  --saas-text: #f1f5f9;
+  --saas-muted: #94a3b8;
+  --saas-border: rgba(255, 255, 255, 0.1);
+  --hub-bg: #000000;
+  --hub-text: #f1f5f9;
+  --hub-muted: #94a3b8;
+  --hub-line: rgba(255, 255, 255, 0.1);
+  --hub-card: #0a0a0a;
+  --hub-stat: #111111;
+  --tot-primary: #EB0A1E;
+  color: #f1f5f9 !important;
+  background: #000000 !important;
+  background-image: none !important;
+  min-height: 100vh;
+}
+
+.admin-light #adminApp.hub-shell,
+.admin-light .hub-shell,
+.admin-light .saas-shell {
+  background: #000 !important;
+}
+
+.admin-light .admin-sidebar,
+.admin-light .admin-topbar,
+.admin-light .saas-card,
+.admin-light .hub-section,
+.admin-light .dn-mgmt,
+.admin-light .ops-board,
+.admin-light .admin-upload-banner,
+.admin-light .ft-shell,
+.admin-light .pbi-slicer,
+.admin-light .pbi-viz,
+.admin-light .dh-user-dash,
+.admin-light .raw-gap-section,
+.admin-light .dh-user-dash .pbi-slicer,
+.admin-light .dh-user-dash .pbi-viz,
+.admin-light .dh-user-dash .pbi-kpi,
+.admin-light .dh-user-dash .pbi-name {
+  background: #0a0a0a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+.admin-light .admin-sidebar {
+  background: #000000 !important;
+}
+
+.admin-light .admin-topbar {
+  background: rgba(0, 0, 0, 0.94) !important;
+}
+
+.admin-light .admin-sidebar__brand strong,
+.admin-light .admin-pane-head h2,
+.admin-light .dn-mgmt__title,
+.admin-light .saas-hero h2,
+.admin-light .saas-kpi__value,
+.admin-light .ops-board__head h2,
+.admin-light .dh-user-dash .pbi-viz-head h2,
+.admin-light .dh-user-dash .pbi-slicer h2,
+.admin-light .dh-user-dash .emp-name,
+.admin-light .dh-user-dash .pbi-name .nm {
+  color: #f8fafc !important;
+}
+
+.admin-light .admin-sidebar__brand span,
+.admin-light .admin-pane-head p,
+.admin-light .dn-mgmt__sub,
+.admin-light .saas-kpi__label,
+.admin-light .ops-board__head p,
+.admin-light .dh-user-period,
+.admin-light .dh-user-dash .pbi-slicer-hint {
+  color: #94a3b8 !important;
+}
+
+.admin-light .admin-nav__btn {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+.admin-light .admin-nav__btn.is-active {
+  color: #fff !important;
+  background: rgba(235, 10, 30, 0.2) !important;
+}
+
+.admin-light .ft-input,
+.admin-light .ft-native,
+.admin-light .hub-input,
+.admin-light select,
+.admin-light input[type="search"],
+.admin-light input[type="date"],
+.admin-light input[type="text"],
+.admin-light input[type="password"] {
+  background: #111111 !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-light .saas-kpi,
+.admin-light .dn-stat,
+.admin-light .hub-stat,
+.admin-light .saas-hero,
+.admin-light .admin-highlight-card,
+.admin-light .pct-chart-card,
+.admin-light .xfer-dash-card,
+.admin-light .xfer-mosaic-cell,
+.admin-light .saas-section,
+.admin-light .options-manage-card {
+  background: #0a0a0a !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.admin-light .saas-kpi__value,
+.admin-light .dn-stat b,
+.admin-light .hub-stat b,
+.admin-light .saas-hero__pct,
+.admin-light table,
+.admin-light th,
+.admin-light td,
+.admin-light .saas-section__head h3,
+.admin-light .pct-chart-card h3 {
+  color: #e2e8f0 !important;
+}
+
+.admin-light .hub-table th,
+.admin-light .ops-table th,
+.admin-light .xl-table th,
+.admin-light .raw-gap-table th,
+.admin-light .dh-user-dash .xl-table th {
+  background: #000000 !important;
+  color: #94a3b8 !important;
+}
+
+.admin-light .ops-schedule-wrap,
+.admin-light .ops-company-wrap,
+.admin-light .raw-gap-table-wrap,
+.admin-light .hub-table-wrap,
+.admin-light .xl-table-wrap,
+.admin-light .dh-user-dash .xl-table-wrap,
+.admin-light .dh-user-chart,
+.admin-light .xfer-trend-chart,
+.admin-light .xfer-city-chart,
+.admin-light .pct-donut-wrap,
+.admin-light .invoice-status-chart,
+.admin-light .ops-board__chart-el,
+.admin-light .apexcharts-canvas,
+.admin-light .apexcharts-svg,
+.admin-light .apexcharts-inner {
+  background: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.admin-light .saas-empty,
+.admin-light .xfer-dash-empty {
+  color: #94a3b8 !important;
+  background: transparent !important;
+  padding: 36px 20px !important;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.admin-light .saas-btn,
+.admin-light .hub-btn {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.admin-light .saas-btn--sm,
+.admin-light .saas-btn--ghost {
+  background: #1a1a1a !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-light .saas-btn--primary,
+.admin-light .hub-btn--primary,
+.admin-light .admin-sidebar__cta {
+  background: #EB0A1E !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(235, 10, 30, 0.28) !important;
+}
+
+/* True-black: earlier light-theme rules force white btn bg + --hc-text (now light) → invisible */
+.admin-light .ft-btn {
+  background: #1a1a1a !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: none !important;
+}
+.admin-light .ft-btn:hover {
+  background: #242424 !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  color: #fff !important;
+}
+.admin-light .ft-btn--ghost,
+.admin-light .ft-btn--more {
+  background: #111111 !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+.admin-light .ft-btn--ghost:hover,
+.admin-light .ft-btn--more:hover,
+.admin-light .ft-btn--more.is-active {
+  background: #1a1a1a !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+.admin-light .ft-btn--primary {
+  background: #EB0A1E !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 10px 24px rgba(235, 10, 30, 0.28) !important;
+}
+.admin-light .ft-btn--primary:hover {
+  background: #c40818 !important;
+  color: #fff !important;
+}
+.admin-light .ft-toolbar {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.admin-light .ft-meta,
+.admin-light .admin-filter-meta {
+  color: #94a3b8 !important;
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate;
+}
+.admin-light .ft-meta strong,
+.admin-light .admin-filter-meta strong {
+  color: #f1f5f9 !important;
+}
+.admin-light .ft-date-range {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+.admin-light .ft-totals {
+  direction: ltr;
+}
+
+.admin-light .ft-total {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.admin-light .ft-total--cars {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.admin-light .ft-total--notes {
+  border-color: rgba(235, 10, 30, 0.4) !important;
+  background: rgba(235, 10, 30, 0.1) !important;
+}
+
+.admin-light .ft-total--queue {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+.admin-light .ft-total__lab,
+.admin-light .ft-total__hint {
+  color: #94a3b8 !important;
+}
+
+.admin-light .ft-total__val {
+  color: #f8fafc !important;
+}
+
+.admin-light .ft-total--cars .ft-total__val { color: #93c5fd !important; }
+.admin-light .ft-total--notes .ft-total__val { color: #fda4af !important; }
+.admin-light .ft-total--queue .ft-total__val { color: #6ee7b7 !important; }
+
+.admin-light .admin-upload-banner {
+  background: #0a0a0a !important;
+  border-color: rgba(235, 10, 30, 0.28) !important;
+}
+
+.admin-light .admin-upload-banner code {
+  background: #1a1a1a !important;
+  color: #fecaca;
+}
+
+.admin-light .pbi-name,
+.admin-light .pbi-kpi,
+.admin-light .dh-coord-compare {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-light .dh-user-dash .pbi-name:hover {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.admin-light .dh-user-dash .pbi-name.active {
+  background: rgba(235, 10, 30, 0.18) !important;
+  border-color: rgba(235, 10, 30, 0.4) !important;
+}
+
+.admin-light .xfer-dash-row.is-active,
+.admin-light .xfer-account-item.is-active,
+.admin-light .last-months-folder.is-active {
+  background: rgba(235, 10, 30, 0.14) !important;
+  border-color: rgba(235, 10, 30, 0.35) !important;
+}
+
+.admin-light .apexcharts-text tspan,
+.admin-light .apexcharts-legend-text,
+.admin-light .apexcharts-yaxis text,
+.admin-light .apexcharts-xaxis text {
+  fill: #94a3b8 !important;
+  color: #94a3b8 !important;
+}
+
+/* Login gate — full black */
+.admin-light #adminGate {
+  background: #000000 !important;
+}
+.admin-light .admin-gate-card {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8) !important;
+}
+.admin-light .admin-gate-card h2 { color: #ffffff !important; }
+.admin-light .admin-gate-card p,
+.admin-light .admin-gate-card label { color: #94a3b8 !important; }
+.admin-light .admin-gate-card input {
+  background: #111111 !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.admin-light .admin-filters-sticky {
+  top: 0;
+}
+
+/* —— True-black color pass: beat higher-specificity light-theme whites —— */
+.admin-light .admin-sidebar__foot {
+  background: #111111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fda4af !important;
+  box-shadow: none !important;
+}
+.admin-light .admin-sidebar__foot strong {
+  color: #fecaca !important;
+}
+.admin-light .admin-sidebar__foot p {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+.admin-light .admin-nav__btn .nav-ico {
+  background: #1a1a1a !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.admin-light .admin-nav__btn.is-active {
+  background: rgba(235, 10, 30, 0.28) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 #EB0A1E;
+}
+.admin-light .admin-nav__btn.is-active .nav-ico {
+  background: rgba(235, 10, 30, 0.35) !important;
+  color: #fff !important;
+}
+.admin-light .admin-nav__btn .nav-count {
+  background: #1a1a1a !important;
+  color: #94a3b8 !important;
+}
+.admin-light .admin-nav__btn.is-active .nav-count {
+  background: rgba(235, 10, 30, 0.35) !important;
+  color: #fecaca !important;
+}
+
+.admin-light .saas-kpi,
+.admin-light .admin-overview-row .saas-kpi,
+.admin-light .charts-cockpit .saas-kpi {
+  background: #111111 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  color: #e2e8f0 !important;
+}
+.admin-light .saas-kpi:hover,
+.admin-light .admin-overview-row .saas-kpi:hover {
+  border-color: rgba(235, 10, 30, 0.35) !important;
+  transform: none;
+}
+.admin-light .saas-kpi__value,
+.admin-light .admin-overview-row .saas-kpi__value {
+  color: #f8fafc !important;
+}
+.admin-light .saas-kpi__label,
+.admin-light .admin-overview-row .saas-kpi__label,
+.admin-light .saas-kpi__menu {
+  color: #94a3b8 !important;
+}
+.admin-light .saas-kpi__icon {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-light .dn-stat {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+.admin-light .dn-stat b {
+  color: #f8fafc !important;
+}
+.admin-light .dn-stat span,
+.admin-light .dn-mgmt__eyebrow,
+.admin-light .dn-mgmt__sub {
+  color: #94a3b8 !important;
+}
+
+.admin-light .raw-gap-section,
+.admin-light .charts-cockpit .raw-gap-section {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+.admin-light .raw-gap-summary {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+.admin-light .raw-gap-stat .lab,
+.admin-light .raw-gap-stat .hint {
+  color: #94a3b8 !important;
+}
+.admin-light .raw-gap-stat .val {
+  color: #f8fafc !important;
+}
+.admin-light .raw-gap-stat--raw .val { color: #93c5fd !important; }
+.admin-light .raw-gap-stat--delivered .val { color: #6ee7b7 !important; }
+.admin-light .raw-gap-stat--gap .val { color: #fca5a5 !important; }
+.admin-light .raw-gap-stat--action .val { color: #e2e8f0 !important; }
+
+.admin-light .raw-gap-panel {
+  background: #050505 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+.admin-light .raw-gap-panel__head h3 {
+  color: #f8fafc !important;
+}
+.admin-light .raw-gap-panel__head p,
+.admin-light .raw-gap-table td {
+  color: #cbd5e1 !important;
+}
+.admin-light .raw-gap-table th {
+  background: #000000 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.admin-light .raw-gap-table td {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: transparent !important;
+}
+.admin-light .raw-gap-table-wrap {
+  background: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.admin-light .raw-gap-toolbar input,
+.admin-light .raw-gap-toolbar select {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+.admin-light .raw-gap-chip {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+}
+.admin-light .raw-gap-chip.is-active {
+  background: rgba(235, 10, 30, 0.18) !important;
+  border-color: rgba(235, 10, 30, 0.4) !important;
+  color: #fecaca !important;
+}
+
+.admin-light .admin-overview-row .saas-hero,
+.admin-light .saas-hero {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-light .ops-board__chart,
+.admin-light .charts-cockpit__charts .ops-board__chart {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+.admin-light .ops-board__chart h3,
+.admin-light .charts-cockpit__charts .ops-board__chart h3 {
+  color: #e2e8f0 !important;
+}
+.admin-light .ops-board__chart-el,
+.admin-light .charts-cockpit__charts .ops-board__chart-el {
+  background: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.admin-light .ft-chip {
+  background: rgba(235, 10, 30, 0.12) !important;
+  border-color: rgba(235, 10, 30, 0.28) !important;
+  color: #fecaca !important;
+}
+.admin-light .ft-chip--clear {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-light .admin-topbar__search {
+  background: #111111 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.admin-light .admin-topbar__search:focus-within {
+  background: #151515 !important;
+  border-color: rgba(235, 10, 30, 0.45) !important;
+}
+.admin-light .admin-topbar__search input {
+  color: #f1f5f9 !important;
+}
+.admin-light .admin-topbar__search input::placeholder {
+  color: #64748b !important;
+}
+
+.admin-light .hub-empty,
+.admin-light .saas-empty,
+.admin-light .raw-gap-table .hub-empty {
+  color: #94a3b8 !important;
+  background: transparent !important;
 }
 

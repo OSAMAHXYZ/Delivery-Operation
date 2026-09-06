@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom Admin — موقف سيارات العرض</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="delivery-hub-theme.css?v=20260825b">
+    <link rel="stylesheet" href="delivery-user-ui.css?v=20260825b">
+    <style>
+        .hidden { display: none !important; }
+        .toast { min-height: 1.2em; margin-top: 10px; font-size: .82rem; color: #94a3b8; }
+        .toast.ok { color: #86efac; }
+        .toast.err { color: #fca5a5; }
+        .hub-actions-row { display: flex; flex-wrap: wrap; align-items: center; }
+        .sr-slots { margin-bottom: 18px; }
+    </style>
+</head>
+<body class="delivery-hub user-ui">
+    <div id="gateLogin" class="user-gate">
+        <div class="user-gate-card">
+            <div class="gate-eyebrow">Showroom · Parking</div>
+            <h2>سيارات العرض</h2>
+            <p class="gate-lead">موقف 7 أماكن · أضف VIN · أصدر مذكرة للسيارة المتوقفة فقط</p>
+            <label for="loginUser">اسم المستخدم</label>
+            <select id="loginUser">
+                <option value="showroom admin">showroom admin</option>
+                <option value="سيارات العرض">سيارات العرض</option>
+            </select>
+            <label for="loginPass">كلمة المرور</label>
+            <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+            <button type="button" class="hub-btn hub-btn--primary" id="btnLogin">دخول</button>
+            <p class="toast" id="loginStatus"></p>
+        </div>
+    </div>
+
+    <div id="app" class="hub-shell hidden">
+        <header class="hub-topbar">
+            <div class="hub-brand">
+                <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                <div>
+                    <h1>Showroom Admin</h1>
+                    <p>Showroom Cars · 7 parking places · يظهر في لوحة الإدارة</p>
+                </div>
+            </div>
+            <div class="hub-actions">
+                <a href="index.html" class="hub-btn">المركز</a>
+                <a href="admin-Delivery-pdf.html" class="hub-btn">الإدارة</a>
+                <strong id="loggedAs" style="color:#f9a8d4;font-size:.85rem"></strong>
+                <button type="button" class="hub-btn" id="btnLogout">خروج</button>
+            </div>
+        </header>
+
+        <div class="sr-hero">
+            <h2>خريطة الموقف — واضحة وسريعة</h2>
+            <p>
+                الصق VIN في مكان فارغ ثم «إدخال». الشاسيه بدون شركة تُقبل مباشرة.
+                إذا كان معيّناً لشركة أخرى يظهر تنبيه تكرار وتختارين: إدخال أو إلغاء.
+            </p>
+        </div>
+
+        <div class="sr-stats" id="srStats"></div>
+
+        <section class="hub-section">
+            <div class="hub-section-head">
+                <h2>موقف العرض — 7 أماكن</h2>
+                <span class="hub-hint">الصق VIN في مكان فارغ · إصدر مذكرة لسيارتك فقط</span>
+            </div>
+            <div class="sr-slots" id="srSlots"></div>
+            <p class="toast" id="stockStatus"></p>
+        </section>
+
+        <section class="hub-section note-panel hidden" id="notePanel">
+            <h3>مذكرة تسليم — لسيارة الموقف فقط</h3>
+            <p class="hub-meta" id="noteVinMeta" style="margin-bottom:12px"></p>
+            <div class="note-grid">
+                <div>
+                    <label>Vehicle / Product</label>
+                    <input id="note_vehicle" type="text" required placeholder="Camry">
+                </div>
+                <div>
+                    <label>VIN</label>
+                    <input id="note_vin" type="text" readonly style="direction:ltr;text-align:left">
+                </div>
+                <div>
+                    <label>Model</label>
+                    <input id="note_model" type="text" placeholder="اختياري">
+                </div>
+                <div>
+                    <label>Plate</label>
+                    <input id="note_plate" type="text">
+                </div>
+                <div>
+                    <label>Branch</label>
+                    <input id="note_branch" type="text" list="branchList" required placeholder="اختر أو اكتب الفرع">
+                    <datalist id="branchList"></datalist>
+                </div>
+                <div>
+                    <label>Entry Date</label>
+                    <input id="note_entry_date" type="date" required>
+                </div>
+                <div>
+                    <label>Status</label>
+                    <select id="note_status">
+                        <option value="display">عرض</option>
+                        <option value="delivery">تسليم</option>
+                    </select>
+                </div>
+            </div>
+            <div class="hub-actions-row" style="margin-top:12px;gap:8px">
+                <button type="button" class="hub-btn hub-btn--primary" id="btnSaveNote">حفظ مذكرة التسليم</button>
+                <button type="button" class="hub-btn" id="btnCancelNote">إلغاء</button>
+            </div>
+            <p class="toast" id="noteStatus"></p>
+        </section>
+    </div>
+
+    <script src="delivery-hub-live.js?v=20260825a"></script>
+    <script>
+        const AGENT_KEY = 'showroomAdminUser';
+        const PASS_KEY = 'showroomAdminPass';
+        const AGENT_PASSWORD = '1234';
+        let agent = { username: '', password: '' };
+        let occupancy = null;
+
+        const $ = (id) => document.getElementById(id);
+        function setToast(id, msg, type) {
+            const el = $(id);
+            if (!el) return;
+            el.textContent = msg || '';
+            el.className = 'toast' + (type ? ` ${type}` : '');
+        }
+
+        function getAgent() {
+            return {
+                username: sessionStorage.getItem(AGENT_KEY) || '',
+                password: sessionStorage.getItem(PASS_KEY) || ''
+            };
+        }
+
+        function saveAgent(user, pass) {
+            sessionStorage.setItem(AGENT_KEY, user);
+            sessionStorage.setItem(PASS_KEY, pass);
+            agent = { username: user, password: pass };
+        }
+
+        function clearAgent() {
+            sessionStorage.removeItem(AGENT_KEY);
+            sessionStorage.removeItem(PASS_KEY);
+            agent = { username: '', password: '' };
+        }
+
+        function authBody(extra = {}) {
+            return { username: agent.username, password: agent.password, ...extra };
+        }
+
+        function showApp(on) {
+            $('gateLogin').classList.toggle('hidden', on);
+            $('app').classList.toggle('hidden', !on);
+            if (on) $('loggedAs').textContent = agent.username;
+        }
+
+        function renderSlots() {
+            const wrap = $('srSlots');
+            const slots = occupancy?.slots || [];
+            $('srStats').innerHTML = `
+                <div class="sr-stat sr-stat--used"><span>مشغول</span><b>${occupancy?.used || 0}</b></div>
+                <div class="sr-stat sr-stat--free"><span>فارغ</span><b>${occupancy?.free || 7}</b></div>
+                <div class="sr-stat"><span>الإجمالي</span><b>${occupancy?.total || 7}</b></div>
+            `;
+            wrap.innerHTML = slots.map((s) => {
+                if (s.free || !s.entry) {
+                    return `<div class="sr-slot sr-slot--free" data-slot="${s.slot}">
+                        <div class="sr-slot-head">
+                            <span class="sr-slot-name">${s.slot}</span>
+                            <span class="sr-badge sr-badge--free">فارغ</span>
+                        </div>
+                        <input type="text" data-vin-input="${s.slot}" placeholder="الصق VIN هنا" maxlength="32" autocomplete="off" spellcheck="false">
+                        <div class="sr-actions">
+                            <button type="button" class="hub-btn hub-btn--primary hub-btn--sm" data-park="${s.slot}">إدخال</button>
+                        </div>
+                    </div>`;
+                }
+                const e = s.entry;
+                return `<div class="sr-slot sr-slot--used" data-slot="${s.slot}">
+                    <div class="sr-slot-head">
+                        <span class="sr-slot-name">${s.slot}</span>
+                        <span class="sr-badge sr-badge--used">Showroom</span>
+                    </div>
+                    <div class="sr-vin">${e.vin}</div>
+                    <div class="sr-meta">${e.product || e.model || '—'} · ${e.plate || 'بدون لوحة'}</div>
+                    <div class="sr-actions">
+                        <button type="button" class="hub-btn hub-btn--primary hub-btn--sm" data-note="${e.vin}" data-product="${(e.product || '').replace(/"/g, '&quot;')}" data-plate="${(e.plate || '').replace(/"/g, '&quot;')}">مذكرة</button>
+                        <button type="button" class="hub-btn hub-btn--sm" data-out="${e.vin}">إخراج</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            wrap.querySelectorAll('[data-park]').forEach((btn) => {
+                btn.addEventListener('click', () => parkVin(btn.dataset.park));
+            });
+            wrap.querySelectorAll('[data-out]').forEach((btn) => {
+                btn.addEventListener('click', () => stockOut(btn.dataset.out));
+            });
+            wrap.querySelectorAll('[data-note]').forEach((btn) => {
+                btn.addEventListener('click', () => openNote(btn.dataset.note, btn.dataset.product, btn.dataset.plate));
+            });
+            wrap.querySelectorAll('[data-vin-input]').forEach((input) => {
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') {
+                        ev.preventDefault();
+                        parkVin(input.dataset.vinInput);
+                    }
+                });
+            });
+        }
+
+        async function loadStock() {
+            const res = await fetch('/api/showroom-parking/stock');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل التحميل');
+            occupancy = data.occupancy;
+            renderSlots();
+        }
+
+        async function parkVin(slot, { forcePark = false } = {}) {
+            const input = document.querySelector(`[data-vin-input="${slot}"]`);
+            const vin = String(input?.value || '').trim().toUpperCase().replace(/\s+/g, '');
+            if (!vin || vin.length < 8) return setToast('stockStatus', 'أدخل رقم شاسيه صالح', 'err');
+            setToast('stockStatus', 'جاري الإدخال…');
+            try {
+                const res = await fetch('/api/showroom-parking/stock-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(authBody({ vin, slot, forcePark }))
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    if (res.status === 409 && data.code === 'queue_company_conflict' && !forcePark) {
+                        const company = data.conflict?.company || 'شركة أخرى';
+                        const ok = confirm(
+                            `تكرار — الشاسيه ${vin} معيّن لـ «${company}».\n\n` +
+                            `هل تريد إدخاله في موقف العرض (${slot}) رغم ذلك؟`
+                        );
+                        if (ok) return parkVin(slot, { forcePark: true });
+                        setToast('stockStatus', 'تم إلغاء الإدخال', 'err');
+                        return;
+                    }
+                    if (res.status === 409 && data.code === 'already_parked') {
+                        setToast('stockStatus', data.error || `موجود مسبقاً في ${data.conflictSlot}`, 'err');
+                        return;
+                    }
+                    throw new Error(data.error || 'فشل الإدخال');
+                }
+                occupancy = data.occupancy;
+                renderSlots();
+                setToast('stockStatus', `تم إدخال ${vin} في ${slot}`, 'ok');
+            } catch (err) {
+                setToast('stockStatus', err.message, 'err');
+            }
+        }
+
+        async function stockOut(vin) {
+            if (!confirm(`إخراج ${vin} من موقف العرض؟`)) return;
+            setToast('stockStatus', 'جاري الإخراج…');
+            try {
+                const res = await fetch('/api/showroom-parking/stock-out', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(authBody({ vin }))
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإخراج');
+                occupancy = data.occupancy;
+                renderSlots();
+                setToast('stockStatus', `تم إخراج ${vin}`, 'ok');
+            } catch (err) {
+                setToast('stockStatus', err.message, 'err');
+            }
+        }
+
+        function openNote(vin, product, plate) {
+            $('notePanel').classList.remove('hidden');
+            $('noteVinMeta').textContent = `Showroom Cars · ${vin}`;
+            $('note_vin').value = vin;
+            $('note_vehicle').value = product || '';
+            $('note_model').value = product || '';
+            $('note_plate').value = plate || '';
+            $('note_status').value = 'display';
+            const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+            $('note_entry_date').value = today;
+            setToast('noteStatus', '');
+            $('notePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        $('btnCancelNote').addEventListener('click', () => {
+            $('notePanel').classList.add('hidden');
+        });
+
+        $('btnSaveNote').addEventListener('click', async () => {
+            const payload = {
+                ...authBody(),
+                vehicle: $('note_vehicle').value.trim(),
+                vin: $('note_vin').value.trim(),
+                model: $('note_model').value.trim(),
+                plate: $('note_plate').value.trim(),
+                branch: $('note_branch').value.trim(),
+                branchEntryDate: $('note_entry_date').value.trim(),
+                vehicleStatus: $('note_status').value
+            };
+            if (!payload.vehicle || !payload.vin || !payload.branch || !payload.branchEntryDate) {
+                return setToast('noteStatus', 'أكمل الحقول المطلوبة', 'err');
+            }
+            setToast('noteStatus', 'جاري الحفظ…');
+            try {
+                const res = await fetch('/api/delivery-manual/vehicles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الحفظ');
+                setToast('noteStatus', `تم الحفظ · ${data.deliveryNoteNumber || data.draftId} · يظهر في الإدارة كـ Showroom Cars`, 'ok');
+                if (data.occupancy) occupancy = data.occupancy;
+                await loadStock();
+                if (payload.vehicleStatus === 'delivery') {
+                    $('notePanel').classList.add('hidden');
+                }
+            } catch (err) {
+                setToast('noteStatus', err.message, 'err');
+            }
+        });
+
+        async function loadBranches() {
+            try {
+                const res = await fetch('/api/delivery-options');
+                const data = await res.json();
+                if (res.ok && Array.isArray(data.cities)) {
+                    $('branchList').innerHTML = data.cities.map((c) => `<option value="${String(c).replace(/"/g, '&quot;')}"></option>`).join('');
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        $('btnLogin').addEventListener('click', async () => {
+            const username = $('loginUser').value.trim();
+            const password = $('loginPass').value.trim();
+            setToast('loginStatus', 'جاري التحقق…');
+            try {
+                const res = await fetch('/api/delivery-coordinator/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الدخول');
+                if (data.role !== 'showroom_admin' && data.username !== 'showroom admin') {
+                    throw new Error('هذا الحساب ليس Showroom Admin');
+                }
+                saveAgent(data.username || username, password || AGENT_PASSWORD);
+                showApp(true);
+                await loadBranches();
+                await loadStock();
+                setToast('loginStatus', '');
+            } catch (err) {
+                setToast('loginStatus', err.message, 'err');
+            }
+        });
+
+        $('btnLogout').addEventListener('click', () => {
+            clearAgent();
+            showApp(false);
+        });
+
+        agent = getAgent();
+        if (agent.username && agent.password) {
+            showApp(true);
+            loadBranches();
+            loadStock().catch((err) => setToast('stockStatus', err.message, 'err'));
+            if (window.DeliveryHubLive) DeliveryHubLive.start(loadStock);
+        }
+    </script>
+</body>
+</html>

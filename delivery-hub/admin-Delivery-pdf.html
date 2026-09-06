@@ -8,8 +8,8 @@
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <link rel="stylesheet" href="delivery-hub-theme.css?v=20260825c">
-    <link rel="stylesheet" href="admin-saas.css?v=20260902b">
-    <link rel="stylesheet" href="admin-hcare-light.css?v=20260902b">
+    <link rel="stylesheet" href="admin-saas.css?v=20260906c">
+    <link rel="stylesheet" href="admin-hcare-light.css?v=20260906c">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
     <style>
@@ -431,6 +431,40 @@
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.08);
             background: rgba(15, 23, 42, 0.45);
+        }
+        .options-item--company {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .options-item__main {
+            flex: 1;
+            min-width: 140px;
+            display: grid;
+            gap: 6px;
+        }
+        .options-item__phone {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .options-item__phone input {
+            flex: 1;
+            min-width: 110px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.28);
+            color: #e2e8f0;
+            font: inherit;
+            font-size: 0.78rem;
+            direction: ltr;
+            text-align: left;
+        }
+        .options-item__actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         .options-item span {
             font-size: 0.84rem;
@@ -863,6 +897,52 @@
         .pct-status-pill--done b { color: #4ade80; }
         .pct-status-pill--pending { border-color: rgba(245, 158, 11, 0.35); }
         .pct-status-pill--pending b { color: #fbbf24; }
+        .pct-status-kpis {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 0 0 14px;
+        }
+        .pct-status-kpi {
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.28);
+        }
+        .pct-status-kpi span {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            line-height: 1.35;
+        }
+        .pct-status-kpi b {
+            display: block;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+        }
+        .pct-status-kpi small {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .pct-status-kpi--cars {
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+        .pct-status-kpi--cars b { color: #60a5fa; }
+        .pct-status-kpi--notes {
+            border-color: rgba(235, 10, 30, 0.4);
+        }
+        .pct-status-kpi--notes b { color: #fb7185; }
+        @media (max-width: 700px) {
+            .pct-status-kpis { grid-template-columns: 1fr; }
+        }
 
         /* Delivered / Total progress chart */
         .pct-chart-card--delivered-total {
@@ -1859,12 +1939,224 @@
         }
         .admin-pane {
             display: none;
-            gap: 14px;
-            animation: adminPaneIn 0.28s ease;
+            gap: 10px;
         }
         .admin-pane.is-active {
-            display: grid;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            animation: adminPaneIn 0.28s ease both;
         }
+        /* Single-screen charts cockpit — no page scroll for chart panes */
+        #pane-overview.is-active,
+        #pane-analytics.is-active {
+            max-height: calc(100dvh - 108px);
+            overflow: hidden;
+        }
+        .charts-cockpit {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+        .charts-cockpit__strip {
+            flex: 0 0 auto;
+            display: grid;
+            gap: 8px;
+        }
+        .charts-cockpit__charts {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-rows: minmax(0, 1fr);
+            gap: 8px;
+        }
+        .charts-cockpit__charts .ops-board__chart {
+            min-height: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 10px;
+            margin: 0;
+        }
+        .charts-cockpit__charts .ops-board__chart h3 {
+            margin: 0 0 4px;
+            font-size: 0.72rem;
+            flex: 0 0 auto;
+        }
+        .charts-cockpit__charts .ops-board__chart-el {
+            flex: 1 1 auto;
+            min-height: 0 !important;
+            height: 100%;
+        }
+        .charts-cockpit__charts .ops-board__chart--wide {
+            grid-column: 1 / -1;
+        }
+        .charts-cockpit__details {
+            flex: 0 0 auto;
+            max-height: 22vh;
+            overflow: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(15,23,42,0.45);
+        }
+        .charts-cockpit__details[hidden] { display: none !important; }
+        .charts-cockpit__details-toggle {
+            flex: 0 0 auto;
+            align-self: flex-start;
+        }
+        .charts-cockpit .dn-mgmt {
+            margin: 0;
+            padding: 8px 12px;
+        }
+        .charts-cockpit .dn-mgmt__title { font-size: 0.92rem; margin: 0; }
+        .charts-cockpit .dn-mgmt__sub { display: none; }
+        .charts-cockpit .dn-mgmt__stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .charts-cockpit .raw-gap-section { margin: 0; }
+        .charts-cockpit .raw-gap-summary {
+            padding: 8px 10px;
+            gap: 8px;
+        }
+        .charts-cockpit .admin-overview-row {
+            margin: 0;
+            gap: 8px;
+        }
+        #pane-overview.charts-cockpit > .charts-cockpit__strip { order: 1; }
+        #pane-overview.charts-cockpit > .admin-overview-row {
+            order: 2;
+            flex: 0 0 auto;
+            max-height: 92px;
+            overflow: hidden;
+            grid-template-columns: 1fr;
+            margin: 0;
+        }
+        #pane-overview.charts-cockpit > .admin-overview-row .admin-overview-mid { display: none !important; }
+        #pane-overview.charts-cockpit > .admin-overview-row .saas-kpi-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        #pane-overview.charts-cockpit > #opsBoard { order: 3; }
+        #pane-overview.charts-cockpit > .hub-section.hub-fold { order: 4; display: none !important; }
+        .charts-cockpit .ops-board__head {
+            margin-bottom: 0;
+            padding: 0;
+        }
+        .charts-cockpit .ops-board__head h2 { font-size: 0.88rem; }
+        .charts-cockpit .ops-board__head p { font-size: 0.7rem; margin: 2px 0 0; }
+        .charts-cockpit .ops-board { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+
+        /* Analytics fit-screen mosaic */
+        #pane-analytics .hub-section--xfer {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            overflow: hidden;
+        }
+        #pane-analytics .hub-fold-body,
+        #pane-analytics .hub-fold-body-inner,
+        #pane-analytics .hub-fold-content {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #pane-analytics .xfer-dash-mosaic {
+            flex: 1 1 auto;
+            min-height: 0;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: 8px;
+            overflow: hidden;
+        }
+        #pane-analytics .xfer-mosaic-span-2 {
+            grid-column: span 1;
+        }
+        #pane-analytics .xfer-branches-row {
+            grid-column: span 1;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            min-height: 0;
+            overflow: hidden;
+        }
+        #pane-analytics .xfer-mosaic-cell,
+        #pane-analytics .pct-chart-card,
+        #pane-analytics .saas-section {
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 10px !important;
+        }
+        #pane-analytics .saas-section__head h3,
+        #pane-analytics .pct-chart-card h3 {
+            font-size: 0.78rem;
+            margin: 0 0 2px;
+        }
+        #pane-analytics .saas-section__head p,
+        #pane-analytics .pct-chart-sub {
+            font-size: 0.65rem;
+            margin: 0 0 4px;
+            opacity: 0.75;
+        }
+        #pane-analytics .xfer-trend-chart,
+        #pane-analytics .xfer-city-chart,
+        #pane-analytics .pct-donut-wrap {
+            flex: 1 1 auto;
+            min-height: 0 !important;
+            height: auto !important;
+        }
+        #pane-analytics .saas-company-list,
+        #pane-analytics .xfer-dash-list--compact {
+            flex: 1 1 auto;
+            max-height: none !important;
+            min-height: 0;
+            overflow: auto;
+        }
+        #pane-analytics #xferDetailsFold {
+            flex: 0 0 auto;
+            max-height: 0;
+            overflow: hidden;
+            margin: 0 !important;
+        }
+        #pane-analytics #xferDetailsFold.is-open {
+            max-height: 28vh;
+            overflow: auto;
+        }
+        #pane-analytics .admin-pane-head { margin-bottom: 4px; }
+        #pane-analytics .admin-pane-head h2 { font-size: 0.95rem; }
+        #pane-analytics .admin-pane-head p { font-size: 0.72rem; }
+        #pane-analytics .hub-fold-toggle { padding: 6px 10px; }
+        @media (max-width: 1100px) {
+            .charts-cockpit__charts {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto;
+            }
+            .charts-cockpit__charts .ops-board__chart--wide { grid-column: 1 / -1; }
+            #pane-analytics .xfer-dash-mosaic {
+                grid-template-columns: 1fr 1fr;
+                overflow: auto;
+            }
+            #pane-overview.is-active,
+            #pane-analytics.is-active {
+                max-height: none;
+                overflow: auto;
+            }
+        }
+        @media (max-width: 720px) {
+            .charts-cockpit__charts { grid-template-columns: 1fr; }
+            #pane-analytics .xfer-dash-mosaic { grid-template-columns: 1fr; }
+        }
+
         @keyframes adminPaneIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: none; }
@@ -1889,6 +2181,110 @@
             font-size: 0.78rem;
             color: #94a3b8;
         }
+        .ops-board {
+            padding: 16px 18px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #0f172a;
+        }
+        .ops-board__head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: baseline;
+            margin-bottom: 14px;
+        }
+        .ops-board__head h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            color: #f8fafc;
+        }
+        .ops-board__head p {
+            margin: 4px 0 0;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+        .ops-board__charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .ops-board__chart {
+            min-width: 0;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(15,23,42,0.6);
+        }
+        .ops-board__chart h3 {
+            margin: 0 0 8px;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+        }
+        .ops-board__chart--wide {
+            grid-column: 1 / -1;
+        }
+        .ops-board__chart-el { min-height: 0; }
+        .ops-schedule-wrap, .ops-company-wrap {
+            max-height: 340px;
+            overflow: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .ops-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .ops-table th, .ops-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            text-align: start;
+            white-space: nowrap;
+        }
+        .ops-table th {
+            position: sticky;
+            top: 0;
+            background: #0b1220;
+            color: #94a3b8;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            z-index: 1;
+        }
+        .ops-table td.num { text-align: end; font-variant-numeric: tabular-nums; }
+        .ops-table .hub-vin { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.75rem; }
+        .ops-user-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(108,92,231,0.2);
+            color: #c4b5fd;
+        }
+        .ops-user-badge.is-yassin { background: rgba(244,114,182,0.2); color: #f9a8d4; }
+        .ops-user-badge.is-fadel { background: rgba(46,196,182,0.2); color: #5eead4; }
+        .ops-user-badge.is-baraa { background: rgba(59,130,246,0.2); color: #93c5fd; }
+        .company-change-badge {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: #fde68a;
+            background: rgba(245, 158, 11, 0.16);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            line-height: 1.35;
+            white-space: normal;
+        }
+        @media (max-width: 980px) {
+            .ops-board__charts { grid-template-columns: 1fr; }
+            .ops-board__chart--wide { grid-column: auto; }
+        }
+
         .admin-console .admin-pane .hub-section.hub-fold {
             margin-bottom: 0;
         }
@@ -1897,7 +2293,7 @@
         }
         .admin-filters-sticky {
             position: sticky;
-            top: 148px;
+            top: 0;
             z-index: 35;
         }
         @media (max-width: 900px) {
@@ -1909,7 +2305,156 @@
                 scrollbar-width: thin;
             }
             .admin-nav__btn { white-space: nowrap; flex: 0 0 auto; }
-            .admin-filters-sticky { top: 72px; }
+            .admin-filters-sticky { top: 0; }
+        }
+
+        /* —— FORCE SCROLL v2: #adminApp scrolls, sidebar fixed —— */
+        html.admin-scroll-lock,
+        html.admin-scroll-lock body {
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            overscroll-behavior: none !important;
+            touch-action: manipulation !important;
+        }
+        body.delivery-hub.admin-console.admin-light #adminApp.hub-shell {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: 100dvh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow-x: hidden !important;
+            overflow-y: scroll !important;
+            -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior: contain !important;
+            touch-action: pan-y !important;
+            animation: none !important;
+            transform: none !important;
+            z-index: 20 !important;
+            background: #000 !important;
+            scrollbar-gutter: stable;
+        }
+        body.delivery-hub.admin-console.admin-light #adminApp.hub-shell.hidden {
+            display: none !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-layout {
+            display: block !important;
+            width: 100% !important;
+            min-height: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            grid-template-columns: none !important;
+            grid-template-rows: none !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            width: var(--hc-sidebar, 248px) !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            max-height: none !important;
+            align-self: auto !important;
+            overflow: hidden !important;
+            z-index: 40 !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-sidebar__nav {
+            overflow: auto !important;
+            overscroll-behavior: contain !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-main {
+            display: block !important;
+            width: auto !important;
+            min-width: 0 !important;
+            min-height: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            margin-left: var(--hc-sidebar, 248px) !important;
+            overflow: visible !important;
+            padding: 18px 22px 48px !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-workspace {
+            display: block !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-pane {
+            display: none !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+        body.delivery-hub.admin-console.admin-light .admin-pane.is-active {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        body.delivery-hub.admin-console.admin-light #pane-overview.is-active,
+        body.delivery-hub.admin-console.admin-light #pane-analytics.is-active {
+            max-height: calc(100dvh - 100px) !important;
+            overflow: hidden !important;
+        }
+        body.delivery-hub.admin-console.admin-light .charts-cockpit__charts .ops-board__chart-el,
+        body.delivery-hub.admin-console.admin-light #pane-analytics .xfer-trend-chart,
+        body.delivery-hub.admin-console.admin-light #pane-analytics .xfer-city-chart {
+            min-height: 0 !important;
+        }
+        @media (max-width: 900px) {
+            body.delivery-hub.admin-console.admin-light .admin-sidebar {
+                position: sticky !important;
+                left: auto !important;
+                top: 0 !important;
+                bottom: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                z-index: 40 !important;
+            }
+            body.delivery-hub.admin-console.admin-light .admin-main {
+                margin-left: 0 !important;
+                padding: 12px !important;
+            }
+        }
+
+        /* Kill leftover light chart/card surfaces */
+        body.delivery-hub.admin-console.admin-light .pct-chart-card,
+        body.delivery-hub.admin-console.admin-light .xfer-dash-card,
+        body.delivery-hub.admin-console.admin-light .xfer-mosaic-cell,
+        body.delivery-hub.admin-console.admin-light .saas-section,
+        body.delivery-hub.admin-console.admin-light .xfer-trend-chart,
+        body.delivery-hub.admin-console.admin-light .xfer-city-chart,
+        body.delivery-hub.admin-console.admin-light .pct-donut-wrap,
+        body.delivery-hub.admin-console.admin-light .dh-user-chart,
+        body.delivery-hub.admin-console.admin-light .ops-board__chart-el,
+        body.delivery-hub.admin-console.admin-light .apexcharts-canvas,
+        body.delivery-hub.admin-console.admin-light .apexcharts-svg,
+        body.delivery-hub.admin-console.admin-light .saas-kpi,
+        body.delivery-hub.admin-console.admin-light .admin-overview-row .saas-kpi,
+        body.delivery-hub.admin-console.admin-light .dn-stat,
+        body.delivery-hub.admin-console.admin-light .raw-gap-section,
+        body.delivery-hub.admin-console.admin-light .raw-gap-panel,
+        body.delivery-hub.admin-console.admin-light .raw-gap-table-wrap,
+        body.delivery-hub.admin-console.admin-light .ops-board__chart,
+        body.delivery-hub.admin-console.admin-light .admin-sidebar__foot {
+            background: #0a0a0a !important;
+            box-shadow: none !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #e2e8f0 !important;
+        }
+        body.delivery-hub.admin-console.admin-light .raw-gap-table th {
+            background: #000 !important;
+            color: #94a3b8 !important;
+        }
+        body.delivery-hub.admin-console.admin-light .raw-gap-stat--raw .val { color: #93c5fd !important; }
+        body.delivery-hub.admin-console.admin-light .raw-gap-stat--delivered .val { color: #6ee7b7 !important; }
+        body.delivery-hub.admin-console.admin-light .raw-gap-stat--gap .val { color: #fca5a5 !important; }
+        body.delivery-hub.admin-console.admin-light .saas-empty,
+        body.delivery-hub.admin-console.admin-light .xfer-dash-empty {
+            color: #94a3b8 !important;
+            background: transparent !important;
         }
     </style>
 </head>
@@ -2031,10 +2576,10 @@
                     <label class="ft-date-preset-wrap">
                         <span>Period</span>
                         <select class="ft-native ft-date-preset" id="ftDatePreset" title="Quick date filter — applies instantly">
-                            <option value="today" selected>Today</option>
+                            <option value="today">Today</option>
                             <option value="yesterday">Yesterday</option>
                             <option value="last_7">Last 7 days</option>
-                            <option value="this_month">This month (MTD)</option>
+                            <option value="this_month" selected>This month</option>
                             <option value="last_month">Last month</option>
                             <option value="all">All dates</option>
                             <option value="custom">Custom range</option>
@@ -2104,6 +2649,23 @@
             </div>
 
             <div class="ft-chips" id="filterChipsBar" aria-label="Active filters"></div>
+            <div class="ft-totals" id="ftPeriodTotals" aria-label="Period totals">
+                <div class="ft-total ft-total--cars">
+                    <span class="ft-total__lab">Cars submitted · سيارات المنسق</span>
+                    <strong class="ft-total__val" id="ftTotalCarsSubmitted">0</strong>
+                    <span class="ft-total__hint">VINs on delivery notes</span>
+                </div>
+                <div class="ft-total ft-total--notes">
+                    <span class="ft-total__lab">Delivery notes · مذكرات</span>
+                    <strong class="ft-total__val" id="ftTotalNotesCreated">0</strong>
+                    <span class="ft-total__hint">notes created in period</span>
+                </div>
+                <div class="ft-total ft-total--queue">
+                    <span class="ft-total__lab">On queue · بالقائمة</span>
+                    <strong class="ft-total__val" id="ftTotalQueue">0</strong>
+                    <span class="ft-total__hint" id="ftTotalQueueHint">delivered 0 · remaining 0</span>
+                </div>
+            </div>
             <p class="ft-meta admin-filter-meta" id="trackFilterMeta">Showing all records</p>
             <p class="hub-meta" id="trackFilterHint" hidden></p>
 
@@ -2128,11 +2690,12 @@
 
         <div class="admin-workspace" id="adminWorkspace">
 
-        <div class="admin-pane is-active" data-pane="overview" id="pane-overview">
+        <div class="admin-pane is-active charts-cockpit" data-pane="overview" id="pane-overview">
             <div class="admin-pane-head">
                 <h2>نظرة عامة</h2>
                 <p>مؤشرات سريعة · تقدم الترحيل · إحصاءات الشهر</p>
             </div>
+            <div class="charts-cockpit__strip">
             <section class="dn-mgmt" id="dnMonthBar" aria-label="Delivery Management">
                 <div class="dn-mgmt__head">
                     <div>
@@ -2211,7 +2774,77 @@
                     </div>
                 </div>
             </section>
-            <div class="admin-overview-row">
+            </div>
+
+            <section class="ops-board charts-cockpit__charts-wrap" id="opsBoard" aria-label="Delivery notes operations" style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden">
+                <div class="ops-board__head" style="flex:0 0 auto">
+                    <div>
+                        <h2>مذكرات الترحيل · Charts</h2>
+                        <p id="opsBoardPeriodHint">عدد المذكرات المنشأة · المستخدم · الشركات</p>
+                    </div>
+                    <button type="button" class="hub-btn hub-btn--sm charts-cockpit__details-toggle" id="btnOpsTablesToggle" aria-expanded="false">الجداول ▾</button>
+                </div>
+                <div class="ops-board__charts charts-cockpit__charts" style="margin:0">
+                    <article class="ops-board__chart">
+                        <h3>Delivery notes · باليوم</h3>
+                        <div id="opsNotesByDayChart" class="ops-board__chart-el"></div>
+                    </article>
+                    <article class="ops-board__chart">
+                        <h3>By user · الفاضل / البراء / ياسين</h3>
+                        <div id="opsNotesByUserChart" class="ops-board__chart-el"></div>
+                    </article>
+                    <article class="ops-board__chart">
+                        <h3>By company · شركات</h3>
+                        <div id="opsNotesByCompanyChart" class="ops-board__chart-el"></div>
+                    </article>
+                </div>
+                <div class="charts-cockpit__details" id="opsTablesPanel" hidden>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;padding:10px">
+                <div>
+                    <h3 style="margin:0 0 8px;font-size:0.8rem;color:#e2e8f0">Schedule · كل مذكرة</h3>
+                    <div class="ops-schedule-wrap" style="max-height:18vh">
+                        <table class="ops-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>DN #</th>
+                                    <th>User / المنسق</th>
+                                    <th>Type</th>
+                                    <th>Company</th>
+                                    <th>City</th>
+                                    <th class="num">Cars</th>
+                                    <th>VINs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="opsScheduleBody">
+                                <tr><td colspan="8" class="hub-empty">لا توجد مذكرات في هذا الشهر</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="margin:0 0 8px;font-size:0.8rem;color:#e2e8f0">Company details</h3>
+                    <div class="ops-company-wrap" style="max-height:18vh">
+                        <table class="ops-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th class="num">Notes</th>
+                                    <th class="num">Cars</th>
+                                    <th>Users</th>
+                                    <th>Cities</th>
+                                </tr>
+                            </thead>
+                            <tbody id="opsCompanyBody">
+                                <tr><td colspan="5" class="hub-empty">لا توجد شركات في هذا الشهر</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+                </div>
+            </section>
+            <div class="admin-overview-row" style="flex:0 0 auto">
             <div class="saas-kpi-grid" id="premiumKpiGrid" aria-label="مؤشرات سريعة"></div>
 
             <div class="admin-overview-mid">
@@ -2347,7 +2980,19 @@
 
                         <div class="pct-chart-card pct-chart-card--status saas-section xfer-mosaic-span-2" style="margin:0">
                             <h3>حالة الترحيل</h3>
-                            <p class="pct-chart-sub">تم الترحيل مقابل المتبقي — كل البيانات عند عدم اختيار تاريخ</p>
+                            <p class="pct-chart-sub">سيارات المنسق · مذكرات التسليم · تم الترحيل مقابل المتبقي</p>
+                            <div class="pct-status-kpis" id="statusCoordKpis" aria-label="Coordinator submitted cars and delivery notes">
+                                <div class="pct-status-kpi pct-status-kpi--cars">
+                                    <span>سيارات مقدمة من المنسق · Cars submitted</span>
+                                    <b id="statusCarsSubmitted">0</b>
+                                    <small>VINs على مذكرات التسليم ضمن الفترة</small>
+                                </div>
+                                <div class="pct-status-kpi pct-status-kpi--notes">
+                                    <span>مذكرات التسليم المنشأة · Delivery notes</span>
+                                    <b id="statusNotesGenerated">0</b>
+                                    <small id="statusNotesGeneratedHint">عدد المذكرات ضمن الفترة</small>
+                                </div>
+                            </div>
                             <div class="pct-chart-layout">
                                 <div class="pct-donut-wrap" id="statusPctDonut"></div>
                                 <div>
@@ -2838,6 +3483,7 @@
                         <div class="options-manage-grid">
                             <div class="options-manage-card">
                                 <h3>شركات النقل</h3>
+                                <p class="hub-hint" style="margin:0 0 10px">أرقام واتساب الشركات — المنسق يحفظ مرة واحدة؛ التعديل من هنا فقط</p>
                                 <div class="options-add-row">
                                     <input type="text" id="newCompanyInput" class="hub-input" placeholder="اسم الشركة الجديدة…" autocomplete="off">
                                     <button type="button" class="hub-btn hub-btn--primary" id="btnAddCompany">إضافة</button>
@@ -2893,6 +3539,7 @@
                         <div class="hub-fold-content">
                             <p class="hub-meta" style="margin-bottom:12px">
                                 من يوم <strong>1</strong> لكل شهر، سيارات <strong>تم الترحيل</strong> من الأشهر السابقة تُخفى من المنسق وتُحفظ هنا حسب الشهر.
+                                اضغط مجلد شهر لعرض مذكراته في الرسوم والجداول وملفات PDF.
                             </p>
                             <div id="lastMonthsFolders" class="last-months-folders"></div>
                             <div id="lastMonthsDetail" class="last-months-detail" hidden></div>
@@ -2922,6 +3569,7 @@
         let _cachedDraftCount = -1;
         let _userDashCount = 0;
         let _vinLookup = null;
+        let _lastQuietDashFp = '';
         let userDashSearch = '';
         let rawGapPanelOpen = false;
         let rawGapSearch = '';
@@ -2936,6 +3584,7 @@
 
         function onLiveSync() {
             if (!adminAuthed || dashboardLoading) return;
+            if (document.visibilityState === 'hidden') return;
             return loadDashboard({ quiet: true });
         }
 
@@ -2945,12 +3594,23 @@
 
         function resumeLiveSync() {
             if (!adminAuthed || !window.DeliveryHubLive) return;
-            DeliveryHubLive.start(onLiveSync, { pollMs: 45000, minRefreshGapMs: 25000 });
+            // Slow live sync — Transport Board charts are expensive to rebuild
+            DeliveryHubLive.start(onLiveSync, {
+                pollMs: 120000,
+                minRefreshGapMs: 90000,
+                debounceMs: 1200,
+                pollWhenConnected: false
+            });
         }
 
         function isAdminPaneActive(paneId) {
             const pane = document.querySelector(`.admin-pane[data-pane="${paneId}"]`);
-            return Boolean(pane && pane.classList.contains('is-active'));
+            return Boolean(pane?.classList.contains('is-active'));
+        }
+
+        function getActiveAdminPaneId() {
+            const pane = document.querySelector('.admin-pane.is-active');
+            return pane?.dataset?.pane || 'overview';
         }
 
         function rebuildVinLookup() {
@@ -2982,14 +3642,103 @@
             return set.size;
         }
 
+        function forceAdminScrollShell() {
+            document.documentElement.classList.add('admin-scroll-lock');
+            document.body.classList.add('admin-scroll-lock');
+            const app = document.getElementById('adminApp');
+            const layout = app?.querySelector('.admin-layout');
+            const main = app?.querySelector('.admin-main');
+            const sidebar = app?.querySelector('.admin-sidebar');
+            const clearBox = (el) => {
+                if (!el) return;
+                ['height', 'max-height', 'min-height', 'overflow', 'overflow-x', 'overflow-y',
+                    'grid-template-rows', 'grid-template-columns', 'align-items', 'display',
+                    'position', 'top', 'left', 'bottom', 'right', 'margin-left', 'width', 'inset'
+                ].forEach((p) => el.style.removeProperty(p));
+            };
+            clearBox(app);
+            clearBox(layout);
+            clearBox(main);
+            clearBox(sidebar);
+
+            document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+            document.documentElement.style.setProperty('height', '100%', 'important');
+            document.body.style.setProperty('overflow', 'hidden', 'important');
+            document.body.style.setProperty('height', '100%', 'important');
+
+            if (app) {
+                app.style.setProperty('position', 'fixed', 'important');
+                app.style.setProperty('inset', '0', 'important');
+                app.style.setProperty('width', '100%', 'important');
+                app.style.setProperty('height', '100%', 'important');
+                app.style.setProperty('max-height', '100dvh', 'important');
+                app.style.setProperty('margin', '0', 'important');
+                app.style.setProperty('padding', '0', 'important');
+                app.style.setProperty('overflow-x', 'hidden', 'important');
+                app.style.setProperty('overflow-y', 'scroll', 'important');
+                app.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+                app.style.setProperty('overscroll-behavior', 'contain', 'important');
+                app.style.setProperty('touch-action', 'pan-y', 'important');
+                app.style.setProperty('transform', 'none', 'important');
+                app.style.setProperty('animation', 'none', 'important');
+                app.style.setProperty('z-index', '20', 'important');
+            }
+            if (layout) {
+                layout.style.setProperty('display', 'block', 'important');
+                layout.style.setProperty('height', 'auto', 'important');
+                layout.style.setProperty('max-height', 'none', 'important');
+                layout.style.setProperty('min-height', '100%', 'important');
+                layout.style.setProperty('overflow', 'visible', 'important');
+            }
+            if (sidebar) {
+                sidebar.style.setProperty('position', 'fixed', 'important');
+                sidebar.style.setProperty('left', '0', 'important');
+                sidebar.style.setProperty('top', '0', 'important');
+                sidebar.style.setProperty('bottom', '0', 'important');
+                sidebar.style.setProperty('width', '248px', 'important');
+                sidebar.style.setProperty('height', '100dvh', 'important');
+                sidebar.style.setProperty('overflow', 'hidden', 'important');
+                sidebar.style.setProperty('z-index', '40', 'important');
+            }
+            if (main) {
+                main.style.setProperty('display', 'block', 'important');
+                main.style.setProperty('margin-left', '248px', 'important');
+                main.style.setProperty('height', 'auto', 'important');
+                main.style.setProperty('max-height', 'none', 'important');
+                main.style.setProperty('min-height', '100%', 'important');
+                main.style.setProperty('overflow', 'visible', 'important');
+            }
+            // Ensure wheel/trackpad always moves the app scroller
+            if (!window.__adminScrollWheelBound) {
+                window.__adminScrollWheelBound = true;
+                const onWheel = (e) => {
+                    if (!adminAuthed) return;
+                    const shell = document.getElementById('adminApp');
+                    if (!shell || shell.classList.contains('hidden')) return;
+                    if (e.target.closest?.('.admin-sidebar__nav, .ft-panel, .hub-table-wrap, .xl-table-wrap, .ops-schedule-wrap, .raw-gap-table-wrap')) {
+                        return;
+                    }
+                    shell.scrollTop += e.deltaY;
+                    e.preventDefault();
+                };
+                document.addEventListener('wheel', onWheel, { passive: false, capture: true });
+            }
+        }
+
         function unlockAdmin() {
             adminAuthed = true;
             document.getElementById('adminGate').classList.add('hidden');
             document.getElementById('adminApp').classList.remove('hidden');
+            forceAdminScrollShell();
             initPremiumFilterToolbar();
             initPdfBrowserControls();
             initDnMonthFilter();
             initRawGapControls();
+            document.querySelectorAll('.admin-pane').forEach((pane) => pane.classList.remove('is-active'));
+            const savedPane = (() => {
+                try { return sessionStorage.getItem('deliveryAdminPane') || 'overview'; } catch (_) { return 'overview'; }
+            })();
+            showAdminPane(savedPane, { openFolds: false, scroll: false });
             document.getElementById('userDashSearch')?.addEventListener('input', (e) => {
                 userDashSearch = e.target.value || '';
                 renderUserDashboard();
@@ -2997,10 +3746,20 @@
             document.getElementById('userDashClearSel')?.addEventListener('click', clearUserDashboardSelection);
             loadDashboard().catch((err) => setUploadStatus(err.message, 'err'));
             resumeLiveSync();
+            requestAnimationFrame(forceAdminScrollShell);
+            setTimeout(forceAdminScrollShell, 100);
+            setTimeout(forceAdminScrollShell, 500);
+            setTimeout(forceAdminScrollShell, 1500);
         }
 
         function lockAdmin() {
             adminAuthed = false;
+            document.documentElement.classList.remove('admin-scroll-lock');
+            document.body.classList.remove('admin-scroll-lock');
+            document.documentElement.style.removeProperty('overflow');
+            document.documentElement.style.removeProperty('height');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('height');
             document.getElementById('adminApp').classList.add('hidden');
             document.getElementById('adminGate').classList.remove('hidden');
             document.getElementById('adminPassword').value = '';
@@ -3111,8 +3870,13 @@
                     'ok'
                 );
                 await loadDashboard({ force: true, quiet: true });
-                if (data.draftsImported) openFold('draftsSection', { scroll: true });
-                else openFold('inventorySection', { scroll: true });
+                const viewMonth = revealImportedDataView();
+                if (viewMonth && viewMonth !== currentMonthKey()) {
+                    setRestoreStatus(
+                        `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة${modeNote} · عرض ${monthLabelAr(viewMonth)}`,
+                        'ok'
+                    );
+                }
             } catch (err) {
                 setRestoreStatus(err.message || 'فشل الاستيراد', 'err');
             } finally {
@@ -3141,7 +3905,14 @@
                     'ok'
                 );
                 await loadDashboard({ force: true });
-                showAdminPane('overview');
+                showAdminPane('overview', { openFolds: false });
+                const viewMonth = revealImportedDataView();
+                if (viewMonth && viewMonth !== currentMonthKey()) {
+                    setRestoreStatus(
+                        `تم رفع Sales Raw · ${data.imported || 0} صف · عرض ${monthLabelAr(viewMonth)}`,
+                        'ok'
+                    );
+                }
             } catch (err) {
                 setRestoreStatus(err.message || 'فشل رفع Sales Raw', 'err');
             } finally {
@@ -3180,23 +3951,67 @@
             if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         }
 
-        function showAdminPane(paneId, { openFolds = true } = {}) {
+        function showAdminPane(paneId, { openFolds = true, scroll = true } = {}) {
             const id = String(paneId || 'overview');
-            document.querySelectorAll('.admin-pane').forEach((pane) => {
-                pane.classList.toggle('is-active', pane.dataset.pane === id);
-            });
+            const prevId = getActiveAdminPaneId();
+            const switching = prevId !== id;
             document.querySelectorAll('[data-pane-target]').forEach((btn) => {
                 btn.classList.toggle('is-active', btn.dataset.paneTarget === id);
             });
-            if (openFolds) {
-                const pane = document.querySelector(`.admin-pane[data-pane="${id}"]`);
+            document.querySelectorAll('.admin-pane').forEach((pane) => {
+                pane.classList.toggle('is-active', pane.dataset.pane === id);
+            });
+            const pane = document.querySelector(`.admin-pane[data-pane="${id}"]`);
+            if (openFolds && id !== 'overview' && id !== 'analytics') {
                 pane?.querySelectorAll('[data-fold]').forEach((s) => setFoldOpen(s, true));
             }
+            // Keep analytics fold open for mosaic; leave details folded
+            if (id === 'analytics') {
+                const xfer = document.getElementById('xferDashSection');
+                if (xfer) setFoldOpen(xfer, true);
+                const details = document.getElementById('xferDetailsFold');
+                if (details) setFoldOpen(details, false);
+            }
             try { sessionStorage.setItem('deliveryAdminPane', id); } catch (_) { /* ignore */ }
-            // Charts in newly visible panes need a size refresh
+            // Only jump scroll when changing panes — never on filter refresh / openFold
+            if (scroll && switching) {
+                if (id !== 'overview' && id !== 'analytics') {
+                    pane?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    const shell = document.getElementById('adminApp');
+                    if (shell) shell.scrollTop = 0;
+                }
+            }
             requestAnimationFrame(() => {
                 window.dispatchEvent(new Event('resize'));
-                if (adminAuthed) refreshTransferDashboard();
+                if (adminAuthed && switching) {
+                    try { refreshTransferDashboard(); } catch (err) { console.error('[pane refresh]', err); }
+                }
+                try { fitVisibleCharts(); } catch (_) { /* ignore */ }
+            });
+        }
+
+        function chartFitHeight(el, fallback = 160) {
+            if (!el) return fallback;
+            const rect = el.getBoundingClientRect();
+            const h = Math.floor(rect.height || el.clientHeight || 0);
+            if (h >= 90) return Math.max(110, Math.min(260, h - 4));
+            const parentH = Math.floor(el.parentElement?.getBoundingClientRect?.().height || 0);
+            if (parentH >= 120) return Math.max(110, Math.min(240, parentH - 28));
+            return fallback;
+        }
+
+        function fitVisibleCharts() {
+            document.querySelectorAll('.apexcharts-canvas').forEach((canvas) => {
+                const host = canvas.closest('.ops-board__chart-el, .xfer-trend-chart, .xfer-city-chart, .dh-user-chart, .invoice-status-chart');
+                if (!host) return;
+                try {
+                    // Apex stores chart id on parent
+                    const chartId = host.querySelector('.apexcharts-canvas')?.id;
+                    if (chartId && window.ApexCharts) {
+                        // no-op — heights set on next render
+                    }
+                } catch (_) { /* ignore */ }
             });
         }
 
@@ -3209,10 +4024,11 @@
                 ? document.getElementById(sectionOrId)
                 : sectionOrId;
             const pane = paneForSection(section);
-            if (pane) showAdminPane(pane, { openFolds: false });
+            // Never reset scroll when merely opening a fold (filters / live refresh)
+            if (pane) showAdminPane(pane, { openFolds: false, scroll: false });
             setFoldOpen(section, true);
             if (scroll && section) {
-                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
 
@@ -3352,6 +4168,9 @@
             const queueRows = allQueue.map((item) => {
                 const isWh = item.deliveryMode === 'warehouse'
                     || String(item.statusLabel || '').includes('المستودع');
+                const changeFrom = String(item.companyChangedFrom || '').trim();
+                const changeTo = String(item.companyChangedTo || '').trim();
+                const changeNote = queueCompanyChangeNote(item);
                 return {
                     'Chassis / VIN': item.vin || '',
                     Product: item.product || item.model || '',
@@ -3367,6 +4186,10 @@
                         : (item.statusLabel || 'Waiting for delivery'),
                     Plate: item.plate || '',
                     Customer: item.customerName || '',
+                    Company: item.deliveryCompany || item.company || '',
+                    'Company Changed From': changeFrom,
+                    'Company Changed To': changeTo,
+                    Notes: changeNote,
                     'Added At': item.addedAt || '',
                     'Assigned At': item.assignedAt || ''
                 };
@@ -3389,6 +4212,10 @@
                 ].map((v) => String(v || '').trim()).filter(Boolean);
                 const uniqueVins = [...new Set(vinList)];
                 const ownerName = p.warehouse?.owner_name || p.customer_name || p.company_rep || d.customerName || '';
+                const changeFrom = String(d.companyChangedFrom || p.company_changed_from || '').trim();
+                const changeTo = String(d.companyChangedTo || p.company_changed_to || '').trim();
+                const changeNote = draftCompanyChangeNote(d);
+                const remarks = mergeExportNotes(p.remarks || '', changeNote);
                 return {
                     'Delivery Note Number': draftDeliveryNoteNumber(d) || '',
                     'Delivery Note Date': draftEventIso(d) || '',
@@ -3411,12 +4238,15 @@
                     'Company Rep': isSh
                         ? (p.typed_company || p.company_rep || p.customer_name || '')
                         : (isWh ? ownerName : (p.customer_name || d.customerName || '')),
+                    'Company Changed From': changeFrom,
+                    'Company Changed To': changeTo,
                     'Branch To': isWh ? 'في المستودع' : (p.branch_to || ''),
                     'Branch From': p.branch_from || '',
                     Plate: p.plate || d.plate || '',
                     GT: p.gt || d.gt || '',
                     Location: p.location || d.location || '',
-                    Remarks: p.remarks || '',
+                    Remarks: remarks,
+                    Notes: remarks,
                     'Customer ID': p.customer_id || '',
                     Phone: p.phone || p.warehouse?.user_phone || ''
                 };
@@ -3464,6 +4294,98 @@
                         : [{ Section: '', Company: '', City: '', Cars: 0 }]
                 ),
                 'Company by City'
+            );
+
+            const scopedDrafts = (typeof filteredDrafts === 'function' ? filteredDrafts() : allDrafts) || [];
+            const scheduleRows = buildDnScheduleRows(scopedDrafts);
+            XLSX.utils.book_append_sheet(
+                wb,
+                XLSX.utils.json_to_sheet(
+                    scheduleRows.length
+                        ? scheduleRows.map((r) => ({
+                            Date: r.date,
+                            'DN Number': r.dn,
+                            User: r.user,
+                            'Assigned To': r.assignedTo,
+                            Type: r.type,
+                            Company: r.company,
+                            City: r.city,
+                            Cars: r.cars,
+                            VINs: r.vins,
+                            Product: r.product,
+                            Notes: r.notes || ''
+                        }))
+                        : [{ Date: '', 'DN Number': '', User: '', Company: '' }]
+                ),
+                'DN Schedule'
+            );
+
+            const notesByUser = [];
+            {
+                const m = new Map();
+                scheduleRows.forEach((r) => {
+                    const u = r.user || '—';
+                    if (!m.has(u)) m.set(u, { User: u, Notes: 0, Cars: 0 });
+                    const row = m.get(u);
+                    row.Notes += 1;
+                    row.Cars += Number(r.cars) || 0;
+                });
+                notesByUser.push(...m.values());
+            }
+            XLSX.utils.book_append_sheet(
+                wb,
+                XLSX.utils.json_to_sheet(notesByUser.length ? notesByUser : [{ User: '', Notes: 0, Cars: 0 }]),
+                'Notes by User'
+            );
+
+            const companyDelivered = buildCompanyDeliveredRows(scheduleRows).map((r) => ({
+                Company: r.company,
+                Notes: r.notes,
+                Cars: r.cars,
+                Users: r.users,
+                Cities: r.cities
+            }));
+            XLSX.utils.book_append_sheet(
+                wb,
+                XLSX.utils.json_to_sheet(
+                    companyDelivered.length ? companyDelivered : [{ Company: '', Notes: 0, Cars: 0 }]
+                ),
+                'Company Delivered'
+            );
+
+            const companyDetailRows = [];
+            scopedDrafts.forEach((d) => {
+                const p = d.payload || {};
+                const isSh = isShowroomAdminDraft(d);
+                const isWh = isWarehouseAdminDraft(d);
+                const company = isSh
+                    ? SHOWROOM_SPECIAL_NAME
+                    : (isWh ? WAREHOUSE_SPECIAL_NAME : (draftCompanyName(d) || p.company_rep || ''));
+                const vins = draftVinList(d);
+                (vins.length ? vins : ['']).forEach((vin) => {
+                    companyDetailRows.push({
+                        Company: company,
+                        User: opsUserLabel(d),
+                        Date: draftEventIso(d) || '',
+                        'DN Number': draftDeliveryNoteNumber(d) || '',
+                        Type: isSh ? 'عرض / ياسين' : (isWh ? 'مستودع' : 'مذكرة'),
+                        City: isWh ? 'المستودع' : (draftBranchLabel(d) || p.branch_to || ''),
+                        VIN: vin,
+                        Product: d.product || d.model || '',
+                        Notes: mergeExportNotes(p.remarks || '', draftCompanyChangeNote(d)),
+                        'Company Changed From': String(d.companyChangedFrom || p.company_changed_from || '').trim(),
+                        'Company Changed To': String(d.companyChangedTo || p.company_changed_to || '').trim()
+                    });
+                });
+            });
+            XLSX.utils.book_append_sheet(
+                wb,
+                XLSX.utils.json_to_sheet(
+                    companyDetailRows.length
+                        ? companyDetailRows
+                        : [{ Company: '', User: '', Date: '', VIN: '' }]
+                ),
+                'Company Details'
             );
 
             const topProducts = (lastDashboard && lastDashboard.topProducts) || [];
@@ -3523,10 +4445,10 @@
             const assignedLabel = progress.source === 'raw' ? 'مُسند · Assigned' : 'إجمالي المركبات';
             const assignedVal = progress.source === 'raw' ? progress.assigned : vehicles.length;
             const cards = [
-                { label: assignedLabel, value: assignedVal, trend: progress.source === 'raw' ? (progress.period?.label || 'Col P month') : 'ضمن النطاق الحالي', accent: '#6C5CE7', soft: '#eeebff', icon: '▣' },
-                { label: 'تم الترحيل · Delivered', value: progress.delivered, trend: `${progress.pct}% delivered`, accent: '#2EC4B6', soft: '#e6faf7', icon: '✓' },
-                { label: 'الفجوة · Gap', value: progress.gap ?? progress.remaining, trend: 'without delivery note', accent: '#FF8A4C', soft: '#fff1e8', icon: '◷' },
-                { label: 'سيارات العرض', value: (allShowroomParking || []).length, trend: 'موقف SR', accent: '#F472B6', soft: '#fce7f3', icon: '✚' }
+                { label: assignedLabel, value: assignedVal, trend: progress.source === 'raw' ? (progress.period?.label || 'Col P month') : 'ضمن النطاق الحالي', accent: '#EB0A1E', soft: 'rgba(235,10,30,0.15)', icon: '▣' },
+                { label: 'تم الترحيل · Delivered', value: progress.delivered, trend: `${progress.pct}% delivered`, accent: '#2EC4B6', soft: 'rgba(46,196,182,0.15)', icon: '✓' },
+                { label: 'الفجوة · Gap', value: progress.gap ?? progress.remaining, trend: 'without delivery note', accent: '#FF8A4C', soft: 'rgba(255,138,76,0.15)', icon: '◷' },
+                { label: 'سيارات العرض', value: (allShowroomParking || []).length, trend: 'موقف SR', accent: '#F472B6', soft: 'rgba(244,114,182,0.15)', icon: '✚' }
             ];
             // Keep secondary metrics available for logic/tooltips via data attributes
             host.dataset.warehouse = String(warehouse.count);
@@ -3554,7 +4476,19 @@
                 apexChartsByEl.delete(el);
             }
             el.innerHTML = '';
-            const chart = new ApexCharts(el, options);
+            const opts = options || {};
+            const chart = new ApexCharts(el, {
+                ...opts,
+                theme: { ...(opts.theme || {}), mode: 'dark' },
+                chart: {
+                    ...(opts.chart || {}),
+                    background: 'transparent',
+                    foreColor: '#94a3b8',
+                    zoom: { enabled: false },
+                    selection: { enabled: false },
+                    toolbar: { show: false, ...(opts.chart && opts.chart.toolbar ? opts.chart.toolbar : {}) }
+                }
+            });
             chart.render();
             apexChartsByEl.set(el, chart);
         }
@@ -3620,10 +4554,11 @@
                 return;
             }
             const maxCount = Math.max(...rows.map((r) => r.count), 0);
+            const h = chartFitHeight(el, 150);
             renderApex(el, {
                 chart: {
                     type: 'bar',
-                    height: 180,
+                    height: h,
                     toolbar: { show: false },
                     background: 'transparent',
                     fontFamily: 'Inter, Tajawal, sans-serif',
@@ -3768,10 +4703,11 @@
                 return;
             }
             const top = rows.slice(0, 10);
+            const h = chartFitHeight(el, Math.min(200, Math.max(140, top.length * 26)));
             renderApex(el, {
                 chart: {
                     type: 'bar',
-                    height: Math.max(170, top.length * 28),
+                    height: h,
                     toolbar: { show: false },
                     background: 'transparent',
                     fontFamily: 'Inter, Tajawal, sans-serif',
@@ -4273,7 +5209,7 @@
             renderFilterChips();
 
             document.getElementById('ftDatePreset')?.addEventListener('change', (e) => {
-                applyTrackDatePreset(e.target.value || 'today');
+                applyTrackDatePreset(e.target.value || 'this_month');
             });
 
             document.querySelectorAll('[data-ft-select] .ft-control__trigger').forEach((btn) => {
@@ -4375,6 +5311,7 @@
         };
         let managedCompanies = [];
         let managedCities = [];
+        let managedCompanyPhones = {};
 
         function userLabelFromDraft(d) {
             return String(d?.assignedTo || d?.entryAgent || '').trim() || UNASSIGNED_USER;
@@ -4400,20 +5337,20 @@
             }).format(new Date());
         }
 
-        const TRACK_DATE_FILTER_KEY = 'toyota_delivery_track_date_v1';
-        let trackDatePreset = 'today';
+        const TRACK_DATE_FILTER_KEY = 'toyota_delivery_track_date_v2';
+        let trackDatePreset = 'this_month';
 
         function trackDatePresetLabel(preset) {
             const labels = {
                 today: 'Today',
                 yesterday: 'Yesterday',
                 last_7: 'Last 7 days',
-                this_month: 'This month (MTD)',
+                this_month: 'This month',
                 last_month: 'Last month',
                 all: 'All dates',
                 custom: 'Custom range'
             };
-            return labels[preset] || preset || 'Today';
+            return labels[preset] || preset || 'This month';
         }
 
         function loadTrackDateFilter() {
@@ -4421,7 +5358,7 @@
                 const raw = localStorage.getItem(TRACK_DATE_FILTER_KEY);
                 if (raw) return JSON.parse(raw);
             } catch (_) { /* ignore */ }
-            return { preset: 'today', from: '', to: '' };
+            return { preset: 'this_month', from: '', to: '' };
         }
 
         function saveTrackDateFilter() {
@@ -4448,7 +5385,7 @@
         }
 
         function resolveTrackDatePeriod(preset) {
-            const key = preset || trackDatePreset || 'today';
+            const key = preset || trackDatePreset || 'this_month';
             const today = getSaudiTodayIso();
             const [y, m] = today.split('-').map(Number);
             if (key === 'today') return { from: today, to: today };
@@ -4458,7 +5395,11 @@
             }
             if (key === 'last_7') return { from: addDaysIso(today, -6), to: today };
             if (key === 'this_month') {
-                return { from: `${y}-${String(m).padStart(2, '0')}-01`, to: today };
+                const lastDay = new Date(y, m, 0).getDate();
+                return {
+                    from: `${y}-${String(m).padStart(2, '0')}-01`,
+                    to: `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+                };
             }
             if (key === 'last_month') {
                 const ly = m === 1 ? y - 1 : y;
@@ -4483,7 +5424,7 @@
         }
 
         function applyTrackDatePreset(preset, opts = {}) {
-            trackDatePreset = preset || 'today';
+            trackDatePreset = preset || 'this_month';
             const sel = document.getElementById('ftDatePreset');
             if (sel && sel.value !== trackDatePreset) sel.value = trackDatePreset;
             syncTrackDateCustomVisibility();
@@ -4505,7 +5446,7 @@
 
         function initTrackDateFromStorage() {
             const saved = loadTrackDateFilter();
-            trackDatePreset = saved.preset || 'today';
+            trackDatePreset = saved.preset || 'this_month';
             const sel = document.getElementById('ftDatePreset');
             if (sel) sel.value = trackDatePreset;
             if (trackDatePreset === 'custom') {
@@ -4550,6 +5491,105 @@
         function lastMonthKey() {
             const [y, m] = currentMonthKey().split('-').map(Number);
             return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+        }
+
+        function monthDateRange(monthKey) {
+            const mk = String(monthKey || '');
+            const [y, m] = mk.split('-').map(Number);
+            if (!y || !m) return { from: '', to: '' };
+            const lastDay = new Date(y, m, 0).getDate();
+            return {
+                from: `${mk}-01`,
+                to: `${mk}-${String(lastDay).padStart(2, '0')}`
+            };
+        }
+
+        function dominantImportedMonth() {
+            const counts = new Map();
+            const bump = (mk) => {
+                if (!mk || !/^\d{4}-\d{2}$/.test(mk)) return;
+                counts.set(mk, (counts.get(mk) || 0) + 1);
+            };
+            (allDrafts || []).forEach((d) => bump(draftMonthKey(d)));
+            if (!counts.size) {
+                (allVehicles || []).forEach((v) => {
+                    const iso = vehicleDateIso(v, 'proforma')
+                        || vehicleDateIso(v, 'delivery_note')
+                        || vehicleDateIso(v, 'invoice');
+                    bump(iso ? iso.slice(0, 10).slice(0, 7) : '');
+                });
+            }
+            let best = '';
+            let n = 0;
+            counts.forEach((c, mk) => {
+                if (c > n || (c === n && mk > best)) {
+                    n = c;
+                    best = mk;
+                }
+            });
+            return best;
+        }
+
+        /** Keep Period (From/To) and the month dropdown on the same month so charts/PDFs actually show it. */
+        function applyMonthView(monthKey, opts = {}) {
+            const mk = monthKey || currentMonthKey();
+            adminMonthFilter = mk;
+            if (mk === 'all') {
+                applyTrackDatePreset('all', { skipApply: true });
+            } else if (mk === currentMonthKey()) {
+                applyTrackDatePreset('this_month', { skipApply: true });
+            } else if (mk === lastMonthKey()) {
+                applyTrackDatePreset('last_month', { skipApply: true });
+            } else {
+                const { from, to } = monthDateRange(mk);
+                ['trackDateFrom', 'ftDateFromUi'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = from;
+                });
+                ['trackDateTo', 'ftDateToUi'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = to;
+                });
+                applyTrackDatePreset('custom', { skipApply: true });
+            }
+            populateDnMonthFilter();
+            const sel = document.getElementById('dnMonthFilter');
+            if (sel) sel.value = adminMonthFilter;
+            if (typeof renderFilterChips === 'function') renderFilterChips();
+            refreshTransferDashboard();
+            if (opts.scroll === true) {
+                const isPrior = mk !== 'all' && mk < currentMonthKey();
+                if (isPrior) openFold('lastMonthsSection');
+                openFold('draftsSection');
+                const targetId = opts.scrollTarget
+                    || (isPrior ? 'lastMonthsSection' : 'opsBoard');
+                document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return mk;
+        }
+
+        function revealImportedDataView() {
+            const mk = dominantImportedMonth();
+            if (mk && mk !== currentMonthKey()) {
+                applyMonthView(mk, { scroll: true, scrollTarget: 'opsBoard' });
+                return mk;
+            }
+            if (!mk && dataHasPriorMonths()) {
+                applyMonthView(lastMonthKey(), { scroll: true, scrollTarget: 'opsBoard' });
+                return lastMonthKey();
+            }
+            if (mk) applyMonthView(mk, { scroll: false });
+            if ((allDrafts || []).length) openFold('draftsSection', { scroll: true });
+            else openFold('inventorySection', { scroll: true });
+            return mk || currentMonthKey();
+        }
+
+        function dataHasPriorMonths() {
+            const current = currentMonthKey();
+            return (allDrafts || []).some((d) => {
+                const mk = draftMonthKey(d);
+                return mk && mk < current;
+            });
         }
 
         function monthLabelAr(ym) {
@@ -4864,24 +5904,41 @@
             }
         }
 
+        function updatePeriodTotals(draftsList, queueList) {
+            const notes = (draftsList || []).length;
+            const cars = (draftsList || []).reduce((sum, d) => sum + draftCarWeight(d), 0);
+            const queue = (queueList || []).length;
+            const delivered = (queueList || []).filter((q) => q.agentStatus === 'delivered').length;
+            const remaining = Math.max(0, queue - delivered);
+            const carsEl = document.getElementById('ftTotalCarsSubmitted');
+            const notesEl = document.getElementById('ftTotalNotesCreated');
+            const queueEl = document.getElementById('ftTotalQueue');
+            const queueHint = document.getElementById('ftTotalQueueHint');
+            if (carsEl) carsEl.textContent = String(cars);
+            if (notesEl) notesEl.textContent = String(notes);
+            if (queueEl) queueEl.textContent = String(queue);
+            if (queueHint) queueHint.textContent = `delivered ${delivered} · remaining ${remaining}`;
+        }
+
         function updateTrackFilterMeta() {
             const meta = document.getElementById('trackFilterMeta');
             if (!meta) return;
             updateTrackFilterHint();
             const { type, from, to } = getTrackFilter();
-            const typeLabel = type === 'proforma'
-                ? 'البروفورما (Raw)'
-                : type === 'invoice'
-                    ? 'الفاتورة (Raw)'
-                    : 'مذكرة الترحيل (مسودات)';
-            const drafts = filteredDrafts().length;
+            // Keep English labels here — Arabic inside LTR meta reverses ISO date ranges visually.
+            const typeLabel = type === 'invoice' ? 'Invoice date' : 'Delivery note date';
+            const draftsList = filteredDrafts();
+            const drafts = draftsList.length;
+            const carsSubmitted = draftsList.reduce((sum, d) => sum + draftCarWeight(d), 0);
             const searchQ = String(uiFilters.search || '').trim();
             const vehiclesBase = searchQ ? searchSystemVehicles(searchQ) : filteredVehicleList();
             const vehiclesAll = vehiclesBase.length;
             const vehiclesShown = applyDisplayFilters(vehiclesBase, 'vehicle').length;
-            const queue = filteredQueue().length;
-            const delivered = filteredQueue().filter((q) => q.agentStatus === 'delivered').length;
+            const queueList = filteredQueue();
+            const queue = queueList.length;
+            const delivered = queueList.filter((q) => q.agentStatus === 'delivered').length;
             const still = queue - delivered;
+            updatePeriodTotals(draftsList, queueList);
             const withP = (allVehicles || []).filter((v) => v.proformaDate).length;
             const withI = (allVehicles || []).filter((v) => v.invoiceDate).length;
             const companyBit = selectedCompany
@@ -4895,10 +5952,12 @@
                 ? ` · VIN search <strong>${escapeHtml(searchQ)}</strong>`
                 : '';
             const showing = `Showing <strong>${vehiclesShown}</strong> of <strong>${vehiclesAll || (allVehicles || []).length}</strong> vehicles`;
+            const rangeHtml = `<span class="ft-date-range" dir="ltr">${escapeHtml(from || '…')} → ${escapeHtml(to || '…')}</span>`;
+            const totalsBit = ` · <strong>${carsSubmitted}</strong> cars submitted · <strong>${drafts}</strong> delivery notes`;
 
             if (!from && !to) {
                 const presetLabel = trackDatePresetLabel(trackDatePreset);
-                meta.innerHTML = `Showing <strong>all</strong> · <strong>${(allVehicles || []).length}</strong> vehicles · <strong>${(allDrafts || []).length}</strong> drafts · queue <strong>${(allQueue || []).length}</strong> (delivered <strong>${(allQueue || []).filter((q) => q.agentStatus === 'delivered').length}</strong>)${searchBit}${companyBit} · period <strong>${presetLabel}</strong> · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
+                meta.innerHTML = `Showing <strong>all</strong> · <strong>${(allVehicles || []).length}</strong> vehicles · <strong>${carsSubmitted}</strong> cars submitted · <strong>${drafts}</strong> delivery notes · queue <strong>${queue}</strong> (delivered <strong>${delivered}</strong>)${searchBit}${companyBit} · period <strong>${presetLabel}</strong> · Raw: Proforma <strong>${withP}</strong> / Invoice <strong>${withI}</strong>`;
                 updateCompanyFilterChip();
                 renderFilterChips();
                 return;
@@ -4906,9 +5965,7 @@
             const presetBit = trackDatePreset !== 'custom'
                 ? ` · <strong>${escapeHtml(trackDatePresetLabel(trackDatePreset))}</strong>`
                 : '';
-            meta.innerHTML = `${showing}${searchBit}${companyBit}${presetBit} · filter <strong>${typeLabel}</strong> ${from || '…'} → ${to || '…'} · 
-                <strong>${drafts}</strong> drafts · queue <strong>${queue}</strong> 
-                (delivered <strong>${delivered}</strong> · remaining <strong>${still}</strong>)`;
+            meta.innerHTML = `${showing}${searchBit}${companyBit}${presetBit} · filter <strong>${typeLabel}</strong> ${rangeHtml}${totalsBit} · queue <strong>${queue}</strong> (delivered <strong>${delivered}</strong> · remaining <strong>${still}</strong>)`;
             updateCompanyFilterChip();
             renderFilterChips();
         }
@@ -4988,6 +6045,7 @@
             if (isAdminPaneActive('overview')) {
                 renderDnStatsBar();
                 renderRawDeliveryGap();
+                renderOpsBoard();
                 renderVinHistoryPanel();
                 renderLastMonthsFolders();
                 renderDeliveredOfTotalChart();
@@ -4998,31 +6056,32 @@
             if (isAdminPaneActive('users')) {
                 renderUserDashboard();
             }
-            if (isAdminPaneActive('pdfs') || searchQ) {
+            if (isAdminPaneActive('pdfs') || (searchQ && isAdminPaneActive('pdfs'))) {
                 renderAllPdfsBrowser(drafts);
             }
-            if (isAdminPaneActive('queue') || searchQ) {
+            if (isAdminPaneActive('queue')) {
                 renderQueueTable(queue);
                 renderQueueStats(computeQueueStats(queue));
                 setFoldCount('queueStatsFoldCount', queue.length);
             }
             const warehouseDrafts = drafts.filter(isWarehouseAdminDraft);
-            if (isAdminPaneActive('pdfs') || isAdminPaneActive('yard') || searchQ) {
+            if (isAdminPaneActive('pdfs') || isAdminPaneActive('yard')) {
                 renderWarehouseDraftsTable(warehouseDrafts);
             }
-            if (isAdminPaneActive('overview') || searchQ) {
+            if (isAdminPaneActive('overview')) {
                 renderTable(vehicles);
                 setFoldCount('inventoryFoldCount', vehicles.length);
             }
 
+            // Always keep sticky filter totals / chips in sync (cheap)
             setFoldCount('draftsFoldCount', drafts.length);
             setFoldCount('warehouseDraftsFoldCount', warehouseDrafts.length);
             setFoldCount('xferFoldCount', searchQ ? drafts.length : filteredDrafts().length);
-            if (searchQ) {
-                openFold('inventorySection');
-                openFold('queueSection');
-                openFold('draftsSection');
-                openFold('warehouseDraftsSection');
+            if (searchQ && (isAdminPaneActive('overview') || isAdminPaneActive('pdfs') || isAdminPaneActive('queue'))) {
+                setFoldOpen(document.getElementById('inventorySection'), true);
+                setFoldOpen(document.getElementById('queueSection'), true);
+                setFoldOpen(document.getElementById('draftsSection'), true);
+                setFoldOpen(document.getElementById('warehouseDraftsSection'), true);
             }
             renderAllFtSelects();
             renderFilterChips();
@@ -5386,6 +6445,235 @@
                 renderRawGapChips(_lastRawGapData);
                 renderRawGapTableBody(_lastRawGapData);
             });
+            document.getElementById('btnOpsTablesToggle')?.addEventListener('click', () => {
+                const panel = document.getElementById('opsTablesPanel');
+                const btn = document.getElementById('btnOpsTablesToggle');
+                if (!panel) return;
+                const open = panel.hasAttribute('hidden');
+                if (open) panel.removeAttribute('hidden');
+                else panel.setAttribute('hidden', '');
+                if (btn) {
+                    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    btn.textContent = open ? 'الجداول ▴' : 'الجداول ▾';
+                }
+                requestAnimationFrame(() => {
+                    if (typeof renderOpsBoard === 'function') renderOpsBoard();
+                });
+            });
+        }
+
+        function opsUserLabel(d) {
+            if (isShowroomAdminDraft(d) || String(d?.assignedTo || '').trim() === SHOWROOM_AGENT) {
+                return 'ياسين · عرض';
+            }
+            return userLabelFromDraft(d);
+        }
+
+        function opsUserBadgeClass(name) {
+            const n = String(name || '');
+            if (n.includes('ياسين')) return ' is-yassin';
+            if (n.includes('الفاضل')) return ' is-fadel';
+            if (n.includes('البراء')) return ' is-baraa';
+            return '';
+        }
+
+        function buildDnScheduleRows(drafts) {
+            return (drafts || []).map((d) => {
+                const p = d.payload || {};
+                const isSh = isShowroomAdminDraft(d);
+                const isWh = isWarehouseAdminDraft(d);
+                const vins = draftVinList(d);
+                const company = isSh
+                    ? SHOWROOM_SPECIAL_NAME
+                    : (isWh ? WAREHOUSE_SPECIAL_NAME : (draftCompanyName(d) || p.company_rep || '—'));
+                const changeFrom = String(d.companyChangedFrom || p.company_changed_from || '').trim();
+                const changeTo = String(d.companyChangedTo || p.company_changed_to || company || '').trim();
+                const changeNote = draftCompanyChangeNote(d);
+                return {
+                    date: draftEventIso(d) || '',
+                    printedAt: d.printedAt || '',
+                    dn: draftDeliveryNoteNumber(d) || d.id || '',
+                    user: opsUserLabel(d),
+                    assignedTo: String(d.assignedTo || d.entryAgent || '').trim(),
+                    type: isSh ? 'عرض / ياسين' : (isWh ? 'مستودع' : 'مذكرة'),
+                    company,
+                    companyChangeFrom: changeFrom,
+                    companyChangeTo: (changeFrom && changeTo && changeFrom.toLowerCase() !== changeTo.toLowerCase()) ? changeTo : '',
+                    city: isWh ? 'المستودع' : (draftBranchLabel(d) || p.branch_to || '—'),
+                    cars: draftCarWeight(d),
+                    vins: vins.join(', '),
+                    product: d.product || d.model || '',
+                    notes: mergeExportNotes(p.remarks || '', changeNote),
+                    draftId: d.id || ''
+                };
+            }).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.dn).localeCompare(String(a.dn)));
+        }
+
+        function buildCompanyDeliveredRows(schedule) {
+            const map = new Map();
+            (schedule || []).forEach((r) => {
+                const name = r.company || '—';
+                if (!map.has(name)) {
+                    map.set(name, { company: name, notes: 0, cars: 0, users: new Set(), cities: new Set() });
+                }
+                const row = map.get(name);
+                row.notes += 1;
+                row.cars += Number(r.cars) || 0;
+                if (r.user) row.users.add(r.user);
+                if (r.city && r.city !== '—') row.cities.add(r.city);
+            });
+            return Array.from(map.values())
+                .map((r) => ({
+                    company: r.company,
+                    notes: r.notes,
+                    cars: r.cars,
+                    users: Array.from(r.users).join(' · '),
+                    cities: Array.from(r.cities).join(' · ')
+                }))
+                .sort((a, b) => b.cars - a.cars || a.company.localeCompare(b.company, 'ar'));
+        }
+
+        function opsApexBase(height) {
+            return {
+                chart: {
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    fontFamily: 'Inter, Tajawal, sans-serif',
+                    height: height || 220,
+                    foreColor: '#94a3b8'
+                },
+                theme: { mode: 'dark' },
+                grid: {
+                    borderColor: 'rgba(255,255,255,0.08)',
+                    strokeDashArray: 3
+                },
+                dataLabels: { enabled: true, style: { fontSize: '11px', colors: ['#cbd5e1'] } },
+                tooltip: { theme: 'dark' }
+            };
+        }
+
+        function renderOpsBoard() {
+            try {
+            const drafts = filteredDrafts();
+            const schedule = buildDnScheduleRows(drafts);
+            const companies = buildCompanyDeliveredRows(schedule);
+            const periodEl = document.getElementById('opsBoardPeriodHint');
+            if (periodEl) {
+                periodEl.textContent = `${schedule.length} مذكرة · ${companies.length} شركة · ${trackDatePresetLabel(trackDatePreset)}`;
+            }
+
+            const byDay = new Map();
+            schedule.forEach((r) => {
+                const day = r.date || '—';
+                byDay.set(day, (byDay.get(day) || 0) + 1);
+            });
+            const dayKeys = Array.from(byDay.keys()).filter((k) => k !== '—').sort();
+            const dayEl = document.getElementById('opsNotesByDayChart');
+            if (dayEl) {
+                if (!dayKeys.length) {
+                    dayEl.innerHTML = '<div class="saas-empty">لا توجد مذكرات في الفترة</div>';
+                } else {
+                    const h = chartFitHeight(dayEl, 150);
+                    renderApex(dayEl, {
+                        ...opsApexBase(h),
+                        chart: { ...opsApexBase(h).chart, type: 'bar' },
+                        plotOptions: { bar: { borderRadius: 5, columnWidth: '55%' } },
+                        colors: ['#6C5CE7'],
+                        series: [{ name: 'مذكرات', data: dayKeys.map((k) => byDay.get(k)) }],
+                        xaxis: { categories: dayKeys.map((k) => k.slice(5)), labels: { style: { colors: '#94a3b8', fontSize: '10px' } } },
+                        dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#cbd5e1'] } }
+                    });
+                }
+            }
+
+            const byUser = new Map();
+            schedule.forEach((r) => {
+                const u = r.user || UNASSIGNED_USER;
+                byUser.set(u, (byUser.get(u) || 0) + 1);
+            });
+            const userRows = Array.from(byUser.entries())
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count);
+            const userEl = document.getElementById('opsNotesByUserChart');
+            if (userEl) {
+                if (!userRows.length) {
+                    userEl.innerHTML = '<div class="saas-empty">لا يوجد مستخدمون</div>';
+                } else {
+                    const h = chartFitHeight(userEl, 150);
+                    renderApex(userEl, {
+                        ...opsApexBase(h),
+                        chart: { ...opsApexBase(h).chart, type: 'bar' },
+                        plotOptions: { bar: { horizontal: true, borderRadius: 5, barHeight: '68%' } },
+                        colors: ['#2EC4B6'],
+                        series: [{ name: 'مذكرات', data: userRows.map((r) => r.count) }],
+                        xaxis: { categories: userRows.map((r) => r.name), labels: { style: { colors: '#94a3b8', fontSize: '10px' } } },
+                        dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#cbd5e1'] } }
+                    });
+                }
+            }
+
+            const companyEl = document.getElementById('opsNotesByCompanyChart');
+            if (companyEl) {
+                const top = companies.slice(0, 10);
+                if (!top.length) {
+                    companyEl.innerHTML = '<div class="saas-empty">لا توجد شركات</div>';
+                } else {
+                    const h = chartFitHeight(companyEl, 150);
+                    renderApex(companyEl, {
+                        ...opsApexBase(h),
+                        chart: { ...opsApexBase(h).chart, type: 'bar' },
+                        plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '70%' } },
+                        colors: ['#EB0A1E'],
+                        series: [{ name: 'سيارات', data: top.map((r) => r.cars) }],
+                        xaxis: { categories: top.map((r) => r.company), labels: { style: { colors: '#94a3b8', fontSize: '10px' } } },
+                        dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#cbd5e1'] } }
+                    });
+                }
+            }
+
+            const schedBody = document.getElementById('opsScheduleBody');
+            if (schedBody) {
+                if (!schedule.length) {
+                    schedBody.innerHTML = '<tr><td colspan="8" class="hub-empty">لا توجد مذكرات في هذا الشهر</td></tr>';
+                } else {
+                    schedBody.innerHTML = schedule.map((r) => {
+                        const changeBit = r.companyChangeFrom && r.companyChangeTo
+                            ? `<div><span class="company-change-badge">من «${escapeHtml(r.companyChangeFrom)}» → «${escapeHtml(r.companyChangeTo)}»</span></div>`
+                            : '';
+                        return `<tr>
+                        <td>${escapeHtml(r.date || '—')}</td>
+                        <td>${escapeHtml(r.dn || '—')}</td>
+                        <td><span class="ops-user-badge${opsUserBadgeClass(r.user)}">${escapeHtml(r.user)}</span></td>
+                        <td>${escapeHtml(r.type)}</td>
+                        <td>${escapeHtml(r.company)}${changeBit}</td>
+                        <td>${escapeHtml(r.city)}</td>
+                        <td class="num">${r.cars}</td>
+                        <td class="hub-vin">${escapeHtml(r.vins || '—')}</td>
+                    </tr>`;
+                    }).join('');
+                }
+            }
+
+            const companyBody = document.getElementById('opsCompanyBody');
+            if (companyBody) {
+                if (!companies.length) {
+                    companyBody.innerHTML = '<tr><td colspan="5" class="hub-empty">لا توجد شركات في هذا الشهر</td></tr>';
+                } else {
+                    companyBody.innerHTML = companies.map((r) => `<tr data-company="${escapeHtml(r.company)}" role="button" tabindex="0">
+                        <td>${escapeHtml(r.company)}</td>
+                        <td class="num">${r.notes}</td>
+                        <td class="num"><strong>${r.cars}</strong></td>
+                        <td>${escapeHtml(r.users || '—')}</td>
+                        <td>${escapeHtml(r.cities || '—')}</td>
+                    </tr>`).join('');
+                    companyBody.querySelectorAll('[data-company]').forEach((row) => {
+                        row.addEventListener('click', () => showCompanyRecords(row.dataset.company));
+                    });
+                }
+            }
+            } catch (err) {
+                console.error('[ops board]', err);
+            }
         }
 
         function populateDnMonthFilter() {
@@ -5398,6 +6686,7 @@
             });
             months.add(currentMonthKey());
             months.add(lastMonthKey());
+            if (adminMonthFilter && /^\d{4}-\d{2}$/.test(adminMonthFilter)) months.add(adminMonthFilter);
             const sorted = [...months].sort().reverse();
             let prev = adminMonthFilter || currentMonthKey();
             // Never default to another month — stay on current unless user picked one
@@ -5576,22 +6865,7 @@
             host.querySelectorAll('[data-month-folder]').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const mk = btn.getAttribute('data-month-folder');
-                    adminMonthFilter = mk;
-                    const sel = document.getElementById('dnMonthFilter');
-                    if (sel) {
-                        if (![...sel.options].some((o) => o.value === mk)) {
-                            const opt = document.createElement('option');
-                            opt.value = mk;
-                            opt.textContent = monthLabelAr(mk);
-                            sel.appendChild(opt);
-                        }
-                        sel.value = mk;
-                    }
-                    refreshTransferDashboard();
-                    openFold('draftsSection');
-                    openFold('lastMonthsSection');
-                    renderLastMonthsDetail(mk);
-                    document.getElementById('draftsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    applyMonthView(mk, { scroll: true });
                 });
             });
 
@@ -5644,8 +6918,7 @@
         function initDnMonthFilter() {
             const sel = document.getElementById('dnMonthFilter');
             sel?.addEventListener('change', () => {
-                adminMonthFilter = sel.value || currentMonthKey();
-                refreshTransferDashboard();
+                applyMonthView(sel.value || currentMonthKey(), { scroll: false });
             });
             let t = null;
             document.getElementById('vinHistorySearch')?.addEventListener('input', () => {
@@ -5655,20 +6928,61 @@
         }
 
         function applyTrackFilter() {
+            // Refresh in place — do not jump scroll to top of Transport Board
             refreshTransferDashboard();
-            openFold('xferDashSection');
-            openFold('queueStatsFold');
+            setFoldOpen(document.getElementById('xferDashSection'), true);
+            setFoldOpen(document.getElementById('queueStatsFold'), true);
             if (String(uiFilters.search || '').trim()) {
-                openFold('inventorySection', { scroll: true });
-                openFold('queueSection');
-                openFold('draftsSection');
-                openFold('warehouseDraftsSection');
+                setFoldOpen(document.getElementById('inventorySection'), true);
+                setFoldOpen(document.getElementById('queueSection'), true);
+                setFoldOpen(document.getElementById('draftsSection'), true);
+                setFoldOpen(document.getElementById('warehouseDraftsSection'), true);
             }
         }
 
         function draftCompanyName(d) {
             const p = d.payload || {};
             return String(p.company_rep || p.customer_name || d.customerName || '').trim();
+        }
+
+        /** Plain-text company change for Excel Notes / Remarks. */
+        function draftCompanyChangeNote(d) {
+            const p = d.payload || {};
+            const from = String(d.companyChangedFrom || p.company_changed_from || '').trim();
+            const to = String(d.companyChangedTo || p.company_changed_to || draftCompanyName(d) || '').trim();
+            if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
+            return `تم تغيير الشركة من «${from}» إلى «${to}»`;
+        }
+
+        function queueCompanyChangeNote(item) {
+            const from = String(item?.companyChangedFrom || '').trim();
+            const to = String(item?.companyChangedTo || item?.deliveryCompany || item?.company || '').trim();
+            if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
+            return `تم تغيير الشركة من «${from}» إلى «${to}»`;
+        }
+
+        function mergeExportNotes(base, changeNote) {
+            const a = String(base || '').trim();
+            const b = String(changeNote || '').trim();
+            if (!b) return a;
+            if (!a) return b;
+            if (a.includes(b) || (b.includes('تم تغيير الشركة') && a.includes('تم تغيير الشركة'))) return a;
+            return `${a} | ${b}`;
+        }
+
+        function draftCompanyChangeHtml(d) {
+            const p = d.payload || {};
+            const from = String(d.companyChangedFrom || p.company_changed_from || '').trim();
+            const to = String(d.companyChangedTo || p.company_changed_to || draftCompanyName(d) || '').trim();
+            if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
+            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة">من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
+        }
+
+        function queueCompanyChangeHtml(item) {
+            const from = String(item?.companyChangedFrom || '').trim();
+            const to = String(item?.companyChangedTo || item?.deliveryCompany || item?.company || '').trim();
+            if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
+            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة">من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
         }
 
         function isWarehouseAccountKey(key) {
@@ -5749,12 +7063,13 @@
                     : (isWarehouseAdminDraft(d)
                         ? ' <span class="pdf-type-badge pdf-type-badge--wh">مستودع</span>'
                         : '');
+                const changeBit = draftCompanyChangeHtml(d);
                 return `<tr>
                     <td>${escapeHtml(when)}${flag}</td>
                     <td class="hub-vin">${escapeHtml(d.vin || '—')}</td>
                     <td>${escapeHtml(d.product || d.model || '—')}</td>
                     <td>${escapeHtml(d.assignedTo || '—')}</td>
-                    <td>${escapeHtml(p.typed_company || p.customer_name || p.company_rep || '—')}</td>
+                    <td>${escapeHtml(p.typed_company || p.customer_name || p.company_rep || '—')}${changeBit ? `<div>${changeBit}</div>` : ''}</td>
                     <td>${escapeHtml(p.branch_to || '—')}</td>
                     <td style="white-space:nowrap">${canExport
                         ? `<button type="button" class="hub-btn hub-btn--sm" data-edit-draft="${escapeHtml(d.id)}">تعديل</button>
@@ -6893,15 +8208,27 @@
                 ? Math.round((deliveredRow.count / statusTotal) * 1000) / 10
                 : 0;
 
+            // Same totals as filter strip: coordinator cars on DNs + notes created
+            const statusDrafts = (typeof filteredDrafts === 'function' ? filteredDrafts() : list) || [];
+            const carsSubmitted = statusDrafts.reduce((sum, d) => sum + draftCarWeight(d), 0);
+            const notesGenerated = statusDrafts.length;
+            const carsEl = document.getElementById('statusCarsSubmitted');
+            const notesEl = document.getElementById('statusNotesGenerated');
+            if (carsEl) carsEl.textContent = String(carsSubmitted);
+            if (notesEl) notesEl.textContent = String(notesGenerated);
+            const notesHint = document.getElementById('statusNotesGeneratedHint');
+            if (notesHint) notesHint.textContent = `${carsSubmitted} سيارة على هذه المذكرات`;
+
             const statusSub = document.querySelector('.pct-chart-card--status .pct-chart-sub');
             if (statusSub) {
-                statusSub.textContent = selectedCompany
+                const base = selectedCompany
                     ? `حالة الترحيل لشركة ${selectedCompany} فقط`
                     : type === 'delivery_note'
                         ? 'تم الترحيل مقابل المتبقي للمذكرات/القائمة في فترة تاريخ الترحيل'
                         : type === 'proforma'
                             ? 'حالة الترحيل لسيارات تاريخ البروفورما ضمن الفترة'
                             : 'حالة الترحيل لسيارات تاريخ الفاتورة ضمن الفترة';
+                statusSub.textContent = `${base} · ${carsSubmitted} سيارة مقدمة · ${notesGenerated} مذكرة`;
             }
 
             renderDeliveredOfTotalChart();
@@ -7002,6 +8329,29 @@
             el.className = 'hub-status' + (type ? ` ${type}` : '');
         }
 
+        function adminCompanyPhoneLookup(name) {
+            const key = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            if (!key) return '';
+            if (managedCompanyPhones[key]) return String(managedCompanyPhones[key]);
+            for (const [k, v] of Object.entries(managedCompanyPhones || {})) {
+                if (String(k).trim().toLowerCase().replace(/\s+/g, ' ') === key) return String(v || '');
+            }
+            return '';
+        }
+
+        async function saveAdminCompanyPhone(company, phoneRaw) {
+            const res = await fetch('/api/delivery-options/company-phone', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ company, phone: phoneRaw, fromAdmin: true })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
+            managedCompanyPhones = data.companyPhones || managedCompanyPhones;
+            if (Array.isArray(data.companies)) managedCompanies = data.companies;
+            return data;
+        }
+
         function renderOptionsList(listElId, items, kind) {
             const listEl = document.getElementById(listElId);
             if (!items.length) {
@@ -7010,11 +8360,43 @@
             }
             listEl.innerHTML = items.map((name) => {
                 const safe = escapeHtml(name);
+                if (kind === 'companies') {
+                    const phone = escapeHtml(adminCompanyPhoneLookup(name));
+                    return `<div class="options-item options-item--company">
+                        <div class="options-item__main">
+                            <span title="${safe}">${safe}</span>
+                            <div class="options-item__phone">
+                                <input type="tel" data-admin-phone="${safe}" value="${phone}" placeholder="05… واتساب" autocomplete="off">
+                                <button type="button" class="hub-btn hub-btn--sm hub-btn--primary" data-save-admin-phone="${safe}">حفظ الرقم</button>
+                            </div>
+                        </div>
+                        <div class="options-item__actions">
+                            <button type="button" class="hub-btn hub-btn--sm hub-btn--danger" data-remove-option="${safe}" data-kind="${kind}">حذف</button>
+                        </div>
+                    </div>`;
+                }
                 return `<div class="options-item">
                     <span title="${safe}">${safe}</span>
                     <button type="button" class="hub-btn hub-btn--sm hub-btn--danger" data-remove-option="${safe}" data-kind="${kind}">حذف</button>
                 </div>`;
             }).join('');
+            listEl.querySelectorAll('[data-save-admin-phone]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const name = btn.dataset.saveAdminPhone;
+                    const row = btn.closest('.options-item');
+                    const input = row?.querySelector('[data-admin-phone]');
+                    btn.disabled = true;
+                    try {
+                        await saveAdminCompanyPhone(name, input?.value || '');
+                        setOptionStatus('companyOptionsStatus', `تم حفظ رقم «${name}»`, 'ok');
+                        renderOptionsList('companyOptionsList', managedCompanies, 'companies');
+                    } catch (err) {
+                        setOptionStatus('companyOptionsStatus', err.message || 'فشل حفظ الرقم', 'err');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+            });
             listEl.querySelectorAll('[data-remove-option]').forEach((btn) => {
                 btn.addEventListener('click', async () => {
                     const name = btn.dataset.removeOption;
@@ -7053,6 +8435,9 @@
             if (!res.ok) throw new Error(data.error || 'فشل تحميل القوائم');
             managedCompanies = data.companies || [];
             managedCities = data.cities || [];
+            managedCompanyPhones = data.companyPhones && typeof data.companyPhones === 'object'
+                ? data.companyPhones
+                : {};
             renderOptionsList('companyOptionsList', managedCompanies, 'companies');
             renderOptionsList('cityOptionsList', managedCities, 'cities');
         }
@@ -7111,16 +8496,36 @@
                     fetch('/api/delivery-coordinator/queue?admin=1')
                 ]);
                 if (seq !== dashboardLoadSeq) return;
-                const data = await invRes.json();
-                const queueData = await queueRes.json();
+                const data = await invRes.json().catch(() => ({}));
+                const queueData = await queueRes.json().catch(() => ({}));
                 if (!invRes.ok) throw new Error(data.error || 'فشل تحميل البيانات');
-                allVehicles = data.vehicles || [];
+
+                const nextVehicles = data.vehicles || [];
+                const nextQueue = queueRes.ok ? (queueData.queue || []) : [];
+                const nextDrafts = queueRes.ok ? (queueData.drafts || []) : [];
+                const nextShowroom = queueRes.ok ? (queueData.showroomParking || []) : [];
+
+                // Quiet live sync: skip DOM/chart rebuild when nothing meaningful changed
+                const quietFp = [
+                    nextVehicles.length,
+                    nextQueue.length,
+                    nextDrafts.length,
+                    nextShowroom.length,
+                    nextQueue.map((q) => `${q.vin || ''}:${q.status || ''}:${q.assignedTo || ''}`).join('|'),
+                    nextDrafts.map((d) => `${d.id || ''}:${d.printedAt || d.updatedAt || ''}:${d.assignedTo || ''}`).join('|')
+                ].join('::');
+                if (opts.quiet && quietFp === _lastQuietDashFp && allVehicles.length === nextVehicles.length) {
+                    return;
+                }
+                _lastQuietDashFp = quietFp;
+
+                allVehicles = nextVehicles;
                 lastDashboard = data.dashboard || null;
                 renderStats(data.dashboard);
                 if (queueRes.ok) {
-                    allQueue = queueData.queue || [];
-                    allDrafts = queueData.drafts || [];
-                    allShowroomParking = queueData.showroomParking || [];
+                    allQueue = nextQueue;
+                    allDrafts = nextDrafts;
+                    allShowroomParking = nextShowroom;
                     showroomParkingOccupancy = queueData.showroomParkingOccupancy || null;
                 } else {
                     allQueue = [];
@@ -7131,17 +8536,43 @@
                 _cachedDraftCount = -1;
                 _vinLookup = null;
                 rebuildVinLookup();
-                fetch('/api/delivery-notes/archive-missing', { method: 'POST' }).catch(() => {});
-                loadManagedOptions().catch((err) => setUploadStatus(err.message, 'err'));
-                renderShowroomParkingTable();
-                updateFoldCounts();
-                refreshTransferDashboard();
-                syncRestoreMetaFromDashboard();
+                if (!opts.quiet) {
+                    fetch('/api/delivery-notes/archive-missing', { method: 'POST' }).catch(() => {});
+                    loadManagedOptions().catch(() => {});
+                }
+                if (!opts.quiet || isAdminPaneActive('yard')) {
+                    try { renderShowroomParkingTable(); } catch (_) { /* ignore */ }
+                }
+                try { updateFoldCounts(); } catch (_) { /* ignore */ }
+                try { refreshTransferDashboard(); } catch (err) {
+                    console.error('[dashboard refresh]', err);
+                }
+                try { syncRestoreMetaFromDashboard(); } catch (_) { /* ignore */ }
+                if (!opts.quiet) {
+                    const nV = allVehicles.length;
+                    const nD = allDrafts.length;
+                    const nQ = allQueue.length;
+                    setUploadStatus(
+                        nV || nD || nQ
+                            ? `تم التحميل · ${nV} مركبة · ${nD} مسودة · ${nQ} قائمة`
+                            : 'لا توجد بيانات بعد — ارفع أرشيف delivery_export أو Sales Raw',
+                        nV || nD || nQ ? 'ok' : ''
+                    );
+                } else {
+                    // Quiet refresh still clears a stuck "loading…" banner
+                    const top = document.getElementById('adminUploadStatus');
+                    if (top && /جاري تحميل/.test(String(top.textContent || ''))) {
+                        top.textContent = '';
+                        top.className = 'hub-status';
+                    }
+                }
             } catch (err) {
-                if (!opts.quiet) setUploadStatus(err.message, 'err');
+                if (seq === dashboardLoadSeq && !opts.quiet) {
+                    setUploadStatus(err.message || 'فشل تحميل البيانات', 'err');
+                }
                 throw err;
             } finally {
-                dashboardLoading = false;
+                if (seq === dashboardLoadSeq) dashboardLoading = false;
             }
         }
 
@@ -7327,7 +8758,7 @@
                         isSh
                             ? (SHOWROOM_SPECIAL_NAME + (p.typed_company || p.company_rep ? ` · ${p.typed_company || p.company_rep}` : ''))
                             : (draftCompanyLabel(d) || '—')
-                    )}</td>
+                    )}${!isSh && !isWh ? (() => { const bit = draftCompanyChangeHtml(d); return bit ? `<div>${bit}</div>` : ''; })() : ''}</td>
                     <td>${escapeHtml(draftBranchLabel(d) || (isWh ? 'المستودع' : '—'))}</td>
                     <td style="white-space:nowrap">
                         ${canExport
@@ -7436,9 +8867,11 @@
                 const delivered = item.agentStatus === 'delivered';
                 const label = item.statusLabel
                     || (delivered ? 'تم الترحيل' : 'Waiting for delivery');
+                const co = String(item.deliveryCompany || item.company || '').trim();
+                const changeBit = queueCompanyChangeHtml(item);
                 return `<tr class="${avail ? 'row-available' : ''}" data-vin="${item.vin}" data-available="${avail ? '1' : '0'}">
-                    <td class="hub-vin">${item.vin}</td>
-                    <td>${item.product || '—'}</td>
+                    <td class="hub-vin">${item.vin}${changeBit ? `<div>${changeBit}</div>` : ''}</td>
+                    <td>${item.product || '—'}${co ? `<div class="hub-meta">${escapeHtml(co)}</div>` : ''}</td>
                     <td>${item.gt || '—'}</td>
                     <td>${item.location || '—'}</td>
                     <td>${item.assignedTo || '—'}</td>
