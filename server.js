@@ -2461,6 +2461,18 @@ function vehicleIndex() {
   return map;
 }
 
+function warehouseInStockIndex() {
+  ensureWarehouseStock();
+  const map = new Map();
+  for (const e of store.warehouseStock || []) {
+    if (e && e.status === 'in') {
+      const vin = normVin(e.vin);
+      if (vin) map.set(vin, e);
+    }
+  }
+  return map;
+}
+
 function statusLabelFor(item) {
   const vStatus = normalizeVehicleStatus(item.vehicleStatus);
   if (item.agentStatus === 'display' || vStatus === 'display') {
@@ -2995,12 +3007,14 @@ function isUnassignedDeliveryCompany(item) {
     || key === '-';
 }
 
-function enrichQueueItem(item) {
+function enrichQueueItem(item, byVin = null, whByVin = null) {
   const vin = normVin(item.vin);
-  const veh = vehicleIndex().get(vin);
+  const veh = (byVin || vehicleIndex()).get(vin);
   const deliveredMonth = queueItemDeliveredMonth(item);
   const archivedFromCoordinator = isPriorMonthDelivered(item);
-  const wh = findWarehouseInStock(vin);
+  const wh = whByVin
+    ? (whByVin.get(vin) || null)
+    : findWarehouseInStock(vin);
   const enriched = {
     ...item,
     vin,
@@ -3034,6 +3048,13 @@ function enrichQueueItem(item) {
     statusLabel: statusLabelFor(item)
   };
   return enriched;
+}
+
+/** Enrich many queue rows with one vehicle/warehouse index pass (O(n) not O(n²)). */
+function enrichQueueItems(items) {
+  const byVin = vehicleIndex();
+  const whByVin = warehouseInStockIndex();
+  return (items || []).map((item) => enrichQueueItem(item, byVin, whByVin));
 }
 
 function computeStats() {
@@ -5682,6 +5703,7 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
   const admin = String(req.query.admin || '') === '1';
   const username = String(req.query.username || '').trim();
   const forCoordinator = String(req.query.coordinator || '') === '1';
+  const now = Date.now();
 
   // Always serve a unique VIN list enriched from the latest raw inventory
   const deduped = dedupeQueue(store.queue);
@@ -5690,29 +5712,31 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     // Do not saveStore() on GET — keeps the page responsive; next write persists
   }
 
-  // Backfill warehouse delivery label from warehouse drafts (in-memory only)
-  const warehouseVins = new Set();
-  for (const d of store.drafts || []) {
-    if (!isWarehouseDraftPayload(d.payload || {})) continue;
-    const list = [
-      ...(Array.isArray(d.vins) ? d.vins : []),
-      d.vin,
-      ...((d.payload && d.payload.vins) || [])
-    ];
-    list.forEach((v) => {
-      const n = normVin(v);
-      if (n) warehouseVins.add(n);
-    });
-  }
-  for (const item of store.queue) {
-    if (item.agentStatus === 'delivered' && !item.deliveryMode && warehouseVins.has(normVin(item.vin))) {
-      item.deliveryMode = 'warehouse';
+  // Backfill warehouse delivery labels infrequently (in-memory only)
+  if (!app._lastWhLabelAt || now - app._lastWhLabelAt > 60_000) {
+    app._lastWhLabelAt = now;
+    const warehouseVins = new Set();
+    for (const d of store.drafts || []) {
+      if (!isWarehouseDraftPayload(d.payload || {})) continue;
+      const list = [
+        ...(Array.isArray(d.vins) ? d.vins : []),
+        d.vin,
+        ...((d.payload && d.payload.vins) || [])
+      ];
+      list.forEach((v) => {
+        const n = normVin(v);
+        if (n) warehouseVins.add(n);
+      });
+    }
+    for (const item of store.queue) {
+      if (item.agentStatus === 'delivered' && !item.deliveryMode && warehouseVins.has(normVin(item.vin))) {
+        item.deliveryMode = 'warehouse';
+      }
     }
   }
 
   // Rare background heal only — never block every coordinator refresh
   if ((admin || forCoordinator) && Array.isArray(store.drafts) && store.drafts.length) {
-    const now = Date.now();
     if (!app._lastQueueHealAt || now - app._lastQueueHealAt > 3 * 60_000) {
       app._lastQueueHealAt = now;
       setImmediate(() => {
@@ -5728,7 +5752,8 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     }
   }
 
-  let queue = store.queue.map(enrichQueueItem);
+  // One vehicle/warehouse index for the whole list (was O(n²) before)
+  let queue = enrichQueueItems(store.queue);
 
   // Agents also see display-status cars (from ياسين) to convert into a delivery note
   if (!admin && username) {
@@ -5746,18 +5771,12 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     queue = queue.filter((q) => !isPriorMonthDelivered(q));
   }
 
-  // Coordinator UI only needs queue + draftsByCompany — skip huge drafts payload
+  // Coordinator UI: queue + counts only — no warehouse zone maps / parking arrays
   if (forCoordinator && !admin) {
-    ensureWarehouseStock();
-    ensureShowroomParking();
     return res.json({
       queue,
       stats: computeStats(),
       draftsByCompany: computeDraftsByCompany(),
-      warehouseStock: store.warehouseStock.filter((e) => e.status === 'in').map(enrichWarehouseEntry),
-      warehouseZones: warehouseOccupancy(),
-      showroomParking: store.showroomParking.filter((e) => e.status === 'in').map(enrichShowroomParkingEntry),
-      showroomParkingOccupancy: showroomParkingOccupancy(),
       rawUploaded: Boolean(store.vehicles.length || store.meta.uploadedAt),
       rawStatus: getHubRawStatus(),
     });
