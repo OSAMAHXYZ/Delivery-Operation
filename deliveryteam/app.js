@@ -455,7 +455,7 @@
     $$('#side-nav button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
     $('#side-name').textContent = state.user.name;
     $('#side-role').textContent = state.user.role;
-    $('#export-btn').hidden = !canManage();
+    $('#export-btn').hidden = false;
   }
 
   function setView(view) {
@@ -520,8 +520,8 @@
     const f = state.liveFilters;
     const params = new URLSearchParams();
     params.set('tzOffset', String(state.tzOffset));
-    params.set('sort', 'updatedAt');
-    params.set('dir', 'desc');
+    params.set('sort', 'status');
+    params.set('dir', 'asc');
     if (f.q) params.set('q', f.q);
     if (f.employee) params.set('employee', f.employee);
     if (f.status) params.set('status', f.status);
@@ -572,11 +572,15 @@
     const statusSel = $('#live-status');
     if (statusSel && !statusSel.dataset.filled) {
       const statuses = (state.meta && state.meta.statuses) || [];
-      statusSel.innerHTML = `<option value="">All statuses</option>${statuses.map((s) =>
-        `<option value="${esc(s)}">${esc(s)}</option>`
-      ).join('')}`;
+      statusSel.innerHTML = `<option value="">All statuses</option>
+        <option value="__empty__">Non selected (فارغ)</option>
+        ${statuses.map((s) =>
+          `<option value="${esc(s)}">${esc(s)}</option>`
+        ).join('')}`;
       statusSel.value = f.status || '';
       statusSel.dataset.filled = '1';
+    } else if (statusSel) {
+      statusSel.value = f.status || '';
     }
 
     const carrierSel = $('#live-carrier');
@@ -612,6 +616,9 @@
         ...Object.keys(bySt).filter((k) => k !== '(blank)').slice(0, 8).map((k) =>
           `<button type="button" class="live-chip status-filter ${f.status === k ? 'active' : ''}" data-status="${esc(k)}">${esc(k)} <b>${bySt[k]}</b></button>`
         ),
+        (bySt['(blank)']
+          ? `<button type="button" class="live-chip status-filter ${f.status === '__empty__' ? 'active' : ''}" data-status="__empty__">Non selected <b>${bySt['(blank)']}</b></button>`
+          : ''),
       ].join('');
       $$('.live-chip.status-filter', chips).forEach((b) => b.addEventListener('click', () => {
         state.liveFilters.status = state.liveFilters.status === b.dataset.status ? '' : b.dataset.status;
@@ -1156,6 +1163,8 @@
     p.set('tzOffset', String(state.tzOffset));
     p.set('page', String(state.filters.page || 1));
     p.set('limit', String(state.filters.limit || 40));
+    p.set('sort', 'status');
+    p.set('dir', 'asc');
     if (state.filters.q) p.set('q', state.filters.q);
     if (state.filters.status) p.set('status', state.filters.status);
     if (state.filters.employee) p.set('employee', state.filters.employee);
@@ -1179,7 +1188,9 @@
     el.innerHTML = `
       <label class="month-filter-label">Month <input type="month" data-f="month" value="${esc(month)}" /></label>
       <input type="search" data-f="q" placeholder="Search…" value="${esc(state.filters.q)}" />
-      <select data-f="status"><option value="">All statuses</option>${statuses.map((s) => `<option ${state.filters.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <select data-f="status"><option value="">All statuses</option>
+        <option value="__empty__" ${state.filters.status === '__empty__' ? 'selected' : ''}>Non selected (فارغ)</option>
+        ${statuses.map((s) => `<option value="${esc(s)}" ${state.filters.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       ${showEmployee && canManage() ? `<select data-f="employee"><option value="">All employees</option>${assignableNames().map((s) => `<option ${state.filters.employee === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>` : ''}
       <button type="button" class="btn" data-clear>Clear filters</button>
     `;

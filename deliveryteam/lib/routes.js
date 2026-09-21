@@ -4,6 +4,7 @@ const express = require('express');
 const XLSX = require('xlsx');
 const {
   STATUSES,
+  statusSortRank,
   COMPLETED_STATUS,
   YES_NO,
   CARRIERS,
@@ -594,7 +595,16 @@ function createDeliveryTeamRouter(opts) {
     eq((v) => v.ops.assignedEmployeeName || v.ops.assignedEmployeeId, q.employee);
     eq((v) => v.raw.product, q.product);
     eq((v) => v.raw.salesType, q.salesType);
-    eq((v) => v.ops.opsStatus, q.status);
+    if (
+      q.status === '__empty__'
+      || q.status === '(blank)'
+      || q.status === 'non_selected'
+      || String(q.status || '').toLowerCase() === 'non selected'
+    ) {
+      out = out.filter((v) => !String(v.ops.opsStatus || '').trim());
+    } else {
+      eq((v) => v.ops.opsStatus, q.status);
+    }
     eq((v) => v.raw.vehicleLocation, q.vehicleLocation);
     eq((v) => v.raw.gtLocation, q.gtLocation);
     eq((v) => v.ops.transferCity, q.transferCity);
@@ -638,8 +648,8 @@ function createDeliveryTeamRouter(opts) {
   }
 
   function sortVehicles(list, sort, dir) {
-    const key = String(sort || 'proformaDate');
-    const desc = String(dir || 'desc').toLowerCase() === 'desc';
+    const key = String(sort || 'status');
+    const desc = String(dir || 'asc').toLowerCase() === 'desc';
     const getter = {
       vin: (v) => v.vin,
       product: (v) => v.raw.product,
@@ -650,6 +660,17 @@ function createDeliveryTeamRouter(opts) {
       updatedAt: (v) => v.ops.updatedAt || v.rawUpdatedAt || '',
     }[key] || ((v) => v.raw.proformaDate);
     return list.slice().sort((a, b) => {
+      if (key === 'status') {
+        const ra = statusSortRank(a.ops && a.ops.opsStatus);
+        const rb = statusSortRank(b.ops && b.ops.opsStatus);
+        if (ra !== rb) return desc ? rb - ra : ra - rb;
+        // secondary: proforma date desc, then VIN
+        const da = String((a.raw && a.raw.proformaDate) || '');
+        const db = String((b.raw && b.raw.proformaDate) || '');
+        const dcmp = db.localeCompare(da);
+        if (dcmp) return dcmp;
+        return String(a.vin || '').localeCompare(String(b.vin || ''));
+      }
       const av = String(getter(a) || '');
       const bv = String(getter(b) || '');
       const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
@@ -685,7 +706,7 @@ function createDeliveryTeamRouter(opts) {
     const q = { ...(req.query || {}), assigned: 'yes' };
     let list = store.allVehicles();
     list = applyFilters(list, q, req.dtUser);
-    list = sortVehicles(list, req.query.sort || 'updatedAt', req.query.dir || 'desc');
+    list = sortVehicles(list, req.query.sort || 'status', req.query.dir || 'asc');
     const byStatus = {};
     const byEmployee = {};
     const bySalesType = {};
@@ -1641,13 +1662,11 @@ function createDeliveryTeamRouter(opts) {
     res.json({ total, page, limit, rows });
   });
 
-  router.get('/export', auth, requireRole('admin', 'hanouf'), (req, res) => {
-    const assignedOnly = String(req.query.assigned || '') === '1' || String(req.query.assigned || '') === 'yes';
-    const list = sortVehicles(
-      store.allVehicles().filter((v) => (assignedOnly ? (v.ops && v.ops.assignedEmployeeId) : true)),
-      'proformaDate',
-      'desc'
-    );
+  router.get('/export', auth, (req, res) => {
+    const assignedOnly = String(req.query.assigned || '') !== '0' && String(req.query.assigned || '') !== 'no';
+    let list = canSeeAll(req.dtUser.role) ? store.allVehicles() : scopedVehicles(req.dtUser);
+    list = list.filter((v) => (assignedOnly ? (v.ops && v.ops.assignedEmployeeId) : true));
+    list = sortVehicles(list, 'status', 'asc');
 
     const ynOut = (v) => {
       const s = String(v || '').trim();

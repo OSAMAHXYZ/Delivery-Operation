@@ -8,14 +8,22 @@ const STATUSES = Object.freeze([
   'تم التسليم',
   'جاهز للتسليم',
   'تسليم متقدم',
+  'صادرة',
   'مرور',
+  'رجوع مرور',
   'بطاقة',
   'فسح',
-  'رجوع مرور',
   'معلقة',
-  'صادرة',
   'الغاء',
 ]);
+
+/** Rank for Excel / Live Sheet sort (lower = higher on the list). Blank = last. */
+function statusSortRank(status) {
+  const s = String(status || '').trim();
+  if (!s) return STATUSES.length + 10;
+  const idx = STATUSES.findIndex((st) => st === s || st.toLowerCase() === s.toLowerCase());
+  return idx >= 0 ? idx : STATUSES.length + 5;
+}
 
 const COMPLETED_STATUS = 'Claimed';
 
@@ -325,6 +333,7 @@ function isGuestCenterRaw(raw, ops) {
 
 module.exports = {
   STATUSES,
+  statusSortRank,
   COMPLETED_STATUS,
   YES_NO,
   CARRIERS,
