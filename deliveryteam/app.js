@@ -1209,15 +1209,13 @@
   }
 
   async function loadMy() {
-    // Hanouf "My VINs" = her assignments with today's proforma only
+    // Hanouf My VINs = all VINs assigned to her (same as other employees)
     if (state.user.role === 'hanouf') {
       state.filters.employee = 'Hanouf';
     }
     const myHint = $('#my-vins-hint');
     if (myHint) {
-      myHint.textContent = state.user.role === 'hanouf'
-        ? 'Today’s Proforma only · edit your work · select VINs to hand over'
-        : 'Edit your work below · select VINs to hand over to another employee';
+      myHint.textContent = 'Edit your work below · select VINs to hand over to another employee';
     }
     buildToolbar($('#my-toolbar'), { showEmployee: false });
     const cities = (state.meta && state.meta.transferCities) || [];
@@ -1227,9 +1225,10 @@
     if (cityList) cityList.innerHTML = cities.map((c) => `<option value="${esc(c)}"></option>`).join('');
     if (carrierList) carrierList.innerHTML = carriers.map((c) => `<option value="${esc(c)}"></option>`).join('');
     fillCarrierLists();
+    fillCityLists();
 
     const pack = await api(`/vehicles?${filterQuery(
-      state.user.role === 'hanouf' ? { proforma: 'today' } : {}
+      state.user.role === 'hanouf' ? { employee: 'Hanouf' } : {}
     )}`);
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     const w = state.user.role === 'employee'
