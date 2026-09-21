@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Team — Toyota ALJ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20260921salesraw1" />
+</head>
+<body>
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>ALJ Delivery Team</span>
+        </div>
+      </div>
+      <h1>Sign in</h1>
+      <p>Internal delivery operations · Hanouf upload · employee schedules</p>
+      <div class="user-pills" id="login-pills"></div>
+      <div class="field">
+        <label for="login-user">User</label>
+        <select id="login-user"></select>
+      </div>
+      <div class="field">
+        <label for="login-pass">Password</label>
+        <input id="login-pass" type="password" value="1234" autocomplete="current-password" />
+      </div>
+      <button type="button" class="btn-primary" id="login-btn">Enter Delivery Team</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>ALJ Delivery Team</span>
+        </div>
+      </div>
+      <nav class="nav" id="side-nav"></nav>
+      <div class="side-user">
+        <div>
+          <strong id="side-name">—</strong>
+          <span id="side-role">—</span>
+        </div>
+        <button type="button" class="btn-ghost" id="logout-btn">Logout</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Dashboard</h1>
+          <p class="sub" id="page-sub">Delivery Control Tower</p>
+        </div>
+        <div class="top-actions">
+          <div class="raw-status-pill" id="raw-status-pill" title="Shared Sales Raw data">
+            <span class="raw-status-label">Sales Raw</span>
+            <strong id="raw-status-time">—</strong>
+          </div>
+          <input type="search" class="top-search" id="global-search" placeholder="Search VIN / order / product…" />
+          <button type="button" class="btn" id="export-btn" hidden>Export Excel</button>
+          <button type="button" class="btn" id="refresh-btn">Refresh</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- DASHBOARD -->
+        <section class="panel active" id="panel-dashboard">
+          <div class="toolbar month-toolbar">
+            <label class="month-filter-label">
+              Month
+              <input type="month" id="dash-month" />
+            </label>
+            <button type="button" class="btn" id="dash-month-all">All months</button>
+            <span class="hint" id="dash-month-hint"></span>
+          </div>
+          <div class="kpi-row" id="dash-kpis"></div>
+          <div class="card">
+            <h2>Delivery pipeline</h2>
+            <p class="hint">Today’s Proformas → Assigned → PSFU → Ready → Delivered / Claimed</p>
+            <div class="pipeline" id="dash-pipeline"></div>
+          </div>
+          <div class="dash-grid">
+            <div class="dash-stack">
+              <div class="card" id="dash-emp-card">
+                <h2>Employee schedule</h2>
+                <p class="hint">Full team · Assigned · Claimed · Cash/Bank (sales type) per person — click a name to open their VINs</p>
+                <div class="table-wrap compact">
+                  <table class="data" id="dash-emp-table"></table>
+                </div>
+              </div>
+              <div class="card" id="dash-sales-type-card">
+                <h2>Sales type mix</h2>
+                <p class="hint">Team totals · how many of each sales type (cash / bank / …) this month</p>
+                <div class="status-grid" id="dash-sales-types"></div>
+              </div>
+              <div class="card" id="dash-edits-card" hidden>
+                <div class="edits-head">
+                  <div>
+                    <h2>Live employee edits</h2>
+                    <p class="hint">Every change on assigned VINs appears here</p>
+                  </div>
+                  <button type="button" class="btn" id="dash-edits-refresh">Refresh</button>
+                </div>
+                <div class="table-wrap edits">
+                  <table class="data" id="dash-edits-table"></table>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Status counts</h2>
+              <p class="hint">How many VINs in each status · click to filter schedule</p>
+              <div class="status-grid" id="dash-status"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LIVE SHEET (everyone) -->
+        <section class="panel" id="panel-live">
+          <div class="live-sheet-card">
+            <div class="live-sheet-toolbar">
+              <div class="live-sheet-meta">
+                <span class="live-dot" id="live-dot" title="Live"></span>
+                <span id="live-meta-text">Connecting…</span>
+              </div>
+              <div class="live-sheet-filters">
+                <label class="month-filter-label">
+                  Month
+                  <input type="month" id="live-month" />
+                </label>
+                <input type="search" id="live-q" placeholder="Search VIN / order / product…" />
+                <select id="live-employee">
+                  <option value="">All employees</option>
+                </select>
+                <select id="live-carrier">
+                  <option value="">All الناقل</option>
+                </select>
+                <select id="live-status">
+                  <option value="">All statuses</option>
+                </select>
+                <button type="button" class="btn" id="live-refresh">Refresh now</button>
+              </div>
+            </div>
+            <div class="live-chip-row" id="live-chips"></div>
+            <div class="table-wrap live-sheet-wrap">
+              <table class="data live-sheet" id="live-table"></table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TODAY -->
+        <section class="panel" id="panel-today">
+          <div class="card">
+            <h2>Today’s delivery requests</h2>
+            <p class="hint">Proforma Date = today · first worksheet Raw Data</p>
+            <div class="table-wrap"><table class="data" id="today-table"></table></div>
+          </div>
+        </section>
+
+        <!-- MY VINS -->
+        <section class="panel" id="panel-my">
+          <div class="kpi-row" id="my-kpis"></div>
+          <div class="card">
+            <h2>My delivery schedule</h2>
+            <p class="hint">Edit your work below · select VINs to hand over to another employee</p>
+            <div id="my-save-toast" class="save-toast" hidden>Saved ✓</div>
+            <div class="toolbar" id="my-toolbar"></div>
+            <div class="reassign-bar" id="my-reassign-bar">
+              <div class="reassign-bar-label">
+                <strong id="my-reassign-count">0</strong> VIN(s) selected · give to:
+              </div>
+              <div class="reassign-targets" id="my-reassign-targets"></div>
+              <button type="button" class="btn" id="my-reassign-clear">Clear selection</button>
+            </div>
+            <datalist id="edit-city-list"></datalist>
+            <datalist id="edit-carrier-list"></datalist>
+            <div class="table-wrap"><table class="data" id="my-table"></table></div>
+            <div class="pager" id="my-pager"></div>
+          </div>
+        </section>
+
+        <!-- ASSIGNMENT -->
+        <section class="panel" id="panel-assign">
+          <div class="assign-flow">
+            <div class="card assign-step" id="assign-step-1">
+              <div class="assign-step-badge">1</div>
+              <h2>Submit VINs</h2>
+              <p class="hint">Paste VINs (one per line or comma-separated), or load today’s unassigned proformas, then submit to display them for assignment.</p>
+              <div class="toolbar">
+                <button type="button" class="btn" id="assign-load-today">Load today’s unassigned</button>
+                <button type="button" class="btn" id="assign-load-all-unassigned">Load all unassigned</button>
+                <input type="search" id="assign-pool-search" placeholder="Filter pool…" style="min-width:160px" />
+              </div>
+              <div class="table-wrap assign-pool-wrap"><table class="data" id="assign-pool-table"></table></div>
+              <div class="field">
+                <label for="assign-vin-input">Or paste VINs to submit</label>
+                <textarea id="assign-vin-input" rows="4" placeholder="JTNB…&#10;JTNC…&#10;or comma-separated"></textarea>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="btn-primary" id="assign-submit-btn">Submit &amp; display</button>
+                <span class="hint" id="assign-pool-hint"></span>
+              </div>
+            </div>
+
+            <div class="card assign-step" id="assign-step-2">
+              <div class="assign-step-badge">2</div>
+              <h2>Displayed VINs · employee &amp; الناقل</h2>
+              <p class="hint">Set الناقل per VIN in the table, or apply one الناقل to all displayed VINs. Then choose the employee.</p>
+              <div id="assign-display-empty" class="assign-empty">
+                No VINs displayed yet. Submit VINs in step 1 first.
+              </div>
+              <div id="assign-display-body" hidden>
+                <div class="assign-display-meta">
+                  <strong id="assign-display-count">0</strong> VIN(s) ready to assign
+                  <button type="button" class="btn" id="assign-clear-display">Clear list</button>
+                </div>
+                <datalist id="assign-carrier-list"></datalist>
+                <div class="table-wrap"><table class="data" id="assign-display-table"></table></div>
+                <div class="assign-carrier-pick">
+                  <p class="assign-emp-label">تعيين الناقل للـ VINs المعروضة</p>
+                  <div class="toolbar">
+                    <select id="assign-bulk-carrier" aria-label="الناقل">
+                      <option value="">— اختر الناقل —</option>
+                    </select>
+                    <button type="button" class="btn" id="assign-carrier-btn" disabled>Apply الناقل to displayed VINs</button>
+                  </div>
+                </div>
+                <div class="assign-emp-pick">
+                  <p class="assign-emp-label">Assign displayed VINs to (including Hanouf)</p>
+                  <div class="assign-emp-grid" id="assign-emp-grid"></div>
+                  <div class="toolbar">
+                    <button type="button" class="btn-primary" id="assign-confirm-btn" disabled>Assign to selected employee</button>
+                    <span class="hint" id="assign-picked-label">No employee selected</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Employee lanes</h2>
+            <p class="hint">Open an employee’s VINs, select some, then reassign to another employee</p>
+            <div class="assign-lanes" id="assign-lanes"></div>
+            <div class="reassign-panel" id="lane-reassign-panel" hidden>
+              <div class="reassign-panel-head">
+                <div>
+                  <h3 id="lane-reassign-title">Select VINs to reassign</h3>
+                  <p class="hint" id="lane-reassign-hint">Check VINs, then pick the new employee</p>
+                </div>
+                <button type="button" class="btn" id="lane-reassign-close">Close</button>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="btn" id="lane-reassign-select-all">Select all</button>
+                <button type="button" class="btn" id="lane-reassign-clear">Clear</button>
+                <span class="hint"><strong id="lane-reassign-count">0</strong> selected</span>
+              </div>
+              <div class="table-wrap compact"><table class="data" id="lane-reassign-table"></table></div>
+              <div class="reassign-bar">
+                <div class="reassign-bar-label">Reassign selected to:</div>
+                <div class="reassign-targets" id="lane-reassign-targets"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ALL VINS / REPORTS -->
+        <section class="panel" id="panel-all">
+          <div class="card">
+            <h2>All vehicles</h2>
+            <p class="hint">Search · filters · Hanouf/Admin can set الناقل on any VIN</p>
+            <datalist id="all-carrier-list"></datalist>
+            <div class="toolbar" id="all-toolbar"></div>
+            <div class="table-wrap"><table class="data" id="all-table"></table></div>
+            <div class="pager" id="all-pager"></div>
+          </div>
+        </section>
+
+        <!-- UPLOAD Delivery sheet -->
+        <section class="panel" id="panel-upload">
+          <div class="card">
+            <h2>Upload Delivery sheet</h2>
+            <p class="hint">
+              Upload the latest <b>Delivery sheet</b> Excel (same as <b>E sales</b> tab).
+              The system reads VINs, <b>PIC → employee</b>, <b>الناقل → company boards</b>, status, مدينة الترحيل, and work dates.
+              Cars already with الناقل leave «بدون شركة» on the Coordinator. Export downloads the same <b>E sales</b> layout.
+            </p>
+            <div class="upload-drop" id="upload-drop">
+              <strong>Drop Delivery sheet here</strong>
+              <p class="hint">or click to browse · .xlsx / .xls · prefers worksheet «E sales»</p>
+              <input type="file" id="upload-file" accept=".xlsx,.xls" hidden />
+            </div>
+            <div id="upload-summary" hidden></div>
+          </div>
+        </section>
+
+        <!-- SALES RAW (Hanouf / Ruba / Admin) -->
+        <section class="panel" id="panel-sales-raw">
+          <div class="card">
+            <h2>Upload Sales Raw</h2>
+            <p class="hint">
+              Upload <b>Sales Raw Data</b> here once — Hanouf or Ruba. Updates shared inventory for the whole team and the Coordinator.
+              Everyone sees the last update time in the top bar.
+            </p>
+            <div class="raw-status-card" id="sales-raw-status-card">
+              <div class="lbl">Last Sales Raw update</div>
+              <div class="val" id="sales-raw-status-detail">Not uploaded yet</div>
+            </div>
+            <div class="upload-drop" id="sales-raw-drop">
+              <strong>Drop Sales Raw Excel here</strong>
+              <p class="hint">or click to browse · .xlsx / .xls / .csv · Product · GT · Location · VIN</p>
+              <input type="file" id="sales-raw-file" accept=".xlsx,.xls,.csv" hidden />
+            </div>
+            <div id="sales-raw-summary" hidden></div>
+          </div>
+        </section>
+
+        <!-- AUDIT -->
+        <section class="panel" id="panel-audit">
+          <div class="card">
+            <h2>Audit log</h2>
+            <p class="hint">Assignments · status · dates · uploads</p>
+            <div class="toolbar">
+              <input type="search" id="audit-vin" placeholder="Filter by VIN…" />
+              <button type="button" class="btn" id="audit-refresh">Refresh</button>
+            </div>
+            <div class="table-wrap"><table class="data" id="audit-table"></table></div>
+            <div class="pager" id="audit-pager"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back" id="vin-drawer-back">
+    <div class="drawer" id="vin-drawer"></div>
+  </div>
+
+  <div class="modal-back" id="guest-modal-back">
+    <div class="guest-modal" id="guest-modal" role="dialog" aria-modal="true" aria-labelledby="guest-modal-title">
+      <div class="guest-modal-head">
+        <div>
+          <h2 id="guest-modal-title">Guest Experience</h2>
+          <p class="hint" id="guest-modal-sub">Schedule customer collection</p>
+        </div>
+        <button type="button" class="btn" id="guest-modal-close">Close</button>
+      </div>
+      <div class="guest-modal-body" id="guest-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20260921salesraw1"></script>
+</body>
+</html>

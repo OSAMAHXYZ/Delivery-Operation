@@ -3865,8 +3865,11 @@
                 const modeNote = data.mode === 'inventory_only'
                     ? ' · مركبات فقط (المسودات/القائمة لم تُستبدَل)'
                     : '';
+                const assignNote = data.companiesFromDrafts
+                    ? ` · عُيّن ${data.companiesFromDrafts} شاسيه من Print Drafts`
+                    : '';
                 setRestoreStatus(
-                    `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة${modeNote}`,
+                    `تم الاستيراد: ${data.imported || 0} مركبة · ${data.draftsImported || 0} مسودة · ${data.queueImported || 0} قائمة${modeNote}${assignNote}`,
                     'ok'
                 );
                 await loadDashboard({ force: true, quiet: true });
@@ -8345,13 +8348,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ company, phone: phoneRaw, fromAdmin: true })
             });
-            const raw = await res.text();
-            let data = {};
-            try {
-                data = raw ? JSON.parse(raw) : {};
-            } catch {
-                throw new Error(res.ok ? 'رد غير متوقع من الخادم' : 'تعذر حفظ الرقم — حدّث الصفحة بعد اكتمال النشر');
-            }
+            const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
             managedCompanyPhones = data.companyPhones || managedCompanyPhones;
             if (Array.isArray(data.companies)) managedCompanies = data.companies;

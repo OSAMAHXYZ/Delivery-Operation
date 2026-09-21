@@ -17,6 +17,7 @@ import TopCompanyCard from './components/TopCompanyCard'
 import DataTable from './components/DataTable'
 import StatusBadge from './components/StatusBadge'
 import { AreaTrendChart, HorizontalBarChart, StatusDonut } from './components/Charts'
+import { maskPersonName } from './lib/privacy'
 import {
   fetchInventory,
   fetchQueueAdmin,
@@ -345,7 +346,7 @@ export default function App() {
     { key: 'vin', label: 'VIN' },
     { key: 'product', label: 'المنتج', render: (v) => v.product || v.model || '—' },
     { key: 'plate', label: 'اللوحة', render: (v) => v.plate || '—' },
-    { key: 'customerName', label: 'العميل', render: (v) => v.customerName || '—' },
+    { key: 'customerName', label: 'العميل', render: (v) => maskPersonName(v.customerName) },
     { key: 'location', label: 'الموقع', render: (v) => v.location || '—' },
     { key: 'proformaDate', label: 'Proforma', render: (v) => v.proformaDate || '—' },
     { key: 'invoiceDate', label: 'Invoice', render: (v) => v.invoiceDate || '—' },

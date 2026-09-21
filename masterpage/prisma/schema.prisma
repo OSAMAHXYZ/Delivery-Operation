@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES
+  QUALITY_AUDITOR
+  VIEWER
+}
+
+enum VehicleStatus {
+  FREE
+  RESERVED
+  ALLOCATED
+  SOLD
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  PARTIAL
+}
+
+enum ConfirmationStatus {
+  CONFIRMED
+  PENDING
+  REJECTED
+}
+
+enum BoStatus {
+  OPEN
+  MATCHED
+  ALLOCATED
+  CANCELLED
+}
+
+enum ViolationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  OVERDUE
+}
+
+enum ColorKind {
+  EXTERIOR
+  INTERIOR
+}
+
+enum ImportKind {
+  STOCK
+  BACK_ORDERS
+  SALES
+  CANCELLED_BACK_ORDERS
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  nameAr       String
+  passwordHash String
+  role         Role          @default(VIEWER)
+  locale       String        @default("en")
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  notes        Note[]
+  allocations  Allocation[]
+  audits       Audit[]
+  trails       AuditTrail[]
+  importBatches ImportBatch[]
+
+  @@index([role])
+}
+
+model Vehicle {
+  id             String         @id @default(cuid())
+  vin            String         @unique
+  product        String
+  modelYear      Int
+  suffix         String
+  exteriorColor  String
+  interiorColor  String
+  exteriorCode   String
+  interiorCode   String
+  location       String
+  status         VehicleStatus  @default(FREE)
+  matchedBoId    String?
+  matchScore     Float?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  matches        BoVehicleMatch[]
+  allocations    Allocation[]
+
+  @@index([vin])
+  @@index([product])
+  @@index([modelYear])
+  @@index([status])
+  @@index([location])
+}
+
+model BackOrder {
+  id                 String             @id @default(cuid())
+  boNumber           String             @unique
+  customer           String
+  salesman           String
+  product            String
+  modelYear          Int
+  suffix             String
+  exteriorColor      String
+  interiorColor      String
+  agingDays          Int
+  paymentStatus      PaymentStatus      @default(UNPAID)
+  confirmationStatus ConfirmationStatus @default(PENDING)
+  vin                String?
+  qualityScore       Float?
+  status             BoStatus           @default(OPEN)
+  fastProduct        Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  matches            BoVehicleMatch[]
+  allocations        Allocation[]
+  audits             Audit[]
+  violations         Violation[]
+
+  @@index([boNumber])
+  @@index([product])
+  @@index([modelYear])
+  @@index([status])
+  @@index([salesman])
+  @@index([createdAt])
+}
+
+model SalesRecord {
+  id        String   @id @default(cuid())
+  date      DateTime
+  salesman  String
+  product   String
+  vin       String?
+  amount    Float
+  boNumber  String?
+  createdAt DateTime @default(now())
+
+  @@index([salesman])
+  @@index([date])
+}
+
+model BoVehicleMatch {
+  id        String    @id @default(cuid())
+  boId      String
+  vehicleId String
+  score     Float
+  breakdown Json
+  createdAt DateTime  @default(now())
+  bo        BackOrder @relation(fields: [boId], references: [id])
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id])
+
+  @@unique([boId, vehicleId])
+}
+
+model AuditRule {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  nameAr      String
+  description String
+  active      Boolean        @default(true)
+  results     AuditResult[]
+}
+
+model Audit {
+  id           String         @id @default(cuid())
+  boId         String
+  auditorId    String
+  qualityScore Float
+  result       String
+  createdAt    DateTime       @default(now())
+  bo           BackOrder      @relation(fields: [boId], references: [id])
+  auditor      User           @relation(fields: [auditorId], references: [id])
+  results      AuditResult[]
+}
+
+model AuditResult {
+  id               String    @id @default(cuid())
+  auditId          String
+  ruleId           String
+  applicable       Boolean
+  compliant        Boolean
+  evidence         String    @default("")
+  correctiveAction String    @default("")
+  audit            Audit     @relation(fields: [auditId], references: [id])
+  rule             AuditRule @relation(fields: [ruleId], references: [id])
+}
+
+model Violation {
+  id               String          @id @default(cuid())
+  boId             String
+  ruleCode         String
+  description      String
+  evidence         String
+  correctiveAction String
+  owner            String
+  dueDate          DateTime
+  status           ViolationStatus @default(OPEN)
+  reviewer         String?
+  reviewDate       DateTime?
+  severity         String          @default("medium")
+  createdAt        DateTime        @default(now())
+  bo               BackOrder       @relation(fields: [boId], references: [id])
+
+  @@index([status])
+}
+
+model ColorDictionary {
+  id            String    @id @default(cuid())
+  sourceColor   String
+  standardColor String
+  toyotaCode    String
+  kind          ColorKind
+  active        Boolean   @default(true)
+
+  @@index([toyotaCode])
+  @@index([standardColor])
+}
+
+model Allocation {
+  id        String    @id @default(cuid())
+  boId      String
+  vehicleId String
+  userId    String
+  undone    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  bo        BackOrder @relation(fields: [boId], references: [id])
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model ImportBatch {
+  id        String      @id @default(cuid())
+  kind      ImportKind
+  filename  String
+  detected  Int
+  imported  Int
+  updated   Int
+  rejected  Int
+  duplicates Int
+  createdBy String
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [createdBy], references: [id])
+  errors    ImportError[]
+}
+
+model ImportError {
+  id      String      @id @default(cuid())
+  batchId String
+  row     Int
+  message String
+  data    Json
+  batch   ImportBatch @relation(fields: [batchId], references: [id])
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  recordType String
+  recordId   String
+  body       String
+  userId     String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model AuditTrail {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  recordType String
+  recordId   String
+  oldValue   Json?
+  newValue   Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([recordType, recordId])
+  @@index([createdAt])
+}
+
+model AppSetting {
+  id    String @id @default("default")
+  rules Json
+}

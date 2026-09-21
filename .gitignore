@@ -14,9 +14,20 @@ desktop.ini
 .env
 .env.*
 
+# Saved delivery-note archives (generated at runtime)
+delivery-notes-archive/*.docx
+!delivery-notes-archive/.gitkeep
+
 # Node
 node_modules/
 
 # Runtime inventory (persisted on server)
 delivery-inventory-data.json
 delivery-inventory-data.json.*.tmp
+
+# Shared Sales Report push (Excel + targets) — runtime only
+report-sheet-data/
+
+# Nested calculator git metadata backup
+toyota-internal-lease-calculator-main/.git.bak-nested/
+

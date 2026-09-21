@@ -2052,6 +2052,45 @@
             updatePreview();
         }
 
+        /** Prefill branch_to from Delivery Team مدينة الترحيل (queue.plannedBranch). */
+        function applyTeamPlannedBranch(item) {
+            const city = String(item?.plannedBranch || item?.deliveryCity || '').trim();
+            const input = document.getElementById('branch_to');
+            if (!input) return false;
+            if (!city) {
+                applyAgentAutoBranch();
+                return false;
+            }
+            if (typeof searchableSelectOptions !== 'undefined') {
+                if (!Array.isArray(searchableSelectOptions.branch_to)) {
+                    searchableSelectOptions.branch_to = [];
+                }
+                if (!searchableSelectOptions.branch_to.some((x) => String(x).trim() === city)) {
+                    searchableSelectOptions.branch_to.push(city);
+                }
+            }
+            input.readOnly = false;
+            input.disabled = false;
+            input.value = city;
+            input.classList.remove('branch-auto-locked', 'field-locked', 'is-invalid');
+            input.classList.add('field-editable');
+            input.setCustomValidity('');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            const hintId = 'branchAutoHint';
+            let hint = document.getElementById(hintId);
+            if (!hint) {
+                hint = document.createElement('p');
+                hint.id = hintId;
+                hint.className = 'branch-locked-hint no-print';
+                input.closest('div')?.parentElement?.appendChild(hint);
+            }
+            hint.textContent = `المدينة من Delivery Team: ${city}`;
+            if (item?.vin) savePlannedBranch(item.vin, city);
+            updatePreview();
+            return true;
+        }
+
         let agentEditLockActive = false;
         const AGENT_EDIT_UNLOCKED_IDS = new Set([
             'company_rep',
@@ -2325,7 +2364,7 @@
                 return `<button type="button" class="ys-slot is-used${delivery ? ' is-delivery' : ''}" data-ys-vin="${String(e.vin || '').replace(/"/g, '&quot;')}">
                     <div class="ys-slot-id">${s.slot} · ${delivery ? 'تسليم' : 'عرض'}</div>
                     <div class="ys-slot-vin">${e.vin || ''}</div>
-                    <div class="ys-slot-meta">${e.guestName || 'ضيف —'} · ${e.guestPhone || '—'}</div>
+                    <div class="ys-slot-meta">${maskPersonName(e.guestName || 'ضيف —')} · ${maskPhone(e.guestPhone)}</div>
                     <div class="ys-slot-meta">${delivery ? `حضور: ${formatGuestArrival(e.guestArrivalTime)}` : (e.product || '')}</div>
                 </button>`;
             }).join('');
@@ -2360,8 +2399,8 @@
                         <div class="am-sub">${c.product || '—'}</div>
                     </div>
                     <div class="am-meta">
-                        <div>${c.guestName || '—'}</div>
-                        <div class="am-sub" style="direction:ltr;text-align:left">${c.guestPhone || '—'}</div>
+                        <div>${maskPersonName(c.guestName)}</div>
+                        <div class="am-sub" style="direction:ltr;text-align:left">${maskPhone(c.guestPhone)}</div>
                     </div>
                     <div class="am-meta">
                         <div>${typeLabel} · ${park}</div>
@@ -2471,8 +2510,8 @@
                 }
                 if (guestBox) {
                     guestBox.className = 'guest-box';
-                    guestBox.innerHTML = `<strong>اسم الضيف (O):</strong> ${data.guestName || '—'}<br>
-                        <strong>الجوال (Y):</strong> <span style="direction:ltr;display:inline-block">${data.guestPhone || '—'}</span><br>
+                    guestBox.innerHTML = `<strong>اسم الضيف (O):</strong> ${maskPersonName(data.guestName)}<br>
+                        <strong>الجوال (Y):</strong> <span style="direction:ltr;display:inline-block">${maskPhone(data.guestPhone)}</span><br>
                         <strong>المنتج:</strong> ${data.product || '—'}`;
                 }
                 const parked = data.parked;
@@ -2533,7 +2572,7 @@
                 renderYassinCars(data.cars || []);
                 setSt(
                     carType === 'delivery'
-                        ? `تم · موقف ${data.entry?.slot || slot} · ضيف: ${data.guest?.guestName || '—'} · ${data.guest?.guestPhone || ''}`
+                        ? `تم · موقف ${data.entry?.slot || slot} · ضيف: ${maskPersonName(data.guest?.guestName)}`
                         : `تم تسجيل السيارة كعرض${data.entry?.slot ? ` · ${data.entry.slot}` : ''}`,
                     'ok'
                 );
@@ -2794,6 +2833,19 @@
             overlayFields.querySelectorAll('.overlay-field').forEach((el) => {
                 fieldEls[el.dataset.tag] = el;
             });
+        }
+
+        function maskPersonName(value) {
+            const s = String(value == null ? '' : value).trim();
+            if (!s || s === '—' || s === '-' || s === 'N/A') return s || '—';
+            return s.replace(/[^\s]+/g, (word) => {
+                const chars = Array.from(word);
+                if (!chars.length) return word;
+                return chars[0] + '*'.repeat(Math.max(0, chars.length - 1));
+            });
+        }
+        function maskPhone(_value) {
+            return '—';
         }
 
         function setStatus(msg, type) {
@@ -3440,11 +3492,16 @@
             const company = item.deliveryCompany || item.company || '';
             const product = item.product || item.model || '—';
             const gt = item.gt || item.location || '';
-            return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}" data-company="${String(company).replace(/"/g, '&quot;')}" data-product="${String(product).replace(/"/g, '&quot;')}" data-planned="${planned}">
+            const city = String(item.plannedBranch || item.deliveryCity || '').trim();
+            return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}" data-company="${String(company).replace(/"/g, '&quot;')}" data-product="${String(product).replace(/"/g, '&quot;')}" data-planned="${planned}" data-city="${String(city).replace(/"/g, '&quot;')}">
                 <div class="fc-body">
                     <div class="fc-vin">${item.vin}</div>
                     <div class="fc-product">${product}</div>
-                    <div class="fc-meta">${gt ? 'GT: ' + gt : '—'}</div>
+                    <div class="fc-meta">${[
+                        company ? company : '',
+                        city ? ('→ ' + city) : '',
+                        gt ? ('GT: ' + gt) : '',
+                    ].filter(Boolean).join(' · ') || '—'}</div>
                     <span class="fc-badge ${badgeClass}">${badgeText}</span>
                 </div>
             </div>`;
@@ -3726,7 +3783,7 @@
                     companyEl.dispatchEvent(new Event('change', { bubbles: true }));
                 }
             }
-            applyAgentAutoBranch();
+            applyTeamPlannedBranch(item);
             // Display → new delivery note: stamp status on form for paper + save
             if (fromDisplay || item.agentStatus === 'display'
                 || String(item.vehicleStatus || '').toLowerCase() === 'display') {
@@ -3767,9 +3824,12 @@
             if (companyLabel) companyLabel.textContent = warehouse ? `${company} · مستودع` : company;
             if (vinLabel) vinLabel.textContent = vin;
             if (hint) {
+                const city = String(item.plannedBranch || item.deliveryCity || '').trim();
                 hint.textContent = warehouse
                     ? 'نموذج المستودع — أكمل الحقول المطلوبة ثم اطبع'
-                    : 'مفتوح: الشركة (محددة مسبقاً وقابلة للتغيير) · المندوب · الفرع (اختر) · اللوحة · الملاحظات · المرفقات';
+                    : (city
+                        ? `الشركة والمدينة من Delivery Team (${city}) — راجعي ثم اطبعي`
+                        : 'مفتوح: الشركة · المندوب · الفرع / المدينة · اللوحة · الملاحظات · المرفقات');
             }
             strip.hidden = false;
         }
@@ -3803,11 +3863,13 @@
             document.getElementById('stockActionVin').textContent = stockActionVin;
             const company = item.deliveryCompany || item.company || '';
             const planned = String(item.plannedDeliveryMode || '').toLowerCase();
+            const city = String(item.plannedBranch || item.deliveryCity || '').trim();
             document.getElementById('stockActionProduct').textContent = [
-                item.product || item.model || '—',
-                company ? `· ${company}` : '',
-                planned === 'warehouse' ? '· مستودع' : (planned === 'memo' ? '· ترحيل' : '')
-            ].filter(Boolean).join(' ');
+                item.product || item.model || '',
+                company ? `شركة: ${company}` : '',
+                city ? `مدينة: ${city}` : '',
+                planned === 'warehouse' ? 'مستودع' : (planned === 'memo' ? 'ترحيل' : ''),
+            ].filter(Boolean).join(' · ');
             const sub = document.getElementById('stockActionSub');
             const keepBtn = document.getElementById('stockActionKeep');
             const whBtn = document.getElementById('stockActionWarehouse');
@@ -3910,8 +3972,7 @@
             showView('app');
             clearDeliveryForm();
             prefillClaimedVin(item);
-            applyAgentAutoBranch();
-            // company / warehouse applied by startDeliveryNote → applyCoordinatorPlan
+            // City filled by startDeliveryNote → applyTeamPlannedBranch (Delivery Team مدينة الترحيل)
         }
 
         function openWorkspace() {

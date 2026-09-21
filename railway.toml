@@ -4,3 +4,9 @@ builder = "nixpacks"
 [deploy]
 startCommand = "npm start"
 restartPolicyType = "on_failure"
+
+# Persist RTL historical snapshots across redeploys:
+# 1) Railway → service → Volumes → mount at /data
+# 2) Variables → PERSISTENT_DATA_DIR=/data
+# Snapshots live at $PERSISTENT_DATA_DIR/report-sheet-data/rtl-daily (append-only).
+# Live Push clears only report-sheet-data/files/* — never the RTL archive.

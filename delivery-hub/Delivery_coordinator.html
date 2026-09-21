@@ -268,6 +268,18 @@
             color: #86efac;
             border: 1px solid rgba(34, 197, 94, .3);
         }
+        .company-board-count.has-drafts {
+            background: rgba(56, 189, 248, .14);
+            color: #7dd3fc;
+            border: 1px solid rgba(56, 189, 248, .35);
+        }
+        .company-board-counts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+            align-items: center;
+        }
         .company-board textarea {
             width: 100%;
             min-height: 88px;
@@ -521,6 +533,7 @@
             <h2>رحلة التعيين</h2>
             <p>
                 السيارات بدون شركة تبقى مفتوحة — الصقي VIN في لوحة الشركة لتعيينها.
+                إذا عيّنتِ الناقل من Delivery Team (حنوف / رشا) يظهر الشاسيه تلقائياً هنا في لوحة الشركة.
                 إذا كان الشاسيه معيّناً لشركة أخرى يظهر تنبيه تكرار وتختارين: إعادة التعيين أو التخطي.
             </p>
         </div>
@@ -567,13 +580,13 @@
             <details class="coord-upload" id="uploadDetails" open>
                 <summary class="hub-section-head" style="margin-bottom:0">
                     <h2>١ — رفع بيانات خام — Sales Raw</h2>
-                    <span class="hub-hint summary-hint">مطلوب أولاً · Product · GT · Location</span>
+                    <span class="hub-hint summary-hint">أو من Delivery Team · حنوف / ربى</span>
                 </summary>
                 <div style="margin-top:14px">
                     <label class="hub-upload" id="uploadZone">
                         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
                         <strong>اسحب ملف Excel أو انقر للاختيار — رفع كامل</strong>
-                        <p class="hub-meta">ارفع Sales Raw Data أولاً قبل إضافة أرقام الشاسيه</p>
+                        <p class="hub-meta">Sales Raw أو أرشيف delivery_export — يفضّل رفع Sales Raw من Delivery Team (حنوف / ربى) ليراه الجميع بنفس الوقت</p>
                     </label>
                     <p class="hub-status" id="uploadStatus"></p>
                     <div class="hub-actions-row" style="margin-top:14px;flex-wrap:wrap;gap:10px;align-items:center">
@@ -589,10 +602,10 @@
         <section class="hub-section" id="vinSection">
             <div class="hub-section-head">
                 <h2>٢ — لوحات الشركات — Paste VINs</h2>
-                <span class="hub-hint" id="vinSectionHint">ارفع البيانات الخام أولاً</span>
+                <span class="hub-hint" id="vinSectionHint">ارفع البيانات الخام أو عيّني الناقل من Delivery Team</span>
             </div>
             <div id="vinGateMsg" class="hub-status err" style="margin-bottom:12px">
-                ارفع ملف Excel أولاً — بعدها تظهر لوحة لكل شركة للصق الشاسيه
+                ارفع ملف Excel أولاً — أو عيّني الناقل من Delivery Team فتظهر الشاسيه تلقائياً في لوحة الشركة
             </div>
             <div id="vinPromptBanner" class="hub-status ok" style="display:none;margin-bottom:12px"></div>
             <div class="company-boards" id="companyBoards"></div>
@@ -658,20 +671,28 @@
             el.className = 'hub-status' + (type ? ` ${type}` : '');
         }
 
-        function renderStats(stats, hasRaw) {
+        function renderStats(stats, hasRaw, rawStatus) {
             const unassigned = currentQueue.filter(isUnassignedCompany).length;
+            const draftTotal = Object.values(draftsByCompany || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+            const draftCompanies = Object.keys(draftsByCompany || {}).filter((k) => k && k !== 'بدون شركة').length;
+            const rawAt = rawStatus && rawStatus.uploadedAt
+                ? new Date(rawStatus.uploadedAt).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })
+                : (hasRaw ? '✓' : '—');
+            const rawBy = rawStatus && rawStatus.uploadedByName ? rawStatus.uploadedByName : '';
             document.getElementById('stats').innerHTML = `
                 <div class="hub-stat"><span>إجمالي الشاسيه</span><b>${stats.total || 0}</b></div>
                 <div class="hub-stat hub-stat--avail"><span>متاح</span><b>${stats.available || 0}</b></div>
                 <div class="hub-stat hub-stat--warn"><span>بدون شركة</span><b>${unassigned}</b></div>
-                <div class="hub-stat hub-stat--stock"><span>In Stock</span><b>${stats.in_stock || 0}</b></div>
+                <div class="hub-stat hub-stat--stock"><span>Print Drafts</span><b>${draftTotal}</b></div>
+                <div class="hub-stat"><span>شركات المسودات</span><b>${draftCompanies}</b></div>
                 <div class="hub-stat hub-stat--ready"><span>Ready</span><b>${stats.ready_for_delivery || 0}</b></div>
-                <div class="hub-stat"><span>بيانات خام</span><b style="font-size:1rem">${hasRaw ? '✓' : '—'}</b></div>
+                <div class="hub-stat"><span>بيانات خام</span><b style="font-size:0.78rem;line-height:1.25">${rawAt}${rawBy ? `<br><span style="font-weight:600;opacity:.85">${rawBy}</span>` : ''}</b></div>
                 <div class="hub-stat hub-stat--avail"><span>تم الترحيل</span><b>${stats.delivered || 0}</b></div>
             `;
         }
 
         let currentQueue = [];
+        let draftsByCompany = {};
         let rawUploaded = false;
         let companyOptions = [];
         let companyPhones = {};
@@ -778,26 +799,13 @@
                 }
                 return false;
             }
-            if (!phone) {
-                if (statusEl) {
-                    statusEl.textContent = 'أدخل رقم الجوال أولاً';
-                    statusEl.className = 'company-board-status err';
-                }
-                return false;
-            }
             try {
                 const res = await fetch('/api/delivery-options/company-phone', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ company, phone })
                 });
-                const raw = await res.text();
-                let data = {};
-                try {
-                    data = raw ? JSON.parse(raw) : {};
-                } catch {
-                    throw new Error(res.ok ? 'رد غير متوقع من الخادم' : 'تعذر حفظ الرقم — حدّث الصفحة بعد اكتمال النشر');
-                }
+                const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'فشل حفظ الرقم');
                 companyPhones = data.companyPhones || companyPhones;
                 boardPhoneDraft.delete(company);
@@ -861,6 +869,20 @@
             return n.includes('مستودع') || n === 'المستودع';
         }
 
+        function draftCountForCompany(company) {
+            const key = String(company || '').trim();
+            if (!key) return 0;
+            if (draftsByCompany[key] != null) return Number(draftsByCompany[key]) || 0;
+            const want = key.toLowerCase().replace(/\s+/g, ' ');
+            for (const [k, v] of Object.entries(draftsByCompany || {})) {
+                if (String(k).trim().toLowerCase().replace(/\s+/g, ' ') === want) return Number(v) || 0;
+            }
+            if (isWarehouseCompany(key)) {
+                return Number(draftsByCompany['مستودع الهاتفية'] || 0);
+            }
+            return 0;
+        }
+
         function countForCompany(company) {
             const key = String(company || '').trim();
             return currentQueue.filter((q) => {
@@ -921,10 +943,19 @@
             if (!boards.some(isWarehouseCompany)) {
                 boards.push('مستودع الهاتفية');
             }
+            // Boards from Print Drafts companies (even if not yet in options list)
+            Object.keys(draftsByCompany || {}).forEach((name) => {
+                const n = String(name || '').trim();
+                if (!n || n === 'بدون شركة') return;
+                if (!boards.some((b) => String(b).trim().toLowerCase() === n.toLowerCase())) {
+                    boards.push(n);
+                }
+            });
 
             wrap.innerHTML = boards.map((company) => {
                 const wh = isWarehouseCompany(company);
                 const count = countForCompany(company);
+                const draftCount = draftCountForCompany(company);
                 const waCount = waItemsForCompany(company).length;
                 const cached = boardPasteCache.get(company) || '';
                 const savedPhone = companyPhoneLookup(company);
@@ -951,7 +982,10 @@
                             </div>
                             ${phoneRow}
                         </div>
-                        <span class="company-board-count${count ? ' has-vins' : ''}">${count} في القائمة</span>
+                        <div class="company-board-counts">
+                            <span class="company-board-count${count ? ' has-vins' : ''}">${count} في القائمة</span>
+                            <span class="company-board-count${draftCount ? ' has-drafts' : ''}">${draftCount} مسودة</span>
+                        </div>
                     </div>
                     <textarea
                         data-board-paste="${esc}"
@@ -1491,8 +1525,19 @@
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'فشل التحميل');
             currentQueue = data.queue || [];
+            draftsByCompany = (data.draftsByCompany && typeof data.draftsByCompany === 'object')
+                ? data.draftsByCompany
+                : {};
+            // Pull new company names from Print Drafts into the boards list
+            Object.keys(draftsByCompany).forEach((name) => {
+                const n = String(name || '').trim();
+                if (!n || n === 'بدون شركة') return;
+                if (!companyOptions.some((c) => String(c).trim().toLowerCase() === n.toLowerCase())) {
+                    companyOptions.push(n);
+                }
+            });
             setVinSectionEnabled(Boolean(data.rawUploaded));
-            renderStats(data.stats, data.rawUploaded);
+            renderStats(data.stats, data.rawUploaded, data.rawStatus);
             renderQueue(currentQueue);
             renderCompanyBoards();
         }
@@ -1555,11 +1600,15 @@
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'فشل الرفع');
+                    const draftNote = data.draftsImported
+                        ? ` · ${data.draftsImported} مسودة Print Drafts · عُيّن ${data.companiesFromDrafts || 0} شاسيه لشركة`
+                        : '';
                     setStatus(
                         'uploadStatus',
-                        `تم رفع الملف · ${data.imported} صف · حدّثت القائمة من البيانات الجديدة`,
+                        `تم رفع الملف · ${data.imported} صف · حدّثت القائمة من البيانات الجديدة${draftNote}`,
                         'ok'
                     );
+                    await loadCompanyOptions();
                     await loadQueue();
                     promptAddNewVins({
                         imported: data.imported,

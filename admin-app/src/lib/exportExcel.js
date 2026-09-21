@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { maskPersonName, maskPhone } from './privacy'
 
 const WAREHOUSE_SPECIAL_NAME = 'مستودع الهاتفية'
 
@@ -15,6 +16,32 @@ function isWarehouseDraft(d) {
   if (branch === 'المستودع' || branch === 'في المستودع') return true
   if (String(p.company_rep || '').includes('مستودع')) return true
   return false
+}
+
+function companyChangeNoteFromDraft(d) {
+  const p = (d && d.payload) || {}
+  const from = String(d.companyChangedFrom || p.company_changed_from || '').trim()
+  const to = String(
+    d.companyChangedTo || p.company_changed_to || p.company_rep || d.customerName || '',
+  ).trim()
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return ''
+  return `تم تغيير الشركة من «${from}» إلى «${to}»`
+}
+
+function companyChangeNoteFromQueue(item) {
+  const from = String(item?.companyChangedFrom || '').trim()
+  const to = String(item?.companyChangedTo || item?.deliveryCompany || item?.company || '').trim()
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) return ''
+  return `تم تغيير الشركة من «${from}» إلى «${to}»`
+}
+
+function mergeExportNotes(base, changeNote) {
+  const a = String(base || '').trim()
+  const b = String(changeNote || '').trim()
+  if (!b) return a
+  if (!a) return b
+  if (a.includes(b) || (b.includes('تم تغيير الشركة') && a.includes('تم تغيير الشركة'))) return a
+  return `${a} | ${b}`
 }
 
 function draftCarWeight(d) {
@@ -82,7 +109,7 @@ export function exportAllToExcel({ vehicles, queue, drafts, dashboard }) {
     'Chassis / VIN': v.vin || '',
     Product: v.product || v.model || '',
     Plate: v.plate || '',
-    Customer: v.customerName || '',
+    Customer: maskPersonName(v.customerName),
     Location: v.location || '',
     GT: v.gt || '',
     Model: v.model || '',
@@ -100,6 +127,7 @@ export function exportAllToExcel({ vehicles, queue, drafts, dashboard }) {
   const queueRows = allQueue.map((item) => {
     const isWh =
       item.deliveryMode === 'warehouse' || String(item.statusLabel || '').includes('المستودع')
+    const changeNote = companyChangeNoteFromQueue(item)
     return {
       'Chassis / VIN': item.vin || '',
       Product: item.product || item.model || '',
@@ -117,7 +145,11 @@ export function exportAllToExcel({ vehicles, queue, drafts, dashboard }) {
             ? 'تم التسليم في المستودع'
             : item.statusLabel || (item.agentStatus === 'delivered' ? 'تم الترحيل' : 'محجوز'),
       Plate: item.plate || '',
-      Customer: item.customerName || '',
+      Customer: maskPersonName(item.customerName),
+      Company: item.deliveryCompany || item.company || '',
+      'Company Changed From': String(item.companyChangedFrom || '').trim(),
+      'Company Changed To': String(item.companyChangedTo || '').trim(),
+      Notes: changeNote,
       'Added At': item.addedAt || '',
       'Assigned At': item.assignedAt || '',
     }
@@ -142,7 +174,15 @@ export function exportAllToExcel({ vehicles, queue, drafts, dashboard }) {
     const uniqueVins = [...new Set(vinList)]
     const ownerName =
       p.warehouse?.owner_name || p.customer_name || p.company_rep || d.customerName || ''
+    const changeFrom = String(d.companyChangedFrom || p.company_changed_from || '').trim()
+    const changeTo = String(d.companyChangedTo || p.company_changed_to || '').trim()
+    const remarks = mergeExportNotes(p.remarks || '', companyChangeNoteFromDraft(d))
     return {
+      'Delivery Note Number': d.deliveryNoteNumber || p.deliveryNoteNumber || '',
+      'Delivery Note Date': d.deliveryNoteDate || p.deliveryNoteDate || '',
+      'Branch Entry Date': d.branchEntryDate || p.branchEntryDate || '',
+      'Vehicle Status': d.vehicleStatus || p.vehicleStatus || '',
+      Agent: d.entryAgent || d.assignedTo || '',
       'Draft ID': d.id || '',
       'Printed At': d.printedAt || '',
       'Chassis / VIN': uniqueVins[0] || d.vin || '',
@@ -153,15 +193,18 @@ export function exportAllToExcel({ vehicles, queue, drafts, dashboard }) {
       Section: isWh ? 'في المستودع' : 'شركات النقل',
       'Delivery Type': isWh ? 'warehouse' : 'memo',
       'Company Name': isWh ? WAREHOUSE_SPECIAL_NAME : p.company_rep || '',
-      'Company Rep': isWh ? ownerName : p.customer_name || d.customerName || '',
+      'Company Rep': isWh ? maskPersonName(ownerName) : maskPersonName(p.customer_name || d.customerName),
+      'Company Changed From': changeFrom,
+      'Company Changed To': changeTo,
       'Branch To': isWh ? 'في المستودع' : p.branch_to || '',
       'Branch From': p.branch_from || '',
       Plate: p.plate || d.plate || '',
       GT: p.gt || d.gt || '',
       Location: p.location || d.location || '',
-      Remarks: p.remarks || '',
+      Remarks: remarks,
+      Notes: remarks,
       'Customer ID': p.customer_id || '',
-      Phone: p.phone || p.warehouse?.user_phone || '',
+      Phone: maskPhone(),
     }
   })
   XLSX.utils.book_append_sheet(
