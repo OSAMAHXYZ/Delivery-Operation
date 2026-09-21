@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Back Order Correction</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #EB0A1E;
+      --primary-dark: #C00818;
+      --bg: #f6f8fb;
+      --card: #fff;
+      --line: #e5e7eb;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --ok: #059669;
+      --err: #dc2626;
+      --err-bg: #fef2f2;
+      --err-cell: #fecaca;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+    }
+    .wrap { max-width: 100%; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 6px; color: var(--primary); font-size: 1.6rem; }
+    .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .row { margin-top: 14px; display: grid; gap: 8px; }
+    label { font-weight: 600; font-size: 14px; }
+    input[type="file"] {
+      padding: 11px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      background: #fff;
+    }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+    button, .btn-link {
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 11px 18px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    button:hover { background: var(--primary-dark); }
+    button.secondary { background: #374151; }
+    button.secondary:hover { background: #1f2937; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 12px; font-weight: 600; font-size: 14px; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .summary-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #f9fafb;
+    }
+    .summary-box strong { display: block; font-size: 1.4rem; }
+    .summary-box span { font-size: 12px; color: var(--muted); }
+    .summary-box.error strong { color: var(--err); }
+    .summary-box.ok strong { color: var(--ok); }
+    .rules {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: #f9fafb;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .rules h3 { margin: 0 0 8px; font-size: 13px; }
+    .rules ul { margin: 0; padding-left: 18px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .toolbar label { font-weight: 500; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 13px;
+    }
+    .preview-wrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .preview-head {
+      padding: 10px 14px;
+      background: #f9fafb;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .preview-scroll { max-height: 70vh; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      border-bottom: 1px solid #f1f5f9;
+      border-right: 1px solid #f1f5f9;
+      padding: 6px 8px;
+      text-align: left;
+      white-space: nowrap;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      z-index: 2;
+      font-weight: 700;
+    }
+    th.col-f, td.col-f { background: #fffbeb; }
+    th.col-key, td.col-key { background: #eff6ff; }
+    tr.row-error { background: var(--err-bg) !important; }
+    tr.row-error td { border-color: #fecaca; }
+    tr.row-error td.cell-error { background: var(--err-cell); font-weight: 600; color: #991b1b; }
+    td.errors-col {
+      white-space: normal;
+      min-width: 280px;
+      max-width: 420px;
+      font-size: 11px;
+      color: #991b1b;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .empty-preview { padding: 20px; color: var(--muted); font-size: 14px; text-align: center; }
+    .nav-links { margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav-links">
+      <a href="bo-order-lookup.html">← BO Order Lookup</a>
+      <a href="bo-data-admin.html">BO Data Admin</a>
+    </div>
+
+    <div class="card">
+      <h1>Back Order Correction</h1>
+      <p class="sub">Upload your backorder Excel file. Rows with validation errors are highlighted in red so you can fix them in Excel.</p>
+
+      <div class="row">
+        <label for="fileInput">Backorder Excel (.xlsx / .xls)</label>
+        <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      </div>
+
+      <div class="btn-row">
+        <button id="validateBtn" type="button" disabled>Validate file</button>
+        <button id="exportBtn" type="button" class="secondary" disabled>Export errors (.xlsx)</button>
+      </div>
+      <div id="status" class="status"></div>
+
+      <div id="summary" class="summary-grid" style="display:none;"></div>
+
+      <details class="rules">
+        <summary style="cursor:pointer;font-weight:700;">Validation rules</summary>
+        <ul>
+          <li><strong>Column F</strong> — no duplicate values</li>
+          <li><strong>Column I = Emp</strong> — row is correct (skip all checks, including duplicates)</li>
+          <li><strong>Column K</strong> — must be 2026; if 2025 only allowed when product (L) = COROLLA CROSS</li>
+          <li><strong>Column H</strong> Confirmed / Not_Confirmed — product rules apply:</li>
+          <li style="list-style:none;margin-left:12px;">LC70 → J must not be 0</li>
+          <li style="list-style:none;margin-left:12px;">CAMRY + suffix M (AA, BB, CC) → J must not be 0; interior Q/R/S must not be 0 or 20</li>
+          <li style="list-style:none;margin-left:12px;">LC300 + suffix M (G2, G3, G4) → J must not be 0</li>
+          <li style="list-style:none;margin-left:12px;">RAV4 — interior Q/R/S must not be 0 or 20 (except suffix SH or VH)</li>
+          <li style="list-style:none;margin-left:12px;">RAV4 + suffix SH — N/O/P must each be one of: 218, 2SQ, 2VP, M2L</li>
+          <li><strong>YARIS SD</strong> — suffix (M) must not be BA</li>
+          <li><strong>VELOZ</strong> — exterior colors N/O/P must not be S28</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="toolbar">
+        <label>
+          Show
+          <select id="filterSelect">
+            <option value="all">All rows</option>
+            <option value="errors" selected>Errors only</option>
+          </select>
+        </label>
+        <span id="tableMeta" class="sub" style="margin:0;"></span>
+      </div>
+      <div class="preview-wrap">
+        <div class="preview-head" id="previewHead">Results</div>
+        <div class="preview-scroll">
+          <table id="resultsTable">
+            <thead id="resultsThead"></thead>
+            <tbody id="resultsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COL = { F: 5, H: 7, I: 8, J: 9, K: 10, L: 11, M: 12, N: 13, O: 14, P: 15, Q: 16, R: 17, S: 18 };
+    const KEY_COLS = new Set([COL.F, COL.H, COL.I, COL.J, COL.K, COL.L, COL.M, COL.N, COL.O, COL.P, COL.Q, COL.R, COL.S]);
+    const CAMRY_SUFFIXES = ['AA', 'BB', 'CC'];
+    const LC300_SUFFIXES = ['G2', 'G3', 'G4'];
+    const RAV4_SH_ALLOWED = new Set(['218', '2SQ', '2VP', 'M2L']);
+    const RAV4_INTERIOR_EXEMPT = new Set(['SH', 'VH']);
+
+    let lastResults = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const validateBtn = document.getElementById('validateBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const statusEl = document.getElementById('status');
+    const filterSelect = document.getElementById('filterSelect');
+
+    fileInput.addEventListener('change', () => {
+      validateBtn.disabled = !fileInput.files?.length;
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+    });
+
+    validateBtn.addEventListener('click', () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      statusEl.textContent = 'Reading file…';
+      statusEl.className = 'status';
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          const sheetName = wb.SheetNames[0];
+          const sheet = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+          lastResults = validateWorkbook(rows, sheetName);
+          renderResults(lastResults);
+          exportBtn.disabled = lastResults.errorCount === 0;
+          if (lastResults.errorCount === 0) {
+            statusEl.textContent = `All ${lastResults.dataRowCount} rows passed validation.`;
+            statusEl.className = 'status ok';
+          } else {
+            statusEl.textContent = `Found ${lastResults.errorCount} row(s) with errors out of ${lastResults.dataRowCount}.`;
+            statusEl.className = 'status err';
+          }
+        } catch (err) {
+          statusEl.textContent = err.message || 'Failed to read Excel file';
+          statusEl.className = 'status err';
+        }
+      };
+      reader.onerror = () => {
+        statusEl.textContent = 'Could not read file';
+        statusEl.className = 'status err';
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    filterSelect.addEventListener('change', () => {
+      if (lastResults) renderTable(lastResults);
+    });
+
+    exportBtn.addEventListener('click', () => {
+      if (!lastResults?.errorRows?.length) return;
+      const out = [
+        ['Excel Row', 'Errors', ...lastResults.headers, 'All Errors']
+      ];
+      lastResults.errorRows.forEach((r) => {
+        out.push([
+          r.excelRow,
+          r.errors.join(' | '),
+          ...r.cells,
+          r.errors.join(' | ')
+        ]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(out);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Errors');
+      XLSX.writeFile(wb, `backorder-errors-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    });
+
+    function colLetter(index) {
+      let n = index + 1;
+      let s = '';
+      while (n > 0) {
+        const rem = (n - 1) % 26;
+        s = String.fromCharCode(65 + rem) + s;
+        n = Math.floor((n - 1) / 26);
+      }
+      return s;
+    }
+
+    function cellStr(row, idx) {
+      if (!row || idx >= row.length) return '';
+      const v = row[idx];
+      if (v == null) return '';
+      return String(v).trim();
+    }
+
+    function normUpper(s) {
+      return cellStr([s], 0).toUpperCase();
+    }
+
+    function normProduct(s) {
+      return cellStr([s], 0).toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function isZero(val) {
+      const s = cellStr([val], 0);
+      return s === '0' || s === '0.0' || Number(s) === 0;
+    }
+
+    function isTwenty(val) {
+      const s = cellStr([val], 0);
+      return s === '20' || Number(s) === 20;
+    }
+
+    function isEmp(j) {
+      return normUpper(j) === 'EMP';
+    }
+
+    function normStatus(h) {
+      return cellStr([h], 0).toLowerCase().replace(/[\s-]+/g, '_');
+    }
+
+    function isConfirmedStatus(h) {
+      const n = normStatus(h);
+      return n === 'confirmed' || n === 'not_confirmed';
+    }
+
+    function isDataRow(row) {
+      if (!row || !row.length) return false;
+      return row.some((c) => cellStr([c], 0) !== '');
+    }
+
+    function findHeaderRow(rows) {
+      for (let i = 0; i < Math.min(rows.length, 15); i++) {
+        const row = rows[i];
+        if (!row) continue;
+        const joined = row.map((c) => cellStr([c], 0).toLowerCase()).join(' ');
+        if (joined.includes('product') || joined.includes('confirmed') || row.length >= 10) {
+          return i;
+        }
+      }
+      return 0;
+    }
+
+    function buildDuplicateFMap(dataRows, headerIdx) {
+      const counts = new Map();
+      dataRows.forEach(({ row, excelRow }) => {
+        const f = cellStr(row, COL.F);
+        if (!f) return;
+        if (!counts.has(f)) counts.set(f, []);
+        counts.get(f).push(excelRow);
+      });
+      const dupes = new Set();
+      counts.forEach((rows, key) => {
+        if (rows.length > 1) rows.forEach((r) => dupes.add(`${key}::${r}`));
+      });
+      return { counts, dupes };
+    }
+
+    function validateRow(row, excelRow, dupInfo) {
+      const errors = [];
+      const badCols = new Set();
+
+      const F = cellStr(row, COL.F);
+      const H = cellStr(row, COL.H);
+      const I = cellStr(row, COL.I);
+      const J = cellStr(row, COL.J);
+      const K = cellStr(row, COL.K);
+      const L = normProduct(row[COL.L]);
+      const M = normUpper(row[COL.M]);
+      const N = normUpper(row[COL.N]);
+      const O = normUpper(row[COL.O]);
+      const P = normUpper(row[COL.P]);
+      const Q = cellStr(row, COL.Q);
+      const R = cellStr(row, COL.R);
+      const S = cellStr(row, COL.S);
+
+      function addError(msg, cols = []) {
+        errors.push(msg);
+        cols.forEach((c) => badCols.add(c));
+      }
+
+      if (isEmp(I)) {
+        return { errors, badCols };
+      }
+
+      if (F && dupInfo.counts.get(F)?.length > 1) {
+        addError(`Column F duplicate: "${F}" appears ${dupInfo.counts.get(F).length} times`, [COL.F]);
+      }
+
+      const kVal = K.replace(/\.0+$/, '');
+      if (kVal === '2025') {
+        if (L !== 'COROLLA CROSS') {
+          addError('Column K is 2025 — only COROLLA CROSS is allowed', [COL.K, COL.L]);
+        }
+      } else if (kVal !== '2026') {
+        addError(`Column K must be 2026 (found "${K || 'empty'}")`, [COL.K]);
+      }
+
+      if (L === 'YARIS SD' || L === 'YARID SD') {
+        if (M === 'BA') {
+          addError('YARIS SD: suffix (M) must not be BA', [COL.L, COL.M]);
+        }
+      }
+
+      if (L === 'VELOZ') {
+        [[COL.N, N, 'N'], [COL.O, O, 'O'], [COL.P, P, 'P']].forEach(([ci, val, letter]) => {
+          if (val === 'S28') addError(`VELOZ: column ${letter} must not be S28`, [ci, COL.L]);
+        });
+      }
+
+      if (!isConfirmedStatus(H)) {
+        return { errors, badCols };
+      }
+
+      if (L === 'LC70' && isZero(J)) {
+        addError('LC70: column J (sales type) must not be 0', [COL.J, COL.L]);
+      }
+
+      if (L === 'CAMRY') {
+        if (CAMRY_SUFFIXES.includes(M) && isZero(J)) {
+          addError(`CAMRY suffix ${M}: column J must not be 0`, [COL.J, COL.L, COL.M]);
+        }
+        [[COL.Q, Q, 'Q'], [COL.R, R, 'R'], [COL.S, S, 'S']].forEach(([ci, val, letter]) => {
+          if (isZero(val) || isTwenty(val)) {
+            addError(`CAMRY: interior ${letter} must not be 0 or 20`, [ci, COL.L]);
+          }
+        });
+      }
+
+      if (L === 'LC300' && LC300_SUFFIXES.includes(M) && isZero(J)) {
+        addError(`LC300 suffix ${M}: column J must not be 0`, [COL.J, COL.L, COL.M]);
+      }
+
+      if (L === 'RAV4') {
+        if (!RAV4_INTERIOR_EXEMPT.has(M)) {
+          [[COL.Q, Q, 'Q'], [COL.R, R, 'R'], [COL.S, S, 'S']].forEach(([ci, val, letter]) => {
+            if (isZero(val) || isTwenty(val)) {
+              addError(`RAV4: interior ${letter} must not be 0 or 20 (suffix ${M || 'empty'})`, [ci, COL.L, COL.M]);
+            }
+          });
+        }
+        if (M === 'SH') {
+          [[COL.N, N, 'N'], [COL.O, O, 'O'], [COL.P, P, 'P']].forEach(([ci, val, letter]) => {
+            if (!RAV4_SH_ALLOWED.has(val)) {
+              addError(`RAV4 SH: column ${letter} must be 218, 2SQ, 2VP, or M2L (found "${val || 'empty'}")`, [ci, COL.L, COL.M]);
+            }
+          });
+        }
+      }
+
+      return { errors, badCols };
+    }
+
+    function validateWorkbook(rows, sheetName) {
+      const headerIdx = findHeaderRow(rows);
+      const headerRow = rows[headerIdx] || [];
+      const maxCol = Math.max(
+        headerRow.length - 1,
+        COL.S,
+        ...rows.slice(headerIdx + 1).map((r) => (r ? r.length - 1 : 0))
+      );
+      const colCount = maxCol + 1;
+
+      const headers = [];
+      for (let c = 0; c < colCount; c++) {
+        const h = cellStr(headerRow, c);
+        headers.push(h || colLetter(c));
+      }
+
+      const dataRows = [];
+      for (let i = headerIdx + 1; i < rows.length; i++) {
+        const row = rows[i] || [];
+        if (!isDataRow(row)) continue;
+        const padded = [...row];
+        while (padded.length < colCount) padded.push('');
+        dataRows.push({ row: padded, excelRow: i + 1, index: dataRows.length });
+      }
+
+      const dupInfo = buildDuplicateFMap(dataRows, headerIdx);
+
+      const validated = dataRows.map((item) => {
+        const { errors, badCols } = validateRow(item.row, item.excelRow, dupInfo);
+        return {
+          ...item,
+          cells: item.row.slice(0, colCount),
+          errors,
+          badCols,
+          hasError: errors.length > 0
+        };
+      });
+
+      const errorRows = validated.filter((r) => r.hasError);
+
+      return {
+        sheetName,
+        headers,
+        colCount,
+        headerIdx,
+        rows: validated,
+        errorRows,
+        dataRowCount: validated.length,
+        errorCount: errorRows.length,
+        okCount: validated.length - errorRows.length
+      };
+    }
+
+    function renderResults(results) {
+      document.getElementById('resultsCard').style.display = 'block';
+      const summary = document.getElementById('summary');
+      summary.style.display = 'grid';
+      summary.innerHTML = `
+        <div class="summary-box"><strong>${results.dataRowCount}</strong><span>Total rows</span></div>
+        <div class="summary-box ok"><strong>${results.okCount}</strong><span>Correct rows</span></div>
+        <div class="summary-box error"><strong>${results.errorCount}</strong><span>Rows with errors</span></div>
+        <div class="summary-box"><strong>${results.sheetName}</strong><span>Sheet validated</span></div>
+      `;
+      document.getElementById('previewHead').textContent =
+        `Results — ${results.errorCount} error row(s)`;
+      renderTable(results);
+    }
+
+    function renderTable(results) {
+      const showErrorsOnly = filterSelect.value === 'errors';
+      const displayRows = showErrorsOnly ? results.errorRows : results.rows;
+      document.getElementById('tableMeta').textContent =
+        `Showing ${displayRows.length} of ${results.dataRowCount} rows`;
+
+      const thead = document.getElementById('resultsThead');
+      const tbody = document.getElementById('resultsTbody');
+
+      const headCells = ['Row', 'Status', 'Errors', ...results.headers.map((h, i) => `${colLetter(i)}: ${h}`)];
+      thead.innerHTML = `<tr>${headCells.map((h) => `<th>${esc(h)}</th>`).join('')}</tr>`;
+
+      if (!displayRows.length) {
+        tbody.innerHTML = `<tr><td colspan="${headCells.length}" class="empty-preview">No rows to display.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = displayRows.map((r) => {
+        const rowClass = r.hasError ? 'row-error' : '';
+        const status = r.hasError ? 'ERROR' : 'OK';
+        const errText = r.errors.join(' · ');
+        const cells = r.cells.map((val, ci) => {
+          let cls = '';
+          if (ci === COL.F) cls += ' col-f';
+          if (KEY_COLS.has(ci)) cls += ' col-key';
+          if (r.badCols?.has(ci)) cls += ' cell-error';
+          return `<td class="${cls.trim()}" title="${esc(cellStr([val], 0))}">${esc(cellStr([val], 0))}</td>`;
+        }).join('');
+        return `<tr class="${rowClass}">
+          <td>${r.excelRow}</td>
+          <td>${status}</td>
+          <td class="errors-col">${esc(errText)}</td>
+          ${cells}
+        </tr>`;
+      }).join('');
+    }
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

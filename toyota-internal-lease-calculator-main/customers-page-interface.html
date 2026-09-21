@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer WhatsApp Messages — Toyota</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --tot-primary: #EB0A1E;
+            --tot-primary-press: #C00818;
+            --tot-ink: #1A1A1A;
+            --tot-muted: #6B7280;
+            --tot-line: #E5E7EB;
+            --tot-background: #FAFBFC;
+            --wa-green: #25D366;
+            --nav-height: 64px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(235, 10, 30, 0.08), transparent),
+                linear-gradient(180deg, #f8f9fb 0%, #ffffff 45%, #fafbfc 100%);
+            color: var(--tot-ink);
+            padding: calc(var(--nav-height) + 24px) 20px 40px;
+            min-height: 100vh;
+        }
+
+        .page-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--tot-line);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+
+        .page-nav-title { font-size: 0.95rem; font-weight: 700; }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid var(--tot-line);
+            background: #fff;
+            color: var(--tot-ink);
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .nav-btn:hover { border-color: var(--tot-primary); background: rgba(235, 10, 30, 0.04); }
+
+        .page-nav a[href="car-entrance.html"] {
+            display: none;
+        }
+
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .hero h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .hero h1 span { color: var(--tot-primary); }
+
+        .hero p {
+            color: var(--tot-muted);
+            font-size: 0.95rem;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.55;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--tot-line);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .card h2 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--tot-muted);
+            margin-bottom: 16px;
+        }
+
+        .field { margin-bottom: 14px; }
+
+        .field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--tot-ink);
+            margin-bottom: 6px;
+        }
+
+        .field label span {
+            font-weight: 400;
+            color: var(--tot-muted);
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--tot-line);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: #fff;
+            color: var(--tot-ink);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--tot-primary);
+            box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.12);
+        }
+
+        .field textarea { resize: vertical; min-height: 72px; }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 520px) {
+            .row-2 { grid-template-columns: 1fr; }
+        }
+
+        .car-preview {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px;
+            border-radius: 14px;
+            background: var(--tot-background);
+            border: 1px solid var(--tot-line);
+            margin-bottom: 14px;
+            min-height: 100px;
+        }
+
+        .car-preview img {
+            width: 120px;
+            height: 72px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .car-preview-info {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .car-preview-info strong { display: block; font-size: 1rem; }
+
+        .car-preview-placeholder {
+            color: var(--tot-muted);
+            font-size: 0.85rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .preview-box {
+            background: #e5ddd5;
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 280px;
+            position: relative;
+        }
+
+        .preview-box::before {
+            content: 'WhatsApp preview';
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(0,0,0,0.35);
+        }
+
+        .wa-bubble {
+            background: #fff;
+            border-radius: 8px 8px 8px 2px;
+            padding: 12px 14px;
+            max-width: 95%;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            color: #111;
+        }
+
+        .wa-bubble.ar {
+            font-family: 'Tajawal', 'Segoe UI', sans-serif;
+            direction: rtl;
+            text-align: right;
+            border-radius: 8px 8px 2px 8px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-wa {
+            background: var(--wa-green);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(37, 211, 102, 0.35);
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .btn-wa:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(37, 211, 102, 0.4);
+        }
+
+        .btn-copy {
+            background: var(--tot-ink);
+            color: #fff;
+        }
+
+        .btn-copy:hover:not(:disabled) { transform: translateY(-1px); }
+
+        .btn-outline {
+            background: #fff;
+            color: var(--tot-ink);
+            border: 1px solid var(--tot-line);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--tot-ink);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: transform 0.3s, opacity 0.3s;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--tot-muted);
+            margin-top: 4px;
+        }
+
+        .price-tag {
+            color: var(--tot-primary);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <nav class="page-nav" aria-label="Page navigation">
+        <span class="page-nav-title">Customer WhatsApp</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="car-entrance.html" class="nav-btn">Car entered (gate)</a>
+            <a href="detailed-calculations.html" class="nav-btn">← Detailed Calculator</a>
+        </div>
+    </nav>
+
+    <div class="wrap">
+        <header class="hero">
+            <h1>Customer <span>Message</span> Builder</h1>
+            <p>Select a car and model during your call, then copy or send a ready-made WhatsApp message to the customer.</p>
+        </header>
+
+        <div class="grid">
+            <section class="card">
+                <h2>Customer &amp; vehicle</h2>
+
+                <div class="row-2">
+                    <div class="field">
+                        <label>Customer name</label>
+                        <input id="customerName" type="text" placeholder="e.g. Ahmed" autocomplete="off">
+                    </div>
+                    <div class="field">
+                        <label>Your name <span>(advisor)</span></label>
+                        <input id="advisorName" type="text" placeholder="e.g. Osama" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Customer WhatsApp <span>(optional — 9665xxxxxxxx)</span></label>
+                    <input id="customerPhone" type="tel" placeholder="966501234567" inputmode="numeric" autocomplete="off">
+                    <p class="hint">Leave empty to open WhatsApp and choose the contact manually.</p>
+                </div>
+
+                <div class="row-2">
+                    <div class="field">
+                        <label>Car</label>
+                        <select id="carSelect">
+                            <option value="">— Select car —</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Model / trim</label>
+                        <select id="modelSelect" disabled>
+                            <option value="">— Select model —</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="car-preview" id="carPreview">
+                    <div class="car-preview-placeholder">Select a car to see preview</div>
+                </div>
+
+                <div class="field">
+                    <label>Message type</label>
+                    <select id="messageType">
+                        <option value="followup">After call — follow-up</option>
+                        <option value="quote">Price quote</option>
+                        <option value="showroom">Showroom visit invitation</option>
+                        <option value="finance">Financing &amp; lease options</option>
+                    </select>
+                </div>
+
+                <div class="row-2">
+                    <div class="field">
+                        <label>Language</label>
+                        <select id="messageLang">
+                            <option value="ar">Arabic</option>
+                            <option value="en">English</option>
+                            <option value="both">Arabic + English</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Extra note <span>(optional)</span></label>
+                        <input id="extraNote" type="text" placeholder="e.g. Available in white &amp; black">
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Generated message</h2>
+                <div class="preview-box" id="previewWrap">
+                    <div class="wa-bubble" id="messagePreview">Select a car and model to generate your message.</div>
+                </div>
+                <div class="actions">
+                    <button type="button" class="btn btn-wa" id="btnWhatsApp" disabled>
+                        Send on WhatsApp
+                    </button>
+                    <button type="button" class="btn btn-copy" id="btnCopy" disabled>
+                        Copy message
+                    </button>
+                    <button type="button" class="btn btn-outline" id="btnReset">
+                        Reset
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+        const STORAGE_ADVISOR = 'toyotaWaAdvisorName';
+
+        const carImageMap = {
+            'Camry': 'images/cars/camry.png',
+            'Corolla': 'images/cars/corolla.png',
+            'Crown': 'images/cars/crown.png',
+            'GR86': 'images/cars/gr86.png',
+            'RAV4': 'images/cars/rav4.png',
+            'Highlander': 'images/cars/highlander.png',
+            'Land Cruiser': 'images/cars/land cruiser.png',
+            'Prado': 'images/cars/prado.png',
+            'Fortuner': 'images/cars/fortuner.png',
+            'Land Cruiser Hardtop': 'images/cars/land cruiser hard top.png',
+            'Land Cruiser Pickup': 'images/cars/land cruiser pickup.png',
+            'Hilux Double Cab': 'images/cars/Hilux double cab.png',
+            'Hilux Single Cab': 'images/cars/Hilux single cab.png',
+            'Raize': 'images/cars/raize.png',
+            'Urban Cruiser': 'images/cars/urban cruiser.png',
+            'Veloz': 'images/cars/veloz.png',
+            'Corolla Cross': 'images/cars/corolla cross.png',
+            'Innova': 'images/cars/innova.png',
+            'Yaris': 'images/cars/yaris.png',
+            'Supra': 'images/cars/supra.png',
+            'LC300 HEV MAX': 'images/cars/lc300 hev max.png',
+            'Lite Ace': 'images/cars/lite ace.png',
+            'Hiace Van': 'images/cars/hiace van.png',
+            'Hiace Bus': 'images/cars/hiace bus.png',
+            'Coaster': 'images/cars/coaster.png'
+        };
+
+        let carsData = {};
+
+        function formatPrice(n) {
+            return Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function apiBase() {
+            const h = window.location.hostname;
+            return (h === 'localhost' || h === '127.0.0.1') ? `http://${h}:8000` : `https://${h}`;
+        }
+
+        function showToast(text) {
+            const el = document.getElementById('toast');
+            el.textContent = text;
+            el.classList.add('show');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
+        }
+
+        function getSelection() {
+            const car = document.getElementById('carSelect').value;
+            const modelVal = document.getElementById('modelSelect').value;
+            if (!car || !modelVal) return null;
+            const idx = parseInt(modelVal.split('|')[1], 10);
+            const model = carsData[car]?.[idx];
+            if (!model) return null;
+            return { car, model };
+        }
+
+        function greetingAr(name) {
+            return name ? `السلام عليكم ${name}،` : 'السلام عليكم،';
+        }
+
+        function greetingEn(name) {
+            return name ? `Hello ${name},` : 'Hello,';
+        }
+
+        function buildMessageAr(sel, type, customerName, advisorName, extra) {
+            const { car, model } = sel;
+            const price = formatPrice(model.price);
+            const lines = [greetingAr(customerName), ''];
+
+            if (type === 'followup') {
+                lines.push(`شكراً لتواصلك معنا اليوم بخصوص تويوتا ${car} — ${model.name}.`);
+                lines.push('', `السعر يبدأ من ${price} ريال (شامل ضريبة القيمة المضافة).`);
+                lines.push('', 'يسعدنا مساعدتك في أي استفسار إضافي أو ترتيب زيارة للمعرض.');
+            } else if (type === 'quote') {
+                lines.push(`حسب طلبك، هذا عرض السعر لتويوتا ${car} — ${model.name}:`);
+                lines.push('', `💰 السعر: ${price} ريال (شامل ضريبة القيمة المضافة)`);
+                lines.push('', 'العرض للتوضيح وقد يخضع للتوفر والعروض الحالية.');
+            } else if (type === 'showroom') {
+                lines.push(`نود دعوتك لزيارة المعرض لمشاهدة تويوتا ${car} — ${model.name} عن قرب.`);
+                lines.push('', `السعر يبدأ من ${price} ريال.`);
+                lines.push('', 'يرجى إبلاغنا بالوقت المناسب لك لترتيب الاستقبال وتجربة القيادة.');
+            } else {
+                lines.push(`بخصوص تويوتا ${car} — ${model.name} (السعر ${price} ريال):`);
+                lines.push('', 'يمكننا تزويدك بخيارات التقسيط والتأجير التمويلي المناسبة لراتبك.');
+                lines.push('', 'أرسل لنا راتبك التقريبي أو تفضل زيارة المعرض لحساب دفعة شهرية دقيقة.');
+            }
+
+            if (extra) {
+                lines.push('', `📌 ${extra}`);
+            }
+
+            lines.push('', 'مع تحيات،');
+            lines.push(advisorName || 'فريق مبيعات تويوتا');
+
+            return lines.join('\n');
+        }
+
+        function buildMessageEn(sel, type, customerName, advisorName, extra) {
+            const { car, model } = sel;
+            const price = formatPrice(model.price);
+            const lines = [greetingEn(customerName), ''];
+
+            if (type === 'followup') {
+                lines.push(`Thank you for speaking with us today about the Toyota ${car} — ${model.name}.`);
+                lines.push('', `Starting price: ${price} SAR (incl. VAT).`);
+                lines.push('', 'We are happy to help with any further questions or arrange a showroom visit.');
+            } else if (type === 'quote') {
+                lines.push(`As requested, here is the price for Toyota ${car} — ${model.name}:`);
+                lines.push('', `💰 Price: ${price} SAR (incl. VAT)`);
+                lines.push('', 'Subject to availability and current offers.');
+            } else if (type === 'showroom') {
+                lines.push(`We would like to invite you to visit our showroom to see the Toyota ${car} — ${model.name}.`);
+                lines.push('', `Starting price: ${price} SAR.`);
+                lines.push('', 'Please let us know a convenient time for your visit or test drive.');
+            } else {
+                lines.push(`Regarding Toyota ${car} — ${model.name} (from ${price} SAR):`);
+                lines.push('', 'We can share financing and lease options tailored to your salary.');
+                lines.push('', 'Share your approximate salary or visit the showroom for an exact monthly payment.');
+            }
+
+            if (extra) {
+                lines.push('', `📌 ${extra}`);
+            }
+
+            lines.push('', 'Best regards,');
+            lines.push(advisorName || 'Toyota Sales Team');
+
+            return lines.join('\n');
+        }
+
+        function buildFullMessage() {
+            const sel = getSelection();
+            if (!sel) return '';
+
+            const type = document.getElementById('messageType').value;
+            const lang = document.getElementById('messageLang').value;
+            const customerName = document.getElementById('customerName').value.trim();
+            const advisorName = document.getElementById('advisorName').value.trim();
+            const extra = document.getElementById('extraNote').value.trim();
+
+            const ar = buildMessageAr(sel, type, customerName, advisorName, extra);
+            const en = buildMessageEn(sel, type, customerName, advisorName, extra);
+
+            if (lang === 'ar') return ar;
+            if (lang === 'en') return en;
+            return `${ar}\n\n──────────\n\n${en}`;
+        }
+
+        function updatePreview() {
+            const sel = getSelection();
+            const msg = buildFullMessage();
+            const preview = document.getElementById('messagePreview');
+            const lang = document.getElementById('messageLang').value;
+            const ready = Boolean(sel && msg);
+
+            preview.textContent = ready ? msg : 'Select a car and model to generate your message.';
+            preview.classList.toggle('ar', lang === 'ar' || (lang === 'both' && ready));
+
+            document.getElementById('btnCopy').disabled = !ready;
+            document.getElementById('btnWhatsApp').disabled = !ready;
+        }
+
+        function updateCarPreview() {
+            const car = document.getElementById('carSelect').value;
+            const sel = getSelection();
+            const box = document.getElementById('carPreview');
+
+            if (!car) {
+                box.innerHTML = '<div class="car-preview-placeholder">Select a car to see preview</div>';
+                return;
+            }
+
+            const img = carImageMap[car];
+            const modelText = sel ? `${sel.model.name} — <span class="price-tag">${formatPrice(sel.model.price)} SAR</span>` : 'Select a model';
+            box.innerHTML = `
+                ${img ? `<img src="${img}" alt="${car}" onerror="this.style.display='none'">` : ''}
+                <div class="car-preview-info">
+                    <strong>Toyota ${car}</strong>
+                    ${modelText}
+                </div>
+            `;
+        }
+
+        function onCarChange() {
+            const car = document.getElementById('carSelect').value;
+            const modelSelect = document.getElementById('modelSelect');
+            modelSelect.innerHTML = '<option value="">— Select model —</option>';
+            modelSelect.disabled = !car;
+
+            if (car && carsData[car]) {
+                carsData[car].forEach((m, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = `${car}|${i}`;
+                    opt.textContent = `${m.name} — ${formatPrice(m.price)} SAR`;
+                    modelSelect.appendChild(opt);
+                });
+            }
+
+            updateCarPreview();
+            updatePreview();
+        }
+
+        function normalizePhone(raw) {
+            const digits = String(raw || '').replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('0')) return '966' + digits.slice(1);
+            if (digits.startsWith('966')) return digits;
+            if (digits.length === 9 && digits.startsWith('5')) return '966' + digits;
+            return digits;
+        }
+
+        function whatsAppUrl(message) {
+            const phone = normalizePhone(document.getElementById('customerPhone').value);
+            const text = encodeURIComponent(message);
+            return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+        }
+
+        async function loadCars() {
+            try {
+                const res = await fetch(`${apiBase()}/api/cars`);
+                const data = await res.json();
+                carsData = data.cars || {};
+                const carSelect = document.getElementById('carSelect');
+                Object.keys(carsData).sort().forEach((name) => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    carSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+                showToast('Could not load cars');
+            }
+        }
+
+        document.getElementById('carSelect').addEventListener('change', onCarChange);
+        document.getElementById('modelSelect').addEventListener('change', () => {
+            updateCarPreview();
+            updatePreview();
+        });
+
+        ['customerName', 'advisorName', 'customerPhone', 'messageType', 'messageLang', 'extraNote'].forEach((id) => {
+            document.getElementById(id).addEventListener('input', updatePreview);
+            document.getElementById(id).addEventListener('change', updatePreview);
+        });
+
+        document.getElementById('advisorName').addEventListener('change', (e) => {
+            localStorage.setItem(STORAGE_ADVISOR, e.target.value.trim());
+        });
+
+        document.getElementById('btnCopy').addEventListener('click', async () => {
+            const msg = buildFullMessage();
+            if (!msg) return;
+            try {
+                await navigator.clipboard.writeText(msg);
+                showToast('Message copied');
+            } catch (e) {
+                showToast('Copy failed — select text manually');
+            }
+        });
+
+        document.getElementById('btnWhatsApp').addEventListener('click', () => {
+            const msg = buildFullMessage();
+            if (!msg) return;
+            window.open(whatsAppUrl(msg), '_blank', 'noopener,noreferrer');
+        });
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('extraNote').value = '';
+            document.getElementById('carSelect').value = '';
+            document.getElementById('messageType').value = 'followup';
+            document.getElementById('messageLang').value = 'ar';
+            onCarChange();
+        });
+
+        const savedAdvisor = localStorage.getItem(STORAGE_ADVISOR);
+        if (savedAdvisor) document.getElementById('advisorName').value = savedAdvisor;
+
+        loadCars();
+    </script>
+</body>
+</html>

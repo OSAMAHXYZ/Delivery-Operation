@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>Toyota Sales - QR Codes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="page-translate.js"></script>
+    <script src="i18n-pages.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: -1;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .page-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .nav-btn-outline {
+            background: #fff;
+            color: #1a1a1a;
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .nav-btn-outline:hover {
+            border-color: #EB0A1E;
+            color: #EB0A1E;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn-accent {
+            background: linear-gradient(135deg, #EB0A1E 0%, #C00818 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(235, 10, 30, 0.35);
+        }
+
+        .nav-btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(235, 10, 30, 0.4);
+        }
+
+        .page-nav-brand {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+
+        .lang-toggle-btn {
+            min-width: 88px;
+            justify-content: center;
+        }
+
+        body.lang-ar {
+            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 96px;
+        }
+        
+        h1 {
+            background: linear-gradient(135deg, #c62828 0%, #d32f2f 50%, #f44336 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 3em;
+            font-weight: 800;
+            letter-spacing: -1px;
+            position: relative;
+            padding-bottom: 20px;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #c62828, #f44336);
+            border-radius: 2px;
+        }
+        
+        .cars-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+            perspective: 1000px;
+        }
+        
+        .car-card {
+            background: transparent;
+            height: 280px;
+            cursor: pointer;
+            position: relative;
+            perspective: 1000px;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        .car-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .car-card.flipped .car-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .car-card-front,
+        .car-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+        
+        .car-card-front {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .car-card-back {
+            background: linear-gradient(145deg, #fff5f5 0%, #ffe8e8 100%);
+            border: 3px solid #c62828;
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Portal mode — flip card into embedded Toyota page */
+        .car-portal-scrim {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 1400;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        .car-portal-scrim.active {
+            display: block;
+            opacity: 1;
+        }
+
+        body.portal-active {
+            overflow: hidden;
+        }
+
+        .car-card--portal-trigger .car-card-front {
+            border-color: rgba(235, 10, 30, 0.35);
+            animation: cardInvitePulse 2.8s ease-in-out infinite;
+        }
+
+        .car-card--portal-trigger:hover .car-card-front {
+            border-color: #EB0A1E;
+            box-shadow: 0 12px 32px rgba(235, 10, 30, 0.2);
+        }
+
+        @keyframes cardInvitePulse {
+            0%, 100% {
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            }
+            50% {
+                box-shadow: 0 12px 34px rgba(235, 10, 30, 0.22), 0 0 0 3px rgba(235, 10, 30, 0.14);
+            }
+        }
+
+        .tap-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 14px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .tap-hint-finger {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #EB0A1E;
+            filter: drop-shadow(0 2px 6px rgba(235, 10, 30, 0.35));
+            animation: fingerTap 2.2s ease-in-out infinite;
+        }
+
+        .tap-hint-finger svg {
+            width: 28px;
+            height: 28px;
+            fill: currentColor;
+        }
+
+        .tap-hint-ripple {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            width: 36px;
+            height: 36px;
+            margin-left: -18px;
+            border-radius: 50%;
+            border: 2px solid rgba(235, 10, 30, 0.45);
+            animation: tapRipple 2.2s ease-out infinite;
+        }
+
+        .tap-hint-ripple--delayed {
+            animation-delay: 1.1s;
+        }
+
+        .tap-hint-label {
+            margin-top: 6px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #fff;
+            background: linear-gradient(135deg, rgba(235, 10, 30, 0.92), rgba(192, 8, 24, 0.92));
+            box-shadow: 0 4px 14px rgba(235, 10, 30, 0.35);
+            animation: hintLabelBounce 2.2s ease-in-out infinite;
+        }
+
+        @keyframes fingerTap {
+            0%, 24%, 56%, 100% { transform: translateY(0) scale(1); }
+            36%, 44% { transform: translateY(7px) scale(0.9); }
+        }
+
+        @keyframes tapRipple {
+            0% { transform: scale(0.55); opacity: 0.75; }
+            70%, 100% { transform: scale(2.4); opacity: 0; }
+        }
+
+        @keyframes hintLabelBounce {
+            0%, 24%, 56%, 100% { transform: translateY(0); }
+            36%, 44% { transform: translateY(2px); }
+        }
+
+        body.hints-dismissed .tap-hint,
+        body.hints-dismissed .car-card--portal-trigger .car-card-front,
+        body.hints-dismissed .register-card-front {
+            animation: none;
+        }
+
+        body.hints-dismissed .tap-hint {
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .car-card--portal-trigger .car-card-front,
+            .tap-hint-finger,
+            .tap-hint-ripple,
+            .tap-hint-label {
+                animation: none;
+            }
+            .tap-hint-label {
+                opacity: 1;
+            }
+        }
+
+        .car-portal-modal {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            width: min(880px, 94vw);
+            height: min(520px, 82vh);
+            transform: translate(-50%, -50%) scale(0.94);
+            z-index: 1501;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            border: 2px solid #EB0A1E;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            flex-direction: column;
+        }
+
+        .car-portal-modal.active {
+            display: flex;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .car-portal-modal-inner {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .car-portal-toolbar {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #EB0A1E 0%, #c00818 100%);
+            color: #fff;
+        }
+
+        .car-portal-toolbar-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+        }
+
+        .car-portal-toolbar-title span {
+            opacity: 0.85;
+            font-weight: 500;
+            font-size: 0.8rem;
+            margin-left: 6px;
+        }
+
+        .car-portal-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .car-portal-open-link {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            white-space: nowrap;
+        }
+
+        .car-portal-open-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .car-portal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .car-portal-close:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .car-portal-body {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: #f8f9fb;
+            overflow: hidden;
+        }
+
+        .portal-preview-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .portal-preview-hero {
+            position: relative;
+            background: linear-gradient(165deg, #1a1a1a 0%, #2d2d2d 45%, #EB0A1E 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .portal-preview-hero img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
+        }
+
+        .portal-preview-year {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: #EB0A1E;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+
+        .portal-preview-content {
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .portal-preview-content h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+        }
+
+        .portal-preview-tagline {
+            margin: 0;
+            color: #6b7280;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .portal-specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px;
+            margin: 4px 0;
+        }
+
+        .portal-spec-item {
+            background: #f8f9fb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+
+        .portal-spec-item strong {
+            display: block;
+            font-size: 0.68rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 2px;
+        }
+
+        .portal-spec-item span {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .portal-trims {
+            font-size: 0.78rem;
+            color: #495057;
+            line-height: 1.4;
+        }
+
+        .portal-trims strong {
+            color: #EB0A1E;
+        }
+
+        .portal-preview-actions {
+            margin-top: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding-top: 8px;
+        }
+
+        .portal-open-btn {
+            flex: 1;
+            min-width: 180px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #EB0A1E 0%, #c00818 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(235, 10, 30, 0.35);
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .portal-open-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(235, 10, 30, 0.45);
+        }
+
+        .portal-qr-wrap {
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        .portal-qr-wrap img {
+            width: 72px;
+            height: 72px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .portal-qr-label {
+            display: block;
+            font-size: 0.62rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .car-card:hover .car-card-front {
+            box-shadow: 0 15px 40px rgba(198, 40, 40, 0.2);
+            border-color: #c62828;
+        }
+        
+        .car-image {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            object-position: center;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+        
+        .car-card:hover .car-image {
+            transform: scale(1.05);
+        }
+        
+        .car-name {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+        
+        .qr-code-display {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .qr-code-display img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .qr-car-name {
+            font-weight: 700;
+            color: #c62828;
+            font-size: 1.3em;
+            margin-top: 10px;
+        }
+        
+        .flip-indicator {
+            display: none;
+        }
+        
+        .qr-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .qr-container.active {
+            display: block;
+        }
+        
+        .qr-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1999;
+        }
+        
+        .qr-overlay.active {
+            display: block;
+        }
+        
+        .qr-title {
+            color: #c62828;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        #qrcode {
+            display: inline-block;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        #qrcode canvas {
+            border-radius: 10px;
+        }
+        
+        .close-qr {
+            margin-top: 20px;
+            background: #c62828;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        
+        .close-qr:hover {
+            background: #a01515;
+        }
+        
+        .placeholder-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .register-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 60px;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+        
+        .register-card {
+            background: transparent;
+            height: 280px;
+            cursor: pointer;
+            position: relative;
+            perspective: 1000px;
+            max-width: 250px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        .register-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .register-card.flipped .register-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .register-card-front,
+        .register-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        .register-card-front {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border: 2px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: cardInvitePulse 2.8s ease-in-out infinite;
+        }
+        
+        
+        .register-card-back {
+            background: linear-gradient(145deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 3px solid #1976d2;
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .register-card:hover .register-card-front {
+            box-shadow: 0 15px 40px rgba(25, 118, 210, 0.2);
+            border-color: #1976d2;
+        }
+        
+        .register-image {
+            width: 100%;
+            height: auto;
+            min-height: 150px;
+            max-height: 200px;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 10px;
+            display: block;
+        }
+        
+        .register-image[src=""] {
+            display: none;
+        }
+        
+        .register-label {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.2em;
+            color: #c62828;
+        }
+        
+        .register-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .page-nav {
+                padding: 8px 12px;
+                height: auto;
+                min-height: 64px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .page-nav-brand {
+                order: 3;
+                width: 100%;
+                text-align: center;
+            }
+
+            .nav-btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            
+            .cars-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            .car-image, .placeholder-image {
+                height: 120px;
+            }
+
+            .car-portal-modal {
+                width: 96vw;
+                height: min(520px, 88vh);
+            }
+
+            .portal-preview-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .portal-preview-hero {
+                min-height: 140px;
+                max-height: 160px;
+            }
+
+            .portal-specs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding-top: 60px;
+            }
+            
+            .register-section {
+                margin-top: 40px;
+                margin-bottom: 20px;
+                padding: 15px;
+            }
+            
+            .register-card {
+                max-width: 200px;
+                padding: 15px;
+            }
+            
+            .register-image {
+                max-height: 150px;
+            }
+            
+            .register-label {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body data-i18n-title="page_title">
+    <nav class="page-nav" aria-label="Page navigation">
+        <a href="simple-app.html" class="nav-btn nav-btn-outline" id="navBackLeft" data-i18n="nav_calc">← Calculator</a>
+        <span class="page-nav-brand" data-i18n="nav_brand">Car specs &amp; QR</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <button type="button" class="nav-btn nav-btn-outline lang-toggle-btn" data-lang-toggle>العربية</button>
+            <a href="detailed-calculations.html" class="nav-btn nav-btn-accent" id="navBackDetailed" data-i18n="nav_detailed">← Detailed Calculator</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <h1 data-i18n="page_title_h1">🚗 Toyota Car QR Codes</h1>
+        
+        <div class="cars-grid" id="carsGrid"></div>
+        
+        <div class="register-section">
+            <div class="register-card" id="registerCard">
+                <div class="register-card-inner">
+                    <div class="register-card-front">
+                        <img src="images/cars/alj-register.png" alt="Register" class="register-image" onerror="console.error('Failed to load register image from:', this.src); this.style.display='none'; if(!this.parentElement.querySelector('.register-placeholder')) { const placeholder = document.createElement('div'); placeholder.className='register-placeholder'; placeholder.textContent='Register'; this.parentElement.insertBefore(placeholder, this); }">
+                        <div class="register-label" data-i18n="register">Register</div>
+                        <div class="tap-hint tap-hint--register" aria-hidden="true">
+                            <span class="tap-hint-ripple"></span>
+                            <span class="tap-hint-ripple tap-hint-ripple--delayed"></span>
+                            <span class="tap-hint-finger" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>
+                            </span>
+                            <span class="tap-hint-label" data-i18n="tap_to_flip">Touch to flip</span>
+                        </div>
+                    </div>
+                    <div class="register-card-back">
+                        <div class="qr-code-display" id="qr-register"></div>
+                        <div class="qr-car-name">Register</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="car-portal-scrim" id="carPortalScrim" aria-hidden="true"></div>
+    <div class="car-portal-modal" id="carPortalModal" role="dialog" aria-modal="true" aria-labelledby="carPortalModalTitle" aria-hidden="true">
+        <div class="car-portal-modal-inner" id="carPortalModalContent"></div>
+    </div>
+    
+    <div class="qr-overlay" id="qrOverlay" onclick="closeQR()"></div>
+    <div class="qr-container" id="qrContainer">
+        <div class="qr-title" id="qrTitle"></div>
+        <div id="qrcode"></div>
+        <button class="close-qr" onclick="closeQR()" data-i18n="close">Close</button>
+    </div>
+    
+    <script>
+        // Car data — portal opens official Toyota.com.sa vehicle pages
+        function portalCar(config) {
+            return {
+                name: config.name,
+                image: config.image,
+                qrLink: config.url,
+                portal: true,
+                portalTitle: config.title || (config.name + ' 2026'),
+                portalContent: {
+                    year: config.year || '2026',
+                    tagline: config.taglineAr,
+                    taglineEn: config.taglineEn,
+                    specs: config.specs,
+                    trims: config.trims || '',
+                    ctaAr: config.ctaAr || ('عرض ' + config.nameAr + ' على موقع تويوتا'),
+                    ctaEn: 'View on Toyota.com.sa'
+                }
+            };
+        }
+
+        const TOYOTA_BASE = 'https://www.toyota.com.sa/ar/vehicles/';
+
+        const cars = [
+            portalCar({
+                name: 'Camry', nameAr: 'كامري', image: 'images/cars/camry.png',
+                url: TOYOTA_BASE + 'camry',
+                taglineAr: 'سيدان فاخرة · هايبرد · تقنيات أمان تويوتا',
+                taglineEn: 'Premium sedan · hybrid options · Toyota Safety Sense',
+                specs: [
+                    { label: 'Type', value: 'Sedan · HEV available' },
+                    { label: 'Transmission', value: 'CVT / E-CVT' },
+                    { label: 'Safety', value: 'Toyota Safety Sense' },
+                    { label: 'Display', value: 'Touchscreen · CarPlay' },
+                    { label: 'Seats', value: '5 passengers' },
+                    { label: 'Year', value: '2026' }
+                ],
+                trims: 'Multiple petrol & hybrid grades'
+            }),
+            portalCar({
+                name: 'Raize', nameAr: 'رايز', image: 'images/cars/raize.png',
+                url: TOYOTA_BASE + 'raize',
+                taglineAr: 'كروس أوفر مدمج · CVT · مساحة تخزين 369 لتر',
+                taglineEn: 'Compact crossover · CVT · 369L cargo',
+                specs: [
+                    { label: 'Engine', value: '1.0T / 1.2L' },
+                    { label: 'Power', value: 'Up to 97 hp' },
+                    { label: 'Transmission', value: 'CVT · 7-speed' },
+                    { label: 'Fuel economy', value: 'Up to 21.1 km/L' },
+                    { label: 'Cargo', value: '369 L' },
+                    { label: 'Fuel tank', value: '36 L' }
+                ],
+                trims: 'XLE · Limited'
+            }),
+            portalCar({
+                name: 'Corolla', nameAr: 'كورولا', image: 'images/cars/corolla.png',
+                url: TOYOTA_BASE + 'corolla',
+                taglineAr: 'سيارة عملية · هايبرد · صندوق 470 لتر',
+                taglineEn: 'Practical sedan · hybrid · 470L trunk',
+                specs: [
+                    { label: 'Engine', value: '1.5L / 2.0L / HEV' },
+                    { label: 'HEV economy', value: 'Up to 30.3 km/L' },
+                    { label: 'Transmission', value: 'CVT · E-CVT' },
+                    { label: 'Trunk', value: '470 L (463 L HEV)' },
+                    { label: 'Safety', value: 'SRS airbags · VSC' },
+                    { label: 'Tech', value: '9" screen · CarPlay' }
+                ],
+                trims: '1.5L XLI · 2.0L · 1.8L Hybrid · GLI MR'
+            }),
+            portalCar({
+                name: 'Land Cruiser', nameAr: 'لاند كروزر', image: 'images/cars/land cruiser.png',
+                url: TOYOTA_BASE + 'lc300',
+                title: 'Land Cruiser 2026',
+                taglineAr: 'أسطورة الطرق الوعرة · V6 تيربو · دفع 4×4',
+                taglineEn: 'Off-road legend · V6 turbo · 4×4',
+                specs: [
+                    { label: 'Engine', value: '3.5L V6 twin-turbo' },
+                    { label: 'Power', value: '409 hp' },
+                    { label: 'Torque', value: '650 Nm' },
+                    { label: 'Transmission', value: '10-speed auto' },
+                    { label: 'Fuel economy', value: '10.1 km/L' },
+                    { label: 'Fuel tank', value: '110 L' }
+                ],
+                trims: 'GXR · VX · VX-R'
+            }),
+            portalCar({
+                name: 'Crown', nameAr: 'كراون', image: 'images/cars/crown.png',
+                url: TOYOTA_BASE + 'crown',
+                taglineAr: 'فخامة وأداء · هايبرد · دفع كلي للعجلات',
+                taglineEn: 'Luxury performance · hybrid · AWD available',
+                specs: [
+                    { label: 'HEV', value: '2.5L · 218 hp' },
+                    { label: 'Turbo HEV', value: '2.4L · 344 hp' },
+                    { label: 'Torque', value: 'Up to 550 Nm' },
+                    { label: 'Transmission', value: 'E-CVT / 6AT' },
+                    { label: 'Fuel economy', value: 'Up to 26.1 km/L' },
+                    { label: 'Safety', value: 'Toyota Safety Sense' }
+                ],
+                trims: 'Prestige · Premium · Majesta'
+            }),
+            portalCar({
+                name: 'RAV4', nameAr: 'راف فور', image: 'images/cars/rav4.png',
+                url: TOYOTA_BASE + 'rav4',
+                taglineAr: 'SUV مفعمة · هايبرد · Toyota Safety Sense',
+                taglineEn: 'Versatile SUV · hybrid · advanced safety',
+                specs: [
+                    { label: 'Engine', value: '2.0L / 2.5L HEV' },
+                    { label: 'HEV power', value: 'Up to 239 hp' },
+                    { label: 'Fuel economy', value: 'Up to 26.6 km/L' },
+                    { label: 'Transmission', value: 'CVT / E-CVT' },
+                    { label: 'Drive', value: '4×2 / 4×4' },
+                    { label: 'Fuel tank', value: '55 L' }
+                ],
+                trims: 'LE · XLE · XSE · LTD HEV'
+            }),
+            portalCar({
+                name: 'Highlander', nameAr: 'هايلاندر', image: 'images/cars/highlander.png',
+                url: TOYOTA_BASE + 'highlander',
+                taglineAr: 'SUV عائلية واسعة · هايبرد · E-Four',
+                taglineEn: 'Family SUV · hybrid · E-Four AWD',
+                specs: [
+                    { label: 'Engine', value: '2.5L Hybrid' },
+                    { label: 'Power', value: '240 hp (combined)' },
+                    { label: 'Torque', value: '270 Nm' },
+                    { label: 'Fuel economy', value: 'Up to 20.7 km/L' },
+                    { label: 'Dimensions', value: '4950×1930×1730 mm' },
+                    { label: 'Fuel tank', value: '65 L' }
+                ],
+                trims: 'LE HEV · GLE HEV · LTD HEV'
+            }),
+            portalCar({
+                name: 'GR86', nameAr: 'GR86', image: 'images/cars/gr86.png',
+                url: TOYOTA_BASE + 'gr86',
+                taglineAr: 'رياضية خلفية الدفع · 2.4L بوكسر',
+                taglineEn: 'RWD sports car · 2.4L boxer',
+                specs: [
+                    { label: 'Engine', value: '2.4L flat-4' },
+                    { label: 'Power', value: '228 hp' },
+                    { label: 'Torque', value: '250 Nm' },
+                    { label: 'Transmission', value: '6AT / 6MT' },
+                    { label: 'LSD', value: 'Torsen LSD' },
+                    { label: 'Fuel tank', value: '50 L' }
+                ],
+                trims: 'GR86 AT · GR86 RS MT'
+            }),
+            portalCar({
+                name: 'Urban Cruiser', nameAr: 'أوربان كروزر', image: 'images/cars/urban cruiser.png',
+                url: TOYOTA_BASE + 'urbancruiser',
+                taglineAr: 'كروس أنيق · Neo Drive · سقف بانورامي',
+                taglineEn: 'Urban crossover · Neo Drive · panoramic roof',
+                specs: [
+                    { label: 'Engine', value: '1.5L · 4-cyl' },
+                    { label: 'Power', value: '101 hp' },
+                    { label: 'Torque', value: '135 Nm' },
+                    { label: 'Transmission', value: '6-speed auto' },
+                    { label: 'Fuel economy', value: '19.8 km/L' },
+                    { label: 'Fuel tank', value: '45 L' }
+                ],
+                trims: 'GL · GLX'
+            }),
+            portalCar({
+                name: 'Veloz', nameAr: 'فيلوز', image: 'images/cars/veloz.png',
+                url: TOYOTA_BASE + 'veloz',
+                taglineAr: 'MPV عائلية · 7 ركاب · CVT',
+                taglineEn: 'Family MPV · 7 seats · CVT',
+                specs: [
+                    { label: 'Engine', value: '1.5L · 4-cyl' },
+                    { label: 'Power', value: '104 hp' },
+                    { label: 'Transmission', value: 'CVT' },
+                    { label: 'Seats', value: '7 passengers' },
+                    { label: 'Fuel economy', value: '18.6 km/L' },
+                    { label: 'Fuel tank', value: '43 L' }
+                ],
+                trims: 'GLX'
+            }),
+            portalCar({
+                name: 'Yaris', nameAr: 'يارس', image: 'images/cars/yaris.png',
+                url: TOYOTA_BASE + 'yaris',
+                taglineAr: 'سيدان يومية أنيقة · CVT · أنظمة أمان متقدمة',
+                taglineEn: 'Elegant daily sedan · CVT · advanced safety',
+                specs: [
+                    { label: 'Engine', value: '1.3L · 97 hp' },
+                    { label: 'Torque', value: '122 Nm' },
+                    { label: 'Transmission', value: 'CVT' },
+                    { label: 'Fuel economy', value: '22.1 km/L' },
+                    { label: 'Dimensions', value: '4425×1740×1480 mm' },
+                    { label: 'Fuel tank', value: '40 L' }
+                ],
+                trims: 'Y · Y Limited · Y Plus · YX'
+            }),
+            portalCar({
+                name: 'Innova', nameAr: 'إنوفا', image: 'images/cars/innova.png',
+                url: TOYOTA_BASE + 'innova',
+                taglineAr: 'MPV واسعة · 8 ركاب · هايبرد',
+                taglineEn: 'Spacious MPV · 8 seats · hybrid',
+                specs: [
+                    { label: 'Engine', value: '2.0L · 4-cyl' },
+                    { label: 'HEV power', value: '184 hp (combined)' },
+                    { label: 'Transmission', value: 'CVT' },
+                    { label: 'HEV economy', value: 'Up to 24.3 km/L' },
+                    { label: 'Dimensions', value: '4760×1850×1795 mm' },
+                    { label: 'Fuel tank', value: '52 L' }
+                ],
+                trims: 'GL · GL HEV · VIP7 HEV'
+            }),
+            portalCar({
+                name: 'Prado', nameAr: 'برادو', image: 'images/cars/prado.png',
+                url: TOYOTA_BASE + 'prado',
+                taglineAr: 'فخامة ومتانة · تيربو · دفع رباعي',
+                taglineEn: 'Luxury & durability · turbo · 4×4',
+                specs: [
+                    { label: 'Petrol', value: '2.4L turbo · 267 hp' },
+                    { label: 'Diesel', value: '2.8L · 201 hp' },
+                    { label: 'Torque', value: 'Up to 500 Nm' },
+                    { label: 'Transmission', value: '8-speed auto' },
+                    { label: 'Cargo', value: '408 L' },
+                    { label: 'Fuel tank', value: '110 L' }
+                ],
+                trims: 'TX · TXL · ADV · VXL'
+            }),
+            portalCar({
+                name: 'Fortuner', nameAr: 'فورتشنر', image: 'images/cars/fortuner.png',
+                url: TOYOTA_BASE + 'fortuner',
+                taglineAr: 'SUV قوية · 7 ركاب · ديزل وبنزين',
+                taglineEn: 'Capable SUV · 7 seats · petrol & diesel',
+                specs: [
+                    { label: 'Petrol', value: '2.7L / 4.0L V6' },
+                    { label: 'Diesel', value: '2.4L / 2.8L' },
+                    { label: 'Seats', value: '7 passengers' },
+                    { label: 'Transmission', value: '6-speed auto' },
+                    { label: 'Drive', value: '4×2 / 4×4' },
+                    { label: 'Dimensions', value: '4795×1855×1835 mm' }
+                ],
+                trims: 'GX2 · TXL · VX · VX3-S'
+            }),
+            portalCar({
+                name: 'Corolla Cross', nameAr: 'كورولا كروس', image: 'images/cars/corolla cross.png',
+                url: TOYOTA_BASE + 'corollacross',
+                taglineAr: 'كروس عملية · هايبرد · مساحة عائلية',
+                taglineEn: 'Practical crossover · hybrid · family space',
+                specs: [
+                    { label: 'Type', value: 'Crossover SUV' },
+                    { label: 'Engine', value: 'Petrol / HEV' },
+                    { label: 'Safety', value: 'Toyota Safety Sense' },
+                    { label: 'Tech', value: 'Touchscreen · CarPlay' },
+                    { label: 'Drive', value: 'FWD / AWD' },
+                    { label: 'Year', value: '2026' }
+                ],
+                trims: 'Multiple grades on Toyota.com.sa'
+            })
+        ];
+        
+        function carSlug(name) {
+            return name.replace(/\s+/g, '-');
+        }
+
+        function buildPortalSpecsHtml(specs) {
+            return specs.map(function (s) {
+                return '<div class="portal-spec-item"><strong>' + s.label + '</strong><span>' + s.value + '</span></div>';
+            }).join('');
+        }
+
+        function tl(key, vars) {
+            return window.i18nFmt ? i18nFmt(key, vars) : key;
+        }
+
+        function buildPortalModalHtml(car) {
+            const title = car.portalTitle || car.name;
+            const c = car.portalContent;
+            const imagePath = car.image ? encodeURI(car.image) : '';
+            const isAr = window.PageTranslate && PageTranslate.isAr();
+            const taglineMain = isAr ? (c.tagline || c.taglineEn) : (c.taglineEn || c.tagline);
+            const taglineSub = isAr ? (c.taglineEn || '') : (c.tagline || '');
+            const ctaMain = isAr ? (c.ctaAr || tl('view_toyota')) : tl('view_toyota');
+            const ctaLabel = ctaMain + (taglineSub ? '<br><span style="font-weight:500;opacity:0.95">' + taglineSub + '</span>' : '');
+            return (
+                '<div class="car-portal-toolbar">' +
+                    '<div class="car-portal-toolbar-title" id="carPortalModalTitle">' + title + '<span>toyota.com.sa</span></div>' +
+                    '<div class="car-portal-toolbar-actions">' +
+                        '<a class="car-portal-open-link" href="' + car.qrLink + '" target="_blank" rel="noopener noreferrer">' + tl('open_browser') + '</a>' +
+                        '<button type="button" class="car-portal-close" aria-label="' + tl('close_aria') + '">×</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="car-portal-body">' +
+                    '<div class="portal-preview-layout">' +
+                        '<div class="portal-preview-hero">' +
+                            '<span class="portal-preview-year">' + c.year + '</span>' +
+                            (imagePath ? '<img src="' + imagePath + '" alt="' + car.name + '">' : '') +
+                        '</div>' +
+                        '<div class="portal-preview-content">' +
+                            '<h3>' + title + '</h3>' +
+                            '<p class="portal-preview-tagline">' + taglineMain + (taglineSub ? '<br><span style="color:#9ca3af">' + taglineSub + '</span>' : '') + '</p>' +
+                            '<div class="portal-specs-grid">' + buildPortalSpecsHtml(c.specs) + '</div>' +
+                            (c.trims ? '<p class="portal-trims"><strong>' + tl('trims_label') + '</strong> ' + c.trims + '</p>' : '') +
+                            '<div class="portal-preview-actions">' +
+                                '<a class="portal-open-btn" href="' + car.qrLink + '" target="_blank" rel="noopener noreferrer">' + ctaLabel + '</a>' +
+                                '<div class="portal-qr-wrap">' +
+                                    '<img class="portal-qr-img" alt="QR ' + car.name + '" src="https://api.qrserver.com/v1/create-qr-code/?size=144x144&data=' + encodeURIComponent(car.qrLink) + '&color=EB0A1E&bgcolor=FFFFFF">' +
+                                    '<span class="portal-qr-label">' + tl('scan_open') + '</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            );
+        }
+
+        function buildCarBackHtml(car) {
+            const qrId = 'qr-' + carSlug(car.name);
+            return (
+                '<div class="car-card-back">' +
+                    '<div class="qr-code-display" id="' + qrId + '"></div>' +
+                    '<div class="qr-car-name">' + car.name + '</div>' +
+                '</div>'
+            );
+        }
+
+        let portalModalOpen = false;
+        let portalModalCar = null;
+        const TAP_HINTS_KEY = 'toyotaBarcodesTapHintsDismissed';
+
+        const TAP_FINGER_SVG = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>';
+
+        function buildTapHintHtml(label) {
+            return (
+                '<div class="tap-hint" aria-hidden="true">' +
+                    '<span class="tap-hint-ripple"></span>' +
+                    '<span class="tap-hint-ripple tap-hint-ripple--delayed"></span>' +
+                    '<span class="tap-hint-finger" aria-hidden="true">' + TAP_FINGER_SVG + '</span>' +
+                    '<span class="tap-hint-label">' + label + '</span>' +
+                '</div>'
+            );
+        }
+
+        function dismissTapHints() {
+            document.body.classList.add('hints-dismissed');
+            try { sessionStorage.setItem(TAP_HINTS_KEY, '1'); } catch (e) { /* ignore */ }
+        }
+
+        function initTapHints() {
+            try {
+                if (sessionStorage.getItem(TAP_HINTS_KEY) === '1') {
+                    document.body.classList.add('hints-dismissed');
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        function openCarPortal(car) {
+            if (!car.portalContent) return;
+            dismissTapHints();
+            portalModalCar = car;
+            const modal = document.getElementById('carPortalModal');
+            const content = document.getElementById('carPortalModalContent');
+            const scrim = document.getElementById('carPortalScrim');
+            if (!modal || !content) return;
+
+            content.innerHTML = buildPortalModalHtml(car);
+            const closeBtn = content.querySelector('.car-portal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeCarPortal);
+            }
+
+            portalModalOpen = true;
+            document.body.classList.add('portal-active');
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            if (scrim) {
+                scrim.classList.add('active');
+                scrim.setAttribute('aria-hidden', 'false');
+            }
+        }
+
+        function closeCarPortal() {
+            const modal = document.getElementById('carPortalModal');
+            const content = document.getElementById('carPortalModalContent');
+            const scrim = document.getElementById('carPortalScrim');
+
+            portalModalOpen = false;
+            portalModalCar = null;
+            document.body.classList.remove('portal-active');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            if (content) content.innerHTML = '';
+            if (scrim) {
+                scrim.classList.remove('active');
+                scrim.setAttribute('aria-hidden', 'true');
+            }
+        }
+        
+        // Render all cars
+        function renderCars() {
+            const grid = document.getElementById('carsGrid');
+            grid.innerHTML = '';
+            const noImg = tl('no_image');
+            const addImg = tl('add_image');
+            const flipHint = tl('tap_for_details');
+            
+            cars.forEach(car => {
+                const card = document.createElement('div');
+                const imagePath = car.image ? encodeURI(car.image) : '';
+                const frontHtml = car.image ?
+                    `<img src="${imagePath}" alt="${car.name}" class="car-image" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'placeholder-image\\'>${car.name}<br>${noImg}</div><div class=\\'car-name\\'>${car.name}</div>';">
+                                <div class="car-name">${car.name}</div>` :
+                    `<div class="placeholder-image">${car.name}<br>${addImg}</div>
+                    <div class="car-name">${car.name}</div>`;
+
+                card.className = 'car-card car-card--portal-trigger';
+                card.innerHTML =
+                    '<div class="car-card-inner">' +
+                        '<div class="car-card-front">' + frontHtml +
+                            buildTapHintHtml(flipHint) +
+                        '</div>' +
+                    '</div>';
+                card.addEventListener('click', function () {
+                    openCarPortal(car);
+                });
+                grid.appendChild(card);
+            });
+
+            const scrim = document.getElementById('carPortalScrim');
+            if (scrim) {
+                scrim.addEventListener('click', closeCarPortal);
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && portalModalOpen) {
+                    closeCarPortal();
+                }
+            });
+        }
+        
+        // Generate QR code for a specific element
+        function generateQRCode(carName, qrLink, elementId, size) {
+            const qrSize = size || 300;
+            const qrDiv = document.getElementById(elementId);
+            if (!qrDiv || qrDiv.querySelector('img')) return; // Already generated
+            
+            const img = document.createElement('img');
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize + '&data=' + encodeURIComponent(qrLink) + '&color=EB0A1E&bgcolor=FFFFFF';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+            img.style.borderRadius = '10px';
+            img.alt = 'QR Code for ' + carName;
+            
+            img.onerror = function() {
+                if (typeof QRCode !== 'undefined') {
+                    const canvas = document.createElement('canvas');
+                    qrDiv.innerHTML = '';
+                    qrDiv.appendChild(canvas);
+                    QRCode.toCanvas(canvas, qrLink, {
+                        width: Math.min(qrSize, 200),
+                        margin: 2,
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        },
+                        errorCorrectionLevel: 'H'
+                    }, function (error) {
+                        if (error) {
+                            qrDiv.innerHTML = '<p style="color: red; font-size: 0.8em;">Error</p>';
+                        }
+                    });
+                } else {
+                    qrDiv.innerHTML = '<p style="color: red; font-size: 0.8em;">Error</p>';
+                }
+            };
+            
+            qrDiv.appendChild(img);
+        }
+        
+        // Initialize register card flip
+        document.addEventListener('DOMContentLoaded', function() {
+            initTapHints();
+            const registerCard = document.getElementById('registerCard');
+            if (registerCard) {
+                registerCard.addEventListener('click', function() {
+                    dismissTapHints();
+                    if (!this.classList.contains('flipped')) {
+                        this.classList.add('flipped');
+                        generateQRCode('Register', 'https://www.toyota.com.sa/new-forms/experience-center-form', 'qr-register');
+                    } else {
+                        this.classList.remove('flipped');
+                    }
+                });
+            }
+        });
+        
+        // Initialize
+        PageTranslate.init('toyota-sales-barcodes', PAGE_TRANSLATIONS['toyota-sales-barcodes'], {
+            onLangChange() {
+        renderCars();
+                if (portalModalOpen && portalModalCar) openCarPortal(portalModalCar);
+            }
+        });
+        renderCars();
+
+        (function setupNavFromDetailed() {
+            const params = new URLSearchParams(window.location.search);
+            const fromDetailed = params.get('from') === 'detailed';
+            const leftNav = document.getElementById('navBackLeft');
+            const detailedNav = document.getElementById('navBackDetailed');
+            if (fromDetailed && leftNav) {
+                leftNav.href = 'detailed-calculations.html';
+                leftNav.setAttribute('data-i18n', 'nav_detailed');
+                PageTranslate.apply();
+            }
+            if (fromDetailed && detailedNav) {
+                detailedNav.style.display = 'none';
+            }
+        })();
+    </script>
+</body>
+</html>
+

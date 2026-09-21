@@ -1,0 +1,2116 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مذكرة ترحيل — Delivery PDF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --tot-primary: #EB0A1E;
+            --tot-ink: #1A1A1A;
+            --tot-muted: #6B7280;
+            --tot-line: #E5E7EB;
+            --tot-bg: #FAFBFC;
+            --nav-h: 64px;
+            --form-w: 210mm;
+            --form-h: 297mm;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Tajawal', 'Inter', sans-serif;
+            background: linear-gradient(180deg, #f8f9fb, #fff 40%, var(--tot-bg));
+            color: var(--tot-ink);
+            padding: calc(var(--nav-h) + 20px) 16px 48px;
+            min-height: 100vh;
+        }
+        .page-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; background: rgba(255,255,255,.95);
+            border-bottom: 1px solid var(--tot-line);
+            box-shadow: 0 4px 20px rgba(0,0,0,.05); z-index: 100;
+        }
+        .page-nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+        .page-nav-brand img { height: 36px; }
+        .page-nav-brand span { font-weight: 800; font-size: .95rem; }
+        .nav-btn {
+            display: inline-flex; align-items: center; padding: 10px 16px;
+            border-radius: 999px; border: 1px solid var(--tot-line); background: #fff;
+            color: var(--tot-ink); text-decoration: none; font-size: .85rem; font-weight: 600;
+        }
+        .nav-btn:hover { border-color: var(--tot-primary); }
+        .layout {
+            max-width: 1400px; margin: 0 auto;
+            display: grid; gap: 20px;
+            grid-template-columns: 1fr 420px;
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        .hero { text-align: center; margin-bottom: 20px; grid-column: 1 / -1; }
+        .hero h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+        .hero p { color: var(--tot-muted); font-size: .95rem; }
+        .card {
+            background: #fff; border: 1px solid var(--tot-line); border-radius: 16px;
+            padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,.04);
+        }
+        .card h2 {
+            font-size: .8rem; font-weight: 800; letter-spacing: .06em;
+            text-transform: uppercase; color: var(--tot-primary); margin-bottom: 14px;
+        }
+        .grid { display: grid; gap: 12px; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+        label { display: block; font-size: .78rem; font-weight: 600; color: var(--tot-muted); margin-bottom: 4px; }
+        input, textarea, select {
+            width: 100%; padding: 10px 12px; border-radius: 10px;
+            border: 1px solid var(--tot-line); font: inherit; background: #fff;
+        }
+        input:focus, textarea:focus { outline: 2px solid rgba(235,10,30,.15); border-color: var(--tot-primary); }
+        .searchable-select { position: relative; }
+        .searchable-select input {
+            padding-left: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='M15 15l-3.5-3.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px 50%;
+            background-size: 16px;
+        }
+        .searchable-select-menu {
+            position: absolute;
+            z-index: 40;
+            left: 0; right: 0; top: calc(100% + 4px);
+            max-height: 240px;
+            overflow: auto;
+            background: #fff;
+            border: 1px solid var(--tot-line);
+            border-radius: 12px;
+            box-shadow: 0 14px 36px rgba(0,0,0,.12);
+            display: none;
+        }
+        .searchable-select-menu.open { display: block; }
+        .searchable-select-menu button {
+            display: block;
+            width: 100%;
+            text-align: right;
+            border: 0;
+            background: transparent;
+            padding: 10px 12px;
+            font: inherit;
+            cursor: pointer;
+            color: var(--tot-ink);
+        }
+        .searchable-select-menu button:hover,
+        .searchable-select-menu button.active {
+            background: rgba(235, 10, 30, 0.08);
+            color: var(--tot-primary);
+        }
+        .searchable-select-empty {
+            padding: 12px;
+            color: var(--tot-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .cars-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        .cars-table th, .cars-table td { border: 1px solid var(--tot-line); padding: 8px; text-align: center; }
+        .cars-table th { background: #f9fafb; font-size: .72rem; }
+        .cars-table input { border: none; padding: 6px; text-align: center; background: transparent; }
+        .cars-table input:focus { outline: none; background: #fff8f8; }
+        .row-no { width: 40px; font-weight: 700; color: var(--tot-muted); background: #f9fafb; }
+        .actions {
+            display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+            margin-top: 8px; padding-top: 8px;
+        }
+        .btn {
+            border: none; border-radius: 12px; padding: 14px 24px; font: inherit;
+            font-weight: 700; cursor: pointer; transition: transform .15s, box-shadow .15s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary {
+            background: var(--tot-primary); color: #fff;
+            box-shadow: 0 8px 24px rgba(235,10,30,.25);
+        }
+        .btn-secondary { background: #fff; border: 1px solid var(--tot-line); color: var(--tot-ink); }
+        .status {
+            text-align: center; font-size: .85rem; margin-top: 12px; min-height: 1.2em;
+        }
+        .status.err { color: #b91c1c; }
+        .status.ok { color: #15803d; }
+        .hint { font-size: .75rem; color: var(--tot-muted); margin-top: 6px; }
+
+        .preview-panel {
+            position: sticky; top: calc(var(--nav-h) + 16px);
+        }
+        .preview-card {
+            background: #fff; border: 1px solid var(--tot-line); border-radius: 16px;
+            padding: 16px; box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        }
+        .preview-card h2 {
+            font-size: .85rem; font-weight: 800; color: var(--tot-primary);
+            margin-bottom: 12px; text-align: center;
+        }
+        .print-sheet {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 210 / 297;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #printCopies { display: none; }
+        .print-copy { page-break-after: always; }
+        .print-sheet img {
+            width: 100%; height: 100%;
+            object-fit: fill;
+            display: block;
+        }
+        .overlay-field {
+            position: absolute;
+            font-family: 'Tajawal', Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: #111;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            display: flex;
+            direction: rtl;
+            pointer-events: none;
+            line-height: 1;
+            padding: 0 1px;
+            z-index: 2;
+        }
+        .overlay-cover {
+            position: absolute;
+            background: #fff;
+            border: 1px solid #000;
+            pointer-events: none;
+            z-index: 1;
+            box-sizing: border-box;
+        }
+        .overlay-field.align-end {
+            align-items: flex-end;
+            justify-content: flex-start;
+            padding-bottom: 0;
+            transform: translateY(-2px);
+        }
+        .overlay-field.align-center {
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .overlay-field.align-start {
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .overlay-field.overlay-field--header-date {
+            font-size: 9px;
+            font-weight: 600;
+        }
+        .overlay-field.overlay-field--invoice {
+            color: #EB0A1E;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+        .overlay-field.overlay-field--chassis {
+            direction: ltr;
+            justify-content: flex-start;
+            text-align: left;
+            padding-left: 6px;
+            font-family: ui-monospace, 'Consolas', monospace;
+            font-size: 10.5px;
+            letter-spacing: 0.01em;
+        }
+        .preview-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .preview-actions .btn { flex: 1; min-width: 120px; padding: 12px 16px; font-size: .85rem; }
+
+        @page carbonless {
+            size: var(--form-w) var(--form-h);
+            margin: 0;
+        }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .page-nav, .form-col, .hero, .no-print { display: none !important; }
+            .layout { display: block; max-width: none; }
+            .preview-panel { position: static; width: 100%; }
+            .preview-card { border: none; box-shadow: none; padding: 0; }
+            #printSheet { display: none !important; }
+            #printCopies { display: block; }
+            .print-sheet {
+                width: var(--form-w);
+                height: var(--form-h);
+                max-width: none;
+                border: none;
+                border-radius: 0;
+                aspect-ratio: auto;
+                margin: 0;
+                overflow: hidden;
+                page-break-after: avoid;
+            }
+            .print-copy { page-break-after: always; }
+            .print-copy:last-child { page-break-after: auto; }
+            .overlay-field { font-size: 13px; font-weight: 700; }
+            .overlay-field.overlay-field--header-date { font-size: 11px; }
+            .overlay-field.overlay-field--chassis { font-size: 12px; }
+            .overlay-field.overlay-field--invoice {
+                font-size: 14px;
+                color: #EB0A1E !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        .cars-table input.chassis-pick {
+            cursor: pointer;
+            background: #fff8f8;
+        }
+        .cars-table input.chassis-pick:hover { border-color: var(--tot-primary); }
+        .cars-table input.chassis-pick::placeholder { color: var(--tot-muted); }
+
+        .vin-modal {
+            position: fixed; inset: 0; z-index: 200;
+            display: none; align-items: center; justify-content: center;
+            padding: 16px; background: rgba(0,0,0,.45);
+        }
+        .vin-modal.open { display: flex; }
+        .vin-modal-panel {
+            width: min(920px, 100%); max-height: min(88vh, 900px);
+            background: #fff; border-radius: 16px; overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 60px rgba(0,0,0,.2);
+        }
+        .vin-modal-head {
+            padding: 16px 18px; border-bottom: 1px solid var(--tot-line);
+            display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+        }
+        .vin-modal-head h3 { font-size: 1rem; font-weight: 800; color: var(--tot-primary); flex: 1; }
+        .vin-modal-head input {
+            flex: 1; min-width: 200px; padding: 10px 12px;
+            border: 1px solid var(--tot-line); border-radius: 10px; font: inherit;
+        }
+        .vin-modal-close {
+            border: none; background: #f3f4f6; width: 36px; height: 36px;
+            border-radius: 10px; font-size: 1.2rem; cursor: pointer;
+        }
+        .vin-modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        .vin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .vin-card {
+            border: 1px solid var(--tot-line); border-radius: 12px; padding: 12px;
+            cursor: pointer; text-align: center; transition: border-color .15s, box-shadow .15s;
+            background: #fff; font: inherit; width: 100%;
+        }
+        .vin-card:hover, .vin-card:focus {
+            border-color: var(--tot-primary);
+            box-shadow: 0 6px 18px rgba(235,10,30,.12);
+            outline: none;
+        }
+        .vin-card img {
+            width: 100%; height: 72px; object-fit: contain;
+            border-radius: 8px; background: #f9fafb; margin-bottom: 8px;
+        }
+        .vin-card .vin-no {
+            font-family: ui-monospace, monospace; font-size: .72rem;
+            direction: ltr; word-break: break-all; font-weight: 700;
+        }
+        .vin-card .vin-product { font-size: .8rem; font-weight: 700; margin-top: 4px; }
+        .vin-card .vin-meta { font-size: .7rem; color: var(--tot-muted); margin-top: 2px; }
+        .vin-empty { text-align: center; color: var(--tot-muted); padding: 32px 12px; }
+
+        .gate-wrap { max-width: 1200px; margin: 0 auto 120px; padding: 0 16px; }
+        .gate-wrap.hidden, #agentWorkspace.hidden, #mainApp.hidden { display: none !important; }
+
+        #gateLogin {
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            max-width: none;
+            margin: 0;
+            padding: 24px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b0f17;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(235,10,30,.18), transparent),
+                linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+            background-size: auto, 48px 48px, 48px 48px;
+        }
+        #gateLogin.hidden { display: none !important; }
+
+        .gate-card {
+            width: min(400px, 100%);
+            background: rgba(15,23,42,.92);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 24px 60px rgba(0,0,0,.45);
+            backdrop-filter: blur(16px);
+            margin: 0;
+        }
+        .gate-card h2 {
+            font-size: 1.2rem; font-weight: 800; color: #f8fafc;
+            margin-bottom: 22px; text-align: center;
+        }
+        .gate-user { display: grid; gap: 16px; }
+        .gate-user label {
+            display: block; font-size: .8rem; font-weight: 600;
+            color: #94a3b8; margin-bottom: 6px;
+        }
+        .gate-user input,
+        .gate-user select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.18);
+            background: #1e293b;
+            color: #f8fafc;
+            font: inherit;
+            font-size: .95rem;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .gate-user select {
+            cursor: pointer;
+            color-scheme: dark;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 14px center;
+            padding-left: 36px;
+        }
+        .gate-user select option {
+            background: #1e293b;
+            color: #f8fafc;
+        }
+        .gate-user input::placeholder { color: #64748b; }
+        .gate-user input:focus,
+        .gate-user select:focus {
+            outline: none;
+            border-color: rgba(235,10,30,.55);
+            box-shadow: 0 0 0 3px rgba(235,10,30,.15);
+        }
+        .gate-user .btn-primary {
+            width: 100%;
+            margin-top: 4px;
+            padding: 14px;
+            font-size: 1rem;
+        }
+        #gateLogin .ws-toast { color: #94a3b8; }
+        #gateLogin .ws-toast.err { color: #f87171; }
+        #gateLogin .ws-toast.ok { color: #4ade80; }
+        body.workspace-mode {
+            background: #070b14;
+            background-image:
+                radial-gradient(1100px 520px at 85% -10%, rgba(255, 59, 74, 0.16), transparent 55%),
+                radial-gradient(900px 480px at 5% 20%, rgba(56, 189, 248, 0.08), transparent 50%),
+                radial-gradient(700px 400px at 50% 100%, rgba(99, 102, 241, 0.06), transparent 60%),
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: auto, auto, auto, 48px 48px, 48px 48px;
+            color: #e8edf5;
+            padding: 0 0 120px;
+        }
+        .ws-shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 24px; }
+        .ws-topbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            flex-wrap: wrap; margin-bottom: 22px;
+            padding: 14px 18px;
+            border-radius: 20px;
+            background: rgba(14, 20, 34, 0.72);
+            border: 1px solid rgba(255,255,255,.1);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 40px rgba(0,0,0,.35);
+        }
+        .ws-brand { display: flex; align-items: center; gap: 12px; }
+        .ws-brand img { height: 34px; filter: brightness(1.1); }
+        .ws-brand h1 {
+            font-family: 'Plus Jakarta Sans', 'Tajawal', 'Inter', sans-serif;
+            font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em; color: #f8fafc;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .live-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.65rem; font-weight: 800; letter-spacing: 0.06em;
+            text-transform: uppercase; padding: 4px 9px; border-radius: 999px;
+            background: rgba(74, 222, 128, 0.12); color: #4ade80;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            animation: livePulse 2s ease-in-out infinite;
+        }
+        .live-pill.off {
+            background: rgba(148, 163, 184, 0.12); color: #94a3b8;
+            border-color: rgba(148, 163, 184, 0.3);
+            animation: none;
+        }
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .ws-brand p { font-size: .78rem; color: #94a3b8; margin-top: 2px; }
+        .ws-user-pill {
+            display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+            border-radius: 999px; background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(12px);
+        }
+        .ws-user-pill strong { color: #f8fafc; font-size: .88rem; }
+        .ws-stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px; margin-bottom: 22px;
+        }
+        .ws-stat {
+            position: relative;
+            overflow: hidden;
+            padding: 16px 18px; border-radius: 18px;
+            background: linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+            border: 1px solid rgba(255,255,255,.1);
+            backdrop-filter: blur(10px);
+            transition: transform .2s ease, border-color .2s ease;
+        }
+        .ws-stat::before {
+            content: "";
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+        }
+        .ws-stat:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.18); }
+        .ws-stat span {
+            display: block; font-size: .7rem; color: #94a3b8; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em;
+        }
+        .ws-stat b {
+            display: block; font-size: 1.75rem; font-weight: 800; margin-top: 6px;
+            letter-spacing: -.03em; color: #f1f5f9;
+        }
+        .ws-stat--avail b { color: #4ade80; text-shadow: 0 0 24px rgba(74,222,128,.35); }
+        .ws-stat--ready b { color: #fbbf24; }
+        .ws-stat--stock b { color: #60a5fa; text-shadow: 0 0 24px rgba(96,165,250,.35); }
+        .ws-stat--out b { color: #f87171; text-shadow: 0 0 24px rgba(248,113,113,.35); }
+        .ws-section {
+            margin-bottom: 22px; padding: 20px; border-radius: 22px;
+            background: rgba(14, 20, 34, 0.78);
+            border: 1px solid rgba(255,255,255,.1);
+            backdrop-filter: blur(16px); box-shadow: 0 20px 50px rgba(0,0,0,.28);
+        }
+        .ws-section--out {
+            border-color: rgba(248, 113, 113, 0.22);
+            background: linear-gradient(165deg, rgba(248,113,113,.08), rgba(14,20,34,.85));
+        }
+        .ws-section-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .ws-section-head h2 {
+            font-size: .95rem; font-weight: 800; color: #f1f5f9;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .ws-section-head h2::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--tot-primary); box-shadow: 0 0 12px rgba(235,10,30,.8);
+        }
+        .ws-section-head .hint { font-size: .75rem; color: #94a3b8; }
+        .fleet-search-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .fleet-search {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(0,0,0,.28);
+            color: #f1f5f9;
+            font: inherit;
+            font-size: .9rem;
+            letter-spacing: 0.04em;
+            direction: ltr;
+            text-align: left;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .fleet-search::placeholder { color: #64748b; letter-spacing: 0; }
+        .fleet-search:focus {
+            outline: none;
+            border-color: rgba(255, 59, 74, 0.55);
+            box-shadow: 0 0 0 3px rgba(255, 59, 74, 0.15);
+        }
+        .fleet-search-count {
+            font-size: .75rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .fleet-card.fleet-card--hidden { display: none !important; }
+        .fleet-search-empty.hidden { display: none !important; }
+        .fleet-grid {
+            display: grid; gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        }
+        .fleet-card {
+            position: relative; text-align: right; padding: 0;
+            border-radius: 18px; border: 1px solid rgba(255,255,255,.1);
+            background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+            cursor: pointer; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+            font: inherit; color: inherit; width: 100%;
+            overflow: hidden;
+        }
+        .fleet-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(74,222,128,.45);
+            box-shadow: 0 16px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(74,222,128,.15);
+        }
+        .fleet-card .fc-media {
+            height: 110px;
+            display: flex; align-items: center; justify-content: center;
+            background:
+                radial-gradient(120px 60px at 50% 100%, rgba(255,59,74,.18), transparent 70%),
+                linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .fleet-card .fc-media img {
+            max-width: 88%; max-height: 88%; object-fit: contain;
+            filter: drop-shadow(0 8px 18px rgba(0,0,0,.45));
+        }
+        .fleet-card .fc-body { padding: 14px 16px 16px; }
+        .fleet-card .fc-vin {
+            font-family: ui-monospace, monospace; font-size: .74rem;
+            direction: ltr; font-weight: 800; color: #e2e8f0; word-break: break-all;
+        }
+        .fleet-card .fc-product { font-weight: 800; margin-top: 8px; font-size: .95rem; color: #f8fafc; }
+        .fleet-card .fc-meta { font-size: .74rem; color: #94a3b8; margin-top: 6px; }
+        .fleet-card .fc-badge {
+            display: inline-flex; margin-top: 10px; padding: 4px 10px;
+            border-radius: 999px; font-size: .68rem; font-weight: 700;
+        }
+        .fleet-card .fc-actions {
+            display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+        }
+        .fc-btn {
+            flex: 1; min-width: 90px; padding: 8px 10px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05);
+            color: #e2e8f0; font: inherit; font-size: .72rem; font-weight: 700;
+            cursor: pointer; transition: background .15s, border-color .15s;
+        }
+        .fc-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.28); }
+        .fc-btn--primary {
+            background: rgba(235,10,30,.2); border-color: rgba(235,10,30,.4); color: #fecaca;
+        }
+        .fc-btn--primary:hover { background: rgba(235,10,30,.32); }
+        .fc-btn--ok {
+            background: rgba(74,222,128,.12); border-color: rgba(74,222,128,.35); color: #86efac;
+        }
+        .fc-btn--ok:hover { background: rgba(74,222,128,.2); }
+        .fc-badge--avail { background: rgba(74,222,128,.15); color: #4ade80; border: 1px solid rgba(74,222,128,.3); }
+        .fc-badge--ready { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.35); }
+        .fc-badge--stock { background: rgba(96,165,250,.15); color: #60a5fa; border: 1px solid rgba(96,165,250,.35); }
+        .fc-badge--out { background: rgba(235,10,30,.15); color: #f87171; border: 1px solid rgba(235,10,30,.35); }
+        .fleet-card--ready { border-color: rgba(251,191,36,.25); }
+        .fleet-card--ready:hover { border-color: rgba(251,191,36,.5); box-shadow: 0 12px 32px rgba(251,191,36,.1); }
+        .fleet-card--out { border-color: rgba(248,113,113,.28); }
+        .fleet-card--out:hover {
+            border-color: rgba(248,113,113,.5);
+            box-shadow: 0 16px 40px rgba(248,113,113,.12);
+        }
+        .fleet-card--actionable::after {
+            content: '↗'; position: absolute; top: 12px; left: 12px;
+            font-size: .85rem; color: #94a3b8; z-index: 2;
+        }
+        .ws-empty {
+            text-align: center; padding: 36px 16px; color: #64748b; font-size: .88rem;
+            border: 1px dashed rgba(255,255,255,.12); border-radius: 16px;
+            background: rgba(255,255,255,.02);
+            line-height: 1.6;
+        }
+        .ws-empty strong { display: block; color: #94a3b8; margin-bottom: 4px; font-size: .95rem; }
+        .stock-dock {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+            background: rgba(7, 11, 20, .94);
+            border-top: 1px solid rgba(96,165,250,.25);
+            backdrop-filter: blur(22px); padding: 14px 16px 18px;
+            box-shadow: 0 -24px 60px rgba(0,0,0,.5);
+        }
+        .stock-dock-inner { max-width: 1200px; margin: 0 auto; }
+        .stock-dock-head {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px; gap: 10px;
+        }
+        .stock-dock-head h3 {
+            font-size: .82rem; font-weight: 800; color: #93c5fd; letter-spacing: .04em;
+        }
+        .stock-dock-head span { font-size: .78rem; color: #94a3b8; }
+        .stock-scroll {
+            display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;
+            scrollbar-width: thin;
+        }
+        .stock-chip {
+            flex: 0 0 auto; min-width: 230px; padding: 14px 16px;
+            border-radius: 16px; border: 1px solid rgba(96,165,250,.35);
+            background: linear-gradient(145deg, rgba(96,165,250,.16), rgba(96,165,250,.05));
+            cursor: pointer; text-align: right;
+            transition: transform .18s ease, background .15s, border-color .15s, box-shadow .18s;
+            color: #fff;
+        }
+        .stock-chip:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(145deg, rgba(96,165,250,.24), rgba(96,165,250,.08));
+            border-color: rgba(96,165,250,.6);
+            box-shadow: 0 12px 28px rgba(37,99,235,.2);
+        }
+        .stock-chip .sc-vin {
+            font-family: ui-monospace, monospace; font-size: .95rem;
+            direction: ltr; font-weight: 800; color: #ffffff; letter-spacing: .02em;
+        }
+        .stock-chip .sc-product { font-size: 1rem; font-weight: 800; margin-top: 6px; color: #ffffff; }
+        .stock-chip .sc-label { font-size: .78rem; color: #93c5fd; margin-top: 8px; font-weight: 700; }
+        .stock-chip .sc-hint { font-size: .72rem; color: #cbd5e1; margin-top: 3px; }
+        .stock-chip .sc-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .stock-chip .sc-actions button {
+            border: 0;
+            border-radius: 10px;
+            padding: 9px 8px;
+            font: inherit;
+            font-size: .72rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: filter .15s ease, transform .15s ease;
+        }
+        .stock-chip .sc-actions button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .stock-chip .sc-btn-issue {
+            background: linear-gradient(135deg, #eb0a1e, #c8102e);
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(235, 10, 30, 0.35);
+        }
+        .stock-chip .sc-btn-return {
+            background: rgba(255,255,255,.08);
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,.16) !important;
+        }
+        .stock-action-modal {
+            position: fixed; inset: 0; z-index: 220;
+            display: none; align-items: center; justify-content: center;
+            padding: 16px;
+            background: rgba(2, 6, 14, 0.72);
+            backdrop-filter: blur(8px);
+        }
+        .stock-action-modal.open { display: flex; }
+        .stock-action-panel {
+            width: min(420px, 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: linear-gradient(165deg, #141c2e 0%, #0c1220 100%);
+            box-shadow: 0 28px 60px rgba(0,0,0,.55);
+            padding: 22px 20px 18px;
+            color: #e8ecf4;
+            text-align: center;
+        }
+        .stock-action-panel h3 {
+            margin: 0 0 6px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+        .stock-action-meta {
+            font-family: ui-monospace, Consolas, monospace;
+            direction: ltr;
+            font-size: .82rem;
+            color: #93c5fd;
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+        .stock-action-product {
+            font-size: .95rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #e2e8f0;
+        }
+        .stock-action-sub {
+            font-size: .8rem;
+            color: #94a3b8;
+            margin: 0 0 16px;
+        }
+        .stock-action-btns {
+            display: grid;
+            gap: 10px;
+        }
+        .stock-action-btns button {
+            width: 100%;
+            border: 0;
+            border-radius: 12px;
+            padding: 13px 14px;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform .15s ease, filter .15s ease;
+        }
+        .stock-action-btns button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .stock-action-btns .sa-issue {
+            background: linear-gradient(135deg, #eb0a1e, #c8102e);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(235, 10, 30, 0.35);
+        }
+        .stock-action-btns .sa-return {
+            background: rgba(255,255,255,.06);
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,.14);
+        }
+        .stock-action-btns .sa-cancel {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid transparent;
+            font-weight: 600;
+            padding: 10px;
+        }
+        .stock-action-btns .sa-cancel:hover { color: #cbd5e1; transform: none; filter: none; }
+
+
+        /* ——— Futuristic agent workspace ——— */
+        .status-modal {
+            position: fixed; inset: 0; z-index: 200; display: none;
+            align-items: center; justify-content: center; padding: 16px;
+            background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+        }
+        .status-modal.open { display: flex; }
+        .status-modal-panel {
+            width: min(440px, 100%); padding: 24px; border-radius: 20px;
+            background: #111827; border: 1px solid rgba(255,255,255,.12);
+            box-shadow: 0 30px 80px rgba(0,0,0,.5);
+        }
+        .status-modal-panel h3 { font-size: 1rem; font-weight: 800; color: #f8fafc; margin-bottom: 6px; }
+        .status-modal-vin {
+            font-family: ui-monospace, monospace; font-size: .75rem;
+            direction: ltr; color: #94a3b8; margin-bottom: 18px; word-break: break-all;
+        }
+        .status-options { display: grid; gap: 10px; }
+        .status-opt {
+            display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+            border-radius: 14px; border: 1px solid rgba(255,255,255,.1);
+            background: rgba(255,255,255,.04); cursor: pointer; text-align: right;
+            transition: border-color .15s, background .15s; font: inherit; color: inherit; width: 100%;
+        }
+        .status-opt:hover { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.08); }
+        .status-opt .so-icon {
+            width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+            font-size: 1.1rem; flex-shrink: 0;
+        }
+        .status-opt .so-text strong { display: block; font-size: .88rem; }
+        .status-opt .so-text span { font-size: .72rem; color: #94a3b8; margin-top: 2px; display: block; }
+        .so-icon--stock { background: rgba(96,165,250,.2); }
+        .so-icon--ready { background: rgba(251,191,36,.2); }
+        .so-icon--out { background: rgba(235,10,30,.2); }
+        .status-modal-close {
+            margin-top: 14px; width: 100%; padding: 10px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.12); background: transparent;
+            color: #94a3b8; font: inherit; cursor: pointer;
+        }
+        .ws-toast {
+            text-align: center; font-size: .82rem; min-height: 1.2em; margin-top: 8px;
+        }
+        .ws-toast.err { color: #f87171; }
+        .ws-toast.ok { color: #4ade80; }
+        .btn-ghost {
+            padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.15);
+            background: transparent; color: #cbd5e1; font: inherit; font-weight: 600;
+            cursor: pointer; font-size: .8rem;
+        }
+        .btn-ghost:hover { border-color: rgba(255,255,255,.3); color: #fff; }
+
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            .vin-modal, .stock-action-modal, .searchable-select-menu { display: none !important; }
+            body.print-carbonless {
+                page: carbonless;
+            }
+            body.print-carbonless .print-sheet img,
+            body.print-carbonless .overlay-cover {
+                display: none !important;
+            }
+            body.print-carbonless .print-sheet {
+                background: transparent;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gateLogin" class="gate-wrap">
+        <div class="gate-card">
+            <h2>تسجيل الدخول</h2>
+            <div class="gate-user">
+                <div>
+                    <label for="loginUser">اسم المستخدم</label>
+                    <select id="loginUser" required>
+                        <option value="">— اختر الاسم —</option>
+                        <option value="ياسين">ياسين</option>
+                        <option value="الفاضل">الفاضل</option>
+                        <option value="البراء">البراء</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="loginPass">كلمة المرور</label>
+                    <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+                </div>
+                <button type="button" class="btn btn-primary" id="btnLogin">دخول</button>
+                <p class="ws-toast" id="loginStatus"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="agentWorkspace" class="hidden">
+        <div class="ws-shell">
+            <div class="ws-topbar">
+                <div class="ws-brand">
+                    <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+                    <div>
+                        <h1>لوحة الترحيل <span class="live-pill" id="livePill" title="Live sync">● Live</span></h1>
+                        <p>اختر السيارات وحدد حالتها — يمكنك إدارة عدة سيارات</p>
+                    </div>
+                </div>
+                <div class="ws-user-pill">
+                    <a href="admin-Delivery-pdf.html" class="btn-ghost">الإدارة</a>
+                    <a href="Delivery_coordinator.html" class="btn-ghost">المنسق</a>
+                    <strong id="loggedAs">مرحباً</strong>
+                    <button type="button" class="btn-ghost" id="btnLogout">خروج</button>
+                </div>
+            </div>
+
+            <div class="ws-stats" id="wsStats"></div>
+
+            <section class="ws-section">
+                <div class="ws-section-head">
+                    <h2>السيارات المتاحة</h2>
+                    <span class="hint">انقر لإضافة السيارة لمخزونك</span>
+                </div>
+                <div class="fleet-search-wrap">
+                    <input
+                        type="search"
+                        id="availableVinSearch"
+                        class="fleet-search"
+                        placeholder="ابحث بالشاسيه / VIN…"
+                        autocomplete="off"
+                        spellcheck="false"
+                        inputmode="search"
+                    />
+                    <span class="fleet-search-count" id="availableVinSearchCount"></span>
+                </div>
+                <div class="fleet-grid" id="availableFleet"></div>
+                <p class="ws-empty fleet-search-empty hidden" id="availableVinSearchEmpty">لا توجد نتائج مطابقة للبحث</p>
+                <p class="ws-toast" id="queueStatus"></p>
+            </section>
+
+            <section class="ws-section ws-section--out">
+                <div class="ws-section-head">
+                    <h2>خارج للتسليم — Out for Delivery</h2>
+                    <span class="hint">تظهر هنا بعد طباعة المذكرة</span>
+                </div>
+                <div class="fleet-grid" id="outFleet"></div>
+            </section>
+        </div>
+
+        <aside class="stock-dock" id="stockDock">
+            <div class="stock-dock-inner">
+                <div class="stock-dock-head">
+                    <h3>المخزون الحالي — Current Stock</h3>
+                    <span>اضغط «اصدار مذكرة» للطباعة أو «إرجاع للقائمة»</span>
+                </div>
+                <div class="stock-scroll" id="stockDockList">
+                    <div class="ws-empty" style="min-width:100%;border:none">لا توجد سيارات في مخزونك</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="mainApp" class="hidden">
+    <nav class="page-nav no-print">
+        <a href="../simple-app.html" class="page-nav-brand">
+            <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+            <span>مذكرة ترحيل السيارات</span>
+        </a>
+        <button type="button" class="nav-btn" id="btnBackWorkspace" style="background:var(--tot-primary);color:#fff;border-color:var(--tot-primary)">← لوحة السيارات</button>
+    </nav>
+
+    <div class="layout">
+        <header class="hero no-print">
+            <h1>مذكرة ترحيل السيارات</h1>
+            <p>املأ البيانات — شاهد المعاينة — اطبع على ورق A4</p>
+        </header>
+
+        <div class="form-col">
+            <form id="deliveryForm">
+                <section class="card">
+                    <h2>بيانات المذكرة — Header</h2>
+                    <div class="grid grid-4">
+                        <div>
+                            <label for="doc_date">التاريخ / Date</label>
+                            <input id="doc_date" name="doc_date" type="date" required>
+                        </div>
+                        <div>
+                            <label for="invoice_number">Invoice Number / رقم الفاتورة</label>
+                            <input id="invoice_number" name="invoice_number" type="text" inputmode="numeric" placeholder="e.g. 123456" required>
+                        </div>
+                        <div>
+                            <label for="dep_hour">ساعة الخروج / Hour</label>
+                            <input id="dep_hour" name="dep_hour" type="text" inputmode="numeric" placeholder="10">
+                        </div>
+                        <div>
+                            <label for="dep_minute">دقيقة الخروج / Minute</label>
+                            <input id="dep_minute" name="dep_minute" type="text" inputmode="numeric" placeholder="30">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>بيانات العميل والنقل — Customer &amp; Transport</h2>
+                    <div class="grid grid-2">
+                        <div>
+                            <label for="company_rep">اسم الشركة / Company</label>
+                            <div class="searchable-select">
+                                <input id="company_rep" name="company_rep" type="text" required autocomplete="off" placeholder="اكتب للبحث عن الشركة…" spellcheck="false">
+                                <div class="searchable-select-menu" id="company_rep_menu" role="listbox"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="customer_name">مندوب الشركة / Company Rep</label>
+                            <input id="customer_name" name="customer_name" type="text" required autocomplete="name" placeholder="اكتب اسم المندوب…" spellcheck="false">
+                        </div>
+                        <div>
+                            <label for="transfer_date">تاريخ الترحيل / Transfer Date</label>
+                            <input id="transfer_date" name="transfer_date" type="date">
+                        </div>
+                        <div>
+                            <label for="corresponding_date">الموافق / Corresponding Date</label>
+                            <input id="corresponding_date" name="corresponding_date" type="date">
+                        </div>
+                        <div>
+                            <label for="day_name">اليوم / Day</label>
+                            <input id="day_name" name="day_name" type="text" placeholder="الجمعة / Friday">
+                        </div>
+                        <div>
+                            <label for="trailer_number">رقم التريلا / Trailer No.</label>
+                            <input id="trailer_number" name="trailer_number" type="text">
+                        </div>
+                        <div>
+                            <label for="car_count">عدد السيارات / Car Count</label>
+                            <input id="car_count" name="car_count" type="text" inputmode="numeric" readonly title="يُحسب تلقائياً من عدد الشاسيه المختارة">
+                        </div>
+                        <div>
+                            <label for="branch_to">محولة إلى فرع / Branch</label>
+                            <div class="searchable-select">
+                                <input id="branch_to" name="branch_to" type="text" required autocomplete="off" placeholder="اكتب للبحث عن الفرع…" spellcheck="false">
+                                <div class="searchable-select-menu" id="branch_to_menu" role="listbox"></div>
+                            </div>
+                        </div>
+                        <div class="grid" style="grid-column: 1 / -1">
+                            <label for="attachments">المرفقات / Attachments</label>
+                            <textarea id="attachments" name="attachments" rows="2"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>جدول السيارات — Vehicles (up to 10)</h2>
+                    <p class="hint">انقر على خانة الشاسية لاختيار VIN من البيانات المرفوعة — يُملأ الموديل وعدد السيارات تلقائياً</p>
+                    <div style="overflow-x:auto;margin-top:10px">
+                        <table class="cars-table" id="carsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الموديل / Model</th>
+                                    <th>الشاسية / Chassis</th>
+                                    <th>رقم اللوحة / Plate</th>
+                                    <th>ملاحظات / Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="carsBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <div class="actions no-print">
+                    <button type="button" class="btn btn-primary" id="btnPrint">🖨 طباعة A4</button>
+                    <button type="submit" class="btn btn-secondary" id="btnDownload">⬇ تحميل Word</button>
+                    <button type="button" class="btn btn-secondary" id="btnToday">تعيين تاريخ اليوم</button>
+                    <button type="reset" class="btn btn-secondary">مسح النموذج</button>
+                </div>
+                <p class="hint no-print" style="text-align:center;margin-top:10px">
+                    للطباعة: اختر حجم الورق A4، هوامش = صفر. بعد الطباعة تُحفظ المسودة ويُوسم الشاسيه «تم الترحيل» في لوحة الإدارة.
+                </p>
+                <p class="status no-print" id="status" role="status"></p>
+            </form>
+        </div>
+
+        <aside class="preview-panel">
+            <div class="preview-card">
+                <h2 class="no-print">معاينة مذكرة الترحيل</h2>
+                <div class="print-sheet" id="printSheet">
+                    <img src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل">
+                    <div id="overlayFields"></div>
+                </div>
+                <div class="preview-actions no-print">
+                    <button type="button" class="btn btn-primary" id="btnPrint2">🖨 طباعة A4</button>
+                    <button type="button" class="btn btn-secondary" id="btnScrollPreview">عرض المعاينة</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="vin-modal no-print" id="vinModal" role="dialog" aria-modal="true" aria-labelledby="vinModalTitle">
+        <div class="vin-modal-panel">
+            <div class="vin-modal-head">
+                <h3 id="vinModalTitle">اختر الشاسيه / VIN</h3>
+                <input type="search" id="vinSearch" placeholder="بحث بالشاسيه، المنتج، اللوحة…" autocomplete="off">
+                <button type="button" class="vin-modal-close" id="vinModalClose" aria-label="إغلاق">×</button>
+            </div>
+            <div class="vin-modal-body">
+                <div class="vin-grid" id="vinGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="stock-action-modal no-print" id="stockActionModal" role="dialog" aria-modal="true" aria-labelledby="stockActionTitle">
+        <div class="stock-action-panel">
+            <h3 id="stockActionTitle">ماذا تريد أن تفعل؟</h3>
+            <div class="stock-action-meta" id="stockActionVin"></div>
+            <div class="stock-action-product" id="stockActionProduct"></div>
+            <p class="stock-action-sub">اختر إصدار مذكرة الترحيل للطباعة، أو أعد السيارة للقائمة المتاحة</p>
+            <div class="stock-action-btns">
+                <button type="button" class="sa-issue" id="stockActionIssue">اصدار مذكرة الترحيل</button>
+                <button type="button" class="sa-return" id="stockActionReturn">إرجاع السيارة للقائمة المتاحة</button>
+                <button type="button" class="sa-cancel" id="stockActionCancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../scripts/muthakara-branch-options.js"></script>
+    <script src="../scripts/muthakara-customer-options.js"></script>
+    <script src="../scripts/muthakara-field-layout.js"></script>
+    <script>
+        const AR_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠'];
+        const FIELD_LAYOUT = MUTHAKARA_FIELDS;
+        const carsBody = document.getElementById('carsBody');
+        const statusEl = document.getElementById('status');
+        const form = document.getElementById('deliveryForm');
+        const overlayFields = document.getElementById('overlayFields');
+        const fieldEls = {};
+
+        function splitDateParts(value) {
+            if (!value) return { d: '', m: '', y: '' };
+            const s = String(value).trim();
+            const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (iso) return { y: iso[1], m: iso[2], d: iso[3] };
+            const dmy = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+            if (dmy) return { d: dmy[1], m: dmy[2], y: dmy[3] };
+            return { d: '', m: '', y: '' };
+        }
+
+        const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        function toArabicIndicDigits(s) {
+            return String(s).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
+        }
+
+        // Convert ISO date (yyyy-mm-dd) -> Hijri day/month/year strings for overlay.
+        function toHijriPartsFromIso(isoDate) {
+            try {
+                if (!isoDate) return { d: '', m: '', y: '' };
+                const dt = new Date(String(isoDate).trim() + 'T00:00:00');
+                if (Number.isNaN(dt.getTime())) return { d: '', m: '', y: '' };
+
+                const fmt = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    year: 'numeric',
+                    numberingSystem: 'latn'
+                });
+                const parts = fmt.formatToParts(dt) || [];
+                const get = (type) => parts.find((p) => p.type === type)?.value || '';
+
+                const d = String(get('day')).padStart(2, '0');
+                const m = String(get('month')).padStart(2, '0');
+                const y = String(get('year'));
+                return { d: toArabicIndicDigits(d), m: toArabicIndicDigits(m), y: toArabicIndicDigits(y) };
+            } catch (_) {
+                return { d: '', m: '', y: '' };
+            }
+        }
+
+        function buildCarRows() {
+            carsBody.innerHTML = AR_NUMS.map((n, i) => `
+                <tr>
+                    <td class="row-no">${n}</td>
+                    <td><input name="car_model_${i}" data-field="model" data-row="${i}" aria-label="Model row ${i + 1}"></td>
+                    <td><input name="car_chassis_${i}" data-field="chassis" data-row="${i}" class="chassis-pick" readonly placeholder="انقر للاختيار" aria-label="Chassis row ${i + 1}"></td>
+                    <td><input name="car_plate_${i}" data-field="plate" data-row="${i}" aria-label="Plate row ${i + 1}"></td>
+                    <td><input name="car_remarks_${i}" data-field="remarks" data-row="${i}" aria-label="Remarks row ${i + 1}"></td>
+                </tr>
+            `).join('');
+            carsBody.querySelectorAll('.chassis-pick').forEach((el) => {
+                el.addEventListener('click', () => openVinPicker(parseInt(el.dataset.row, 10)));
+            });
+        }
+
+        function countFilledChassis() {
+            return AR_NUMS.filter((_, i) => {
+                const el = form.querySelector(`[name="car_chassis_${i}"]`);
+                return el && el.value.trim();
+            }).length;
+        }
+
+        function syncCarCount() {
+            const n = countFilledChassis();
+            document.getElementById('car_count').value = n ? String(n) : '';
+            updatePreview();
+        }
+
+        function buildOverlay() {
+            const [cx, cy, cw, ch] = MEMO_NUMBER_COVER;
+            const coverHtml = `<div class="overlay-cover" aria-hidden="true" style="left:${cx * 100}%;top:${cy * 100}%;width:${cw * 100}%;height:${ch * 100}%"></div>`;
+            overlayFields.innerHTML = coverHtml + FIELD_LAYOUT.map(([tag, x, y, w, h, align]) => {
+                const dateCls = /^date_[dmy]$/.test(tag) ? ' overlay-field--header-date' : '';
+                const invoiceCls = tag === 'invoice_number' ? ' overlay-field--invoice' : '';
+                const chassisCls = /_chassis$/.test(tag) ? ' overlay-field--chassis' : '';
+                const cls = 'overlay-field align-' + (align || 'end') + dateCls + invoiceCls + chassisCls;
+                return `<div class="${cls}" data-tag="${tag}" style="left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%"></div>`;
+            }).join('');
+            overlayFields.querySelectorAll('.overlay-field').forEach((el) => {
+                fieldEls[el.dataset.tag] = el;
+            });
+        }
+
+        function setStatus(msg, type) {
+            statusEl.textContent = msg || '';
+            statusEl.className = 'status no-print' + (type ? ` ${type}` : '');
+        }
+
+        function collectPayload() {
+            const fd = new FormData(form);
+            const cars = AR_NUMS.map((_, i) => ({
+                model: fd.get(`car_model_${i}`)?.trim() || '',
+                chassis: fd.get(`car_chassis_${i}`)?.trim() || '',
+                plate: fd.get(`car_plate_${i}`)?.trim() || '',
+                remarks: fd.get(`car_remarks_${i}`)?.trim() || ''
+            }));
+            const filled = countFilledChassis();
+            return {
+                doc_date: fd.get('doc_date'),
+                invoice_number: fd.get('invoice_number')?.trim(),
+                dep_hour: fd.get('dep_hour')?.trim(),
+                dep_minute: fd.get('dep_minute')?.trim(),
+                customer_name: fd.get('customer_name')?.trim(),
+                company_rep: fd.get('company_rep')?.trim(),
+                transfer_date: fd.get('transfer_date') || fd.get('doc_date'),
+                corresponding_date: fd.get('corresponding_date') || fd.get('transfer_date') || fd.get('doc_date'),
+                day_name: fd.get('day_name')?.trim(),
+                trailer_number: fd.get('trailer_number')?.trim(),
+                car_count: String(filled || fd.get('car_count')?.trim() || ''),
+                branch_to: fd.get('branch_to')?.trim(),
+                attachments: fd.get('attachments')?.trim(),
+                cars
+            };
+        }
+
+        function buildFlatData(body) {
+            const docDate = splitDateParts(body.doc_date);
+            const transferDate = splitDateParts(body.transfer_date || body.doc_date);
+            const correspondingIso = body.corresponding_date || body.transfer_date || body.doc_date;
+            const correspondingDate = splitDateParts(correspondingIso);
+            const correspondingHijri = toHijriPartsFromIso(correspondingIso);
+            const data = {
+                date_d: docDate.d,
+                date_m: docDate.m,
+                date_y: docDate.y,
+                invoice_number: body.invoice_number || body.memo_number || '',
+                dep_hour: body.dep_hour || '',
+                dep_minute: body.dep_minute || '',
+                customer_name: body.customer_name || '',
+                company_rep: body.company_rep || '',
+                transfer_d: transferDate.d,
+                transfer_m: transferDate.m,
+                transfer_y: transferDate.y,
+                // "الموافق / Corresponding Date" should be Hijri.
+                corresponding_d: correspondingHijri.d || correspondingDate.d,
+                corresponding_m: correspondingHijri.m || correspondingDate.m,
+                corresponding_y: correspondingHijri.y || correspondingDate.y,
+                day_name: body.day_name || '',
+                trailer_number: body.trailer_number || '',
+                car_count: body.car_count || '',
+                branch_to: body.branch_to || '',
+                attachments: body.attachments || ''
+            };
+            const cars = Array.isArray(body.cars) ? body.cars : [];
+            for (let i = 1; i <= 10; i++) {
+                const row = cars[i - 1] || {};
+                data[`car${i}_model`] = row.model || '';
+                data[`car${i}_chassis`] = row.chassis || '';
+                data[`car${i}_plate`] = row.plate || '';
+                data[`car${i}_remarks`] = row.remarks || '';
+            }
+            return data;
+        }
+
+        function updatePreview() {
+            const data = buildFlatData(collectPayload());
+            Object.keys(fieldEls).forEach((tag) => {
+                fieldEls[tag].textContent = data[tag] || '';
+            });
+        }
+
+        function getSaudiTodayIso() {
+            return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+        }
+
+        function getSaudiWeekdayIndex() {
+            const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', weekday: 'short' }).format(new Date());
+            return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[weekday];
+        }
+
+        function setTodayDates() {
+            const today = getSaudiTodayIso();
+            document.getElementById('doc_date').value = today;
+            document.getElementById('transfer_date').value = today;
+            document.getElementById('corresponding_date').value = today;
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            document.getElementById('day_name').value = days[getSaudiWeekdayIndex()];
+            updatePreview();
+        }
+
+        const vinModal = document.getElementById('vinModal');
+        const vinGrid = document.getElementById('vinGrid');
+        const vinSearch = document.getElementById('vinSearch');
+        let activeVinRow = null;
+        let vinSearchTimer = null;
+
+        function getSelectedVins(exceptRow) {
+            return AR_NUMS.map((_, i) => {
+                if (i === exceptRow) return '';
+                const el = form.querySelector(`[name="car_chassis_${i}"]`);
+                return el?.value?.trim().toUpperCase() || '';
+            }).filter(Boolean);
+        }
+
+        function renderVinGrid(vehicles) {
+            if (!vehicles.length) {
+                vinGrid.innerHTML = '<p class="vin-empty">لا توجد بيانات — ارفع ملف Excel من <a href="admin-Delivery-pdf.html">لوحة الإدارة</a></p>';
+                return;
+            }
+            vinGrid.innerHTML = vehicles.map((v) => {
+                const img = v.imageUrl
+                    ? `<img src="${v.imageUrl}" alt="" onerror="this.style.display='none'">`
+                    : '<div class="vin-meta" style="height:72px;display:flex;align-items:center;justify-content:center">🚗</div>';
+                const meta = [v.plate, v.suffix].filter(Boolean).join(' · ');
+                return `<button type="button" class="vin-card" data-vin="${v.vin}" data-product="${(v.product || v.model || '').replace(/"/g, '&quot;')}" data-plate="${(v.plate || '').replace(/"/g, '&quot;')}">
+                    ${img}
+                    <div class="vin-no">${v.vin}</div>
+                    <div class="vin-product">${v.product || v.model || '—'}</div>
+                    ${meta ? `<div class="vin-meta">${meta}</div>` : ''}
+                </button>`;
+            }).join('');
+            vinGrid.querySelectorAll('.vin-card').forEach((btn) => {
+                btn.addEventListener('click', () => selectVinVehicle(btn));
+            });
+        }
+
+        async function loadVinOptions(search) {
+            const exclude = getSelectedVins(activeVinRow).join(',');
+            const params = new URLSearchParams({ search: search || '', limit: '80' });
+            if (exclude) params.set('exclude', exclude);
+            const res = await fetch(`/api/delivery-inventory/vehicles?${params}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل تحميل البيانات');
+            renderVinGrid(data.vehicles || []);
+        }
+
+        function openVinPicker(rowIndex) {
+            activeVinRow = rowIndex;
+            vinModal.classList.add('open');
+            vinSearch.value = '';
+            loadVinOptions('').catch((err) => {
+                vinGrid.innerHTML = `<p class="vin-empty">${err.message}</p>`;
+            });
+            setTimeout(() => vinSearch.focus(), 50);
+        }
+
+        function closeVinPicker() {
+            vinModal.classList.remove('open');
+            activeVinRow = null;
+        }
+
+        function selectVinVehicle(btn) {
+            if (activeVinRow === null) return;
+            const vin = btn.dataset.vin || '';
+            const product = btn.dataset.product || '';
+            form.querySelector(`[name="car_chassis_${activeVinRow}"]`).value = vin;
+            form.querySelector(`[name="car_model_${activeVinRow}"]`).value = product;
+            closeVinPicker();
+            syncCarCount();
+        }
+
+        document.getElementById('vinModalClose').addEventListener('click', closeVinPicker);
+        vinModal.addEventListener('click', (e) => { if (e.target === vinModal) closeVinPicker(); });
+        vinSearch.addEventListener('input', () => {
+            clearTimeout(vinSearchTimer);
+            vinSearchTimer = setTimeout(() => {
+                loadVinOptions(vinSearch.value).catch(() => {});
+            }, 250);
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && vinModal.classList.contains('open')) closeVinPicker();
+        });
+
+        function doPrintA4() {
+            updatePreview();
+            const vin = getClaimedVin();
+            const agent = getAgent();
+            const isAdminExport = new URLSearchParams(location.search).get('adminExport') === '1';
+            // Print 3 copies: create clones of the sheet, hide the original during print via CSS.
+            const cleanupPrintCopies = () => {
+                const existing = document.getElementById('printCopies');
+                if (existing) existing.remove();
+            };
+
+            cleanupPrintCopies();
+            const printSheet = document.getElementById('printSheet');
+            const copiesContainer = document.createElement('div');
+            copiesContainer.id = 'printCopies';
+            const copies = 3;
+            for (let i = 0; i < copies; i++) {
+                const clone = printSheet.cloneNode(true);
+                clone.classList.add('print-copy');
+                clone.removeAttribute('id');
+                // Avoid duplicate IDs inside clones.
+                clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+                copiesContainer.appendChild(clone);
+            }
+            document.body.appendChild(copiesContainer);
+
+            const finish = async () => {
+                cleanupPrintCopies();
+                window.removeEventListener('afterprint', finish);
+                if (isAdminExport) return;
+                if (vin && agent.username && agent.password) {
+                    try {
+                        const res = await fetch('/api/delivery-coordinator/complete-print', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: agent.username,
+                                password: agent.password,
+                                vin,
+                                draft: collectPayload()
+                            })
+                        });
+                        if (!res.ok) {
+                            const err = await res.json().catch(() => ({}));
+                            console.error('complete-print failed', err.error || res.status);
+                        }
+                    } catch (err) {
+                        console.error('complete-print failed', err);
+                    }
+                }
+                clearClaimedVin();
+                openWorkspace();
+                setTimeout(() => {
+                    const statusEl = document.getElementById('queueStatus');
+                    if (statusEl) {
+                        statusEl.textContent = 'تم الطباعة — السيارة الآن في Out for Delivery';
+                        statusEl.className = 'ws-toast ok';
+                    }
+                }, 400);
+            };
+            window.addEventListener('afterprint', finish);
+            window.print();
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setStatus('جاري إنشاء ملف Word…');
+            const btn = document.getElementById('btnDownload');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/delivery-note/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(collectPayload())
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || `Server error ${res.status}`);
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `muthakara_tarhil_${Date.now()}.docx`;
+                a.click();
+                URL.revokeObjectURL(url);
+                setStatus('تم التحميل — افتح الملف في Word واطبعه', 'ok');
+            } catch (err) {
+                setStatus(err.message || 'فشل إنشاء الملف', 'err');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        form.addEventListener('input', updatePreview);
+        form.addEventListener('change', updatePreview);
+        form.addEventListener('reset', () => setTimeout(() => { setTodayDates(); syncCarCount(); setStatus(''); }, 0));
+
+        document.getElementById('btnToday').addEventListener('click', setTodayDates);
+        document.getElementById('btnPrint').addEventListener('click', doPrintA4);
+        document.getElementById('btnPrint2').addEventListener('click', doPrintA4);
+        document.getElementById('btnScrollPreview').addEventListener('click', () => {
+            document.getElementById('printSheet').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        const AGENT_KEY = 'deliveryAgentUser';
+        const PASS_KEY = 'deliveryAgentPass';
+        const CLAIMED_VIN_KEY = 'deliveryClaimedVin';
+        let workspaceQueue = [];
+        // In-memory only — reload always requires login again
+        let agentSession = { username: '', password: '' };
+        let claimedVinSession = '';
+
+        function getAgent() {
+            return {
+                username: agentSession.username || '',
+                password: agentSession.password || ''
+            };
+        }
+
+        function setAgent(username, password) {
+            agentSession = {
+                username: String(username || '').trim(),
+                password: String(password || '')
+            };
+            // Clear any leftover persisted session from older builds
+            try {
+                sessionStorage.removeItem(AGENT_KEY);
+                sessionStorage.removeItem(PASS_KEY);
+            } catch (_) { /* ignore */ }
+        }
+
+        function clearAgent() {
+            agentSession = { username: '', password: '' };
+            claimedVinSession = '';
+            try {
+                sessionStorage.removeItem(AGENT_KEY);
+                sessionStorage.removeItem(PASS_KEY);
+                sessionStorage.removeItem(CLAIMED_VIN_KEY);
+            } catch (_) { /* ignore */ }
+        }
+
+        function getClaimedVin() {
+            return claimedVinSession || '';
+        }
+
+        function setClaimedVin(vin) {
+            claimedVinSession = String(vin || '').trim().toUpperCase();
+        }
+
+        function clearClaimedVin() {
+            claimedVinSession = '';
+        }
+
+        function showView(which) {
+            document.body.classList.toggle('workspace-mode', which === 'workspace');
+            document.getElementById('gateLogin').classList.toggle('hidden', which !== 'login');
+            document.getElementById('agentWorkspace').classList.toggle('hidden', which !== 'workspace');
+            document.getElementById('mainApp').classList.toggle('hidden', which !== 'app');
+        }
+
+        function fleetCardHtml(item, kind) {
+            const badgeClass = kind === 'avail' ? 'fc-badge--avail'
+                : kind === 'ready' ? 'fc-badge--ready'
+                : kind === 'out' ? 'fc-badge--out'
+                : kind === 'stock' ? 'fc-badge--stock' : 'fc-badge--stock';
+            const badgeText = kind === 'avail' ? 'متاح'
+                : item.statusLabel || (kind === 'ready' ? 'Ready' : kind === 'out' ? 'Out for delivery' : 'مع ' + (item.assignedTo || ''));
+            const extraClass = kind === 'out' ? ' fleet-card--out'
+                : (kind === 'ready' || kind === 'stock') ? ' fleet-card--ready fleet-card--actionable'
+                : ' fleet-card--actionable';
+            const img = item.imageUrl
+                ? `<img src="${item.imageUrl}" alt="" onerror="this.style.display='none'">`
+                : '';
+            const actions = kind === 'out'
+                ? `<div class="fc-actions">
+                        <button type="button" class="fc-btn fc-btn--primary" data-edit-note="${item.vin}">تعديل المذكرة</button>
+                        <button type="button" class="fc-btn fc-btn--ok" data-mark-delivered="${item.vin}">تم الترحيل</button>
+                   </div>`
+                : '';
+            return `<div class="fleet-card${extraClass}" data-vin="${item.vin}" data-kind="${kind}">
+                <div class="fc-media">${img}</div>
+                <div class="fc-body">
+                    <div class="fc-vin">${item.vin}</div>
+                    <div class="fc-product">${item.product || item.model || '—'}</div>
+                    <div class="fc-meta">GT: ${item.gt || '—'} · ${item.location || '—'}</div>
+                    <span class="fc-badge ${badgeClass}">${badgeText}</span>
+                    ${actions}
+                </div>
+            </div>`;
+        }
+
+        function filterAvailableFleetByVin() {
+            const input = document.getElementById('availableVinSearch');
+            const countEl = document.getElementById('availableVinSearchCount');
+            const emptyEl = document.getElementById('availableVinSearchEmpty');
+            const availEl = document.getElementById('availableFleet');
+            if (!input || !availEl) return;
+
+            const q = String(input.value || '').trim().toUpperCase().replace(/\s+/g, '');
+            const cards = Array.from(availEl.querySelectorAll('.fleet-card'));
+            if (!cards.length) {
+                if (countEl) countEl.textContent = '';
+                if (emptyEl) emptyEl.classList.add('hidden');
+                return;
+            }
+
+            let visible = 0;
+            cards.forEach((card) => {
+                const vin = String(card.dataset.vin || card.querySelector('.fc-vin')?.textContent || '')
+                    .toUpperCase()
+                    .replace(/\s+/g, '');
+                const match = !q || vin.includes(q);
+                card.classList.toggle('fleet-card--hidden', !match);
+                if (match) visible += 1;
+            });
+
+            if (countEl) {
+                countEl.textContent = q
+                    ? `${visible} من ${cards.length}`
+                    : `${cards.length} سيارة`;
+            }
+            if (emptyEl) {
+                emptyEl.classList.toggle('hidden', visible > 0 || !q);
+            }
+        }
+
+        function renderWorkspace(queue) {
+            const agent = getAgent();
+            workspaceQueue = queue || [];
+            document.getElementById('loggedAs').textContent = agent.username;
+
+            const mine = workspaceQueue.filter((q) => q.assignedTo === agent.username);
+            const available = workspaceQueue.filter((q) => q.status === 'available');
+            const stock = mine.filter((q) => q.agentStatus === 'in_stock');
+            const outDel = mine.filter((q) => q.agentStatus === 'out_of_delivery');
+
+            document.getElementById('wsStats').innerHTML = `
+                <div class="ws-stat ws-stat--avail"><span>متاح</span><b>${available.length}</b></div>
+                <div class="ws-stat ws-stat--stock"><span>مخزوني</span><b>${stock.length}</b></div>
+                <div class="ws-stat ws-stat--out"><span>خارج للتسليم</span><b>${outDel.length}</b></div>
+                <div class="ws-stat"><span>إجمالي سياراتي</span><b>${mine.length}</b></div>
+            `;
+
+            const availEl = document.getElementById('availableFleet');
+            availEl.innerHTML = available.length
+                ? available.map((item) => fleetCardHtml(item, 'avail')).join('')
+                : '<div class="ws-empty"><strong>لا توجد سيارات متاحة</strong>انتظر المنسق لإضافة شاسيه جديدة</div>';
+            availEl.querySelectorAll('.fleet-card').forEach((card) => {
+                card.addEventListener('click', () => claimWithStatus(card.dataset.vin, 'in_stock'));
+            });
+            filterAvailableFleetByVin();
+
+            const outEl = document.getElementById('outFleet');
+            outEl.innerHTML = outDel.length
+                ? outDel.map((item) => fleetCardHtml(item, 'out')).join('')
+                : '<div class="ws-empty"><strong>لا توجد سيارات قيد التسليم</strong>اطبع مذكرة الترحيل لنقلها إلى Out for Delivery</div>';
+            outEl.querySelectorAll('[data-edit-note]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const item = workspaceQueue.find((q) => q.vin === btn.dataset.editNote);
+                    if (item) openMainWithVin(item);
+                });
+            });
+            outEl.querySelectorAll('[data-mark-delivered]').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    markAsDelivered(btn.dataset.markDelivered);
+                });
+            });
+
+            const dockEl = document.getElementById('stockDockList');
+            if (!stock.length) {
+                dockEl.innerHTML = '<div class="ws-empty" style="min-width:100%;border:none">لا توجد سيارات في مخزونك — اختر سيارة متاحة لإضافتها</div>';
+            } else {
+                dockEl.innerHTML = stock.map((item) => `
+                    <div class="stock-chip" data-vin="${item.vin}">
+                        <div class="sc-vin">${item.vin}</div>
+                        <div class="sc-product">${item.product || item.model || '—'}</div>
+                        <div class="sc-label">${item.statusLabel || 'مع ' + agent.username}</div>
+                        <div class="sc-actions">
+                            <button type="button" class="sc-btn-issue" data-issue-note="${item.vin}">اصدار مذكرة</button>
+                            <button type="button" class="sc-btn-return" data-return-vin="${item.vin}">إرجاع للقائمة</button>
+                        </div>
+                    </div>
+                `).join('');
+                dockEl.querySelectorAll('[data-issue-note]').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        startDeliveryNote(btn.dataset.issueNote);
+                    });
+                });
+                dockEl.querySelectorAll('[data-return-vin]').forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        returnToQueue(btn.dataset.returnVin, { skipConfirm: true });
+                    });
+                });
+                dockEl.querySelectorAll('.stock-chip').forEach((card) => {
+                    card.addEventListener('click', () => openStockAction(card.dataset.vin));
+                });
+            }
+        }
+
+        async function loadWorkspace() {
+            const agent = getAgent();
+            const statusEl = document.getElementById('queueStatus');
+            statusEl.textContent = '';
+            statusEl.className = 'ws-toast';
+            const res = await fetch(`/api/delivery-coordinator/queue?username=${encodeURIComponent(agent.username)}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل تحميل القائمة');
+            renderWorkspace(data.queue || []);
+        }
+
+        async function claimWithStatus(vin, agentStatus) {
+            const agent = getAgent();
+            const statusEl = document.getElementById('queueStatus');
+            statusEl.textContent = 'جاري الحفظ…';
+            statusEl.className = 'ws-toast';
+            try {
+                const res = await fetch('/api/delivery-coordinator/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: agent.username, password: agent.password, vin, agentStatus })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الحجز');
+                statusEl.textContent = '';
+                await loadWorkspace();
+                statusEl.textContent = 'تمت الإضافة للمخزون';
+                statusEl.className = 'ws-toast ok';
+                return data.item;
+            } catch (err) {
+                statusEl.textContent = err.message;
+                statusEl.className = 'ws-toast err';
+                return null;
+            }
+        }
+
+        async function startDeliveryNote(vin) {
+            const item = workspaceQueue.find((q) => q.vin === vin)
+                || { vin };
+            openMainWithVin(item);
+        }
+
+        let stockActionVin = '';
+
+        function openStockAction(vin) {
+            const item = workspaceQueue.find((q) => q.vin === vin) || { vin };
+            stockActionVin = String(vin || '').trim().toUpperCase();
+            document.getElementById('stockActionVin').textContent = stockActionVin;
+            document.getElementById('stockActionProduct').textContent = item.product || item.model || '—';
+            document.getElementById('stockActionModal').classList.add('open');
+        }
+
+        function closeStockAction() {
+            stockActionVin = '';
+            document.getElementById('stockActionModal').classList.remove('open');
+        }
+
+        async function markAsDelivered(vin) {
+            if (!confirm('تأكيد تم الترحيل لهذه السيارة؟')) return;
+            const agent = getAgent();
+            const statusEl = document.getElementById('queueStatus');
+            statusEl.textContent = 'جاري التحديث…';
+            statusEl.className = 'ws-toast';
+            try {
+                const res = await fetch('/api/delivery-coordinator/set-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: agent.username,
+                        password: agent.password,
+                        vin,
+                        agentStatus: 'delivered'
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل تحديث الحالة');
+                statusEl.textContent = 'تم الترحيل بنجاح';
+                statusEl.className = 'ws-toast ok';
+                await loadWorkspace();
+            } catch (err) {
+                statusEl.textContent = err.message;
+                statusEl.className = 'ws-toast err';
+            }
+        }
+
+        async function returnToQueue(vin, { skipConfirm = false } = {}) {
+            if (!skipConfirm && !confirm('إرجاع هذه السيارة للقائمة المتاحة؟')) return;
+            const statusEl = document.getElementById('queueStatus');
+            statusEl.textContent = 'جاري الإرجاع…';
+            try {
+                const res = await fetch('/api/delivery-coordinator/release', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vin })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الإرجاع');
+                statusEl.textContent = 'تم إرجاع السيارة للقائمة';
+                statusEl.className = 'ws-toast ok';
+                await loadWorkspace();
+            } catch (err) {
+                statusEl.textContent = err.message;
+                statusEl.className = 'ws-toast err';
+            }
+        }
+
+        function prefillClaimedVin(item) {
+            if (!item?.vin) return;
+            const chassis = form.querySelector('[name="car_chassis_0"]');
+            const model = form.querySelector('[name="car_model_0"]');
+            if (chassis) chassis.value = item.vin;
+            if (model) model.value = item.product || item.model || '';
+            syncCarCount();
+            updatePreview();
+        }
+
+        function openMainWithVin(item) {
+            setClaimedVin(item.vin);
+            showView('app');
+            prefillClaimedVin(item);
+            setTodayDates();
+        }
+
+        function openWorkspace() {
+            showView('workspace');
+            loadWorkspace().catch((err) => {
+                document.getElementById('queueStatus').textContent = err.message;
+                document.getElementById('queueStatus').className = 'ws-toast err';
+            });
+        }
+
+        function getUrlVin() {
+            const v = new URLSearchParams(location.search).get('vin');
+            return v ? v.trim().toUpperCase() : '';
+        }
+
+        function getUrlDraftId() {
+            const id = new URLSearchParams(location.search).get('draft');
+            return id ? id.trim() : '';
+        }
+
+        function isAdminExportMode() {
+            const params = new URLSearchParams(location.search);
+            return params.get('adminExport') === '1' && Boolean(getUrlDraftId());
+        }
+
+        function applyDraftPayload(payload) {
+            if (!payload || typeof payload !== 'object') return;
+            const setVal = (id, value) => {
+                const el = document.getElementById(id);
+                if (el && value != null && value !== '') el.value = value;
+            };
+            setVal('doc_date', payload.doc_date);
+            setVal('invoice_number', payload.invoice_number);
+            setVal('dep_hour', payload.dep_hour);
+            setVal('dep_minute', payload.dep_minute);
+            if (payload.company_rep) ensureSearchableOption('company_rep', payload.company_rep);
+            setVal('customer_name', payload.customer_name);
+            setVal('company_rep', payload.company_rep);
+            setVal('transfer_date', payload.transfer_date);
+            setVal('corresponding_date', payload.corresponding_date);
+            setVal('day_name', payload.day_name);
+            setVal('trailer_number', payload.trailer_number);
+            setVal('car_count', payload.car_count);
+            if (payload.branch_to) ensureSearchableOption('branch_to', payload.branch_to);
+            setVal('branch_to', payload.branch_to);
+            setVal('attachments', payload.attachments);
+            const cars = Array.isArray(payload.cars) ? payload.cars : [];
+            cars.forEach((row, i) => {
+                if (i > 9) return;
+                const chassis = form.querySelector(`[name="car_chassis_${i}"]`);
+                const model = form.querySelector(`[name="car_model_${i}"]`);
+                const plate = form.querySelector(`[name="car_plate_${i}"]`);
+                const remarks = form.querySelector(`[name="car_remarks_${i}"]`);
+                if (chassis) chassis.value = row.chassis || '';
+                if (model) model.value = row.model || '';
+                if (plate) plate.value = row.plate || '';
+                if (remarks) remarks.value = row.remarks || '';
+            });
+            syncCarCount();
+            updatePreview();
+        }
+
+        async function openAdminDraftExport() {
+            const draftId = getUrlDraftId();
+            const res = await fetch(`/api/delivery-coordinator/drafts/${encodeURIComponent(draftId)}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'تعذر تحميل المسودة');
+            const draft = data.draft;
+            if (!draft?.payload) throw new Error('المسودة لا تحتوي على بيانات الطباعة');
+            showView('app');
+            applyDraftPayload(draft.payload);
+            setStatus('وضع تصدير PDF للإدارة — اطبع واختر «حفظ كـ PDF»', 'ok');
+            const banner = document.createElement('div');
+            banner.className = 'no-print';
+            banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:300;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:999px;background:#111827;border:1px solid rgba(255,255,255,.15);box-shadow:0 12px 40px rgba(0,0,0,.35);';
+            banner.innerHTML = `
+                <span style="color:#e2e8f0;font-size:.82rem;font-weight:700">تصدير مسودة · ${draft.vin || draftId}</span>
+                <button type="button" class="btn btn-primary" id="btnAdminExportPdf" style="padding:8px 16px">تصدير PDF</button>
+                <a href="admin-Delivery-pdf.html" class="btn" style="padding:8px 14px;text-decoration:none">العودة للإدارة</a>
+            `;
+            document.body.appendChild(banner);
+            document.getElementById('btnAdminExportPdf').addEventListener('click', doPrintA4);
+            setTimeout(() => doPrintA4(), 450);
+            return true;
+        }
+
+        async function tryOpenUrlVin() {
+            const vin = getUrlVin();
+            if (!vin || !getAgent().username) return false;
+            const agent = getAgent();
+            const res = await fetch(`/api/delivery-coordinator/queue?username=${encodeURIComponent(agent.username)}`);
+            const data = await res.json();
+            if (!res.ok) return false;
+            const item = (data.queue || []).find((q) => q.vin === vin);
+            if (!item) {
+                openWorkspace();
+                document.getElementById('queueStatus').textContent = 'الشاسيه غير موجود — اختر من القائمة';
+                document.getElementById('queueStatus').className = 'ws-toast err';
+                return true;
+            }
+            if (item.status === 'available') {
+                openWorkspace();
+                await claimWithStatus(vin, 'in_stock');
+                return true;
+            }
+            if (item.assignedTo === agent.username) {
+                if (item.agentStatus === 'in_stock' || item.agentStatus === 'out_of_delivery') {
+                    openMainWithVin(item);
+                } else {
+                    openWorkspace();
+                }
+                return true;
+            }
+            openWorkspace();
+            document.getElementById('queueStatus').textContent = `محجوز بواسطة ${item.assignedTo}`;
+            document.getElementById('queueStatus').className = 'ws-toast err';
+            return true;
+        }
+
+        async function initGate() {
+            // Always clear any old persisted login so reload requires login again
+            clearAgent();
+            if (isAdminExportMode()) {
+                try {
+                    await openAdminDraftExport();
+                } catch (err) {
+                    showView('login');
+                    const loginStatus = document.getElementById('loginStatus');
+                    if (loginStatus) {
+                        loginStatus.textContent = err.message || 'فشل تصدير المسودة';
+                        loginStatus.className = 'ws-toast err';
+                    }
+                }
+                return;
+            }
+            showView('login');
+        }
+
+        document.getElementById('btnLogin').addEventListener('click', async () => {
+            const username = document.getElementById('loginUser').value;
+            const password = document.getElementById('loginPass').value;
+            const statusEl = document.getElementById('loginStatus');
+            statusEl.textContent = 'جاري التحقق…';
+            try {
+                const res = await fetch('/api/delivery-coordinator/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'فشل الدخول');
+                setAgent(username, password);
+                statusEl.textContent = '';
+                if (getUrlVin() && await tryOpenUrlVin()) return;
+                openWorkspace();
+            } catch (err) {
+                statusEl.textContent = err.message;
+                statusEl.className = 'ws-toast err';
+            }
+        });
+
+        document.getElementById('availableVinSearch').addEventListener('input', filterAvailableFleetByVin);
+
+        document.getElementById('stockActionIssue').addEventListener('click', () => {
+            const vin = stockActionVin;
+            closeStockAction();
+            if (vin) startDeliveryNote(vin);
+        });
+        document.getElementById('stockActionReturn').addEventListener('click', async () => {
+            const vin = stockActionVin;
+            closeStockAction();
+            if (vin) await returnToQueue(vin, { skipConfirm: true });
+        });
+        document.getElementById('stockActionCancel').addEventListener('click', closeStockAction);
+        document.getElementById('stockActionModal').addEventListener('click', (e) => {
+            if (e.target.id === 'stockActionModal') closeStockAction();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('stockActionModal').classList.contains('open')) {
+                closeStockAction();
+            }
+        });
+
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            clearAgent();
+            showView('login');
+            document.body.classList.remove('workspace-mode');
+            document.getElementById('loginPass').value = '';
+        });
+
+        document.getElementById('btnBackWorkspace').addEventListener('click', () => {
+            clearClaimedVin();
+            openWorkspace();
+        });
+
+        buildCarRows();
+        buildOverlay();
+
+        const searchableSelectOptions = {
+            branch_to: [...MUTHAKARA_BRANCH_OPTIONS],
+            company_rep: [...MUTHAKARA_CUSTOMER_OPTIONS]
+        };
+
+        function ensureSearchableOption(fieldId, value) {
+            const v = String(value || '').trim();
+            if (!v) return;
+            const list = searchableSelectOptions[fieldId];
+            if (!list) return;
+            if (!list.some((x) => x === v)) list.push(v);
+        }
+
+        function initSearchableSelect(fieldId) {
+            const input = document.getElementById(fieldId);
+            const menu = document.getElementById(`${fieldId}_menu`);
+            if (!input || !menu) return;
+            const options = () => searchableSelectOptions[fieldId] || [];
+            let activeIdx = -1;
+
+            function closeMenu() {
+                menu.classList.remove('open');
+                menu.innerHTML = '';
+                activeIdx = -1;
+            }
+
+            function openMenu(filterText) {
+                const q = String(filterText || '').trim().toLowerCase();
+                const matches = options().filter((name) => !q || String(name).toLowerCase().includes(q));
+                if (!matches.length) {
+                    menu.innerHTML = '<div class="searchable-select-empty">لا توجد نتائج</div>';
+                    menu.classList.add('open');
+                    activeIdx = -1;
+                    return;
+                }
+                menu.innerHTML = matches.slice(0, 80).map((name, i) =>
+                    `<button type="button" role="option" data-idx="${i}">${String(name)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/"/g, '&quot;')}</button>`
+                ).join('');
+                menu.classList.add('open');
+                activeIdx = 0;
+                highlightActive();
+                menu.querySelectorAll('button').forEach((btn) => {
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        input.value = btn.textContent;
+                        closeMenu();
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            }
+
+            function highlightActive() {
+                menu.querySelectorAll('button').forEach((btn, i) => {
+                    btn.classList.toggle('active', i === activeIdx);
+                });
+                const active = menu.querySelector('button.active');
+                if (active) active.scrollIntoView({ block: 'nearest' });
+            }
+
+            input.addEventListener('focus', () => openMenu(input.value));
+            input.addEventListener('input', () => openMenu(input.value));
+            input.addEventListener('keydown', (e) => {
+                if (!menu.classList.contains('open')) {
+                    if (e.key === 'ArrowDown') openMenu(input.value);
+                    return;
+                }
+                const items = Array.from(menu.querySelectorAll('button'));
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (!items.length) return;
+                    activeIdx = (activeIdx + 1) % items.length;
+                    highlightActive();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (!items.length) return;
+                    activeIdx = (activeIdx - 1 + items.length) % items.length;
+                    highlightActive();
+                } else if (e.key === 'Enter') {
+                    if (activeIdx >= 0 && items[activeIdx]) {
+                        e.preventDefault();
+                        items[activeIdx].dispatchEvent(new Event('mousedown'));
+                    }
+                } else if (e.key === 'Escape') {
+                    closeMenu();
+                }
+            });
+            input.addEventListener('blur', () => setTimeout(closeMenu, 120));
+        }
+
+        initSearchableSelect('branch_to');
+        initSearchableSelect('company_rep');
+        initGate();
+    </script>
+    <script src="delivery-hub-live.js"></script>
+    <script>
+        function updateLivePill() {
+            const pill = document.getElementById('livePill');
+            if (!pill || !window.DeliveryHubLive) return;
+            pill.classList.toggle('off', !DeliveryHubLive.isConnected());
+            pill.textContent = DeliveryHubLive.isConnected() ? '● Live' : '○ Syncing';
+        }
+        DeliveryHubLive.start(() => {
+            updateLivePill();
+            const agent = typeof getAgent === 'function' ? getAgent() : null;
+            if (!agent || !agent.username) return;
+            // Always refresh workspace data when logged in (even if form is open)
+            if (!document.getElementById('gateLogin').classList.contains('hidden')) return;
+            return loadWorkspace();
+        });
+        setInterval(updateLivePill, 2000);
+    </script>
+</body>
+</html>

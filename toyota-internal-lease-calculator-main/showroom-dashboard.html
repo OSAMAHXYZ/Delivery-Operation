@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Experience Center — Delivery Kanban</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5.22.2/dist/reset.css">
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+    <link rel="stylesheet" href="showroom-tot-shell.css">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <link rel="stylesheet" href="showroom-kanban-dashboard.css">
+    <link rel="stylesheet" href="showroom-neon-theme.css">
+    <link rel="stylesheet" href="showroom-dashboard-ant.css">
+</head>
+<body class="kanban-dashboard tot-showroom-page watch-only neon-theme">
+  <header class="tot-top-bar">
+    <a href="simple-app.html" class="tot-top-bar-brand">
+      <img src="images/logo/toyota.png" alt="Toyota" class="tot-top-bar-logo" onerror="this.style.display='none'">
+      <div class="tot-top-bar-product"><strong>Guest Experience</strong>Toyota Showroom</div>
+    </a>
+    <nav class="tot-top-nav admin-only" aria-label="Showroom navigation">
+      <a href="simple-app.html" class="tot-nav-link">Lease Calculator</a>
+      <a href="showroom-dashboard.html" class="tot-nav-link tot-nav-link-active">Dashboard</a>
+      <a href="showroom-controller.html" class="tot-nav-link">Controller</a>
+      <a href="showroom-uploader.html" class="tot-nav-link">Data Uploader</a>
+      <a href="showroom-record.html" class="tot-nav-link">Records</a>
+      <a href="car-entrance.html" class="tot-nav-link">Security</a>
+    </nav>
+    <div class="tot-top-bar-right admin-only">
+      <button id="btnTvMode" type="button" class="tot-top-bar-btn">TV Mode</button>
+    </div>
+  </header>
+
+  <div id="kbReadyCenter" class="kb-ready-center kb-ready-center--hidden" aria-live="assertive" role="status" aria-atomic="true"></div>
+
+  <div class="tot-page-shell">
+  <header class="tot-subheader kb-header-sub kb-header-future">
+    <div class="kb-header-brand">
+      <div class="kb-logo-ring">
+        <img src="images/logo/toyota.png" alt="Toyota" class="kb-brand-logo" onerror="this.style.display='none'">
+      </div>
+      <div class="tot-subheader-title">Guest Experience Center<span>Delivery Kanban Dashboard</span></div>
+    </div>
+    <div class="kb-header-meta tot-subheader-meta">
+      <div class="ant-live-badge" id="liveBadge" data-status="connecting">
+        <span class="ant-live-dot"></span>
+        <span id="liveBadgeText">Connecting…</span>
+      </div>
+      <div class="kb-header-clock-wrap">
+        <div class="kb-clock" id="liveClock">--:--</div>
+        <div class="kb-date" id="kbDate">—</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="kb-kpi-row kb-kpi-row-future" aria-label="Key metrics">
+    <div class="kb-kpi ant-stat-card ant-stat-card--deliveries">
+      <div class="ant-stat-icon"><iconify-icon icon="ant-design:car-outlined"></iconify-icon></div>
+      <div class="ant-stat-body">
+        <div class="ant-stat-title">Today's Deliveries</div>
+        <div class="ant-stat-value" id="kpiDeliveries">0</div>
+      </div>
+    </div>
+    <div class="kb-kpi ant-stat-card ant-stat-card--ready">
+      <div class="ant-stat-icon"><iconify-icon icon="ant-design:check-circle-outlined"></iconify-icon></div>
+      <div class="ant-stat-body">
+        <div class="ant-stat-title">Ready for Delivery</div>
+        <div class="ant-stat-value" id="kpiReady">0</div>
+      </div>
+    </div>
+    <div class="kb-kpi ant-stat-card ant-stat-card--prep">
+      <div class="ant-stat-icon"><iconify-icon icon="ant-design:tool-outlined"></iconify-icon></div>
+      <div class="ant-stat-body">
+        <div class="ant-stat-title">In Preparation</div>
+        <div class="ant-stat-value" id="kpiPrep">0</div>
+      </div>
+    </div>
+    <div class="kb-kpi ant-stat-card ant-stat-card--process">
+      <div class="ant-stat-icon"><iconify-icon icon="ant-design:team-outlined"></iconify-icon></div>
+      <div class="ant-stat-body">
+        <div class="ant-stat-title">In Process</div>
+        <div class="ant-stat-value" id="kpiProcess">0</div>
+      </div>
+    </div>
+    <div class="kb-kpi ant-stat-card ant-stat-card--done">
+      <div class="ant-stat-icon"><iconify-icon icon="ant-design:flag-outlined"></iconify-icon></div>
+      <div class="ant-stat-body">
+        <div class="ant-stat-title">Completed Today</div>
+        <div class="ant-stat-value" id="kpiCompleted">0</div>
+      </div>
+    </div>
+    <div class="kb-kpi kb-kpi--gauge ant-stat-card ant-stat-card--gauge">
+      <div class="kb-gauge" id="kpiOnTimeGauge" style="--gauge-pct: 0">
+        <div class="kb-gauge-inner">
+          <div class="ant-stat-value" id="kpiOnTime">0%</div>
+        </div>
+      </div>
+      <div class="ant-stat-title">On-Time Delivery</div>
+    </div>
+  </section>
+
+  <main class="kb-main kb-main-future">
+    <div class="kb-board" id="kanbanBoard" aria-label="Delivery kanban board"></div>
+    <aside class="kb-guest-panel kb-guest-panel-future" id="kbGuestPanel" aria-label="Today's next guest">
+      <div class="kb-guest-label">Today's Next Guest</div>
+      <div class="kb-guest-empty">Loading…</div>
+    </aside>
+  </main>
+
+  <footer class="kb-footer kb-footer-future">
+    <div class="kb-legend">
+      <span style="font-weight:700;margin-right:4px">Kanban Legend:</span>
+      <span class="kb-legend-item"><span class="kb-legend-dot" style="background:#22c55e"></span> Ready</span>
+      <span class="kb-legend-item"><span class="kb-legend-dot" style="background:#3b82f6"></span> Scheduled</span>
+      <span class="kb-legend-item"><span class="kb-legend-dot" style="background:#eab308"></span> In Process</span>
+      <span class="kb-legend-item"><span class="kb-legend-dot" style="background:#a855f7"></span> Quality Check</span>
+      <span class="kb-legend-item"><span class="kb-legend-dot" style="background:#64748b"></span> Completed</span>
+    </div>
+    <div class="kb-flow">
+      <span class="ant-tag-flow" style="background:#22c55e;color:#fff">Ready</span>
+      <span class="kb-flow-arrow">→</span>
+      <span class="ant-tag-flow" style="background:#3b82f6;color:#fff">Scheduled</span>
+      <span class="kb-flow-arrow">→</span>
+      <span class="ant-tag-flow" style="background:#eab308;color:#1a1a1a">In Process</span>
+      <span class="kb-flow-arrow">→</span>
+      <span class="ant-tag-flow" style="background:#a855f7;color:#fff">Quality Check</span>
+      <span class="kb-flow-arrow">→</span>
+      <span class="ant-tag-flow" style="background:#64748b;color:#fff">Completed</span>
+    </div>
+    <div class="kb-last-updated">
+      <span class="kb-refresh-dot"></span>
+      <span id="lastRefresh">Connecting…</span>
+    </div>
+  </footer>
+  </div>
+
+  <script src="showroom-board-common.js"></script>
+  <script>
+    const SB = window.ShowroomBoard;
+    let boardData = { vehicles: [], stats: {} };
+    let liveConn = null;
+    let liveStatus = 'connecting';
+    const kpiIds = ['kpiDeliveries', 'kpiReady', 'kpiPrep', 'kpiProcess', 'kpiCompleted', 'kpiOnTime'];
+
+    function setLiveStatus(status) {
+      liveStatus = status;
+      const badge = document.getElementById('liveBadge');
+      const text = document.getElementById('liveBadgeText');
+      if (!badge || !text) return;
+      badge.dataset.status = status;
+      if (status === 'live') text.textContent = 'LIVE';
+      else if (status === 'reconnecting') text.textContent = 'Reconnecting…';
+      else if (status === 'connecting') text.textContent = 'Connecting…';
+      else text.textContent = 'Polling';
+    }
+
+    function setLastRefresh(source) {
+      const el = document.getElementById('lastRefresh');
+      if (el) {
+        el.textContent = `Last Updated: ${SB.formatLastRefresh(source, liveConn?.getStatus() || liveStatus, SB.DASHBOARD_REFRESH_MS / 1000)}`;
+      }
+    }
+
+    let prevKpi = {};
+    function renderAll() {
+      kpiIds.forEach((id) => { prevKpi[id] = document.getElementById(id)?.textContent; });
+      SB.renderKanbanDashboard(boardData);
+      kpiIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const next = el.textContent;
+        if (prevKpi[id] !== undefined && prevKpi[id] !== next) {
+          el.classList.remove('kb-val-pulse');
+          void el.offsetWidth;
+          el.classList.add('kb-val-pulse');
+        }
+      });
+    }
+
+    function startClock() {
+      const el = document.getElementById('liveClock');
+      const dateEl = document.getElementById('kbDate');
+      const tick = () => {
+        const now = new Date();
+        if (el) {
+          el.textContent = now.toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit', hour12: true
+          });
+        }
+        if (dateEl) {
+          dateEl.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    document.getElementById('btnTvMode')?.addEventListener('click', () => {
+      document.body.classList.toggle('tv-mode');
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+
+    startClock();
+    liveConn = SB.initShowroomLive({
+      pollMs: SB.DASHBOARD_REFRESH_MS,
+      pollMsWhenLive: 12000,
+      tickMs: SB.DASHBOARD_LIVE_TICK_MS,
+      onTick: () => {
+        SB.tickKanbanLive(boardData, () => renderAll());
+      },
+      fetchData: SB.fetchBoardData,
+      onData: (data, source) => {
+        boardData = data;
+        renderAll();
+        setLastRefresh(source);
+      },
+      onStatus: setLiveStatus,
+      onError: (e) => console.error('Dashboard refresh failed:', e)
+    });
+
+    if (new URLSearchParams(location.search).get('tv') === '1') {
+      document.body.classList.add('tv-mode');
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  </script>
+</body>
+</html>

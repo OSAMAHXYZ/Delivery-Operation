@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.venv
+dist/
+build/
+*.exe
+*.msi
+
+# Queue system runtime data files
+queue-data.json
+queue-log.json
+bo-lookup-stats.json
+

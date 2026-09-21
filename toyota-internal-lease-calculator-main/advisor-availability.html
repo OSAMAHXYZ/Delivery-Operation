@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Advisor Availability - Toyota</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #EB0A1E;
+            --primary-dark: #C00818;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --background: #FAFBFC;
+            --surface: #FFFFFF;
+            --text: #1A1A1A;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--surface);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-bottom: 3px solid var(--primary);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: var(--success);
+        }
+
+        .status-indicator.disconnected {
+            background: var(--danger);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .advisors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .advisor-box {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 3px solid var(--border);
+        }
+
+        .advisor-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .advisor-box.available {
+            border-color: var(--success);
+        }
+
+        .advisor-box.busy {
+            border-color: var(--warning);
+        }
+
+        .advisor-box.offline {
+            border-color: var(--border);
+            opacity: 0.7;
+        }
+
+        .advisor-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .advisor-box.available .advisor-header {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .advisor-box.busy .advisor-header {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .advisor-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .advisor-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .advisor-status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .advisor-status-badge.available {
+            background: var(--success);
+            color: white;
+        }
+
+        .advisor-status-badge.busy {
+            background: var(--warning);
+            color: white;
+        }
+
+        .advisor-status-badge.offline {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .advisor-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .advisor-stat {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            background: var(--surface);
+            border-radius: 8px;
+        }
+
+        .advisor-stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .advisor-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .advisor-body {
+            padding: 20px;
+        }
+
+        .customers-section {
+            margin-top: 16px;
+        }
+
+        .customers-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .customers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .customer-item {
+            padding: 12px;
+            background: var(--background);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            transition: transform 0.2s;
+        }
+
+        .customer-item:hover {
+            transform: translateX(4px);
+        }
+
+        .customer-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .customer-phone {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .customer-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .empty-customers {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .refresh-info {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .advisors-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Sales Advisor Availability</h1>
+        <p>
+            <span class="status-indicator disconnected" id="statusIndicator"></span>
+            <span id="statusText">Connecting...</span>
+        </p>
+    </div>
+
+    <div class="container">
+        <div id="loadingMessage" class="loading">
+            Loading advisor data...
+        </div>
+        <div id="advisorsContainer" class="advisors-grid" style="display: none;">
+            <!-- Advisor boxes will be rendered here -->
+        </div>
+        <div class="refresh-info">
+            Data updates automatically every 2 seconds
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let advisorsData = {};
+        const ADVISOR_IDS = ['S1', 'S2', 'S3', 'S4']; // 4 advisors for main display
+        
+        const ADVISOR_NAMES = {
+            'S1': 'Sales Advisor 1',
+            'S2': 'Sales Advisor 2',
+            'S3': 'Sales Advisor 3',
+            'S4': 'Sales Advisor 4'
+        };
+
+        // Initialize WebSocket
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateStatus(true);
+                loadAdvisorData();
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'queue_updated') {
+                        // Process the queue data directly if available
+                        if (data.data) {
+                            processQueueData(data.data);
+                        } else {
+                            loadAdvisorData();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateStatus(false);
+                setTimeout(initWebSocket, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus(false);
+            };
+
+            // Send ping every 30 seconds to keep connection alive
+            setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                }
+            }, 30000);
+        }
+
+        // Update connection status
+        function updateStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                indicator.className = 'status-indicator connected';
+                statusText.textContent = 'Connected - Live Updates';
+            } else {
+                indicator.className = 'status-indicator disconnected';
+                statusText.textContent = 'Disconnected - Reconnecting...';
+            }
+        }
+
+        // Process queue data
+        function processQueueData(queueData) {
+            // Process advisors
+            advisorsData = {};
+            
+            ADVISOR_IDS.forEach(advisorId => {
+                const advisor = (queueData.employees || []).find(
+                    e => e.id === advisorId && e.type === 'advisor'
+                );
+                
+                if (advisor) {
+                    // Get assigned customers for this advisor (active/accepted)
+                    const assignedCustomers = (queueData.customers || []).filter(
+                        c => c.employeeId === advisorId && 
+                             c.status === 'accepted' && 
+                             !c.completedAt
+                    );
+                    
+                    // Get waiting list for this advisor
+                    const waitingList = (queueData.waitingList || []).filter(
+                        w => w.advisorId === advisorId && w.status === 'waiting'
+                    ).sort((a, b) => {
+                        // Sort by waiting number or creation time
+                        if (a.waitingNumber && b.waitingNumber) {
+                            return a.waitingNumber - b.waitingNumber;
+                        }
+                        return new Date(a.createdAt) - new Date(b.createdAt);
+                    });
+                    
+                    advisorsData[advisorId] = {
+                        ...advisor,
+                        assignedCustomers: assignedCustomers,
+                        waitingList: waitingList
+                    };
+                }
+            });
+            
+            renderAdvisors();
+            
+            // Hide loading, show container
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('advisorsContainer').style.display = 'grid';
+        }
+
+        // Load advisor data
+        async function loadAdvisorData() {
+            try {
+                const response = await fetch('/api/queue');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch queue data');
+                }
+                
+                const queueData = await response.json();
+                processQueueData(queueData);
+                
+            } catch (error) {
+                console.error('Error loading advisor data:', error);
+                document.getElementById('loadingMessage').textContent = 
+                    'Error loading data. Please refresh the page.';
+            }
+        }
+
+        // Render advisor boxes
+        function renderAdvisors() {
+            const container = document.getElementById('advisorsContainer');
+            
+            if (Object.keys(advisorsData).length === 0) {
+                container.innerHTML = '<div class="loading">No advisors found</div>';
+                return;
+            }
+            
+            container.innerHTML = ADVISOR_IDS.map(advisorId => {
+                const advisor = advisorsData[advisorId];
+                
+                if (!advisor) {
+                    return `
+                        <div class="advisor-box offline">
+                            <div class="advisor-header">
+                                <div class="advisor-title">
+                                    <div class="advisor-name">${advisor.displayName ? `${advisor.displayName} (${advisorId})` : (ADVISOR_NAMES[advisorId] || `Sales Advisor ${advisorId}`)}</div>
+                                    <div class="advisor-status-badge offline">Offline</div>
+                                </div>
+                            </div>
+                            <div class="advisor-body">
+                                <div class="empty-customers">No data available</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                const status = advisor.status || 'available';
+                const assignedCustomers = advisor.assignedCustomers || [];
+                const waitingList = advisor.waitingList || [];
+                const customersCount = assignedCustomers.length;
+                const waitingCount = waitingList.length;
+                const dailyCount = advisor.dailyCustomersCount || 0;
+                
+                // Determine status class
+                let statusClass = 'available';
+                let statusText = 'Available';
+                if (status === 'busy') {
+                    statusClass = 'busy';
+                    statusText = 'Busy';
+                } else if (status === 'out_of_office' || status === 'offline') {
+                    statusClass = 'offline';
+                    statusText = status === 'out_of_office' ? 'Out of Office' : 'Offline';
+                } else if (!status) {
+                    statusClass = 'offline';
+                    statusText = 'Offline';
+                }
+                
+                // Format waiting list
+                const waitingHTML = waitingCount > 0
+                    ? waitingList.map((customer, index) => {
+                        const waitTime = customer.createdAt;
+                        const timeStr = waitTime 
+                            ? new Date(waitTime).toLocaleTimeString('en-US', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            })
+                            : 'N/A';
+                        const waitNum = customer.waitingNumber || (index + 1);
+                        
+                        return `
+                            <div class="customer-item" style="border-left-color: var(--warning);">
+                                <div class="customer-name">#${waitNum} - ${customer.customerName || 'N/A'}</div>
+                                <div class="customer-phone">📞 ${customer.customerPhone || 'N/A'}</div>
+                                <div class="customer-time">Added: ${timeStr}</div>
+                            </div>
+                        `;
+                    }).join('')
+                    : '<div class="empty-customers">No one waiting</div>';
+                
+                // Format active customers list
+                const customersHTML = customersCount > 0
+                    ? assignedCustomers.map(customer => {
+                        const assignedTime = customer.assignedAt || customer.acceptedAt || customer.createdAt;
+                        const timeStr = assignedTime 
+                            ? new Date(assignedTime).toLocaleTimeString('en-US', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            })
+                            : 'N/A';
+                        
+                        return `
+                            <div class="customer-item" style="border-left-color: var(--success);">
+                                <div class="customer-name">✓ ${customer.customerName || 'N/A'}</div>
+                                <div class="customer-phone">📞 ${customer.customerPhone || 'N/A'}</div>
+                                <div class="customer-time">Active: ${timeStr}</div>
+                            </div>
+                        `;
+                    }).join('')
+                    : '<div class="empty-customers">No active customers</div>';
+                
+                return `
+                    <div class="advisor-box ${statusClass}">
+                        <div class="advisor-header">
+                            <div class="advisor-title">
+                                <div class="advisor-name">${advisor.displayName ? `${advisor.displayName} (${advisorId})` : (ADVISOR_NAMES[advisorId] || advisor.name || `Sales Advisor ${advisorId}`)}</div>
+                                <div class="advisor-status-badge ${statusClass}">${statusText}</div>
+                            </div>
+                            <div class="advisor-stats">
+                                <div class="advisor-stat">
+                                    <div class="advisor-stat-label">Active</div>
+                                    <div class="advisor-stat-value">${customersCount}</div>
+                                </div>
+                                <div class="advisor-stat">
+                                    <div class="advisor-stat-label">Waiting</div>
+                                    <div class="advisor-stat-value">${waitingCount}</div>
+                                </div>
+                                <div class="advisor-stat">
+                                    <div class="advisor-stat-label">Today</div>
+                                    <div class="advisor-stat-value">${dailyCount}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="advisor-body">
+                            <div class="customers-section">
+                                <div class="customers-section-title">
+                                    ⏳ Waiting Queue (${waitingCount})
+                                </div>
+                                <div class="customers-list">
+                                    ${waitingHTML}
+                                </div>
+                            </div>
+                            <div class="customers-section" style="margin-top: 20px;">
+                                <div class="customers-section-title">
+                                    👥 Active Customers (${customersCount})
+                                </div>
+                                <div class="customers-list">
+                                    ${customersHTML}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Auto-refresh every 2 seconds as fallback
+        setInterval(() => {
+            if (ws && ws.readyState !== WebSocket.OPEN) {
+                loadAdvisorData();
+            }
+        }, 2000);
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            // Also load immediately in case WebSocket takes time
+            loadAdvisorData();
+        });
+    </script>
+</body>
+</html>
+

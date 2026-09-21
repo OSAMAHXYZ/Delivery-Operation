@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Upload Backorder, TRL, and Central Stock — run Daily, All-Stock FIFO, and Full Control KPIs" />
+  <title>Stock Matching Engine — Live Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --toyota-red: #EB0A1E;
+      --toyota-red-dark: #c40819;
+      --dark-gray: #333333;
+      --light-gray: #F5F5F5;
+      --white: #FFFFFF;
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --ink: #333333;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --ok: #15803d;
+      --ok-bg: #dcfce7;
+      --warn: #b45309;
+      --warn-bg: #ffedd5;
+      --err: #b91c1c;
+      --err-bg: #fee2e2;
+      --info: #1d4ed8;
+      --info-bg: #dbeafe;
+      --radius: 14px;
+      --font: "IBM Plex Sans", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --shadow: 0 12px 32px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink);
+      background: radial-gradient(900px 420px at 100% 0%, rgba(235,10,30,.08), transparent 55%), var(--bg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 18px 48px; }
+    .badge {
+      display: inline-block; margin-bottom: 10px; font-size: .72rem; font-weight: 700;
+      letter-spacing: .07em; text-transform: uppercase; color: var(--toyota-red);
+      background: rgba(235,10,30,.08); border: 1px solid rgba(235,10,30,.2);
+      padding: 5px 10px; border-radius: 999px;
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(1.35rem, 2.4vw, 1.85rem); letter-spacing: -.02em; }
+    .lead { margin: 0 0 18px; color: var(--muted); max-width: 70ch; }
+    .lead a { color: var(--toyota-red); font-weight: 600; text-decoration: none; }
+    .logic-note {
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px;
+      padding: 12px 14px; font-size: .84rem; color: #9a3412; margin-bottom: 16px;
+    }
+    .logic-note code { font-family: var(--mono); font-size: .8em; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+    .slot {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow);
+    }
+    .slot-kicker { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--toyota-red); }
+    .slot h2 { margin: 0; font-size: 1rem; }
+    .slot .desc { margin: 0; color: var(--muted); font-size: .86rem; }
+    .dropzone {
+      flex: 1; min-height: 150px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fafafa;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      padding: 16px 12px; text-align: center; cursor: pointer; transition: .15s;
+    }
+    .dropzone:hover, .dropzone.is-drag { border-color: var(--toyota-red); background: rgba(235,10,30,.05); }
+    .slot.has-file .dropzone { border-style: solid; border-color: #86efac; background: var(--ok-bg); }
+    .drop-icon {
+      width: 42px; height: 42px; border-radius: 11px; background: #fff; border: 1px solid var(--line);
+      display: grid; place-items: center; color: var(--toyota-red);
+    }
+    .drop-title { margin: 0; font-weight: 700; font-size: .92rem; }
+    .drop-or { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .drop-sub { margin: 0; color: var(--muted); font-size: .8rem; }
+    .slot .meta { margin: 0; font-family: var(--mono); font-size: .72rem; word-break: break-all; min-height: 2.2em; }
+    .slot input[type="file"] { display: none; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+      appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      border-radius: 10px; padding: 9px 14px; font: inherit; font-size: .86rem; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover:not(:disabled) { background: #fafafa; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--toyota-red); border-color: var(--toyota-red); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--toyota-red-dark); }
+    .bar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 12px 14px; box-shadow: var(--shadow); margin-bottom: 14px;
+    }
+    .status { font-size: .88rem; font-weight: 600; color: var(--muted); }
+    .status.ready { color: var(--ok); }
+    .status.error { color: var(--err); }
+    .loading { display: none; align-items: center; gap: 10px; margin: 10px 0; color: var(--info); font-weight: 600; font-size: .9rem; }
+    .loading.is-visible { display: flex; }
+    .spinner {
+      width: 18px; height: 18px; border: 2.5px solid rgba(29,78,216,.2); border-top-color: var(--info);
+      border-radius: 50%; animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      display: none; margin: 10px 0; padding: 12px 14px; border-radius: 10px;
+      background: var(--err-bg); color: var(--err); border: 1px solid #fecaca; font-size: .9rem;
+    }
+    .error.is-visible { display: block; }
+    .panel {
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 18px; box-shadow: var(--shadow); display: none; margin-top: 14px;
+    }
+    .panel.is-visible { display: block; }
+    .panel > h3 { margin: 0 0 6px; font-size: 1.1rem; }
+    .panel > .muted { margin: 0 0 16px; color: var(--muted); font-size: .88rem; }
+    .process-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .process-kpi {
+      border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--light-gray);
+      text-decoration: none; color: inherit;
+    }
+    .process-kpi .ico {
+      width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+      background: rgba(235,10,30,.1); color: var(--toyota-red); margin-bottom: 10px;
+    }
+    .process-kpi h4 { margin: 0 0 4px; font-size: .95rem; }
+    .process-kpi p { margin: 0; color: var(--muted); font-size: .8rem; }
+    .process-kpi .stat { margin-top: 10px; font-size: 1.35rem; font-weight: 700; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+    .metric { background: #fafafa; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    .metric .label { margin: 0; font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .metric .value { margin: 4px 0 0; font-size: 1.2rem; font-weight: 700; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tab {
+      border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 14px;
+      font: inherit; font-size: .84rem; font-weight: 700; cursor: pointer; color: var(--muted);
+    }
+    .tab.active { background: var(--toyota-red); border-color: var(--toyota-red); color: #fff; }
+    .section-block { display: none; }
+    .section-block.active { display: block; }
+    .section-block h3 { margin: 0 0 6px; font-size: 1rem; }
+    .section-block .muted { margin: 0 0 12px; color: var(--muted); font-size: .86rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .toolbar input, .toolbar select {
+      font: inherit; font-size: .84rem; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 10px; background: #fff; min-width: 150px;
+    }
+    .table-scroll { overflow: auto; max-height: min(520px, 65vh); border: 1px solid var(--line); border-radius: 12px; }
+    table.data { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    table.data th, table.data td {
+      padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left;
+      white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+    }
+    table.data th { position: sticky; top: 0; background: #f1f5f9; z-index: 1; font-weight: 700; cursor: pointer; }
+    table.data tbody tr:hover { background: #fafafa; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700; background: #e5e7eb; color: #374151; }
+    .pill.no { background: #fee2e2; color: #991b1b; }
+    .pill.bo { background: #ffedd5; color: #9a3412; }
+    .pill.stock { background: #dbeafe; color: #1e40af; }
+    .pill.ok { background: #dcfce7; color: #166534; }
+    .pill.matched { background: #dcfce7; color: #166534; }
+    .pill.nobo { background: #e5e7eb; color: #374151; }
+    .pill.rtl { background: #dbeafe; color: #1e40af; }
+    .pill.notrl { background: #ffedd5; color: #9a3412; }
+    footer { margin-top: 24px; color: var(--muted); font-size: .8rem; }
+    @media (max-width: 960px) {
+      .grid, .process-kpis, .metric-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .grid, .process-kpis, .metric-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="badge">Live engine · Master Page KPIs · Master Excel dictionaries</span>
+    <h1>Vehicle Stock Matching — Live Results</h1>
+    <p class="lead">
+      Upload <strong>Backorder</strong>, <strong>TRL Stock</strong>, and <strong>Central Stock</strong>, then run the three processes from
+      <a href="master-page.html">master-page.html</a> using color dictionaries from
+      <a href="master-excel.html">master-excel.html</a>.
+    </p>
+
+    <div class="logic-note">
+      Colors resolved via <code>MasterExcel.ExteriorColorDictionary</code> / <code>InteriorColorDictionary</code>.
+      Match key: <code>Product + Alj Suffix + Model Year + ExteriorCode + InteriorCode</code>.
+      Outputs: Daily Stock Matching · All Stock Matching Class (FIFO) · Full Control Validation.
+    </div>
+
+    <div class="grid" id="slots">
+      <article class="slot" data-id="backorder">
+        <span class="slot-kicker">BO+ fleetBO</span>
+        <h2>Backorder Excel</h2>
+        <p class="desc">Back order / fleet BO export.</p>
+        <div class="dropzone" data-drop="backorder" role="button" tabindex="0" aria-label="Upload Backorder Excel">
+          <div class="drop-icon"><i class="fa-solid fa-file-excel"></i></div>
+          <p class="drop-title">Drag &amp; drop Excel here</p>
+          <p class="drop-or">or</p>
+          <p class="drop-sub">Click to select</p>
+        </div>
+        <p class="meta">No file selected yet</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-choose="backorder">Select file</button>
+          <button type="button" class="btn" data-remove="backorder" disabled>Remove</button>
+        </div>
+        <input type="file" id="input-backorder" accept=".xlsx,.xls,.csv" aria-label="Select Backorder Excel" />
+      </article>
+      <article class="slot" data-id="trl">
+        <span class="slot-kicker">All Retail</span>
+        <h2>TRL Stock Excel</h2>
+        <p class="desc">Available retail / TRL stock (VIN-level).</p>
+        <div class="dropzone" data-drop="trl" role="button" tabindex="0" aria-label="Upload TRL Stock Excel">
+          <div class="drop-icon"><i class="fa-solid fa-store"></i></div>
+          <p class="drop-title">Drag &amp; drop Excel here</p>
+          <p class="drop-or">or</p>
+          <p class="drop-sub">Click to select</p>
+        </div>
+        <p class="meta">No file selected yet</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-choose="trl">Select file</button>
+          <button type="button" class="btn" data-remove="trl" disabled>Remove</button>
+        </div>
+        <input type="file" id="input-trl" accept=".xlsx,.xls,.csv" aria-label="Select TRL Stock Excel" />
+      </article>
+      <article class="slot" data-id="central">
+        <span class="slot-kicker">all stock</span>
+        <h2>Central Stock Excel</h2>
+        <p class="desc">Central / NDC full stock export.</p>
+        <div class="dropzone" data-drop="central" role="button" tabindex="0" aria-label="Upload Central Stock Excel">
+          <div class="drop-icon"><i class="fa-solid fa-warehouse"></i></div>
+          <p class="drop-title">Drag &amp; drop Excel here</p>
+          <p class="drop-or">or</p>
+          <p class="drop-sub">Click to select</p>
+        </div>
+        <p class="meta">No file selected yet</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-choose="central">Select file</button>
+          <button type="button" class="btn" data-remove="central" disabled>Remove</button>
+        </div>
+        <input type="file" id="input-central" accept=".xlsx,.xls,.csv" aria-label="Select Central Stock Excel" />
+      </article>
+    </div>
+
+    <div class="bar">
+      <div class="status" id="status">Waiting for 3 Excel files</div>
+      <div class="actions">
+        <button type="button" class="btn" id="clear-btn" disabled>Clear all</button>
+        <button type="button" class="btn btn-primary" id="load-btn" disabled>Run matching</button>
+      </div>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div><span id="loading-text">Working…</span></div>
+    <div class="error" id="error" role="alert"></div>
+
+    <section class="panel" id="results">
+      <h3>Matching results</h3>
+      <p class="muted" id="results-meta"></p>
+
+      <div class="process-kpis" id="process-kpis"></div>
+      <div class="metric-grid" id="metric-grid"></div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="daily">1 · Daily Stock Matching</button>
+        <button type="button" class="tab" data-tab="fifo">2 · All Stock Matching Class</button>
+        <button type="button" class="tab" data-tab="control">3 · Full Control Validation</button>
+      </div>
+
+      <div class="section-block active" id="tab-daily">
+        <h3>Daily Stock Matching</h3>
+        <p class="muted">Central stock enriched with BO Match + RTL Stock matched (VIN uniqueness applied).</p>
+        <div class="toolbar">
+          <input type="search" id="daily-search" placeholder="Search…" />
+          <select id="daily-filter">
+            <option value="">All BO Match</option>
+            <option>Matched</option>
+            <option>No BO</option>
+          </select>
+          <select id="daily-rtl-filter">
+            <option value="">All RTL</option>
+            <option>In Stock</option>
+            <option>Not in RTL Stock</option>
+          </select>
+          <button type="button" class="btn" id="dl-daily">Download CSV</button>
+        </div>
+        <div class="table-scroll" id="daily-table"></div>
+      </div>
+
+      <div class="section-block" id="tab-fifo">
+        <h3>All Stock Matching Class</h3>
+        <p class="muted">FIFO allocation of backorders against central stock using Master Excel color dictionaries.</p>
+        <div class="toolbar">
+          <input type="search" id="fifo-search" placeholder="Search…" />
+          <button type="button" class="btn" id="dl-fifo">Download CSV</button>
+        </div>
+        <div class="table-scroll" id="fifo-table"></div>
+      </div>
+
+      <div class="section-block" id="tab-control">
+        <h3>Full Control Validation</h3>
+        <p class="muted">BO quantity vs TRL available stock — Quantity Status control report.</p>
+        <div class="toolbar">
+          <input type="search" id="control-search" placeholder="Search…" />
+          <select id="control-filter">
+            <option value="">All Quantity Status</option>
+            <option>NO STOCK</option>
+            <option>BO &gt; STOCK</option>
+            <option>STOCK &gt; BO</option>
+            <option>BALANCED</option>
+          </select>
+          <button type="button" class="btn" id="dl-control">Download CSV</button>
+        </div>
+        <div class="table-scroll" id="control-table"></div>
+      </div>
+    </section>
+
+    <footer>Toyota / ALJ matching engine · Colors from master-excel.js · Docs on master-page.html</footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="master-excel/master-excel.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      const MAX_RENDER = 2500;
+      const DEFINITIONS = [
+        { id: "backorder", title: "Backorder Excel" },
+        { id: "trl", title: "TRL Stock Excel" },
+        { id: "central", title: "Central Stock Excel" },
+      ];
+      const HEADER_ALIASES = {
+        product: ["product", "model"],
+        suffix: ["alj suffix", "suffix", "tmc suffix"],
+        year: ["model year", "year", "my"],
+        ext: ["exterior color  1", "exterior color 1", "exterior color", "ext color", "exterior color code"],
+        int: ["interior color 1", "interior color", "inter color 1", "interior color code"],
+        vin: ["vin", "vehicle identification number"],
+        boNumber: ["back order number", "backorder number", "bo number"],
+        salesman: ["salesman name", "salesman"],
+        orderDate: ["order date"],
+        confirm: ["confirm flag", "confirm"],
+        custGroup: ["cust group"],
+        dpr: ["dpr"],
+        paid: ["المبلغ المدفوع", "paid", "amount"],
+        grade: ["grade (vc)", "grade"],
+        item: ["item"],
+        searchArea: ["vehicle search area"],
+        sharing: ["sharing levels", "sharing level"],
+        modelCode: ["model code", "supplier model code"],
+        usage: ["usage", "usage description", "vehicle usage descr."],
+        age: ["age", "allocation ageing", "ndc gr age"],
+        location: ["location", "current location", "gt location"],
+        primaryDesc: ["primary status desc", "primary status description"],
+        secondaryDesc: ["secondary status desc", "secondary status descripiton", "secondary status description"],
+        currentLocation: ["current location"],
+        secondaryStatus: ["secondary status"],
+        storageLocation: ["storage location"],
+        transmission: ["transmission"],
+        brand: ["brand"],
+      };
+
+      const state = {
+        backorder: { file: null, rows: [] },
+        trl: { file: null, rows: [] },
+        central: { file: null, rows: [] },
+        colors: null,
+        daily: [],
+        fifo: [],
+        control: [],
+        sorts: {
+          daily: { col: null, dir: 1 },
+          fifo: { col: null, dir: 1 },
+          control: { col: null, dir: 1 },
+        },
+      };
+
+      const $ = (s) => document.querySelector(s);
+
+      function formatBytes(n) {
+        if (n < 1024) return n + " B";
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+        return (n / (1024 * 1024)).toFixed(2) + " MB";
+      }
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+      function normHeader(h) {
+        return String(h || "").trim().toLowerCase().replace(/\s+/g, " ");
+      }
+      function detectKind(file) {
+        const name = (file.name || "").toLowerCase();
+        if (name.endsWith(".csv")) return "csv";
+        if (name.endsWith(".xls") && !name.endsWith(".xlsx")) return "xls";
+        if (name.endsWith(".xlsx") || (file.type || "").includes("sheet") || (file.type || "").includes("excel")) return "xlsx";
+        return null;
+      }
+      function setStatus(text, cls) {
+        const el = $("#status");
+        el.textContent = text;
+        el.className = "status" + (cls ? " " + cls : "");
+      }
+      function setError(msg) {
+        const el = $("#error");
+        el.textContent = msg || "";
+        el.classList.toggle("is-visible", !!msg);
+      }
+      function setLoading(on, text) {
+        $("#loading").classList.toggle("is-visible", on);
+        if (text) $("#loading-text").textContent = text;
+      }
+      function allReady() {
+        return DEFINITIONS.every((d) => state[d.id].file);
+      }
+      function updateButtons() {
+        const any = DEFINITIONS.some((d) => state[d.id].file);
+        $("#clear-btn").disabled = !any;
+        $("#load-btn").disabled = !allReady();
+        if (allReady()) setStatus("All 3 files placed — ready to run matching", "ready");
+        else if (any) setStatus("Still need: " + DEFINITIONS.filter((d) => !state[d.id].file).map((d) => d.title).join(", "));
+        else setStatus("Waiting for 3 Excel files");
+      }
+
+      function buildFieldGetter(sampleRow) {
+        const normKeys = Object.keys(sampleRow || {}).map((k) => ({ raw: k, n: normHeader(k) }));
+        const cache = {};
+        return function get(row, aliasKey) {
+          if (!cache[aliasKey]) {
+            const aliases = HEADER_ALIASES[aliasKey] || [aliasKey];
+            let found = null;
+            for (const alias of aliases) {
+              found = normKeys.find((k) => k.n === alias) || normKeys.find((k) => k.n.includes(alias));
+              if (found) break;
+            }
+            cache[aliasKey] = found ? found.raw : null;
+          }
+          return cache[aliasKey] ? row[cache[aliasKey]] : "";
+        };
+      }
+
+      function resolveExt(value) {
+        if (state.colors) return state.colors.resolveExteriorCode(value);
+        const s = String(value || "").trim();
+        if (!s) return "";
+        if (/^[A-Z0-9]{2,4}$/i.test(s)) return s.toUpperCase();
+        const last = s.split(/\s+/).pop();
+        return /^[A-Z0-9]{2,4}$/i.test(last) ? last.toUpperCase() : last.toUpperCase();
+      }
+      function resolveInt(value) {
+        if (state.colors) return state.colors.resolveInteriorCode(value);
+        const s = String(value || "").trim();
+        if (/^\d{1,3}$/.test(s)) return s;
+        const m = s.match(/(\d{1,3})\s*$/);
+        return m ? m[1] : s.toUpperCase();
+      }
+      function matchKey(product, suffix, year, ext, intc) {
+        return [product, suffix, year, ext, intc].map((v) => String(v ?? "").trim().toUpperCase()).join("|");
+      }
+      function quantityStatus(boCount, stockCount) {
+        if (!stockCount) return "NO STOCK";
+        if (boCount > stockCount) return "BO > STOCK";
+        if (stockCount > boCount) return "STOCK > BO";
+        return "BALANCED";
+      }
+      function parseOrderDate(v) {
+        if (v == null || v === "") return Number.MAX_SAFE_INTEGER;
+        if (typeof v === "number" && Number.isFinite(v)) {
+          // Excel serial
+          if (v > 20000 && v < 100000) return Date.UTC(1899, 11, 30) + v * 86400000;
+          return v;
+        }
+        const t = Date.parse(String(v));
+        return Number.isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+      }
+
+      function statusPill(status) {
+        const s = String(status || "");
+        let cls = "pill";
+        if (s === "NO STOCK") cls += " no";
+        else if (s === "BO > STOCK") cls += " bo";
+        else if (s === "STOCK > BO") cls += " stock";
+        else if (s === "BALANCED") cls += " ok";
+        else if (s === "Matched") cls += " matched";
+        else if (s === "No BO") cls += " nobo";
+        else if (s === "In Stock") cls += " rtl";
+        else if (s === "Not in RTL Stock") cls += " notrl";
+        return `<span class="${cls}">${escapeHtml(s)}</span>`;
+      }
+
+      async function readWorkbook(file) {
+        const buffer = await file.arrayBuffer();
+        if (detectKind(file) === "csv") {
+          return XLSX.read(new TextDecoder("utf-8").decode(buffer), { type: "string", cellDates: true });
+        }
+        return XLSX.read(buffer, { type: "array", cellDates: true });
+      }
+      function workbookToRows(wb) {
+        return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "", raw: false });
+      }
+
+      function runEngines(boRows, trlRows, centralRows) {
+        const getBo = buildFieldGetter(boRows[0] || {});
+        const getTrl = buildFieldGetter(trlRows[0] || {});
+        const getCen = buildFieldGetter(centralRows[0] || {});
+
+        const bos = boRows.map((r, idx) => {
+          const product = getBo(r, "product");
+          const suffix = getBo(r, "suffix");
+          const year = String(getBo(r, "year") || "");
+          const ext = resolveExt(getBo(r, "ext"));
+          const intc = resolveInt(getBo(r, "int"));
+          return {
+            idx,
+            product, suffix, year, ext, int: intc,
+            key: matchKey(product, suffix, year, ext, intc),
+            salesman: getBo(r, "salesman"),
+            boNumber: getBo(r, "boNumber"),
+            orderDate: getBo(r, "orderDate"),
+            orderTs: parseOrderDate(getBo(r, "orderDate")),
+            confirm: getBo(r, "confirm"),
+            custGroup: getBo(r, "custGroup"),
+            dpr: getBo(r, "dpr"),
+            paid: getBo(r, "paid"),
+            grade: getBo(r, "grade"),
+            item: getBo(r, "item"),
+          };
+        });
+
+        const trls = trlRows.map((r, idx) => {
+          const product = getTrl(r, "product");
+          const suffix = getTrl(r, "suffix");
+          const year = String(getTrl(r, "year") || "");
+          const ext = resolveExt(getTrl(r, "ext"));
+          const intc = resolveInt(getTrl(r, "int"));
+          const vin = String(getTrl(r, "vin") || "").trim();
+          return {
+            idx, product, suffix, year, ext, int: intc,
+            key: matchKey(product, suffix, year, ext, intc),
+            vin,
+            searchArea: getTrl(r, "searchArea"),
+            sharing: getTrl(r, "sharing"),
+            modelCode: getTrl(r, "modelCode"),
+            usage: getTrl(r, "usage"),
+            age: getTrl(r, "age"),
+            location: getTrl(r, "location"),
+            primaryDesc: getTrl(r, "primaryDesc"),
+            secondaryDesc: getTrl(r, "secondaryDesc"),
+          };
+        });
+
+        const centrals = centralRows.map((r, idx) => {
+          const product = getCen(r, "product");
+          const suffix = getCen(r, "suffix");
+          const year = String(getCen(r, "year") || "");
+          const extName = getCen(r, "ext");
+          const intName = getCen(r, "int");
+          const ext = resolveExt(extName);
+          const intc = resolveInt(intName);
+          const vin = String(getCen(r, "vin") || "").trim();
+          return {
+            idx, product, suffix, year, ext, int: intc, extName, intName, vin,
+            key: matchKey(product, suffix, year, ext, intc),
+            currentLocation: getCen(r, "currentLocation") || getCen(r, "location"),
+            secondaryStatus: getCen(r, "secondaryStatus"),
+            storageLocation: getCen(r, "storageLocation"),
+            sharing: getCen(r, "sharing"),
+            transmission: getCen(r, "transmission"),
+            brand: getCen(r, "brand"),
+          };
+        });
+
+        // ---- Full Control Validation (BO vs TRL counts) ----
+        const boCounts = new Map();
+        const trlCounts = new Map();
+        bos.forEach((b) => boCounts.set(b.key, (boCounts.get(b.key) || 0) + 1));
+        trls.forEach((t) => trlCounts.set(t.key, (trlCounts.get(t.key) || 0) + 1));
+        const statusByKey = new Map();
+        new Set([...boCounts.keys(), ...trlCounts.keys()]).forEach((k) => {
+          statusByKey.set(k, quantityStatus(boCounts.get(k) || 0, trlCounts.get(k) || 0));
+        });
+
+        // FIFO assign TRL → BO for control detail rows (optional enrichment)
+        const trlByKey = new Map();
+        trls.forEach((t) => {
+          if (!trlByKey.has(t.key)) trlByKey.set(t.key, []);
+          trlByKey.get(t.key).push({ ...t, used: false });
+        });
+        Object.values([...trlByKey.values()]).forEach((arr) => arr.sort((a, b) => String(a.vin).localeCompare(String(b.vin))));
+
+        const control = bos
+          .slice()
+          .sort((a, b) => a.orderTs - b.orderTs || a.idx - b.idx)
+          .map((bo) => {
+            const pool = trlByKey.get(bo.key) || [];
+            const hit = pool.find((s) => !s.used && s.vin);
+            if (hit) hit.used = true;
+            return {
+              Product: bo.product,
+              "Alj Suffix": bo.suffix,
+              "Model Year": bo.year,
+              ExteriorCode: bo.ext,
+              InteriorCode: bo.int,
+              "Salesman Name": bo.salesman,
+              "Back Order Number": bo.boNumber,
+              "Order Date": bo.orderDate,
+              "Confirm Flag": bo.confirm,
+              "Cust Group": bo.custGroup,
+              DPR: bo.dpr,
+              "المبلغ المدفوع": bo.paid,
+              "Grade (VC)": bo.grade,
+              "BO Count": boCounts.get(bo.key) || 0,
+              "Available Stock Count": trlCounts.get(bo.key) || 0,
+              "Stock.VIN": hit ? hit.vin : "",
+              "Stock.Location": hit ? hit.location : "",
+              "Match Found": hit ? "YES" : "NO",
+              "Quantity Status": statusByKey.get(bo.key) || "NO STOCK",
+            };
+          });
+
+        // ---- Daily Stock Matching (central + BO + RTL) ----
+        const trlVinSet = new Set(trls.map((t) => t.vin).filter(Boolean));
+        const boByKey = new Map();
+        bos.forEach((b) => {
+          if (!boByKey.has(b.key)) boByKey.set(b.key, []);
+          boByKey.get(b.key).push(b);
+        });
+        const seenVin = new Set();
+        const daily = [];
+        centrals.forEach((c) => {
+          if (!c.vin || seenVin.has(c.vin)) return;
+          seenVin.add(c.vin);
+          const boHit = (boByKey.get(c.key) || [])[0] || null;
+          const matched = !!boHit;
+          daily.push({
+            VIN: c.vin,
+            Product: c.product,
+            "Alj Suffix": c.suffix,
+            "Model Year": c.year,
+            "Exterior Color": c.extName,
+            "Interior Color": c.intName,
+            "Exterior Code": c.ext,
+            "Interior Code": c.int,
+            "Current Location": c.currentLocation,
+            "Secondary Status": c.secondaryStatus,
+            "Storage Location": c.storageLocation,
+            "Sharing Level": c.sharing,
+            "Salesman Name": matched ? boHit.salesman : "",
+            "Back Order Number": matched ? boHit.boNumber : "",
+            "Order Date": matched ? boHit.orderDate : "",
+            "Confirm Flag": matched ? boHit.confirm : "",
+            "Cust Group": matched ? boHit.custGroup : "",
+            DPR: matched ? boHit.dpr : "",
+            "المبلغ المدفوع": matched ? boHit.paid : "",
+            "Grade (VC)": matched ? boHit.grade : "",
+            "BO Match": matched ? "Matched" : "No BO",
+            "RTL Stock matched": trlVinSet.has(c.vin) ? "In Stock" : "Not in RTL Stock",
+          });
+        });
+
+        // ---- All Stock Matching Class (FIFO BO ↔ Central) ----
+        const sortedBo = bos.slice().sort((a, b) => a.orderTs - b.orderTs || a.idx - b.idx);
+        const centralByKey = new Map();
+        centrals
+          .slice()
+          .sort((a, b) => String(a.vin).localeCompare(String(b.vin)))
+          .forEach((c) => {
+            if (!c.vin) return;
+            if (!centralByKey.has(c.key)) centralByKey.set(c.key, []);
+            centralByKey.get(c.key).push({ ...c, used: false });
+          });
+
+        // indexes within each key group
+        const boIndexById = new Map();
+        const boGroups = new Map();
+        sortedBo.forEach((b) => {
+          if (!boGroups.has(b.key)) boGroups.set(b.key, []);
+          boGroups.get(b.key).push(b);
+        });
+        boGroups.forEach((arr) => arr.forEach((b, i) => boIndexById.set(b.idx, i + 1)));
+
+        const fifo = [];
+        sortedBo.forEach((bo) => {
+          const pool = centralByKey.get(bo.key) || [];
+          const stock = pool.find((s) => !s.used);
+          if (!stock) return;
+          stock.used = true;
+          const stockIndex = pool.indexOf(stock) + 1;
+          fifo.push({
+            Product: bo.product,
+            "Alj Suffix": bo.suffix,
+            "Model Year": bo.year,
+            ExteriorCode: bo.ext,
+            InteriorCode: bo.int,
+            BO_Index: boIndexById.get(bo.idx),
+            Stock_Index: stockIndex,
+            "Back Order Number": bo.boNumber,
+            "Order Date": bo.orderDate,
+            "Salesman Name": bo.salesman,
+            "Stock.VIN": stock.vin,
+            "Stock.Exterior Color": stock.extName,
+            "Stock.Interior Color": stock.intName,
+            "Stock.Current Location": stock.currentLocation,
+            "Stock.Secondary Status": stock.secondaryStatus,
+            "Stock.Sharing Level": stock.sharing,
+            "Stock.Brand": stock.brand,
+            "Stock.Transmission": stock.transmission,
+          });
+        });
+
+        return { daily, fifo, control, boCounts, trlCounts, statusByKey };
+      }
+
+      function renderSlots() {
+        DEFINITIONS.forEach((d) => {
+          const card = document.querySelector('.slot[data-id="' + d.id + '"]');
+          if (!card) return;
+          const slot = state[d.id];
+          const has = !!slot.file;
+          card.classList.toggle("has-file", has);
+          card.querySelector(".meta").textContent = has
+            ? slot.file.name + " · " + formatBytes(slot.file.size) + " · " + detectKind(slot.file).toUpperCase()
+            : "No file selected yet";
+          card.querySelector(".drop-title").textContent = has ? "File ready" : "Drag & drop Excel here";
+          card.querySelector(".drop-sub").textContent = has ? "Drop a new file to replace" : "Click to select";
+          card.querySelector('[data-remove="' + d.id + '"]').disabled = !has;
+        });
+      }
+
+      function bindSlots() {
+        DEFINITIONS.forEach((d) => {
+          const card = document.querySelector('.slot[data-id="' + d.id + '"]');
+          const zone = card.querySelector('[data-drop="' + d.id + '"]');
+          const input = document.getElementById("input-" + d.id);
+          const open = () => input.click();
+          card.querySelector('[data-choose="' + d.id + '"]').addEventListener("click", open);
+          zone.addEventListener("click", open);
+          zone.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+          });
+          card.querySelector('[data-remove="' + d.id + '"]').addEventListener("click", () => {
+            state[d.id] = { file: null, rows: [] };
+            $("#results").classList.remove("is-visible");
+            setError("");
+            renderSlots();
+            updateButtons();
+          });
+          input.addEventListener("change", () => {
+            const file = input.files && input.files[0];
+            if (file) placeFile(d.id, file);
+            input.value = "";
+          });
+          ["dragenter", "dragover"].forEach((evt) => zone.addEventListener(evt, (e) => { e.preventDefault(); zone.classList.add("is-drag"); }));
+          zone.addEventListener("dragleave", (e) => { e.preventDefault(); zone.classList.remove("is-drag"); });
+          zone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            zone.classList.remove("is-drag");
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (file) placeFile(d.id, file);
+          });
+        });
+      }
+
+      function placeFile(id, file) {
+        if (!detectKind(file)) {
+          setError('Unsupported file "' + file.name + '". Use .xlsx, .xls, or .csv.');
+          setStatus("Error", "error");
+          return;
+        }
+        setError("");
+        state[id] = { file, rows: [] };
+        $("#results").classList.remove("is-visible");
+        renderSlots();
+        updateButtons();
+      }
+
+      function renderProcessKpis(result) {
+        const matched = result.daily.filter((r) => r["BO Match"] === "Matched").length;
+        const rtl = result.daily.filter((r) => r["RTL Stock matched"] === "In Stock").length;
+        const qs = { "NO STOCK": 0, "BO > STOCK": 0, "STOCK > BO": 0, BALANCED: 0 };
+        result.control.forEach((r) => { qs[r["Quantity Status"]] = (qs[r["Quantity Status"]] || 0) + 1; });
+
+        $("#process-kpis").innerHTML = `
+          <article class="process-kpi" data-jump="daily">
+            <div class="ico"><i class="fa-solid fa-calendar-day"></i></div>
+            <h4>Daily Stock Matching</h4>
+            <p>BO match · VIN unique · RTL check</p>
+            <div class="stat">${matched.toLocaleString()} / ${result.daily.length.toLocaleString()} matched</div>
+          </article>
+          <article class="process-kpi" data-jump="fifo">
+            <div class="ico"><i class="fa-solid fa-diagram-project"></i></div>
+            <h4>All Stock Matching Class</h4>
+            <p>Color dictionaries · FIFO allocation</p>
+            <div class="stat">${result.fifo.length.toLocaleString()} VIN links</div>
+          </article>
+          <article class="process-kpi" data-jump="control">
+            <div class="ico"><i class="fa-solid fa-shield-halved"></i></div>
+            <h4>Full Control Validation</h4>
+            <p>BO count vs TRL stock quantity</p>
+            <div class="stat">${(qs["BALANCED"] || 0).toLocaleString()} balanced</div>
+          </article>`;
+
+        $("#metric-grid").innerHTML = [
+          ["Backorders", state.backorder.rows.length],
+          ["TRL stock", state.trl.rows.length],
+          ["Central stock", state.central.rows.length],
+          ["Daily RTL In Stock", rtl],
+          ["FIFO matched", result.fifo.length],
+          ["NO STOCK", qs["NO STOCK"] || 0],
+          ["BO > STOCK", qs["BO > STOCK"] || 0],
+          ["STOCK > BO", qs["STOCK > BO"] || 0],
+        ].map(([label, value]) =>
+          `<article class="metric"><p class="label">${escapeHtml(label)}</p><p class="value">${Number(value).toLocaleString()}</p></article>`
+        ).join("");
+
+        document.querySelectorAll(".process-kpi").forEach((el) => {
+          el.addEventListener("click", () => activateTab(el.getAttribute("data-jump")));
+        });
+      }
+
+      function sortRows(rows, sortState) {
+        if (!sortState.col) return rows;
+        const { col, dir } = sortState;
+        return rows.slice().sort((a, b) => {
+          const av = a[col]; const bv = b[col];
+          const an = Number(av); const bn = Number(bv);
+          if (!Number.isNaN(an) && !Number.isNaN(bn) && String(av).trim() !== "" && String(bv).trim() !== "") return (an - bn) * dir;
+          return String(av ?? "").localeCompare(String(bv ?? ""), undefined, { numeric: true, sensitivity: "base" }) * dir;
+        });
+      }
+
+      function renderTable(containerId, rows, sortKey, specialCols) {
+        const el = $(containerId);
+        const sortState = state.sorts[sortKey];
+        if (!rows.length) {
+          el.innerHTML = '<div style="padding:18px;color:#6b7280">No rows.</div>';
+          return;
+        }
+        const headers = Object.keys(rows[0]);
+        const shown = rows.slice(0, MAX_RENDER);
+        const special = specialCols || [];
+        el.innerHTML = `<table class="data"><thead><tr>${headers.map((h) => {
+          const ind = sortState.col === h ? (sortState.dir === 1 ? " ▲" : " ▼") : "";
+          return `<th data-col="${escapeHtml(h)}">${escapeHtml(h)}${ind}</th>`;
+        }).join("")}</tr></thead><tbody>${shown.map((row) =>
+          `<tr>${headers.map((h) => special.includes(h) ? `<td>${statusPill(row[h])}</td>` : `<td title="${escapeHtml(row[h])}">${escapeHtml(row[h])}</td>`).join("")}</tr>`
+        ).join("")}</tbody></table>
+        <p style="margin:8px 10px;font-size:.76rem;color:#6b7280">Showing ${shown.length.toLocaleString()} of ${rows.length.toLocaleString()} rows</p>`;
+        el.querySelectorAll("th[data-col]").forEach((th) => {
+          th.addEventListener("click", () => {
+            const col = th.getAttribute("data-col");
+            if (sortState.col === col) sortState.dir *= -1;
+            else { sortState.col = col; sortState.dir = 1; }
+            if (sortKey === "daily") renderDaily();
+            else if (sortKey === "fifo") renderFifo();
+            else renderControl();
+          });
+        });
+      }
+
+      function filteredDaily() {
+        const q = ($("#daily-search").value || "").trim().toLowerCase();
+        const f = $("#daily-filter").value;
+        const rtl = $("#daily-rtl-filter").value;
+        let rows = state.daily;
+        if (f) rows = rows.filter((r) => r["BO Match"] === f);
+        if (rtl) rows = rows.filter((r) => r["RTL Stock matched"] === rtl);
+        if (q) rows = rows.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
+        return sortRows(rows, state.sorts.daily);
+      }
+      function filteredFifo() {
+        const q = ($("#fifo-search").value || "").trim().toLowerCase();
+        let rows = state.fifo;
+        if (q) rows = rows.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
+        return sortRows(rows, state.sorts.fifo);
+      }
+      function filteredControl() {
+        const q = ($("#control-search").value || "").trim().toLowerCase();
+        const f = $("#control-filter").value;
+        let rows = state.control;
+        if (f) rows = rows.filter((r) => r["Quantity Status"] === f);
+        if (q) rows = rows.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
+        return sortRows(rows, state.sorts.control);
+      }
+
+      function renderDaily() { renderTable("#daily-table", filteredDaily(), "daily", ["BO Match", "RTL Stock matched"]); }
+      function renderFifo() { renderTable("#fifo-table", filteredFifo(), "fifo", []); }
+      function renderControl() { renderTable("#control-table", filteredControl(), "control", ["Quantity Status", "Match Found"]); }
+
+      function downloadCsv(rows, filename) {
+        if (!rows.length) return;
+        const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rows));
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function activateTab(id) {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.getAttribute("data-tab") === id));
+        document.querySelectorAll(".section-block").forEach((s) => s.classList.toggle("active", s.id === "tab-" + id));
+      }
+
+      async function runMatching() {
+        if (typeof XLSX === "undefined") {
+          setError("SheetJS failed to load.");
+          setStatus("Error", "error");
+          return;
+        }
+        if (!allReady()) return;
+        setError("");
+        setLoading(true, "Loading Master Excel color dictionaries…");
+        $("#load-btn").disabled = true;
+        try {
+          if (typeof MasterExcel === "undefined") throw new Error("master-excel.js failed to load. Serve over HTTP.");
+          state.colors = new MasterExcel.MasterExcelColors();
+          for (const d of DEFINITIONS) {
+            setLoading(true, "Reading " + d.title + "…");
+            await new Promise((r) => setTimeout(r, 10));
+            const wb = await readWorkbook(state[d.id].file);
+            state[d.id].rows = workbookToRows(wb);
+            if (!state[d.id].rows.length) throw new Error(d.title + " has no data rows.");
+          }
+          setLoading(true, "Running Daily · FIFO · Full Control…");
+          await new Promise((r) => setTimeout(r, 10));
+          const result = runEngines(state.backorder.rows, state.trl.rows, state.central.rows);
+          state.daily = result.daily;
+          state.fifo = result.fifo;
+          state.control = result.control;
+          $("#results-meta").textContent =
+            state.backorder.file.name + " × " + state.trl.file.name + " × " + state.central.file.name +
+            " · dictionaries: " + state.colors.exterior.size + " exterior / " + state.colors.interior.size + " interior";
+          renderProcessKpis(result);
+          renderDaily();
+          renderFifo();
+          renderControl();
+          activateTab("daily");
+          $("#results").classList.add("is-visible");
+          setStatus("Matching complete", "ready");
+          $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (err) {
+          console.error(err);
+          setError(err.message || String(err));
+          setStatus("Error", "error");
+        } finally {
+          setLoading(false);
+          updateButtons();
+        }
+      }
+
+      function clearAll() {
+        DEFINITIONS.forEach((d) => { state[d.id] = { file: null, rows: [] }; });
+        state.daily = []; state.fifo = []; state.control = [];
+        $("#results").classList.remove("is-visible");
+        setError("");
+        renderSlots();
+        updateButtons();
+      }
+
+      function bindUi() {
+        $("#clear-btn").addEventListener("click", clearAll);
+        $("#load-btn").addEventListener("click", runMatching);
+        document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => activateTab(t.getAttribute("data-tab"))));
+        $("#daily-search").addEventListener("input", renderDaily);
+        $("#daily-filter").addEventListener("change", renderDaily);
+        $("#daily-rtl-filter").addEventListener("change", renderDaily);
+        $("#fifo-search").addEventListener("input", renderFifo);
+        $("#control-search").addEventListener("input", renderControl);
+        $("#control-filter").addEventListener("change", renderControl);
+        $("#dl-daily").addEventListener("click", () => downloadCsv(filteredDaily(), "daily_stock_matching.csv"));
+        $("#dl-fifo").addEventListener("click", () => downloadCsv(filteredFifo(), "all_stock_matching_class.csv"));
+        $("#dl-control").addEventListener("click", () => downloadCsv(filteredControl(), "full_control_validation.csv"));
+      }
+
+      function init() {
+        try {
+          bindSlots();
+          renderSlots();
+          updateButtons();
+          bindUi();
+          if (typeof MasterExcel !== "undefined") {
+            state.colors = new MasterExcel.MasterExcelColors();
+          }
+        } catch (err) {
+          setError("Init failed: " + (err.message || String(err)));
+        }
+      }
+
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+      else init();
+    })();
+  </script>
+</body>
+</html>

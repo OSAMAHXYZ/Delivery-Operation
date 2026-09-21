@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom Parking — Flow Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <style>
+        .flow-note {
+            white-space: pre-wrap;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: #d1d5db;
+        }
+        .flow-note h2 {
+            color: #f5c518;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 1.75rem 0 0.75rem;
+            letter-spacing: 0.04em;
+        }
+        .flow-note h2:first-child { margin-top: 0; }
+        .flow-note h3 {
+            color: #93c5fd;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 1.25rem 0 0.5rem;
+        }
+        .flow-note ul, .flow-note ol { margin: 0.5rem 0 0.75rem 1.25rem; }
+        .flow-note li { margin-bottom: 0.35rem; }
+        .flow-note .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+        .flow-note .box {
+            border: 1px dashed rgba(245,197,24,0.35);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 0.75rem 0;
+            background: rgba(0,0,0,0.2);
+        }
+        .flow-note .decision { color: #fca5a5; font-weight: 600; }
+        .flow-note .action { color: #86efac; }
+        .flow-note .state { color: #c4b5fd; }
+        .flow-note .page { color: #67e8f9; }
+        .copy-hint {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+  <header class="fids-header px-4 py-4 md:px-8">
+    <div class="mx-auto flex max-w-[900px] flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 flex flex-wrap gap-2">
+          <a href="showroom-flight-board.html" class="tool-nav-link">Showroom Home</a>
+          <a href="showroom-dashboard.html" class="tool-nav-link">Dashboard</a>
+          <a href="showroom-uploader.html" class="tool-nav-link">Data Uploader</a>
+          <a href="showroom-controller.html" class="tool-nav-link">Controller</a>
+          <a href="showroom-record.html" class="tool-nav-link">Records</a>
+        </div>
+        <div class="fids-title text-lg font-bold md:text-2xl">SHOWROOM PARKING — FLOW NOTES</div>
+        <div class="text-xs text-gray-400 mt-1">Use this page to build your flowchart</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="board-wrap mx-auto max-w-[900px] p-4 md:p-8">
+    <div class="panel p-6 md:p-8">
+      <p class="copy-hint">Copy any section below into your flowchart tool. Shapes: rectangles = actions, diamonds = decisions, rounded = start/end, purple = delayed zone.</p>
+
+      <article class="flow-note" id="flowNotes">
+
+<h2>1. System overview</h2>
+
+<p><strong>Purpose:</strong> Manage 10 showroom parking spots. Cars come only from matched Data Uploader records. Staff use the Controller; the Dashboard is read-only for TV display.</p>
+
+<h3>Pages &amp; roles</h3>
+<ul>
+  <li><span class="page">showroom-uploader.html</span> — Upload Sales Raw Data + Leads in Progress. Match rule: <span class="mono">Transaction Number = CRM Lead ID</span>. Builds the car pool.</li>
+  <li><span class="page">showroom-controller.html</span> — Assign cars to parking 1–10, set Istimara/delivery, confirm deliveries. Password required.</li>
+  <li><span class="page">showroom-dashboard.html</span> — Parking grid only, car images by product, refreshes every 10 seconds. No password.</li>
+  <li><span class="page">showroom-record.html</span> — History log of parking events.</li>
+</ul>
+
+<h3>Parking layout</h3>
+<ul>
+  <li><strong>Spots 1–7</strong> — Normal showroom parking.</li>
+  <li><strong>Spots 8, 9, 10</strong> — <span class="state">Delayed zone</span> (highlighted purple). Cars that missed delivery time move here.</li>
+</ul>
+
+<hr style="border-color:rgba(255,255,255,0.1);margin:1.5rem 0">
+
+<h2>2. Data setup flow (before parking)</h2>
+
+<div class="box">
+<strong>START</strong> → Data Uploader opens<br>
+<span class="action">ACTION:</span> Upload Excel file 1 — Sales Raw Data<br>
+<span class="action">ACTION:</span> Upload Excel file 2 — Leads in Progress (sheet: raw data all status)<br>
+<span class="action">ACTION:</span> System matches rows where Transaction Number = CRM Lead ID<br>
+<span class="decision">DECISION:</span> Any matches?<br>
+  → NO: Pool empty — Controller shows “upload data first”<br>
+  → YES: Matched cars become <strong>parking pool</strong> (available for assignment)<br>
+<strong>END</strong> (ready for Controller)
+</div>
+
+<h2>3. Assign car to parking (Controller)</h2>
+
+<div class="box">
+<strong>START</strong> → Staff clicks empty parking spot (1–10)<br>
+<span class="action">ACTION:</span> Open parking modal<br>
+<span class="action">ACTION:</span> Type VIN in search box OR pick from dropdown (matched pool only)<br>
+<span class="decision">DECISION:</span> Istimara issued?<br>
+</div>
+
+<h3>Path A — No Istimara</h3>
+<div class="box">
+<span class="action">ACTION:</span> Save parking<br>
+<span class="state">STATE:</span> Spot = <strong>Occupied</strong><br>
+<span class="action">ACTION:</span> Record event: <span class="mono">assigned</span><br>
+<span class="action">ACTION:</span> Dashboard shows car image + VIN<br>
+<strong>END</strong> (car stays until staff clears spot or re-assigns)
+</div>
+
+<h3>Path B — Istimara issued</h3>
+<div class="box">
+<span class="action">ACTION:</span> Check “Istimara issued”<br>
+<span class="action">ACTION:</span> Set delivery date &amp; time<br>
+<span class="action">ACTION:</span> Select next car (replacement) — VIN search or dropdown<br>
+<span class="action">ACTION:</span> Set next car arrival time (must be within 30 min before delivery, and before delivery time)<br>
+<span class="action">ACTION:</span> Save parking<br>
+<span class="state">STATE:</span> Spot = <strong>Delivery Booked</strong> (or <strong>Awaiting Replacement</strong> if replacement not yet arrived)<br>
+<span class="action">ACTION:</span> Record event: <span class="mono">assigned</span><br>
+<strong>END</strong> (wait until delivery time)
+</div>
+
+<h2>4. Delivery time passes (automatic)</h2>
+
+<div class="box">
+<strong>TRIGGER:</strong> Current time ≥ delivery appointment time<br>
+<span class="action">ACTION:</span> System does NOT auto-deliver<br>
+<span class="action">ACTION:</span> Mark car: <span class="state">deliveryDelayed = true</span>, <span class="state">awaitingDeliveryConfirm = true</span><br>
+<span class="action">ACTION:</span> Store <span class="mono">originSlot</span> (which parking spot the car came from)<br>
+<span class="action">ACTION:</span> Move car to first free slot in <strong>8, 9, or 10</strong><br>
+<span class="action">ACTION:</span> Clear original parking spot (now empty for next car later)<br>
+<span class="state">STATE:</span> Delayed zone = <strong>Confirm Delivery</strong> (pulsing red on Controller)<br>
+<span class="action">ACTION:</span> Record event: <span class="mono">delayed</span><br>
+<span class="action">ACTION:</span> Dashboard updates (10s poll or live WebSocket)<br>
+<strong>END</strong> (wait for staff confirmation)
+</div>
+
+<p><em>If delayed zone 8–10 is full, car stays on current spot but still marked delayed + awaiting confirm.</em></p>
+
+<h2>5. Delivery confirmation (Controller — manual)</h2>
+
+<div class="box">
+<strong>START</strong> → Staff taps parking spot with <strong>Confirm Delivery</strong> or <strong>Delayed</strong> status<br>
+<span class="action">ACTION:</span> Open modal: “Has this customer collected the vehicle?”<br>
+<span class="decision">DECISION:</span> Customer collected car?<br>
+</div>
+
+<h3>Path A — YES (Delivered)</h3>
+<div class="box">
+<span class="action">ACTION:</span> POST confirm-delivery { delivered: true }<br>
+<span class="action">ACTION:</span> Record event: <span class="mono">delivered</span><br>
+<span class="decision">DECISION:</span> Replacement car was assigned?<br>
+  → YES: Promote replacement VIN into <strong>originSlot</strong> (original parking number, e.g. 3)<br>
+  → NO: Origin slot stays empty<br>
+<span class="action">ACTION:</span> Clear delayed zone slot (8/9/10)<br>
+<span class="state">STATE:</span> New car in origin slot = <strong>Occupied</strong> (no Istimara until staff edits)<br>
+<strong>END</strong>
+</div>
+
+<h3>Path B — NO (Still delayed)</h3>
+<div class="box">
+<span class="action">ACTION:</span> POST confirm-delivery { delivered: false }<br>
+<span class="action">ACTION:</span> Record event: <span class="mono">not_delivered</span><br>
+<span class="state">STATE:</span> Car remains in delayed zone = <strong>Delayed</strong><br>
+<span class="action">ACTION:</span> awaitingDeliveryConfirm = false (no longer pulsing)<br>
+<strong>END</strong> (staff can tap same spot again later when customer arrives → back to decision “collected?”)
+</div>
+
+<h2>6. Clear parking spot</h2>
+
+<div class="box">
+<strong>START</strong> → Staff opens parking modal → Clear spot<br>
+<span class="action">ACTION:</span> Record event: <span class="mono">cleared</span><br>
+<span class="state">STATE:</span> Spot = <strong>Empty</strong><br>
+<strong>END</strong>
+</div>
+
+<h2>7. Parking status reference (for flowchart labels)</h2>
+
+<ul>
+  <li><span class="state">Empty</span> — No car assigned</li>
+  <li><span class="state">Occupied</span> — Car present, no Istimara / no delivery scheduled</li>
+  <li><span class="state">Delivery Booked</span> — Istimara + delivery time set, waiting for appointment</li>
+  <li><span class="state">Awaiting Replacement</span> — Replacement car arrival is still in the future</li>
+  <li><span class="state">Confirm Delivery</span> — Delivery time passed; staff must answer yes/no</li>
+  <li><span class="state">Delayed</span> — Customer did not collect; car in zone 8–10</li>
+</ul>
+
+<h2>8. Record events (for Records page / audit trail)</h2>
+
+<ul>
+  <li><span class="mono">assigned</span> — Car saved to a spot</li>
+  <li><span class="mono">delayed</span> — Delivery time passed, moved to delayed zone</li>
+  <li><span class="mono">delivered</span> — Staff confirmed customer collected</li>
+  <li><span class="mono">not_delivered</span> — Staff confirmed customer did not collect</li>
+  <li><span class="mono">cleared</span> — Spot manually cleared</li>
+</ul>
+
+<h2>9. Dashboard behavior (read-only)</h2>
+
+<ul>
+  <li>Shows parking grid 1–10 only (no KPIs, no flight table)</li>
+  <li>Car image loaded from <span class="mono">/images/cars/{product}.png</span> (with fallbacks)</li>
+  <li>Spots 8–10 visually marked as delayed zone</li>
+  <li>Refreshes every <strong>10 seconds</strong> + live WebSocket when available</li>
+  <li>TV mode: <span class="mono">showroom-dashboard.html?tv=1</span></li>
+</ul>
+
+<h2>10. Suggested flowchart swimlanes</h2>
+
+<ol>
+  <li><strong>Data Uploader</strong> — Excel upload &amp; matching</li>
+  <li><strong>Controller staff</strong> — Assign, Istimara, confirm delivery, clear</li>
+  <li><strong>System (automatic)</strong> — Timeout at delivery time, move to delayed zone, promote replacement on confirm</li>
+  <li><strong>Dashboard (display)</strong> — Reflect current parking state</li>
+  <li><strong>Customer</strong> — Arrives for delivery (external trigger for confirm yes/no)</li>
+</ol>
+
+<h2>11. Main flow (one-line for top of chart)</h2>
+
+<div class="box mono" style="font-size:0.8rem;line-height:1.5">
+Upload &amp; match data → Assign car to parking → [Istimara?] → [Yes: schedule delivery + next car] → Wait → [Time passed] → Move to delayed 8–10 → Ask “Delivered?” → [Yes: record + next car to origin slot] / [No: stay delayed, ask again later]
+</div>
+
+<h2>12. API endpoints (optional technical box)</h2>
+
+<ul>
+  <li><span class="mono">GET /api/showroom-board</span> — Full board + parking slots</li>
+  <li><span class="mono">PUT /api/showroom-board/parking/:slot</span> — Assign / update spot</li>
+  <li><span class="mono">POST /api/showroom-board/parking/:slot/confirm-delivery</span> — Body: { delivered: true|false }</li>
+  <li><span class="mono">DELETE /api/showroom-board/parking/:slot</span> — Clear spot</li>
+  <li><span class="mono">POST /api/showroom-board/import-sales-raw</span> — Upload sales file</li>
+  <li><span class="mono">POST /api/showroom-board/import-leads-in-progress</span> — Upload leads file</li>
+</ul>
+
+      </article>
+    </div>
+  </main>
+</body>
+</html>

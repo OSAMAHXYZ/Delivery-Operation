@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BO Data Admin Upload</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #ff3b4a;
+      --primary-dark: #c8102e;
+      --primary-soft: rgba(255, 59, 74, 0.12);
+      --accent: #f0f4fc;
+      --bg: #070b14;
+      --card: rgba(14, 20, 34, 0.88);
+      --card-solid: #121a2b;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-bright: rgba(255, 255, 255, 0.14);
+      --text: #e8ecf4;
+      --muted: #8b95a8;
+      --ok: #34d399;
+      --ok-soft: rgba(52, 211, 153, 0.12);
+      --err: #f87171;
+      --sky: #38bdf8;
+      --glow: rgba(255, 59, 74, 0.35);
+      --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { height: auto; color-scheme: dark; }
+    body {
+      margin: 0;
+      padding: 88px 20px 56px;
+      background:
+        radial-gradient(1100px 520px at 8% -8%, rgba(255, 59, 74, 0.13), transparent 55%),
+        radial-gradient(800px 420px at 96% 0%, rgba(56, 189, 248, 0.07), transparent 50%),
+        linear-gradient(180deg, #050810 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: 'Inter', "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; }
+
+    .page-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 20px;
+      background: rgba(7, 11, 20, 0.9);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--line);
+      z-index: 200;
+    }
+    .page-nav-brand {
+      font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .page-nav-brand span { color: var(--muted); font-weight: 600; margin-left: 8px; }
+    .page-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 16px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border: 0;
+      box-shadow: 0 6px 22px var(--glow);
+      transition: transform .18s ease, filter .2s ease;
+    }
+    .page-nav-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(600px 240px at 0% 0%, rgba(255, 59, 74, 0.26), transparent 65%),
+        linear-gradient(135deg, #0a0f1a 0%, #121a2e 100%);
+      border-radius: 22px;
+      padding: 24px 26px 20px;
+      margin-bottom: 18px;
+      border: 1px solid var(--line-bright);
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #fde2e4;
+    }
+    .hero-eyebrow::before {
+      content: "";
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 59, 74, 0.25);
+    }
+    h1 {
+      font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      margin: 10px 0 6px;
+      font-size: clamp(1.55rem, 3.4vw, 1.95rem);
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+    .hero-sub { margin: 0; color: #aeb6c7; font-size: 14px; max-width: 640px; }
+
+    .section-jump {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .section-jump a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line-bright);
+      background: rgba(255,255,255,0.03);
+      transition: color .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .section-jump a:hover {
+      color: var(--text);
+      border-color: rgba(255, 59, 74, 0.45);
+      background: var(--primary-soft);
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line-bright);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 16px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-step {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      box-shadow: 0 4px 14px var(--glow);
+    }
+    .panel-step.sky {
+      background: linear-gradient(135deg, #0ea5e9, #0369a1);
+      box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+    }
+    .panel-step.ok {
+      background: linear-gradient(135deg, #10b981, #047857);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .panel-step.muted {
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      box-shadow: none;
+    }
+    .panel-titles { min-width: 0; flex: 1; }
+    .panel-title {
+      font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin: 0 0 2px;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .panel-sub { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-left: auto;
+      align-self: center;
+    }
+    .panel-body { padding: 18px 20px 20px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 14px;
+    }
+    .field { display: grid; gap: 7px; }
+    label {
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    input[type="password"],
+    input[type="file"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line-bright);
+      font-size: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    input[type="file"] { padding: 10px 12px; cursor: pointer; }
+    input::placeholder { color: rgba(255,255,255,.38); }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary) 0%, #ff5c6a 100%);
+      color: #fff;
+      padding: 11px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 6px 20px var(--glow);
+      transition: transform .15s ease, filter .2s ease;
+    }
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button.secondary {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border: 1px solid var(--line-bright);
+      box-shadow: none;
+    }
+    button.secondary:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--muted);
+      transform: none;
+      filter: none;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .status { margin-top: 12px; font-weight: 600; font-size: 13px; }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .meta { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    .meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.25);
+      font-size: 12px;
+      color: var(--text);
+    }
+    .chip strong {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 10px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.22);
+    }
+    .box-head {
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .box-note {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 10px 14px 0;
+      line-height: 1.45;
+      margin: 0;
+    }
+    .box-scroll { max-height: 280px; overflow: auto; }
+    .preview-scroll { max-height: 360px; overflow: auto; }
+    .empty-preview { padding: 16px 14px; color: var(--muted); font-size: 13px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 12px;
+      text-align: left;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    th {
+      position: sticky; top: 0;
+      background: rgba(18, 26, 43, 0.98);
+      z-index: 1;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .queue-check-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .queue-check-result {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text);
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .qc-rule { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .qc-summary { font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+    .qc-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 8px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .qc-table th, .qc-table td {
+      padding: 10px 12px;
+      font-size: 13px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+    .qc-table th {
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-weight: 700;
+      position: static;
+    }
+    .qc-table tr:last-child td { border-bottom: none; }
+    .qc-rank { font-weight: 800; color: var(--accent); font-family: 'Plus Jakarta Sans', sans-serif; }
+    .qc-empty { color: var(--muted); font-style: italic; }
+    .qc-suggestion {
+      margin: 10px 0;
+      padding: 12px 14px;
+      background: var(--ok-soft);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--ok);
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .qc-suggestion strong { color: #6ee7b7; }
+    .qc-row-best { background: rgba(52, 211, 153, 0.1); }
+    .qc-row-best td { color: var(--ok); font-weight: 700; }
+
+    .combo-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .combo-toolbar input[type="text"] { flex: 1; min-width: 180px; }
+    .combo-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .combo-list {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.22);
+    }
+    .combo-product { border-bottom: 1px solid var(--line); }
+    .combo-product:last-child { border-bottom: none; }
+    .combo-product-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 13px 14px;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .combo-product-head:hover {
+      transform: none;
+      filter: none;
+      background: rgba(255,255,255,0.04);
+      box-shadow: none;
+    }
+    .combo-product-head .combo-count {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: Inter, sans-serif;
+      white-space: nowrap;
+    }
+    .combo-product-body { display: none; padding: 0 10px 12px; }
+    .combo-product.open .combo-product-body { display: block; }
+    .combo-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: baseline;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+      color: var(--text);
+    }
+    .combo-line:nth-child(odd) { background: rgba(255,255,255,0.03); }
+    .combo-line .combo-queue {
+      color: var(--ok);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .combo-empty { padding: 18px 14px; color: var(--muted); font-size: 13px; }
+
+    details.panel summary.panel-head {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    details.panel summary.panel-head::-webkit-details-marker { display: none; }
+    details.panel[open] summary.panel-head { border-bottom: 1px solid var(--line); }
+    .summary-chevron {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      align-self: center;
+    }
+    details.panel[open] .summary-chevron { color: var(--sky); }
+
+    @media (max-width: 900px) {
+      body { padding: 80px 14px 40px; }
+      .form-grid, .stats-grid { grid-template-columns: 1fr; }
+      .queue-check-grid { grid-template-columns: 1fr 1fr; }
+      .panel-head { flex-wrap: wrap; }
+      .panel-actions { margin-left: 46px; width: 100%; }
+    }
+    @media (max-width: 560px) {
+      .queue-check-grid { grid-template-columns: 1fr; }
+      .page-nav-brand span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="page-nav" aria-label="Page navigation">
+    <div class="page-nav-brand">BO Admin <span>Daily sync</span></div>
+    <a href="bo-order-lookup.html" class="page-nav-btn">BO Order Lookup →</a>
+  </nav>
+
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-eyebrow">Admin · Daily BO Sync</div>
+      <h1>BO Data Admin</h1>
+      <p class="hero-sub">Upload today’s Excel, review queue totals by combination, then check a new-customer queue.</p>
+      <nav class="section-jump" aria-label="Jump to section">
+        <a href="#section-upload">1 · Upload</a>
+        <a href="#section-stats">2 · Stats</a>
+        <a href="#section-combos">3 · Combinations</a>
+        <a href="#section-queue">4 · Queue check</a>
+        <a href="#section-preview">5 · Preview</a>
+      </nav>
+    </header>
+
+    <!-- 1. Upload -->
+    <section class="panel" id="section-upload">
+      <div class="panel-head">
+        <div class="panel-step">1</div>
+        <div class="panel-titles">
+          <h2 class="panel-title">Upload BO Excel</h2>
+          <p class="panel-sub">Password + file. Lookup page always reads the latest upload.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field">
+            <label for="passwordInput">Admin Password</label>
+            <input id="passwordInput" type="password" placeholder="Enter admin password" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label for="fileInput">BO Excel File (.xlsx / .xls)</label>
+            <input id="fileInput" type="file" accept=".xlsx,.xls" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="uploadBtn" type="button">Upload BO Excel</button>
+        </div>
+        <div id="status" class="status"></div>
+        <div id="metaChips" class="meta-chips" hidden></div>
+        <div id="meta" class="meta"></div>
+      </div>
+    </section>
+
+    <!-- 2. Stats -->
+    <section class="panel" id="section-stats">
+      <div class="panel-head">
+        <div class="panel-step sky">2</div>
+        <div class="panel-titles">
+          <h2 class="panel-title">Usage & product totals</h2>
+          <p class="panel-sub">Today’s successful order lookups and row counts by product.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="statsBtn" type="button" class="secondary">Refresh stats</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div id="statsStatus" class="meta" style="margin-top:0;margin-bottom:12px;">Enter password above, then refresh stats.</div>
+        <div class="stats-grid">
+          <div class="box">
+            <div class="box-head" id="searchStatsHead">Today's order lookups</div>
+            <p class="box-note" id="searchStatsNote">Successful lookups only.</p>
+            <div class="box-scroll">
+              <div id="searchStatsEmpty" class="empty-preview">No stats loaded yet.</div>
+              <table id="searchStatsTable" style="display:none;">
+                <thead><tr><th>Order number</th><th>Searches today</th></tr></thead>
+                <tbody id="searchStatsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="box">
+            <div class="box-head" id="productStatsHead">Product totals</div>
+            <p class="box-note" id="productStatsNote">Rows per product in the current BO file (first sheet).</p>
+            <div class="box-scroll">
+              <div id="productStatsEmpty" class="empty-preview">No stats loaded yet.</div>
+              <table id="productStatsTable" style="display:none;">
+                <thead><tr><th>Product</th><th>Row count</th></tr></thead>
+                <tbody id="productStatsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Combinations -->
+    <section class="panel" id="section-combos">
+      <div class="panel-head">
+        <div class="panel-step ok">3</div>
+        <div class="panel-titles">
+          <h2 class="panel-title">All combination queue totals</h2>
+          <p class="panel-sub">Product → Suffix, Exterior/Interior · QUEUE = unique BO count. <strong>*</strong> on a row means any — e.g. DMG/* counts in DMG/20 and DMG/30.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="comboRefreshBtn" type="button" class="secondary">Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="combo-toolbar">
+          <input id="comboFilter" type="text" placeholder="Filter by product, suffix, or color…" />
+        </div>
+        <div id="comboMeta" class="combo-meta">Loading combinations…</div>
+        <div id="comboList" class="combo-list">
+          <div class="combo-empty">No combinations loaded yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Queue check -->
+    <section class="panel" id="section-queue">
+      <div class="panel-head">
+        <div class="panel-step">4</div>
+        <div class="panel-titles">
+          <h2 class="panel-title">New customer queue check</h2>
+          <p class="panel-sub">Estimate queue size for a specific Product + Suffix + colors.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="queue-check-grid">
+          <input id="newProduct" type="text" placeholder="Product" />
+          <input id="newSuffix" type="text" placeholder="Suffix" />
+          <input id="newExterior" type="text" placeholder="Exterior color" />
+          <input id="newInterior" type="text" placeholder="Interior color" />
+        </div>
+        <div class="btn-row">
+          <button id="queueCheckBtn" type="button" class="secondary">Search queue number</button>
+        </div>
+        <div id="queueCheckResult" class="queue-check-result">Choose Product, Suffix, Exterior, Interior — then search.</div>
+      </div>
+    </section>
+
+    <!-- 5. Preview (collapsed by default) -->
+    <details class="panel" id="section-preview">
+      <summary class="panel-head">
+        <div class="panel-step muted">5</div>
+        <div class="panel-titles">
+          <h2 class="panel-title">Merged Excel preview</h2>
+          <p class="panel-sub">Raw rows from the uploaded file — open only when you need to verify data.</p>
+        </div>
+        <span class="summary-chevron">Show / hide</span>
+      </summary>
+      <div class="panel-body" style="padding-top:0;">
+        <div class="box" style="margin-top:0;">
+          <div class="box-head" id="previewHead">Merged Excel Preview</div>
+          <div class="preview-scroll">
+            <div id="previewEmpty" class="empty-preview">No preview data yet.</div>
+            <table id="previewTable" style="display:none;">
+              <thead id="previewThead"></thead>
+              <tbody id="previewTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const metaEl = document.getElementById('meta');
+    const metaChipsEl = document.getElementById('metaChips');
+    const previewHead = document.getElementById('previewHead');
+    const previewEmpty = document.getElementById('previewEmpty');
+    const previewTable = document.getElementById('previewTable');
+    const previewThead = document.getElementById('previewThead');
+    const previewTbody = document.getElementById('previewTbody');
+    const statsStatusEl = document.getElementById('statsStatus');
+    const searchStatsNote = document.getElementById('searchStatsNote');
+    const searchStatsEmpty = document.getElementById('searchStatsEmpty');
+    const searchStatsTable = document.getElementById('searchStatsTable');
+    const searchStatsTbody = document.getElementById('searchStatsTbody');
+    const productStatsNote = document.getElementById('productStatsNote');
+    const productStatsEmpty = document.getElementById('productStatsEmpty');
+    const productStatsTable = document.getElementById('productStatsTable');
+    const productStatsTbody = document.getElementById('productStatsTbody');
+    const queueCheckResultEl = document.getElementById('queueCheckResult');
+    const comboMetaEl = document.getElementById('comboMeta');
+    const comboListEl = document.getElementById('comboList');
+    const comboFilterEl = document.getElementById('comboFilter');
+    let comboProducts = [];
+
+    function setStatus(msg, cls) {
+      statusEl.textContent = msg;
+      statusEl.className = `status ${cls || ''}`;
+    }
+
+    function setStatsStatus(msg, cls) {
+      statsStatusEl.textContent = msg || '';
+      statsStatusEl.className = 'meta';
+      statsStatusEl.style.marginTop = '0';
+      statsStatusEl.style.marginBottom = '12px';
+      if (cls === 'err') statsStatusEl.style.color = 'var(--err)';
+      else if (cls === 'ok') statsStatusEl.style.color = 'var(--ok)';
+      else statsStatusEl.style.color = 'var(--muted)';
+    }
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderMetaChips(data) {
+      if (!data || !data.exists) {
+        metaChipsEl.hidden = true;
+        metaChipsEl.innerHTML = '';
+        metaEl.textContent = 'No BO file uploaded yet.';
+        return;
+      }
+      const sheetsText = (data.sheets || []).map((s) => `${s.sheetName} (${s.rowCount})`).join(', ') || '—';
+      const uploaded = data.uploadedAt ? new Date(data.uploadedAt).toLocaleString() : '—';
+      metaChipsEl.hidden = false;
+      metaChipsEl.innerHTML =
+        `<span class="chip"><strong>File</strong> ${esc(data.filename || '—')}</span>` +
+        `<span class="chip"><strong>Rows</strong> ${esc(data.rowCount ?? '—')}</span>` +
+        `<span class="chip"><strong>Sheet</strong> ${esc(data.sheetName || '—')}</span>` +
+        `<span class="chip"><strong>Uploaded</strong> ${esc(uploaded)}</span>`;
+      metaEl.textContent = `Sheets: ${sheetsText}`;
+    }
+
+    async function loadAdminStats() {
+      const password = document.getElementById('passwordInput').value.trim();
+      if (!password) {
+        setStatsStatus('Enter admin password in Upload to load usage stats.', 'err');
+        return;
+      }
+      setStatsStatus('Loading stats…', '');
+      try {
+        const res = await fetch(`/api/bo-data/admin-stats?${new URLSearchParams({ password })}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setStatsStatus(data.error || `Stats failed (${res.status}).`, 'err');
+          return;
+        }
+
+        searchStatsNote.textContent = `Successful lookups only · Server date: ${data.date}`;
+        if (!data.searchesToday || data.searchesToday.length === 0) {
+          searchStatsEmpty.style.display = 'block';
+          searchStatsEmpty.textContent = 'No order lookups recorded yet today.';
+          searchStatsTable.style.display = 'none';
+        } else {
+          searchStatsEmpty.style.display = 'none';
+          searchStatsTable.style.display = 'table';
+          searchStatsTbody.innerHTML = data.searchesToday.map((row) =>
+            `<tr><td>${esc(row.orderNumber)}</td><td>${esc(row.count)}</td></tr>`
+          ).join('');
+        }
+
+        const totalRows = data.totalRows ?? 0;
+        productStatsNote.textContent = totalRows
+          ? `Across ${totalRows} row(s) in the current BO file (first sheet).`
+          : 'Upload a BO file to see product totals.';
+
+        if (!data.productTotals || data.productTotals.length === 0) {
+          productStatsEmpty.style.display = 'block';
+          productStatsEmpty.textContent = totalRows
+            ? 'No Product column matched (check Excel headers).'
+            : 'No BO data loaded.';
+          productStatsTable.style.display = 'none';
+        } else {
+          productStatsEmpty.style.display = 'none';
+          productStatsTable.style.display = 'table';
+          productStatsTbody.innerHTML = data.productTotals.map((row) =>
+            `<tr><td>${esc(row.product)}</td><td>${esc(row.count)}</td></tr>`
+          ).join('');
+        }
+
+        setStatsStatus('Stats updated.', 'ok');
+      } catch (e) {
+        setStatsStatus(`Stats failed: ${e.message || 'Try again.'}`, 'err');
+      }
+    }
+
+    function renderComboList() {
+      const q = String(comboFilterEl.value || '').trim().toLowerCase();
+      const filtered = comboProducts
+        .map((p) => {
+          const combos = (p.combinations || []).filter((c) => {
+            if (!q) return true;
+            const hay = `${p.product} ${c.suffix} ${c.exterior} ${c.interior}`.toLowerCase();
+            return hay.includes(q);
+          });
+          return { ...p, combinations: combos };
+        })
+        .filter((p) => p.combinations.length > 0);
+
+      if (!filtered.length) {
+        comboListEl.innerHTML = `<div class="combo-empty">${comboProducts.length ? 'No combinations match this filter.' : 'No combinations found in BO data.'}</div>`;
+        return;
+      }
+
+      comboListEl.innerHTML = filtered.map((p, idx) => {
+        const lines = p.combinations.map((c) =>
+          `<div class="combo-line">` +
+            `<span>${esc(c.suffix)}, ${esc(c.exterior)}/${esc(c.interior)}</span>` +
+            `<span class="combo-queue">QUEUE = ${esc(c.queue)}</span>` +
+          `</div>`
+        ).join('');
+        const openClass = !q && idx === 0 ? ' open' : (q ? ' open' : '');
+        return (
+          `<div class="combo-product${openClass}" data-product="${esc(p.product)}">` +
+            `<button type="button" class="combo-product-head">` +
+              `<span>${esc(p.product)}</span>` +
+              `<span class="combo-count">${p.combinations.length} combo${p.combinations.length === 1 ? '' : 's'} · ${esc(p.orderCount)} order${p.orderCount === 1 ? '' : 's'}</span>` +
+            `</button>` +
+            `<div class="combo-product-body">${lines}</div>` +
+          `</div>`
+        );
+      }).join('');
+    }
+
+    async function loadQueueCombinations() {
+      comboMetaEl.textContent = 'Loading combinations…';
+      try {
+        const res = await fetch('/api/bo-data/queue-combinations');
+        const data = await res.json();
+        if (!res.ok) {
+          comboProducts = [];
+          comboMetaEl.textContent = data.error || 'No BO data uploaded yet.';
+          comboListEl.innerHTML = `<div class="combo-empty">${esc(data.error || 'Upload a BO Excel file first.')}</div>`;
+          return;
+        }
+        comboProducts = Array.isArray(data.products) ? data.products : [];
+        const src = data.source || {};
+        const uploaded = src.uploadedAt ? new Date(src.uploadedAt).toLocaleString() : '—';
+        comboMetaEl.textContent =
+          `${data.totalCombinations || 0} combinations across ${data.totalProducts || 0} products` +
+          (src.filename ? ` · ${src.filename}` : '') +
+          ` · Uploaded ${uploaded}`;
+        renderComboList();
+      } catch (e) {
+        comboProducts = [];
+        comboMetaEl.textContent = `Failed to load combinations: ${e.message || 'Try again.'}`;
+        comboListEl.innerHTML = `<div class="combo-empty">Failed to load combinations.</div>`;
+      }
+    }
+
+    async function loadMeta() {
+      try {
+        const res = await fetch('/api/bo-data/meta');
+        const data = await res.json();
+        renderMetaChips(data);
+      } catch (e) {
+        metaChipsEl.hidden = true;
+        metaEl.textContent = 'Unable to load current BO upload meta.';
+      }
+    }
+
+    function renderPreview(headers, rows, rowCount, previewCount) {
+      if (!rows || rows.length === 0) {
+        previewHead.textContent = 'Merged Excel Preview';
+        previewEmpty.style.display = 'block';
+        previewTable.style.display = 'none';
+        return;
+      }
+
+      const keys = headers && headers.length ? headers : Object.keys(rows[0] || {});
+      previewHead.textContent = `Merged Excel Preview (${previewCount} of ${rowCount} rows)`;
+      previewThead.innerHTML = `<tr>${keys.map((k) => `<th>${esc(k)}</th>`).join('')}</tr>`;
+      previewTbody.innerHTML = rows.map((row) =>
+        `<tr>${keys.map((k) => `<td>${row[k] === null || row[k] === undefined || row[k] === '' ? '-' : esc(String(row[k]))}</td>`).join('')}</tr>`
+      ).join('');
+
+      previewEmpty.style.display = 'none';
+      previewTable.style.display = 'table';
+    }
+
+    async function loadPreview() {
+      try {
+        const res = await fetch('/api/bo-data/preview?limit=200');
+        if (!res.ok) {
+          previewHead.textContent = 'Merged Excel Preview';
+          previewEmpty.style.display = 'block';
+          previewEmpty.textContent = 'No BO data available yet.';
+          previewTable.style.display = 'none';
+          return;
+        }
+        const data = await res.json();
+        renderPreview(data.headers || [], data.rows || [], data.rowCount || 0, data.previewCount || 0);
+      } catch (e) {
+        previewHead.textContent = 'Merged Excel Preview';
+        previewEmpty.style.display = 'block';
+        previewEmpty.textContent = 'Failed to load preview.';
+        previewTable.style.display = 'none';
+      }
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      const password = document.getElementById('passwordInput').value.trim();
+      const file = document.getElementById('fileInput').files[0];
+      if (!password) {
+        setStatus('Please enter admin password.', 'err');
+        return;
+      }
+      if (!file) {
+        setStatus('Please select an Excel file first.', 'err');
+        return;
+      }
+
+      try {
+        setStatus('Uploading and processing file...', '');
+        const fileData = await readFileAsDataURL(file);
+        const res = await fetch('/api/bo-data/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password,
+            filename: file.name,
+            fileData
+          })
+        });
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (jsonError) {
+          const rawText = await res.text();
+          throw new Error(rawText || 'Unexpected non-JSON server response');
+        }
+        if (!res.ok) {
+          setStatus(data?.error || `Upload failed (${res.status}).`, 'err');
+          return;
+        }
+
+        const sheetsText = (data.meta.sheets || []).map(s => `${s.sheetName} (${s.rowCount})`).join(', ');
+        setStatus(`Upload successful: ${data.meta.rowCount} rows from first sheet: ${sheetsText}.`, 'ok');
+        await loadMeta();
+        await loadPreview();
+        await loadAdminStats();
+        await loadQueueCombinations();
+      } catch (e) {
+        setStatus(`Upload failed: ${e.message || 'Please try again.'}`, 'err');
+      }
+    });
+
+    document.getElementById('statsBtn').addEventListener('click', loadAdminStats);
+    document.getElementById('comboRefreshBtn').addEventListener('click', loadQueueCombinations);
+    comboFilterEl.addEventListener('input', renderComboList);
+    comboListEl.addEventListener('click', (e) => {
+      const head = e.target.closest('.combo-product-head');
+      if (!head) return;
+      const block = head.closest('.combo-product');
+      if (block) block.classList.toggle('open');
+    });
+
+    document.getElementById('queueCheckBtn').addEventListener('click', async () => {
+      const product = document.getElementById('newProduct').value.trim();
+      const suffix = document.getElementById('newSuffix').value.trim();
+      const exteriorColor = document.getElementById('newExterior').value.trim();
+      const interiorColor = document.getElementById('newInterior').value.trim();
+
+      if (!product || !suffix || !exteriorColor || !interiorColor) {
+        queueCheckResultEl.textContent = 'Please fill Product, Suffix, Exterior Color, and Interior Color.';
+        return;
+      }
+
+      queueCheckResultEl.textContent = 'Calculating queue number...';
+      try {
+        const qs = new URLSearchParams({ product, suffix, exteriorColor, interiorColor });
+        const res = await fetch(`/api/bo-data/new-customer-queue?${qs.toString()}`);
+        const data = await res.json();
+        if (!res.ok) {
+          queueCheckResultEl.textContent = data.error || `Failed (${res.status})`;
+          return;
+        }
+
+        if (data.wildcard) {
+          const list = Array.isArray(data.possibilities) ? data.possibilities : [];
+          const sm = data.summary || {};
+          if (!list.length) {
+            queueCheckResultEl.innerHTML =
+              `<div class="qc-rule">${esc(data.rule || '')}</div>` +
+              `<div class="qc-empty">No Ext/Int combinations found in BO for this Product+Suffix.</div>`;
+            return;
+          }
+
+          const headerLine = `${list.length} queue${list.length === 1 ? '' : 's'} for ${esc(product)} + ${esc(suffix)} ` +
+            `(${sm.distinctExteriors || 0} exterior${(sm.distinctExteriors || 0) === 1 ? '' : 's'} × ` +
+            `${sm.distinctInteriors || 0} interior${(sm.distinctInteriors || 0) === 1 ? '' : 's'}). ` +
+            `Total customers across all queues: <strong>${sm.totalCustomersInQueues || 0}</strong>.`;
+
+          let suggestionLine = '';
+          const sug = sm.lightestSuggestion;
+          if (sug) {
+            suggestionLine = `<div class="qc-suggestion">Suggestion: fewest matches is ` +
+              `<strong>${esc(sug.exteriorColor)} / ${esc(sug.interiorColor)}</strong> ` +
+              `→ <strong>${sug.matchingTotal}</strong> reservation${sug.matchingTotal === 1 ? '' : 's'}.</div>`;
+          }
+
+          const rowsHtml = list.map((p, i) => `
+            <tr${i === 0 ? ' class="qc-row-best"' : ''}>
+              <td>${esc(p.exteriorColor)}</td>
+              <td>${esc(p.interiorColor)}</td>
+              <td class="qc-rank">${p.matchingTotal}</td>
+            </tr>
+          `).join('');
+
+          queueCheckResultEl.innerHTML = `
+            <div class="qc-summary">${headerLine}</div>
+            ${suggestionLine}
+            <div class="qc-rule">Rule: ${esc(data.rule || '')}</div>
+            <table class="qc-table">
+              <thead>
+                <tr>
+                  <th>Exterior Color</th>
+                  <th>Interior Color</th>
+                  <th>Matching reservations</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          `;
+          return;
+        }
+
+        queueCheckResultEl.textContent =
+          `Matching reservations: ${data.matchingTotal != null ? data.matchingTotal : data.queueSizeBeforeAdding} | Rule: ${data.rule}`;
+      } catch (e) {
+        queueCheckResultEl.textContent = `Failed to calculate queue number: ${e.message || 'Try again.'}`;
+      }
+    });
+
+    loadMeta();
+    loadPreview();
+    loadQueueCombinations();
+  </script>
+</body>
+</html>

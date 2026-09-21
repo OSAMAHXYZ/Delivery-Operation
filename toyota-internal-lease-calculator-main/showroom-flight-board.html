@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom Flight Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-board-common.css">
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="fids-header px-4 py-4 md:px-8">
+    <div class="mx-auto flex max-w-[900px] flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 flex flex-wrap gap-2">
+          <a href="detailed-calculations.html" class="tool-nav-link">Detailed Calculator</a>
+          <a href="bo-order-lookup.html" class="tool-nav-link">BO Lookup</a>
+        </div>
+        <div class="fids-title text-lg font-bold md:text-2xl">SHOWROOM FLIGHT BOARD</div>
+        <div class="text-xs text-gray-400 mt-1">Choose your workspace</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-[900px] p-6 md:p-10">
+    <div class="grid gap-4 md:grid-cols-3">
+      <a href="showroom-dashboard.html" class="launch-card block no-underline text-inherit">
+        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-yellow-400">No password</div>
+        <h2 class="mb-2 text-lg font-bold text-white">Dashboard</h2>
+        <p class="text-sm text-gray-400">TV / read-only departure board for the showroom floor.</p>
+        <p class="mono mt-4 text-xs text-yellow-500/80">showroom-dashboard.html</p>
+      </a>
+      <a href="showroom-uploader.html" class="launch-card block no-underline text-inherit">
+        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-green-400">Password required</div>
+        <h2 class="mb-2 text-lg font-bold text-white">Data Uploader</h2>
+        <p class="text-sm text-gray-400">Upload and preview the Sales Raw Data Excel file.</p>
+        <p class="mono mt-4 text-xs text-yellow-500/80">showroom-uploader.html</p>
+      </a>
+      <a href="showroom-controller.html" class="launch-card block no-underline text-inherit">
+        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-cyan-400">Password required</div>
+        <h2 class="mb-2 text-lg font-bold text-white">Controller</h2>
+        <p class="text-sm text-gray-400">Select showroom vehicles, link replacements, manage departures.</p>
+        <p class="mono mt-4 text-xs text-yellow-500/80">showroom-controller.html</p>
+      </a>
+      <a href="showroom-parking-docs.html" class="launch-card block no-underline text-inherit md:col-span-3">
+        <div class="mb-2 text-xs font-bold uppercase tracking-wider text-purple-400">Documentation</div>
+        <h2 class="mb-2 text-lg font-bold text-white">Parking Flow Notes</h2>
+        <p class="text-sm text-gray-400">Step-by-step notes for building a flowchart of the showroom parking process.</p>
+        <p class="mono mt-4 text-xs text-yellow-500/80">showroom-parking-docs.html</p>
+      </a>
+    </div>
+
+    <p class="mt-8 text-center text-xs text-gray-500">
+      Uploader &amp; Controller password: <span class="mono text-yellow-400">1234</span>
+      · TV mode: <a href="showroom-dashboard.html?tv=1" class="text-yellow-400 hover:underline">showroom-dashboard.html?tv=1</a>
+    </p>
+  </main>
+</body>
+</html>

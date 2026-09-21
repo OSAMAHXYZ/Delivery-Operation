@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Uploader — Showroom Flight Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <link rel="stylesheet" href="showroom-kanban-dashboard.css">
+</head>
+<body class="min-h-screen">
+  <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+    <div class="panel w-full max-w-md p-8">
+      <h1 class="fids-title text-center text-2xl font-bold mb-2">DATA UPLOADER</h1>
+      <p class="text-center text-sm text-gray-400 mb-6">Upload Sales Raw Data Excel file</p>
+      <input id="passwordInput" type="password" placeholder="Uploader password" class="mb-3 w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none focus:border-yellow-500">
+      <button id="passwordSubmit" type="button" class="w-full rounded-lg bg-yellow-500 py-3 font-semibold text-black hover:bg-yellow-400">Sign In</button>
+      <p id="loginError" class="mt-4 hidden text-center text-sm text-red-400"></p>
+      <div class="mt-6 flex flex-wrap justify-center gap-2 text-xs">
+        <a href="showroom-dashboard.html" class="tool-nav-link">Dashboard</a>
+        <a href="showroom-controller.html" class="tool-nav-link">Controller</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="fids-header px-4 py-4 md:px-8">
+      <div class="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="mb-2 flex flex-wrap gap-2">
+            <a href="showroom-dashboard.html" class="tool-nav-link">Dashboard</a>
+            <a href="showroom-uploader.html" class="tool-nav-link tool-nav-link-active">Data Uploader</a>
+            <a href="showroom-controller.html" class="tool-nav-link">Controller</a>
+            <span class="self-center text-gray-600">|</span>
+            <a href="detailed-calculations.html" class="tool-nav-link">Detailed Calculator</a>
+            <a href="bo-order-lookup.html" class="tool-nav-link">BO Lookup</a>
+          </div>
+          <div class="fids-title text-lg font-bold md:text-2xl">DATA UPLOADER</div>
+          <div class="text-xs text-gray-400 mt-1">Upload Sales Raw Data — all sheets and rows are read and displayed below</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="ctl-live-pill" id="livePill" data-status="connecting"><span class="kb-live-dot"></span> Connecting</div>
+          <span class="text-xs text-gray-500" id="lastRefresh">—</span>
+          <button id="btnLogout" type="button" class="rounded-lg border border-white/15 px-3 py-2 text-xs text-gray-400 hover:bg-white/5">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[1800px] p-4 md:p-6">
+      <div class="panel mb-6 p-6">
+        <h2 class="mb-2 text-lg font-bold text-yellow-400">Sales Raw Data</h2>
+        <p class="mb-4 text-xs text-gray-500">Upload your Sales Raw Data Excel file. Every sheet in the workbook is imported and shown in the table below.</p>
+        <div class="mb-4 flex flex-wrap items-end gap-3">
+          <input id="salesRawFile" type="file" accept=".xlsx,.xls" class="min-w-[200px] flex-1 text-sm text-gray-400">
+          <button id="btnUploadSalesRaw" type="button" class="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-500">Upload</button>
+        </div>
+        <p id="uploadSalesMsg" class="text-xs text-green-400"></p>
+      </div>
+
+      <div class="panel overflow-hidden">
+        <div class="border-b border-white/10 px-4 py-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold text-gray-300">Sales Raw Data — All Rows</div>
+              <p id="salesRawMeta" class="mt-1 text-xs text-gray-500"></p>
+            </div>
+            <span id="salesRawCountBadge" class="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-gray-400">0 rows</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto max-h-[calc(100vh-320px)] overflow-y-auto">
+          <table class="raw-table w-full min-w-[900px] text-left">
+            <thead id="salesRawHead"></thead>
+            <tbody id="salesRawBody"></tbody>
+          </table>
+        </div>
+        <div id="salesRawEmpty" class="p-12 text-center text-gray-500">Upload Sales Raw Data to see all rows here.</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="showroom-board-common.js"></script>
+  <script>
+    const SB = window.ShowroomBoard;
+    const SESSION_KEY = 'showroomUploaderSession';
+    let session = { password: null };
+    let boardData = { salesRaw: { rows: [] } };
+    let liveConn = null;
+
+    function loadSession() {
+      try {
+        const raw = sessionStorage.getItem(SESSION_KEY);
+        if (raw) session = JSON.parse(raw);
+      } catch (e) {}
+    }
+
+    function saveSession() {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function updateRowBadge() {
+      const count = boardData.salesRaw?.rows?.length || 0;
+      const badge = document.getElementById('salesRawCountBadge');
+      if (!badge) return;
+      badge.textContent = `${count} row${count === 1 ? '' : 's'}`;
+      badge.className = count
+        ? 'rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300'
+        : 'rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-gray-400';
+    }
+
+    function renderUploaderViews() {
+      SB.renderSalesRawTable(boardData);
+      updateRowBadge();
+    }
+
+    function showLogin() {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('app').classList.add('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      if (liveConn) liveConn.close();
+      liveConn = SB.initShowroomLive({
+        livePillId: 'livePill',
+        pollMs: SB.UPLOADER_POLL_MS,
+        pollMsWhenLive: 20000,
+        fetchData: SB.fetchSalesRawData,
+        onData: (data, source, status) => {
+          if (source === 'live') {
+            liveConn?.refresh('live-sync');
+            return;
+          }
+          if (data?.salesRaw) boardData = { salesRaw: data.salesRaw };
+          renderUploaderViews();
+          const el = document.getElementById('lastRefresh');
+          if (el) el.textContent = SB.formatLastRefresh(source, status || liveConn?.getStatus(), SB.UPLOADER_POLL_MS / 1000);
+        },
+        onError: (e) => console.error('Uploader refresh failed:', e)
+      });
+    }
+
+    document.getElementById('passwordSubmit').addEventListener('click', async () => {
+      const password = document.getElementById('passwordInput').value;
+      const errEl = document.getElementById('loginError');
+      try {
+        await SB.auth('uploader', password);
+        session = { password };
+        saveSession();
+        showApp();
+      } catch (e) {
+        errEl.textContent = e.message || 'Login failed';
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      session = { password: null };
+      sessionStorage.removeItem(SESSION_KEY);
+      if (liveConn) liveConn.close();
+      showLogin();
+    });
+
+    document.getElementById('btnUploadSalesRaw').addEventListener('click', async () => {
+      const file = document.getElementById('salesRawFile').files[0];
+      if (!file) { alert('Choose your Sales Raw Data Excel file first'); return; }
+      const msg = document.getElementById('uploadSalesMsg');
+      msg.textContent = 'Uploading…';
+      msg.className = 'text-xs text-gray-400';
+      try {
+        const fileData = await SB.readFileAsDataUrl(file);
+        const res = await fetch('/api/showroom-board/import-sales-raw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'uploader',
+            password: session.password,
+            fileData,
+            filename: file.name
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        msg.textContent = `Uploaded ${data.imported} rows from "${data.sheetName || file.name}"`;
+        msg.className = 'text-xs text-green-400';
+        boardData = data;
+        renderUploaderViews();
+        document.getElementById('salesRawFile').value = '';
+      } catch (e) {
+        msg.textContent = e.message || 'Upload failed';
+        msg.className = 'text-xs text-red-400';
+      }
+    });
+
+    loadSession();
+    if (session.password) showApp();
+    else showLogin();
+  </script>
+</body>
+</html>

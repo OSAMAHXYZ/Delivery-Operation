@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom Controller — Guest Experience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-tot-shell.css">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <link rel="stylesheet" href="showroom-kanban-dashboard.css">
+    <link rel="stylesheet" href="showroom-neon-theme.css">
+</head>
+<body class="controller-page tot-showroom-page min-h-screen neon-theme">
+  <div id="loginScreen" class="tot-login-screen">
+    <div class="tot-login-card">
+      <img src="images/logo/toyota.png" alt="Toyota" class="tot-login-logo" onerror="this.style.display='none'">
+      <h1>Showroom Controller</h1>
+      <p class="tot-login-sub">Drag cars to parking bays · Live updates</p>
+      <input id="passwordInput" type="password" placeholder="Controller password" class="tot-login-input">
+      <button id="passwordSubmit" type="button" class="tot-login-btn">Sign In</button>
+      <p id="loginError" class="tot-login-error hidden"></p>
+      <div class="tot-login-links">
+        <a href="simple-app.html" class="tot-nav-link">Lease Calculator</a>
+        <a href="showroom-dashboard.html" class="tot-nav-link">Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="tot-top-bar">
+      <a href="simple-app.html" class="tot-top-bar-brand">
+        <img src="images/logo/toyota.png" alt="Toyota" class="tot-top-bar-logo" onerror="this.style.display='none'">
+        <div class="tot-top-bar-product"><strong>Showroom Controller</strong>Toyota Guest Experience</div>
+      </a>
+      <nav class="tot-top-nav" aria-label="Showroom navigation">
+        <a href="simple-app.html" class="tot-nav-link">Lease Calculator</a>
+        <a href="showroom-dashboard.html" class="tot-nav-link">Dashboard</a>
+        <a href="showroom-uploader.html" class="tot-nav-link">Data Uploader</a>
+        <a href="showroom-controller.html" class="tot-nav-link tot-nav-link-active">Controller</a>
+        <a href="showroom-record.html" class="tot-nav-link">Records</a>
+        <a href="car-entrance.html" class="tot-nav-link">Security</a>
+      </nav>
+      <div class="tot-top-bar-right">
+        <div class="ctl-live-pill" id="livePill" data-status="connecting"><span class="kb-live-dot"></span> Connecting</div>
+        <div class="mono kb-clock text-xl" id="liveClock">--:--:--</div>
+        <button id="btnLogout" type="button" class="tot-top-bar-btn">Logout</button>
+      </div>
+    </header>
+
+    <div class="tot-page-shell">
+    <header class="tot-subheader kb-header-sub controller-subheader">
+      <div>
+        <div class="tot-subheader-title">Parking Control<span>Drag &amp; drop cars to bays</span></div>
+      </div>
+      <div class="tot-subheader-meta">
+        <span class="text-xs text-gray-400" id="lastRefresh">—</span>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[1900px] p-4 md:p-6 space-y-5">
+      <div class="ctl-workspace">
+        <!-- LEFT: Parking -->
+        <div class="ctl-parking-column ctl-panel p-5">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="ctl-section-title">Parking bays (1–10)</div>
+              <p class="text-xs text-gray-500 mt-1">Drop a car on an empty bay · Drop on occupied bay to schedule next car</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs text-gray-400" id="parkingOccupiedCount">0 / 10</span>
+              <button type="button" id="btnAddToQueue" class="hidden rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black hover:bg-amber-400">Add to Queue</button>
+            </div>
+          </div>
+          <div id="controllerQueuePanel" class="mb-3"></div>
+          <div id="parkingAlerts" class="parking-alerts hidden mb-4" aria-live="polite"></div>
+          <div id="parkingGrid" class="parking-grid"></div>
+        </div>
+
+        <!-- RIGHT: Car cards -->
+        <div id="controllerCarPanel" class="ctl-cars-column ctl-panel p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <div class="ctl-section-title">Sales raw cars</div>
+            <span class="text-xs text-gray-500" id="poolCount">0 cars</span>
+          </div>
+          <input id="carSearch" type="search" placeholder="Search VIN, customer, or product…" class="ctl-search-input w-full mb-2" autocomplete="off">
+          <p class="text-xs text-gray-500 mb-2 ctl-search-hint">Search to find a car · drag to bay or click for details</p>
+          <div id="controllerCarCards" class="ctl-cars-scroll ctl-matched-scroll"></div>
+
+          <div class="mt-5 pt-4 border-t border-blue-500/20">
+            <div class="ctl-section-title text-blue-300 mb-2">Arrived cars</div>
+            <p class="text-xs text-gray-500 mb-2">Logged at security gate · drag to an empty bay</p>
+            <div id="controllerArrivedCards" class="ctl-cars-scroll ctl-arrived-scroll"></div>
+            <p id="controllerArrivedEmpty" class="hidden py-4 text-center text-xs text-gray-500">No cars waiting at the gate.</p>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-purple-500/20">
+            <div class="ctl-section-title text-purple-300 mb-2">Delayed cars</div>
+            <p class="text-xs text-gray-500 mb-2">Click to reschedule delivery meeting</p>
+            <div id="controllerDelayedCards" class="grid gap-2"></div>
+            <p id="controllerDelayedEmpty" class="hidden py-4 text-center text-xs text-gray-500">No delayed cars.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctl-panel overflow-hidden">
+        <div class="border-b border-white/10 px-5 py-3 flex justify-between items-center">
+          <div class="ctl-section-title">Active status</div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="board-table w-full min-w-[900px] text-left">
+            <thead>
+              <tr>
+                <th>VIN</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Delivery Time</th>
+                <th>Status</th>
+                <th>Spot</th>
+              </tr>
+            </thead>
+            <tbody id="controllerStatusBody"></tbody>
+          </table>
+        </div>
+        <div id="controllerStatusEmpty" class="hidden p-8 text-center text-gray-500 text-sm">No cars assigned yet.</div>
+      </div>
+    </main>
+    </div>
+  </div>
+
+  <!-- Car detail modal -->
+  <div id="carDetailModal" class="parking-modal-backdrop hidden">
+    <div class="parking-modal ctl-panel max-w-md" role="dialog">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-bold text-green-400">Car details</h3>
+        <button type="button" id="btnCloseCarDetail" class="text-xs text-gray-400 hover:text-white">Close ✕</button>
+      </div>
+      <div id="carDetailImage" class="ctl-car-card-img rounded-xl mb-4"></div>
+      <div class="grid gap-3 text-sm">
+        <div><span class="text-xs text-gray-500">VIN</span><div id="detailVin" class="mono text-yellow-200 text-xs mt-1">—</div></div>
+        <div><span class="text-xs text-gray-500">Customer</span><div id="detailCustomer" class="font-semibold mt-1">—</div></div>
+        <div><span class="text-xs text-gray-500">Product</span><div id="detailProduct" class="mt-1">—</div></div>
+        <div><span class="text-xs text-gray-500">Location</span><div id="detailLocation" class="mt-1">—</div></div>
+        <div><span class="text-xs text-gray-500">CRM / Transaction</span><div id="detailMatch" class="mono text-xs mt-1">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parking / schedule modal -->
+  <div id="parkingModal" class="parking-modal-backdrop hidden">
+    <div class="parking-modal ctl-panel" role="dialog">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <h3 class="text-lg font-bold text-green-400"><span id="parkingModalTitle">Parking</span> <span id="parkingModalSlot">1</span></h3>
+        <button type="button" id="btnCloseParkingModal" class="text-xs text-gray-400 hover:text-white">Close ✕</button>
+      </div>
+      <form id="parkingForm" class="grid gap-4">
+        <div id="parkingCurrentCar" class="hidden ctl-car-preview text-sm"></div>
+        <div id="parkingNextCarSection" class="hidden rounded-lg border border-blue-500/25 bg-blue-500/5 p-4 grid gap-3">
+          <div class="ctl-section-title text-blue-300">Next car on this bay</div>
+          <div id="parkingNextCarPreview" class="text-sm"></div>
+          <label for="parkingReplacementArrival">Next car arrives at (before delivery)</label>
+          <input id="parkingReplacementArrival" type="datetime-local" class="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
+        </div>
+        <div id="parkingAssignSection" class="rounded-lg border border-white/10 p-4 grid gap-3">
+          <input type="hidden" id="parkingShowroomVin">
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input id="parkingIstimaraIssued" type="checkbox" class="h-4 w-4 rounded border-white/20">
+            <span>Istimara issued — schedule delivery</span>
+          </label>
+          <div id="parkingIstimaraSection" class="hidden grid gap-3">
+            <label for="parkingDeliveryAppointment">Delivery date &amp; time (30 min slot)</label>
+            <input id="parkingDeliveryAppointment" type="datetime-local" class="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
+            <p id="parkingDeliveryEndHint" class="ctl-delivery-block-hint"></p>
+          </div>
+        </div>
+        <p id="parkingFormMsg" class="text-xs text-gray-400"></p>
+        <div class="flex flex-wrap gap-3">
+          <button type="submit" class="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-500">Save</button>
+          <button type="button" id="btnClearParking" class="rounded-lg border border-red-500/40 px-5 py-2.5 text-sm font-semibold text-red-300 hover:bg-red-500/10">Clear bay</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="deliveryConfirmModal" class="parking-modal-backdrop hidden">
+    <div class="delivery-confirm-modal ctl-panel" role="dialog">
+      <h3 class="mb-2 text-lg font-bold text-amber-300">Delivery time — was the car delivered?</h3>
+      <p class="mb-1 text-sm text-gray-300">Parking <span id="deliveryConfirmSlot">—</span></p>
+      <p class="mono mb-2 text-xs text-yellow-200" id="deliveryConfirmVin">—</p>
+      <p class="mb-4 text-sm text-gray-400" id="deliveryConfirmCustomer">—</p>
+      <p class="text-xs text-gray-500 mb-4">If yes, the car is marked <strong class="text-green-300">Completed Today</strong>. If no, it moves to the <strong class="text-purple-300">Delayed zone (P8–10)</strong>.</p>
+      <div class="ctl-checklist grid gap-2 mb-6">
+        <label><input type="checkbox" id="chkCarArrived" checked> Car arrived</label>
+        <label><input type="checkbox" id="chkNotDamaged" checked> Car not damaged</label>
+        <label><input type="checkbox" id="chkWashed" checked> Washed</label>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" id="btnDeliveryYes" class="flex-1 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-500">Yes — Delivered</button>
+        <button type="button" id="btnDeliveryNo" class="flex-1 rounded-lg border border-purple-500/50 px-4 py-3 text-sm font-semibold text-purple-300 hover:bg-purple-500/10">No — Delayed</button>
+        <button type="button" id="btnCloseDeliveryConfirm" class="w-full rounded-lg border border-white/15 px-4 py-2 text-xs text-gray-400 hover:bg-white/5">Decide later</button>
+      </div>
+      <p id="deliveryConfirmMsg" class="mt-3 text-xs text-gray-400"></p>
+    </div>
+  </div>
+
+  <div id="ctlToast" class="ctl-toast hidden" role="status" aria-live="polite"></div>
+
+  <div id="queueModal" class="parking-modal-backdrop hidden">
+    <div class="parking-modal ctl-panel max-w-lg" role="dialog">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-bold text-amber-400">Add to Queue</h3>
+        <button type="button" id="btnCloseQueueModal" class="text-xs text-gray-400 hover:text-white">Close ✕</button>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">All bays full — car waits for the soonest delivery bay to free up.</p>
+      <input id="queueSelectedVin" type="hidden">
+      <p id="queueFormMsg" class="text-xs mb-3"></p>
+      <button type="button" id="btnSubmitQueue" class="w-full rounded-lg bg-amber-500 py-3 text-sm font-bold text-black">Add to queue</button>
+    </div>
+  </div>
+
+  <div id="assignChecklistModal" class="parking-modal-backdrop hidden">
+    <div class="delivery-confirm-modal ctl-panel" role="dialog">
+      <h3 class="mb-2 text-lg font-bold text-green-300">Assign to bay — complete checklist</h3>
+      <p class="mb-1 text-sm text-gray-300">Bay <span id="assignChecklistSlot">—</span></p>
+      <p class="mono mb-2 text-xs text-yellow-200" id="assignChecklistVin">—</p>
+      <p class="mb-4 text-sm text-gray-400" id="assignChecklistCustomer">—</p>
+      <p class="text-xs text-gray-500 mb-4">All items must be checked before the car can be placed in the parking bay.</p>
+      <div class="ctl-checklist grid gap-2 mb-6">
+        <label><input type="checkbox" id="chkAssignWashed"> Car washed?</label>
+        <label><input type="checkbox" id="chkAssignStickers"> All stickers removed?</label>
+        <label><input type="checkbox" id="chkAssignNotDamaged"> No damage?</label>
+        <label><input type="checkbox" id="chkAssignPlated"> Plated?</label>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" id="btnConfirmAssign" class="flex-1 rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-500">Assign to bay</button>
+        <button type="button" id="btnCloseAssignChecklist" class="flex-1 rounded-lg border border-white/15 px-4 py-3 text-sm text-gray-400 hover:bg-white/5">Cancel</button>
+      </div>
+      <p id="assignChecklistMsg" class="mt-3 text-xs text-gray-400"></p>
+    </div>
+  </div>
+
+  <div id="delayedModal" class="parking-modal-backdrop hidden">
+    <div class="parking-modal ctl-panel max-w-lg" role="dialog">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-bold text-purple-300">Reschedule delayed car</h3>
+        <button type="button" id="btnCloseDelayedModal" class="text-xs text-gray-400 hover:text-white">Close ✕</button>
+      </div>
+      <p class="mono text-xs text-yellow-200 mb-1" id="delayedModalVin">—</p>
+      <p class="text-sm text-gray-300 mb-1" id="delayedModalCustomer">—</p>
+      <p class="text-xs text-gray-500 mb-4" id="delayedModalBay">—</p>
+      <label for="delayedNewAppointment" class="text-sm text-gray-300">New delivery date &amp; time (30 min slot)</label>
+      <input id="delayedNewAppointment" type="datetime-local" class="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
+      <p id="delayedFormMsg" class="mt-3 text-xs text-gray-400"></p>
+      <button type="button" id="btnSubmitDelayed" class="mt-4 w-full rounded-lg bg-purple-600 py-3 text-sm font-bold text-white hover:bg-purple-500">Save new meeting</button>
+    </div>
+  </div>
+
+  <script src="showroom-board-common.js"></script>
+  <script>
+    const SB = window.ShowroomBoard;
+    const SESSION_KEY = 'showroomControllerSession';
+    let session = { password: null };
+    let boardData = { parkingPool: [], parkingSlots: [] };
+    let activeParkingSlot = null;
+    let modalMode = 'edit';
+    let pendingNextVin = null;
+    let selectedCardVin = null;
+    let deliveryConfirmSlot = null;
+    let liveConn = null;
+    let carSearchQuery = '';
+    let delayedRescheduleSlot = null;
+    let toastTimer = null;
+    let pendingDeliverySlots = new Set();
+    const pendingAssignVins = new Set();
+    let pendingAssign = { vin: null, slot: null };
+    let carSearchDebounce = null;
+
+    function showToast(message, type = 'error') {
+      const el = document.getElementById('ctlToast');
+      if (!el) return;
+      el.textContent = message;
+      el.className = `ctl-toast ctl-toast-${type}`;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 4500);
+    }
+
+    function applyBoardData(data) {
+      if (!data?.parkingSlots) throw new Error(data?.error || 'Failed to load board data');
+      boardData = data;
+    }
+
+    function openDelayedModal(slotNumber) {
+      const item = (boardData.delayedCars || []).find((d) => d.slot === slotNumber);
+      if (!item) return;
+      delayedRescheduleSlot = slotNumber;
+      document.getElementById('delayedModalVin').textContent = item.vin || '—';
+      document.getElementById('delayedModalCustomer').textContent = item.customerName || '—';
+      document.getElementById('delayedModalBay').textContent = `Bay P${item.slot} · was ${item.deliveryAppointmentDisplay || '—'}`;
+      document.getElementById('delayedNewAppointment').value = '';
+      document.getElementById('delayedFormMsg').textContent = '';
+      document.getElementById('delayedModal').classList.remove('hidden');
+    }
+
+    function closeDelayedModal() {
+      delayedRescheduleSlot = null;
+      document.getElementById('delayedModal').classList.add('hidden');
+    }
+
+    function openCarDetail(vin) {
+      const entry = SB.lookupVinEntry(boardData, vin);
+      if (!entry) return;
+      selectedCardVin = vin;
+      document.getElementById('detailVin').textContent = entry.vin || '—';
+      document.getElementById('detailCustomer').textContent = entry.customerName || '—';
+      document.getElementById('detailProduct').textContent = entry.productLabel || entry.product || '—';
+      document.getElementById('detailLocation').textContent = entry.location || '—';
+      document.getElementById('detailMatch').textContent = `${entry.transactionNumber ?? '—'} = ${entry.crmLeadId ?? '—'}`;
+      const product = entry.product || entry.model || '';
+      const urls = SB.productImageCandidates(product);
+      const imgWrap = document.getElementById('carDetailImage');
+      if (urls.length) {
+        const urlsJson = SB.esc(JSON.stringify(urls));
+        imgWrap.innerHTML = `<img alt="" data-img-candidates="${urlsJson}" src="${SB.esc(urls[0])}" onerror="window.ShowroomBoard._imgFallback(this)">`;
+      } else {
+        imgWrap.innerHTML = '<span class="fallback">🚗</span>';
+      }
+      document.getElementById('carDetailModal').classList.remove('hidden');
+      renderAll();
+    }
+
+    function closeCarDetail() {
+      document.getElementById('carDetailModal').classList.add('hidden');
+    }
+
+    async function quickAssignToSlot(vin, slotNumber, checklist = {}) {
+      const targetVin = String(vin || '').trim().toUpperCase();
+      if (pendingAssignVins.has(targetVin)) return;
+      pendingAssignVins.add(targetVin);
+      const prevBoard = boardData;
+      boardData = SB.buildOptimisticAssignState(boardData, targetVin, slotNumber);
+      SB.applyFastAssignUI(boardData, targetVin, slotNumber);
+
+      try {
+        const res = await fetch(`/api/showroom-board/parking/${slotNumber}/quick-assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'controller',
+            password: session.password,
+            showroomVin: targetVin,
+            checklistWashed: Boolean(checklist.washed),
+            checklistStickersRemoved: Boolean(checklist.stickersRemoved),
+            checklistNotDamaged: Boolean(checklist.notDamaged),
+            checklistPlated: Boolean(checklist.plated)
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Assign failed');
+        applyBoardData(data);
+        SB.patchControllerParkingSlot(boardData, slotNumber, false);
+        SB.updateControllerHeaderCounts(boardData);
+        SB.renderControllerStatusTable(boardData);
+      } catch (err) {
+        boardData = prevBoard;
+        renderAll();
+        showToast(err.message || 'Could not assign car to bay');
+      } finally {
+        pendingAssignVins.delete(targetVin);
+      }
+    }
+
+    function openAssignChecklistModal(vin, slotNumber) {
+      const targetVin = String(vin || '').trim().toUpperCase();
+      const entry = SB.lookupVinEntry(boardData, targetVin)
+        || (boardData.arrivedCars || []).find((a) => a.vin === targetVin);
+      pendingAssign = { vin: targetVin, slot: slotNumber };
+      document.getElementById('assignChecklistSlot').textContent = slotNumber;
+      document.getElementById('assignChecklistVin').textContent = targetVin;
+      document.getElementById('assignChecklistCustomer').textContent = entry?.customerName || '—';
+      ['chkAssignWashed', 'chkAssignStickers', 'chkAssignNotDamaged', 'chkAssignPlated'].forEach((id) => {
+        document.getElementById(id).checked = false;
+      });
+      document.getElementById('assignChecklistMsg').textContent = '';
+      document.getElementById('assignChecklistModal').classList.remove('hidden');
+    }
+
+    function closeAssignChecklistModal() {
+      pendingAssign = { vin: null, slot: null };
+      document.getElementById('assignChecklistModal').classList.add('hidden');
+    }
+
+    function readAssignChecklist() {
+      return {
+        washed: document.getElementById('chkAssignWashed').checked,
+        stickersRemoved: document.getElementById('chkAssignStickers').checked,
+        notDamaged: document.getElementById('chkAssignNotDamaged').checked,
+        plated: document.getElementById('chkAssignPlated').checked
+      };
+    }
+
+    function requestAssignToSlot(vin, slotNumber) {
+      openAssignChecklistModal(vin, slotNumber);
+    }
+
+    function openParkingModal(slotNumber, mode, vin) {
+      activeParkingSlot = slotNumber;
+      modalMode = mode;
+      pendingNextVin = mode === 'nextCar' ? vin : null;
+      const slot = (boardData.parkingSlots || []).find((s) => s.slot === slotNumber) || {};
+
+      document.getElementById('parkingModalSlot').textContent = slotNumber;
+      document.getElementById('parkingModalTitle').textContent =
+        mode === 'nextCar' ? 'Schedule next car — Bay' : mode === 'assign' ? 'Assign car — Bay' : 'Edit bay';
+
+      const nextSection = document.getElementById('parkingNextCarSection');
+      const assignSection = document.getElementById('parkingAssignSection');
+      const currentCar = document.getElementById('parkingCurrentCar');
+
+      if (mode === 'nextCar') {
+        nextSection.classList.remove('hidden');
+        assignSection.classList.remove('hidden');
+        currentCar.classList.remove('hidden');
+        currentCar.innerHTML = `<strong>Current car:</strong> ${SB.esc(slot.showroomVin)} · ${SB.esc(slot.showroomCustomer || '')}<br><strong>Delivery:</strong> ${SB.esc(slot.deliveryAppointmentDisplay || 'Not scheduled yet')}`;
+        const entry = SB.lookupVinEntry(boardData, vin);
+        document.getElementById('parkingNextCarPreview').innerHTML = entry
+          ? `<strong>Next:</strong> ${SB.esc(entry.vin)} · ${SB.esc(entry.customerName || '')} · ${SB.esc(entry.productLabel || '')}`
+          : SB.esc(vin);
+        document.getElementById('parkingShowroomVin').value = slot.showroomVin || '';
+        document.getElementById('parkingReplacementArrival').value = '';
+        document.getElementById('parkingIstimaraIssued').checked = true;
+        document.getElementById('parkingIstimaraSection').classList.remove('hidden');
+        document.getElementById('parkingDeliveryAppointment').value = SB.toDateTimeLocalValue(slot.deliveryAppointmentTime || '');
+        document.getElementById('parkingDeliveryAppointment').required = true;
+        document.getElementById('parkingReplacementArrival').required = true;
+        updateDeliveryEndHint();
+      } else {
+        nextSection.classList.add('hidden');
+        currentCar.classList.add('hidden');
+        const hasIstimara = Boolean(slot.istimaraIssued || slot.deliveryAppointmentTime);
+        document.getElementById('parkingShowroomVin').value = slot.showroomVin || vin || '';
+        document.getElementById('parkingIstimaraIssued').checked = hasIstimara;
+        document.getElementById('parkingDeliveryAppointment').value = SB.toDateTimeLocalValue(slot.deliveryAppointmentTime || '');
+        toggleDeliveryFields();
+        updateDeliveryEndHint();
+      }
+
+      document.getElementById('parkingFormMsg').textContent = '';
+      document.getElementById('parkingModal').classList.remove('hidden');
+    }
+
+    function closeParkingModal() {
+      activeParkingSlot = null;
+      modalMode = 'edit';
+      pendingNextVin = null;
+      document.getElementById('parkingModal').classList.add('hidden');
+    }
+
+    function onDropCar(vin, slotNumber) {
+      const slot = (boardData.parkingSlots || []).find((s) => s.slot === slotNumber);
+      if (!slot?.isOccupied) {
+        requestAssignToSlot(vin, slotNumber);
+        return;
+      }
+      if (slot.replacementVin) {
+        showToast('This bay already has a next car scheduled.');
+        return;
+      }
+      openParkingModal(slotNumber, 'nextCar', vin);
+    }
+
+    function slotNeedsDeliveryPrompt(slot, now = Date.now()) {
+      if (!slot?.isOccupied || slot.deliveryDelayed || slot.controllerStatus === 'delivered') return false;
+      if (slot.awaitingDeliveryConfirm) return true;
+      return Boolean(slot.deliveryAppointmentMs && now >= slot.deliveryAppointmentMs);
+    }
+
+    function openDeliveryConfirm(slotNumber) {
+      const slot = (boardData.parkingSlots || []).find((s) => s.slot === slotNumber);
+      if (!slot) return;
+      deliveryConfirmSlot = slotNumber;
+      document.getElementById('deliveryConfirmSlot').textContent = slotNumber;
+      document.getElementById('deliveryConfirmVin').textContent = slot.showroomVin;
+      document.getElementById('deliveryConfirmCustomer').textContent = slot.showroomCustomer || '—';
+      document.getElementById('chkCarArrived').checked = true;
+      document.getElementById('chkNotDamaged').checked = true;
+      document.getElementById('chkWashed').checked = true;
+      document.getElementById('deliveryConfirmMsg').textContent = '';
+      document.getElementById('deliveryConfirmModal').classList.remove('hidden');
+    }
+
+    function closeDeliveryConfirm() {
+      if (deliveryConfirmSlot) pendingDeliverySlots.add(deliveryConfirmSlot);
+      deliveryConfirmSlot = null;
+      document.getElementById('deliveryConfirmModal').classList.add('hidden');
+    }
+
+    function pollDeliveryPrompts() {
+      const modalOpen = !document.getElementById('deliveryConfirmModal').classList.contains('hidden');
+      if (modalOpen) return;
+      const now = Date.now();
+      const due = (boardData.parkingSlots || []).find((s) =>
+        slotNeedsDeliveryPrompt(s, now) && !pendingDeliverySlots.has(s.slot)
+      );
+      if (due) openDeliveryConfirm(due.slot);
+    }
+
+    function onParkingSlotClick(slotNumber) {
+      const slot = (boardData.parkingSlots || []).find((s) => s.slot === slotNumber);
+      if (slotNeedsDeliveryPrompt(slot)) {
+        pendingDeliverySlots.delete(slotNumber);
+        openDeliveryConfirm(slotNumber);
+        return;
+      }
+      if (!slot?.isOccupied) {
+        if (selectedCardVin) {
+          requestAssignToSlot(selectedCardVin, slotNumber);
+        }
+        return;
+      }
+      openParkingModal(slotNumber, 'edit');
+    }
+
+    function toggleDeliveryFields() {
+      const checked = document.getElementById('parkingIstimaraIssued').checked;
+      document.getElementById('parkingIstimaraSection').classList.toggle('hidden', !checked);
+      if (!checked) {
+        document.getElementById('parkingDeliveryAppointment').value = '';
+        document.getElementById('parkingDeliveryEndHint').textContent = '';
+      } else updateDeliveryEndHint();
+    }
+
+    function updateDeliveryEndHint() {
+      const val = document.getElementById('parkingDeliveryAppointment').value;
+      const hint = document.getElementById('parkingDeliveryEndHint');
+      if (!val) { hint.textContent = ''; return; }
+      const start = new Date(val);
+      const end = new Date(start.getTime() + 30 * 60000);
+      hint.textContent = `Blocked: ${start.toLocaleString('en-GB', { hour12: false })} – ${end.toLocaleTimeString('en-GB', { hour12: false })}`;
+      const arrival = document.getElementById('parkingReplacementArrival');
+      if (arrival) arrival.max = SB.toDateTimeLocalValue(new Date(start.getTime() - 60000).toISOString());
+    }
+
+    function renderAll() {
+      SB.renderControllerParkingGrid(boardData);
+      SB.renderControllerCarCards(boardData, { search: carSearchQuery, selectedVin: selectedCardVin });
+      SB.renderControllerArrivedCars(boardData);
+      SB.renderControllerDelayedCars(boardData);
+      SB.renderParkingAlerts(boardData);
+      SB.renderControllerStatusTable(boardData);
+      SB.updateControllerHeaderCounts(boardData);
+      document.getElementById('controllerDelayedCards')?.querySelectorAll('.ctl-delayed-row').forEach((btn) => {
+        btn.onclick = () => openDelayedModal(Number(btn.dataset.delayedSlot));
+      });
+      SB.updateParkingTimers(boardData);
+      pollDeliveryPrompts();
+    }
+
+    function shouldSkipFullRender() {
+      const checklistOpen = !document.getElementById('assignChecklistModal').classList.contains('hidden');
+      const deliveryOpen = !document.getElementById('deliveryConfirmModal').classList.contains('hidden');
+      const parkingOpen = !document.getElementById('parkingModal').classList.contains('hidden');
+      return checklistOpen || deliveryOpen || parkingOpen || pendingAssignVins.size > 0;
+    }
+
+    function applyLiveBoardData(data, source) {
+      applyBoardData(data);
+      if (shouldSkipFullRender()) {
+        SB.updateControllerHeaderCounts(boardData);
+        SB.renderParkingAlerts(boardData);
+        SB.updateParkingTimers(boardData);
+      } else {
+        renderAll();
+      }
+      const el = document.getElementById('lastRefresh');
+      if (el) {
+        el.textContent = SB.formatLastRefresh(source, liveConn?.getStatus(), SB.REFRESH_MS / 1000);
+      }
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      SB.initControllerInteractions({
+        onDrop: onDropCar,
+        onCardClick: openCarDetail,
+        onSlotClick: onParkingSlotClick
+      });
+      if (liveConn) liveConn.close();
+      liveConn = SB.initShowroomLive({
+        livePillId: 'livePill',
+        pollMs: SB.REFRESH_MS,
+        pollMsWhenLive: 15000,
+        tickMs: 1000,
+        onTick: () => {
+          SB.updateParkingTimers(boardData);
+          SB.renderParkingAlerts(boardData);
+          pollDeliveryPrompts();
+        },
+        fetchData: SB.fetchBoardData,
+        onData: (data, source) => {
+          try {
+            applyLiveBoardData(data, source);
+          } catch (e) {
+            console.error(e);
+            showToast(e.message || 'Error loading data');
+          }
+        },
+        onError: (e) => {
+          document.getElementById('lastRefresh').textContent = 'Refresh failed — retrying…';
+          showToast(e.message || 'Error loading data');
+        }
+      });
+    }
+
+    document.getElementById('passwordSubmit').addEventListener('click', async () => {
+      try {
+        await SB.auth('controller', document.getElementById('passwordInput').value);
+        session = { password: document.getElementById('passwordInput').value };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        showApp();
+      } catch (e) {
+        const err = document.getElementById('loginError');
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      if (liveConn) liveConn.close();
+      sessionStorage.removeItem(SESSION_KEY);
+      location.reload();
+    });
+
+    document.getElementById('carSearch').addEventListener('input', (e) => {
+      carSearchQuery = e.target.value;
+      clearTimeout(carSearchDebounce);
+      carSearchDebounce = setTimeout(() => {
+        SB.renderControllerCarCards(boardData, { search: carSearchQuery, selectedVin: selectedCardVin });
+      }, 100);
+    });
+
+    document.getElementById('btnCloseCarDetail').addEventListener('click', closeCarDetail);
+    document.getElementById('carDetailModal').addEventListener('click', (e) => { if (e.target.id === 'carDetailModal') closeCarDetail(); });
+    document.getElementById('btnCloseParkingModal').addEventListener('click', closeParkingModal);
+    document.getElementById('parkingIstimaraIssued').addEventListener('change', toggleDeliveryFields);
+    document.getElementById('parkingDeliveryAppointment').addEventListener('change', updateDeliveryEndHint);
+
+    document.getElementById('parkingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeParkingSlot) return;
+      const msg = document.getElementById('parkingFormMsg');
+      msg.textContent = 'Saving…';
+      try {
+        let res;
+        if (modalMode === 'nextCar') {
+          res = await fetch(`/api/showroom-board/parking/${activeParkingSlot}/next-car`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: 'controller',
+              password: session.password,
+              replacementVin: pendingNextVin,
+              expectedReplacementArrival: SB.dateTimeLocalToISO(document.getElementById('parkingReplacementArrival').value),
+              deliveryAppointmentTime: SB.dateTimeLocalToISO(document.getElementById('parkingDeliveryAppointment').value),
+              istimaraIssued: true
+            })
+          });
+        } else {
+          res = await fetch(`/api/showroom-board/parking/${activeParkingSlot}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: 'controller',
+              password: session.password,
+              showroomVin: document.getElementById('parkingShowroomVin').value.trim().toUpperCase(),
+              istimaraIssued: document.getElementById('parkingIstimaraIssued').checked,
+              deliveryAppointmentTime: document.getElementById('parkingIstimaraIssued').checked
+                ? SB.dateTimeLocalToISO(document.getElementById('parkingDeliveryAppointment').value)
+                : null
+            })
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Save failed');
+        applyBoardData(data);
+        renderAll();
+        closeParkingModal();
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'text-xs text-red-400';
+      }
+    });
+
+    document.getElementById('btnClearParking').addEventListener('click', async () => {
+      if (!activeParkingSlot || !confirm(`Clear bay ${activeParkingSlot}?`)) return;
+      const res = await fetch(`/api/showroom-board/parking/${activeParkingSlot}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'controller', password: session.password })
+      });
+      const data = await res.json();
+      if (res.ok) { applyBoardData(data); renderAll(); closeParkingModal(); }
+    });
+
+    document.getElementById('btnDeliveryYes').addEventListener('click', async () => {
+      document.getElementById('chkCarArrived').checked = true;
+      document.getElementById('chkNotDamaged').checked = true;
+      document.getElementById('chkWashed').checked = true;
+      const msg = document.getElementById('deliveryConfirmMsg');
+      msg.textContent = 'Saving…';
+      const res = await fetch(`/api/showroom-board/parking/${deliveryConfirmSlot}/confirm-delivery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'controller', password: session.password, delivered: true,
+          checklistCarArrived: true,
+          checklistNotDamaged: true,
+          checklistWashed: true
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        pendingDeliverySlots.delete(deliveryConfirmSlot);
+        applyBoardData(data);
+        renderAll();
+        deliveryConfirmSlot = null;
+        document.getElementById('deliveryConfirmModal').classList.add('hidden');
+      } else {
+        msg.textContent = data.error || 'Could not confirm delivery';
+        msg.className = 'mt-3 text-xs text-red-400';
+      }
+    });
+
+    document.getElementById('btnDeliveryNo').addEventListener('click', async () => {
+      const msg = document.getElementById('deliveryConfirmMsg');
+      msg.textContent = 'Moving to delayed zone…';
+      const res = await fetch(`/api/showroom-board/parking/${deliveryConfirmSlot}/confirm-delivery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'controller', password: session.password, delivered: false })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        pendingDeliverySlots.delete(deliveryConfirmSlot);
+        applyBoardData(data);
+        renderAll();
+        deliveryConfirmSlot = null;
+        document.getElementById('deliveryConfirmModal').classList.add('hidden');
+      } else {
+        msg.textContent = data.error || 'Could not move to delayed zone';
+        msg.className = 'mt-3 text-xs text-red-400';
+      }
+    });
+
+    document.getElementById('btnCloseDeliveryConfirm').addEventListener('click', closeDeliveryConfirm);
+
+    document.getElementById('btnAddToQueue').addEventListener('click', () => {
+      if (selectedCardVin) document.getElementById('queueSelectedVin').value = selectedCardVin;
+      document.getElementById('queueModal').classList.remove('hidden');
+    });
+
+    document.getElementById('btnSubmitQueue').addEventListener('click', async () => {
+      const vin = selectedCardVin || document.getElementById('queueSelectedVin').value;
+      if (!vin) { alert('Select a car first'); return; }
+      const res = await fetch('/api/showroom-board/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'controller', password: session.password, vin })
+      });
+      const data = await res.json();
+      if (res.ok) { applyBoardData(data); renderAll(); document.getElementById('queueModal').classList.add('hidden'); }
+      else alert(data.error);
+    });
+
+    document.getElementById('btnCloseAssignChecklist').addEventListener('click', closeAssignChecklistModal);
+    document.getElementById('assignChecklistModal').addEventListener('click', (e) => {
+      if (e.target.id === 'assignChecklistModal') closeAssignChecklistModal();
+    });
+    document.getElementById('btnConfirmAssign').addEventListener('click', () => {
+      const msg = document.getElementById('assignChecklistMsg');
+      const checklist = readAssignChecklist();
+      if (!checklist.washed || !checklist.stickersRemoved || !checklist.notDamaged || !checklist.plated) {
+        msg.textContent = 'Check all four items before assigning to the bay.';
+        msg.className = 'mt-3 text-xs text-red-400';
+        return;
+      }
+      if (!pendingAssign.vin || !pendingAssign.slot) return;
+      const { vin, slot } = pendingAssign;
+      closeAssignChecklistModal();
+      quickAssignToSlot(vin, slot, checklist);
+    });
+
+    document.getElementById('btnCloseDelayedModal').addEventListener('click', closeDelayedModal);
+    document.getElementById('delayedModal').addEventListener('click', (e) => {
+      if (e.target.id === 'delayedModal') closeDelayedModal();
+    });
+    document.getElementById('btnSubmitDelayed').addEventListener('click', async () => {
+      if (!delayedRescheduleSlot) return;
+      const msg = document.getElementById('delayedFormMsg');
+      const dt = document.getElementById('delayedNewAppointment').value;
+      if (!dt) { msg.textContent = 'Pick a new delivery date and time.'; return; }
+      msg.textContent = 'Saving…';
+      try {
+        const res = await fetch(`/api/showroom-board/parking/${delayedRescheduleSlot}/reschedule-delayed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'controller',
+            password: session.password,
+            deliveryAppointmentTime: SB.dateTimeLocalToISO(dt),
+            istimaraIssued: true
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Reschedule failed');
+        applyBoardData(data);
+        renderAll();
+        closeDelayedModal();
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'mt-3 text-xs text-red-400';
+      }
+    });
+
+    SB.startClock('liveClock');
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) { session = JSON.parse(raw); if (session.password) showApp(); }
+    } catch (e) {}
+  </script>
+</body>
+</html>

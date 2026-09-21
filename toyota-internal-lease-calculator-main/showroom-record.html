@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Showroom Parking Records</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <link rel="stylesheet" href="showroom-kanban-dashboard.css">
+</head>
+<body class="controller-page min-h-screen">
+  <header class="kb-header px-4 py-4 md:px-8">
+    <div class="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 flex flex-wrap gap-2">
+          <a href="showroom-dashboard.html" class="tool-nav-link">Dashboard</a>
+          <a href="showroom-uploader.html" class="tool-nav-link">Data Uploader</a>
+          <a href="showroom-controller.html" class="tool-nav-link">Controller</a>
+          <a href="showroom-record.html" class="tool-nav-link tool-nav-link-active">Records</a>
+        </div>
+        <div class="kb-title text-lg font-bold md:text-2xl">PARKING RECORDS<br><span>History &amp; Excel export</span></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="ctl-live-pill" id="livePill" data-status="connecting"><span class="kb-live-dot"></span> Connecting</div>
+        <span class="text-xs text-gray-500" id="lastRefresh">—</span>
+        <input id="exportDate" type="date" class="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:border-green-500">
+        <a id="btnExportExcel" href="/api/showroom-board/records/export" class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-500">Export Excel (day)</a>
+        <button id="btnRefresh" type="button" class="rounded-lg border border-white/15 px-4 py-2 text-sm text-gray-300 hover:bg-white/5">Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-[1800px] p-4 md:p-6">
+    <div class="ctl-panel overflow-hidden">
+      <div class="overflow-x-auto max-h-[calc(100vh-180px)] overflow-y-auto">
+        <table class="board-table w-full min-w-[1200px] text-left">
+          <thead>
+            <tr>
+              <th>Recorded</th>
+              <th>Parking</th>
+              <th>Event</th>
+              <th>Kanban Status</th>
+              <th>Controller Status</th>
+              <th>VIN</th>
+              <th>Product · Suffix</th>
+              <th>Customer</th>
+              <th>Delivery Time</th>
+              <th>Gate Entrance</th>
+              <th>Istimara Verified</th>
+              <th>Washed</th>
+              <th>Stickers Removed</th>
+              <th>No Damage</th>
+              <th>Plated</th>
+              <th>Car Arrived (Delivery)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+      <div id="recordsEmpty" class="hidden p-12 text-center text-gray-500">No parking records yet. Assign cars in the Showroom Controller.</div>
+    </div>
+  </main>
+
+  <script src="showroom-board-common.js"></script>
+  <script>
+    const SB = window.ShowroomBoard;
+    let liveConn = null;
+
+    async function fetchRecordsPayload() {
+      const res = await fetch('/api/showroom-board/records');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Load failed');
+      return data;
+    }
+
+    function applyRecords(data, source, status) {
+      const records = data.records || data.parkingRecords || [];
+      SB.renderParkingRecords(records);
+      const el = document.getElementById('lastRefresh');
+      if (el) {
+        el.textContent = SB.formatLastRefresh(source, status || liveConn?.getStatus(), SB.RECORDS_POLL_MS / 1000);
+      }
+    }
+
+    document.getElementById('btnRefresh').addEventListener('click', () => liveConn?.refresh('manual'));
+
+    const exportDate = document.getElementById('exportDate');
+    const btnExport = document.getElementById('btnExportExcel');
+    exportDate.value = new Date().toISOString().slice(0, 10);
+    function updateExportLink() {
+      const d = exportDate.value || new Date().toISOString().slice(0, 10);
+      btnExport.href = `/api/showroom-board/records/export?date=${encodeURIComponent(d)}`;
+    }
+    exportDate.addEventListener('change', updateExportLink);
+    updateExportLink();
+
+    liveConn = SB.initShowroomLive({
+      livePillId: 'livePill',
+      pollMs: SB.RECORDS_POLL_MS,
+      pollMsWhenLive: 20000,
+      fetchData: fetchRecordsPayload,
+      onData: applyRecords,
+      onError: (e) => {
+        console.error(e);
+        document.getElementById('lastRefresh').textContent = 'Refresh failed — retrying…';
+      }
+    });
+  </script>
+</body>
+</html>

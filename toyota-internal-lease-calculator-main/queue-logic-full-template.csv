@@ -1,0 +1,24 @@
+Section,Cell,Formula / Rule,Purpose
+Inputs,A2,(type order number),Order to evaluate
+Lookup,B2,"=XLOOKUP($A2, BO[Order No], BO[Product], """")",Matched Product
+Lookup,C2,"=XLOOKUP($A2, BO[Order No], BO[Alj Suffix], """")",Matched Suffix
+Lookup,D2,"=XLOOKUP($A2, BO[Order No], BO[Order Date], """")",Matched Order Date
+Q1 Values,E2,"=XLOOKUP($A2, BO[Order No], BO[Exterior Color 1], """")",Queue 1 Ext
+Q1 Values,F2,"=XLOOKUP($A2, BO[Order No], BO[Interior Color 1], """")",Queue 1 Int
+Q1 Queue Size,G2,"=COUNTIFS(BO[Product],$B2,BO[Alj Suffix],$C2,BO[Exterior Color 1],$E2,BO[Interior Color 1],$F2)",Q1 peers count
+Q1 Rank (1-based),H2,"=LET(p,$B2,s,$C2,e,$E2,i,$F2,d,$D2,o,$A2,older,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Exterior Color 1],e,BO[Interior Color 1],i,BO[Order Date],""<""&d),same,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Exterior Color 1],e,BO[Interior Color 1],i,BO[Order Date],d,BO[Order No],""<""&o),older+same+1)",Q1 rank shown in UI
+Q2 Values,I2,"=XLOOKUP($A2, BO[Order No], BO[Ext Color 2], """")",Queue 2 Ext
+Q2 Values,J2,"=XLOOKUP($A2, BO[Order No], BO[Int Color 2], """")",Queue 2 Int
+Q2 Base Queue Size,K2,"=COUNTIFS(BO[Product],$B2,BO[Alj Suffix],$C2,BO[Ext Color 2],$I2,BO[Int Color 2],$J2)",Q2 exact peers
+Q2 Rank Exact,L2,"=LET(p,$B2,s,$C2,e,$I2,i,$J2,d,$D2,o,$A2,older,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Ext Color 2],e,BO[Int Color 2],i,BO[Order Date],""<""&d),same,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Ext Color 2],e,BO[Int Color 2],i,BO[Order Date],d,BO[Order No],""<""&o),older+same+1)",Q2 exact rank (if no *)
+Q2 Wildcard Rule,M2,"IF Queue2 Ext='*' OR Int='*' then use closest lane by minimum rank among valid combinations in same Product+Suffix set","Rule used by app code
+Q3 Values,N2,"=XLOOKUP($A2, BO[Order No], BO[Ext Color 3], """")",Queue 3 Ext
+Q3 Values,O2,"=XLOOKUP($A2, BO[Order No], BO[Int Color 3], """")",Queue 3 Int
+Q3 Base Queue Size,P2,"=COUNTIFS(BO[Product],$B2,BO[Alj Suffix],$C2,BO[Ext Color 3],$N2,BO[Int Color 3],$O2)",Q3 exact peers
+Q3 Rank Exact,Q2,"=LET(p,$B2,s,$C2,e,$N2,i,$O2,d,$D2,o,$A2,older,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Ext Color 3],e,BO[Int Color 3],i,BO[Order Date],""<""&d),same,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Ext Color 3],e,BO[Int Color 3],i,BO[Order Date],d,BO[Order No],""<""&o),older+same+1)",Q3 exact rank (if no *)
+Q3 Wildcard Rule,R2,"IF Queue3 Ext='*' OR Int='*' then use closest lane by minimum rank among valid combinations in same Product+Suffix set","Rule used by app code
+Wildcard Fallback,S2,"If exact wildcard lane not found: Int='*' -> match by Ext only, Ext='*' -> match by Int only, both='*' -> any valid ext/int in that tier","Fallback behavior in server logic
+Suggested Options,T2,"From same Product, list other Suffix + Ext1 + Int1 combos (exclude current), estimate rank by counting earlier Order Date rows","Suggested options panel logic
+Display,U2,"Queue card rank shown as 1-based in UI","Presentation rule
+Notes,A5,Table name expected: BO,All formulas assume BO is an Excel table
+Notes,A6,Required columns minimum: Product|Alj Suffix|Order Date|Order No|Exterior Color 1|Interior Color 1|Ext Color 2|Int Color 2|Ext Color 3|Int Color 3,Edit headers if yours differ

@@ -1,0 +1,529 @@
+/* TOT white & red theme — matches simple-app.html (dashboard + controller) */
+
+.tot-showroom-page.kanban-dashboard,
+.tot-showroom-page.controller-page {
+  --kb-bg: #FAFBFC;
+  --kb-panel: #FFFFFF;
+  --kb-border: #E5E7EB;
+  --kb-text: #1A1A1A;
+  --kb-muted: #6B7280;
+  --kb-accent: #EB0A1E;
+  --board-bg: #FAFBFC;
+  --board-header: #EB0A1E;
+  --board-text: #1A1A1A;
+  --board-muted: #6B7280;
+  background: #ffffff;
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .tot-page-shell {
+  background: var(--tot-background);
+}
+
+/* Subheader — white + Toyota red line */
+.tot-showroom-page .kb-header-sub,
+.tot-showroom-page .controller-subheader {
+  background: #ffffff;
+  border-bottom: 3px solid var(--tot-primary);
+  color: var(--tot-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tot-showroom-page .kb-header-sub .tot-subheader-title,
+.tot-showroom-page .controller-subheader .tot-subheader-title {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .tot-subheader-title span {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page .controller-subheader .text-gray-400,
+.tot-showroom-page .text-gray-500 {
+  color: var(--tot-muted) !important;
+}
+
+/* Live badge & clock */
+.tot-showroom-page .kb-clock {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .kb-date {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page .kb-live-badge {
+  background: #f3f4f6;
+  color: var(--tot-muted);
+  border: 1px solid var(--tot-line);
+}
+
+.tot-showroom-page .kb-live-badge[data-status="live"] {
+  background: rgba(235, 10, 30, 0.08);
+  color: var(--tot-primary);
+  border-color: rgba(235, 10, 30, 0.25);
+}
+
+.tot-showroom-page .kb-live-badge[data-status="reconnecting"] {
+  background: rgba(234, 179, 8, 0.12);
+  color: #b45309;
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.tot-showroom-page .ctl-live-pill[data-status="live"] {
+  background: rgba(235, 10, 30, 0.08) !important;
+  color: var(--tot-primary) !important;
+  border-color: rgba(235, 10, 30, 0.25) !important;
+}
+
+/* ——— Dashboard KPI ——— */
+.tot-showroom-page .kb-kpi-row {
+  background: var(--tot-background);
+  border-bottom: 1px solid var(--tot-line);
+}
+
+.tot-showroom-page .kb-kpi {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: var(--tot-shadow);
+}
+
+.tot-showroom-page .kb-kpi-val {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page .kb-kpi-label {
+  color: var(--tot-muted);
+}
+
+/* ——— Kanban board ——— */
+.tot-showroom-page .kb-main {
+  background: var(--tot-background);
+}
+
+.tot-showroom-page .kb-column {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: var(--tot-shadow);
+}
+
+.tot-showroom-page .kb-col-body {
+  background: #fafbfc;
+}
+
+.tot-showroom-page .kb-card {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tot-showroom-page .kb-card-title {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .kb-card-id {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page .kb-card-img {
+  background: #f3f4f6;
+}
+
+.tot-showroom-page .kb-badge.bay {
+  background: #f3f4f6;
+  color: var(--tot-muted);
+  border: 1px solid var(--tot-line);
+}
+
+.tot-showroom-page .kb-col-empty {
+  color: var(--tot-muted);
+}
+
+/* Guest panel */
+.tot-showroom-page .kb-guest-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 2px solid rgba(235, 10, 30, 0.2);
+  box-shadow: var(--tot-shadow);
+}
+
+.tot-showroom-page .kb-guest-label {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page .kb-guest-welcome {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .kb-guest-welcome-ar,
+.tot-showroom-page .kb-guest-product {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page .kb-guest-appt {
+  background: #f9fafb;
+  border: 1px solid var(--tot-line);
+}
+
+.tot-showroom-page .kb-guest-appt-row strong {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page .kb-guest-message {
+  background: rgba(235, 10, 30, 0.06);
+  border: 1px solid rgba(235, 10, 30, 0.2);
+  color: var(--tot-primary-press);
+}
+
+.tot-showroom-page .kb-guest-timer {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page .kb-footer {
+  background: #ffffff;
+  border-top: 1px solid var(--tot-line);
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page .kb-last-updated {
+  color: var(--tot-muted);
+}
+
+/* ——— Controller panels ——— */
+.tot-showroom-page.controller-page {
+  background: #ffffff;
+}
+
+.tot-showroom-page.controller-page .ctl-panel {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: var(--tot-shadow);
+}
+
+.tot-showroom-page.controller-page .ctl-section-title {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page.controller-page .ctl-section-title.text-blue-300 {
+  color: #2563eb !important;
+}
+
+.tot-showroom-page.controller-page .ctl-section-title.text-purple-300 {
+  color: #7c3aed !important;
+}
+
+.tot-showroom-page.controller-page .border-blue-500\/20,
+.tot-showroom-page.controller-page .border-purple-500\/20 {
+  border-color: var(--tot-line) !important;
+}
+
+/* Parking bays */
+.tot-showroom-page.controller-page .parking-box {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .parking-box:hover {
+  border-color: rgba(235, 10, 30, 0.45);
+  box-shadow: 0 4px 16px rgba(235, 10, 30, 0.1);
+}
+
+.tot-showroom-page.controller-page .parking-box-empty {
+  color: var(--tot-muted);
+  background: #fafbfc;
+}
+
+.tot-showroom-page.controller-page .parking-box-empty:hover {
+  border-color: var(--tot-primary);
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page.controller-page .parking-car-img-wrap {
+  background: #f3f4f6;
+}
+
+.tot-showroom-page.controller-page .parking-slot-label,
+.tot-showroom-page.controller-page .parking-vin,
+.tot-showroom-page.controller-page .parking-customer {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .parking-meta,
+.tot-showroom-page.controller-page .parking-timer {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page.controller-page .parking-zone-tag {
+  color: #7c3aed;
+}
+
+.tot-showroom-page.controller-page .ctl-parking-column .parking-box.ctl-drop-hover {
+  border-color: var(--tot-primary) !important;
+  box-shadow: 0 0 0 2px rgba(235, 10, 30, 0.35), 0 8px 24px rgba(235, 10, 30, 0.12);
+}
+
+/* Car cards */
+.tot-showroom-page.controller-page .ctl-car-card {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  box-shadow: var(--tot-shadow);
+}
+
+.tot-showroom-page.controller-page .ctl-car-card:hover {
+  border-color: rgba(235, 10, 30, 0.4);
+  box-shadow: 0 8px 24px rgba(235, 10, 30, 0.1);
+}
+
+.tot-showroom-page.controller-page .ctl-car-card-vin {
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+  border-bottom: 2px solid rgba(235, 10, 30, 0.2);
+  color: var(--tot-primary-press);
+  text-shadow: none;
+}
+
+.tot-showroom-page.controller-page .ctl-car-card-img {
+  background: #f3f4f6;
+}
+
+.tot-showroom-page.controller-page .ctl-car-card-meta {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page.controller-page .ctl-car-card-meta strong {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-compact-vin {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page.controller-page .ctl-compact-meta {
+  color: var(--tot-muted);
+}
+
+.tot-showroom-page.controller-page .ctl-compact-meta strong {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-badge-ready {
+  background: rgba(235, 10, 30, 0.1) !important;
+  color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .ctl-pool-hint {
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+  border: 1px dashed rgba(235, 10, 30, 0.25);
+}
+
+.tot-showroom-page.controller-page .ctl-pool-hint-title {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page.controller-page .ctl-search-input {
+  background: #fff;
+  border-color: var(--tot-line);
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-search-input:focus {
+  border-color: var(--tot-primary);
+  box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.1);
+}
+
+.tot-showroom-page.controller-page .ctl-delayed-row {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-delayed-row:hover {
+  border-color: #a855f7;
+  background: #f3e8ff;
+}
+
+/* Status table */
+.tot-showroom-page.controller-page .board-table th {
+  background: #fef2f2;
+  color: var(--tot-primary);
+  border-bottom: 2px solid rgba(235, 10, 30, 0.25);
+}
+
+.tot-showroom-page.controller-page .board-table td {
+  border-bottom: 1px solid var(--tot-line);
+  color: var(--tot-ink);
+  background: #fff;
+}
+
+.tot-showroom-page.controller-page .board-table tbody tr:hover td {
+  background: #fafbfc;
+}
+
+/* Alerts & queue */
+.tot-showroom-page.controller-page .parking-alerts .parking-alert {
+  background: #fff;
+  border: 1px solid var(--tot-line);
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-queue-banner {
+  background: #fef2f2;
+  border: 1px solid rgba(235, 10, 30, 0.2);
+  color: var(--tot-primary-press);
+}
+
+/* Modals */
+.tot-showroom-page.controller-page .parking-modal-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.tot-showroom-page.controller-page .parking-modal {
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  color: var(--tot-ink);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+}
+
+.tot-showroom-page.controller-page .parking-modal h3,
+.tot-showroom-page.controller-page .parking-modal label {
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .parking-modal input,
+.tot-showroom-page.controller-page .parking-modal select {
+  background: #fff;
+  border: 1px solid var(--tot-line);
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .ctl-checklist label {
+  background: #fafbfc;
+  border: 1px solid var(--tot-line);
+  color: var(--tot-ink);
+}
+
+.tot-showroom-page.controller-page .text-green-400 {
+  color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .text-gray-400 {
+  color: var(--tot-muted) !important;
+}
+
+/* TV mode — keep board readable on white */
+.tot-showroom-page.kanban-dashboard.tv-mode {
+  background: #ffffff;
+}
+
+.tot-showroom-page.kanban-dashboard.tv-mode .tot-page-shell {
+  background: #ffffff;
+}
+
+/* Center ready overlay — TOT red */
+.tot-showroom-page .kb-ready-center-backdrop {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.tot-showroom-page .kb-ready-center-card {
+  border-color: var(--tot-primary);
+  box-shadow:
+    0 8px 32px rgba(235, 10, 30, 0.15),
+    0 24px 64px rgba(0, 0, 0, 0.06);
+}
+
+.tot-showroom-page .kb-ready-center-kicker,
+.tot-showroom-page .kb-ready-center-title {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page .kb-ready-center-bay strong {
+  color: var(--tot-primary);
+}
+
+.tot-showroom-page .kb-guest-ready-banner {
+  background: linear-gradient(135deg, rgba(235, 10, 30, 0.12), rgba(235, 10, 30, 0.06));
+  border: 2px solid rgba(235, 10, 30, 0.35);
+  color: var(--tot-primary-press);
+}
+
+/* Smooth dashboard transitions */
+.tot-showroom-page .kb-main,
+.tot-showroom-page .kb-kpi-row,
+.tot-showroom-page .kb-footer {
+  transition: opacity 0.35s ease, filter 0.35s ease;
+}
+
+.tot-showroom-page .kb-column {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tot-showroom-page .kb-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.tot-showroom-page .kb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.tot-showroom-page.kanban-dashboard.tv-mode .kb-ready-center {
+  padding-top: 48px;
+}
+
+.tot-showroom-page.kanban-dashboard.tv-mode .kb-ready-center-title {
+  font-size: clamp(2.25rem, 6vw, 4rem);
+}
+
+/* Watch-only dashboard — no top navigation or buttons */
+.tot-showroom-page.kanban-dashboard.watch-only .tot-top-bar {
+  display: none !important;
+}
+
+.tot-showroom-page.kanban-dashboard.watch-only .tot-page-shell {
+  padding-top: 0;
+}
+
+/* Primary actions — Toyota red (replace green buttons) */
+.tot-showroom-page.controller-page .bg-green-600 {
+  background-color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .bg-green-600:hover,
+.tot-showroom-page.controller-page .hover\:bg-green-500:hover {
+  background-color: var(--tot-primary-press) !important;
+}
+
+.tot-showroom-page.controller-page .bg-black\/30,
+.tot-showroom-page.controller-page [class*="bg-black/"] {
+  background: #ffffff !important;
+  border-color: var(--tot-line) !important;
+  color: var(--tot-ink) !important;
+}
+
+.tot-showroom-page.controller-page .border-white\/10,
+.tot-showroom-page.controller-page .border-white\/15,
+.tot-showroom-page.controller-page [class*="border-white/"] {
+  border-color: var(--tot-line) !important;
+}
+
+.tot-showroom-page.controller-page .text-yellow-200,
+.tot-showroom-page.controller-page .mono.text-yellow-200 {
+  color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .text-green-300,
+.tot-showroom-page.controller-page .text-green-400 {
+  color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .hover\:text-white:hover {
+  color: var(--tot-primary) !important;
+}
+
+.tot-showroom-page.controller-page .hover\:bg-white\/5:hover {
+  background: #f3f4f6 !important;
+}
+
+.tot-showroom-page.controller-page .text-gray-300 {
+  color: var(--tot-ink) !important;
+}

@@ -1,0 +1,6 @@
+QUICK PUSH COMMAND - Copy and paste this in PowerShell:
+
+git remote set-url origin https://YOUR_TOKEN@github.com/OSAMAHXYZ/toyota-internal-lease-calculator.git && git push -u origin main && git remote set-url origin https://github.com/OSAMAHXYZ/toyota-internal-lease-calculator.git
+
+Replace YOUR_TOKEN with your actual GitHub Personal Access Token before running!
+

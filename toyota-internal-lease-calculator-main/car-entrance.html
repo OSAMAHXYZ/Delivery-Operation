@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Entrance — Security</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="showroom-board-common.css">
+    <link rel="stylesheet" href="showroom-kanban-dashboard.css">
+</head>
+<body class="controller-page min-h-screen">
+  <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+    <div class="ctl-panel w-full max-w-md p-8">
+      <h1 class="text-center text-2xl font-bold text-blue-400 mb-2">CAR ENTRANCE</h1>
+      <p class="text-center text-sm text-gray-400 mb-6">Security gate — verify vehicles for delivery</p>
+      <input id="passwordInput" type="password" placeholder="Security password" class="mb-3 w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none focus:border-blue-500">
+      <button id="passwordSubmit" type="button" class="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white hover:bg-blue-500">Sign In</button>
+      <p id="loginError" class="mt-4 hidden text-center text-sm text-red-400"></p>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="kb-header px-4 py-4 md:px-8">
+      <div class="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="mb-2 flex flex-wrap gap-2">
+            <a href="showroom-dashboard.html" class="tool-nav-link">Dashboard</a>
+            <a href="showroom-controller.html" class="tool-nav-link">Controller</a>
+            <a href="car-entrance.html" class="tool-nav-link tool-nav-link-active">Security</a>
+          </div>
+          <div class="kb-title text-lg font-bold md:text-2xl">CAR ENTRANCE<br><span>Security Gate</span></div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="ctl-live-pill" id="livePill" data-status="connecting"><span class="kb-live-dot"></span> Connecting</div>
+          <div class="mono kb-clock text-2xl" id="liveClock">--:--:--</div>
+          <button id="btnLogout" type="button" class="rounded-lg border border-white/15 px-3 py-2 text-xs text-gray-400 hover:bg-white/5">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[1400px] p-4 md:p-6 grid gap-5 lg:grid-cols-[1fr_400px]">
+      <div class="ctl-panel p-5">
+        <div class="ctl-section-title mb-3">Today's cars in showroom</div>
+        <input id="vinSearch" type="search" placeholder="Search VIN, customer, product…" class="w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-blue-500 mb-4" autocomplete="off">
+        <div id="carList" class="grid gap-2 max-h-[calc(100vh-280px)] overflow-y-auto"></div>
+        <p id="carListEmpty" class="hidden py-10 text-center text-sm text-gray-500">No matched cars. Upload data in Data Uploader first.</p>
+      </div>
+
+      <div class="ctl-panel p-5">
+        <div class="ctl-section-title mb-3">Selected vehicle</div>
+        <div id="noSelection" class="py-16 text-center text-sm text-gray-500">Select a car from the list or search by VIN</div>
+        <div id="detailPanel" class="hidden">
+          <div id="detailImage" class="ctl-car-card-img rounded-xl mb-4 min-h-[140px]"></div>
+          <p class="mono text-lg font-bold text-yellow-200 mb-1" id="detailVin">—</p>
+          <p class="text-sm text-gray-300 mb-1" id="detailCustomer">—</p>
+          <p class="text-xs text-gray-500 mb-3" id="detailProduct">—</p>
+          <p class="text-xs mb-3">Bay <strong id="detailBay">—</strong> · Delivery <strong id="detailDelivery">—</strong></p>
+
+          <div class="mb-4">
+            <span class="sec-status-pill" id="detailStatus">—</span>
+          </div>
+
+          <div class="sec-flow-steps mb-5">
+            <div class="sec-flow-step sec-status-prep" id="flowPrep">Quality Check</div>
+            <div class="sec-flow-step sec-status-scheduled" id="flowScheduled">Scheduled Today</div>
+            <div class="sec-flow-step sec-status-ready" id="flowReady">Ready for Delivery</div>
+            <div class="sec-flow-step sec-status-process" id="flowProcess">In Delivery</div>
+            <div class="sec-flow-step sec-status-done" id="flowDone">Completed</div>
+          </div>
+
+          <div class="rounded-xl border border-white/10 p-4 grid gap-4 mb-4">
+            <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Step 1 — Mark entered</div>
+            <p class="text-xs text-gray-500">Log that the car has arrived at the gate. It will appear in <strong>Arrived cars</strong> on the Controller. The full checklist (washed, stickers, damage, plated) is completed there when assigning to a bay.</p>
+            <button type="button" id="btnLogEntrance" class="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-500">Mark car as entered</button>
+            <p id="entranceInfo" class="text-xs text-gray-500 hidden"></p>
+          </div>
+
+          <div class="rounded-xl border border-green-500/20 bg-green-500/5 p-4 grid gap-3">
+            <div class="text-xs font-bold uppercase tracking-wider text-green-300">Step 2 — Istimara verified</div>
+            <label class="flex items-center gap-3 text-sm cursor-pointer">
+              <input id="chkIstimara" type="checkbox" class="h-5 w-5 rounded border-white/20" disabled>
+              <span>Istimara checked — car settled and ready for delivery</span>
+            </label>
+            <button type="button" id="btnVerifyIstimara" class="w-full rounded-lg bg-green-600 py-3 text-sm font-bold text-white hover:bg-green-500 disabled:opacity-40" disabled>Confirm Istimara</button>
+            <p id="istimaraInfo" class="text-xs text-gray-500 hidden"></p>
+          </div>
+
+          <p id="actionMsg" class="mt-3 text-xs"></p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="showroom-board-common.js"></script>
+  <script>
+    const SB = window.ShowroomBoard;
+    const SESSION_KEY = 'carEntranceSession';
+    let session = { password: null };
+    let boardData = {};
+    let selectedVin = null;
+    let wsConn = null;
+
+    function setLivePill(s) {
+      const el = document.getElementById('livePill');
+      if (!el) return;
+      el.dataset.status = s;
+      el.innerHTML = `<span class="kb-live-dot"></span> ${s === 'live' ? 'LIVE' : s === 'reconnecting' ? 'Reconnecting' : 'Polling'}`;
+    }
+
+    function getSlotByVin(vin) {
+      return (boardData.parkingSlots || []).find((s) => s.showroomVin === vin);
+    }
+
+    function getArrivedByVin(vin) {
+      return (boardData.arrivedCars || []).find((a) => a.vin === vin);
+    }
+
+    function getVehicleContext(vin) {
+      const slot = getSlotByVin(vin);
+      const arrived = getArrivedByVin(vin);
+      const car = (boardData.securityCars || []).find((c) => c.vin === vin);
+      const entranceAt = slot?.securityEntranceAt || arrived?.securityEntranceAt;
+      const istimaraVerified = Boolean(slot?.securityIstimaraVerified || arrived?.securityIstimaraVerified);
+      const kanbanColumn = slot?.kanbanColumn || arrived?.kanbanColumn || car?.kanbanColumn || 'prep';
+      return { slot, arrived, car, entranceAt, istimaraVerified, kanbanColumn };
+    }
+
+    function filterCars() {
+      const q = (document.getElementById('vinSearch').value || '').trim().toUpperCase();
+      return (boardData.securityCars || []).filter((c) => {
+        if (!q) return true;
+        const hay = [c.vin, c.customerName, c.productLabel].filter(Boolean).join(' ').toUpperCase();
+        return hay.includes(q);
+      });
+    }
+
+    function carThumb(product) {
+      const urls = SB.productImageCandidates(product || '');
+      if (!urls.length) return '<span class="fallback text-2xl">🚗</span>';
+      const u = SB.esc(JSON.stringify(urls));
+      return `<img alt="" data-img-candidates="${u}" src="${SB.esc(urls[0])}" onerror="window.ShowroomBoard._imgFallback(this)">`;
+    }
+
+    function renderCarList() {
+      const list = document.getElementById('carList');
+      const empty = document.getElementById('carListEmpty');
+      const cars = filterCars();
+      if (!cars.length) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      list.innerHTML = cars.map((c) => {
+        const slot = getSlotByVin(c.vin) || {};
+        const cls = c.vin === selectedVin ? ' sec-selected' : '';
+        const col = c.kanbanColumn || slot.kanbanColumn || 'prep';
+        const product = slot.showroomProduct || slot.showroomModel || c.product || '';
+        return `<div class="sec-car-row${cls}" data-vin="${SB.esc(c.vin)}">
+          <div class="sec-car-row-thumb">${carThumb(product)}</div>
+          <div class="flex-1 min-w-0">
+            <div class="mono text-xs text-yellow-200 truncate">${SB.esc(c.vin)}</div>
+            <div class="text-sm font-semibold truncate">${SB.esc(c.customerName || '—')}</div>
+            <div class="text-xs text-gray-500 truncate">${SB.esc(c.productLabel || '—')}</div>
+          </div>
+          <span class="sec-status-pill ${SB.kanbanStatusClass(col)}">${SB.esc(SB.getKanbanStatusLabel(col))}</span>
+        </div>`;
+      }).join('');
+
+      list.querySelectorAll('.sec-car-row').forEach((row) => {
+        row.addEventListener('click', () => selectCar(row.dataset.vin));
+      });
+    }
+
+    function updateFlowSteps(ctx) {
+      const col = ctx?.kanbanColumn || 'prep';
+      const order = ['prep', 'scheduled', 'ready', 'process', 'done'];
+      const idx = order.indexOf(col);
+      const map = { flowPrep: 'prep', flowScheduled: 'scheduled', flowReady: 'ready', flowProcess: 'process', flowDone: 'done' };
+      Object.entries(map).forEach(([elId, stepCol]) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        const stepIdx = order.indexOf(stepCol);
+        el.classList.toggle('sec-active', col === stepCol);
+        el.classList.toggle('sec-done', idx > stepIdx);
+      });
+    }
+
+    function selectCar(vin) {
+      selectedVin = vin;
+      const ctx = getVehicleContext(vin);
+      const { slot, arrived, car } = ctx;
+      if (!slot && !arrived && !car) return;
+
+      document.getElementById('noSelection').classList.add('hidden');
+      document.getElementById('detailPanel').classList.remove('hidden');
+      document.getElementById('detailVin').textContent = vin;
+      document.getElementById('detailCustomer').textContent = slot?.showroomCustomer || arrived?.customerName || car?.customerName || '—';
+      document.getElementById('detailProduct').textContent = slot?.showroomProductLabel || arrived?.productLabel || car?.productLabel || '—';
+      document.getElementById('detailBay').textContent = slot ? `P${slot.slot}` : (arrived ? 'At gate — assign bay in Controller' : '—');
+      document.getElementById('detailDelivery').textContent = slot?.deliveryAppointmentDisplay || 'Not scheduled yet';
+      document.getElementById('detailImage').innerHTML = carThumb(slot?.showroomProduct || slot?.showroomModel || arrived?.product || car?.product);
+
+      const statusEl = document.getElementById('detailStatus');
+      statusEl.textContent = SB.getKanbanStatusLabel(ctx.kanbanColumn);
+      statusEl.className = `sec-status-pill ${SB.kanbanStatusClass(ctx.kanbanColumn)}`;
+
+      updateFlowSteps(ctx);
+
+      const entranceInfo = document.getElementById('entranceInfo');
+      if (ctx.entranceAt) {
+        entranceInfo.classList.remove('hidden');
+        const display = slot?.securityEntranceDisplay || arrived?.securityEntranceDisplay || ctx.entranceAt;
+        entranceInfo.textContent = `Entered: ${display} · waiting in Controller Arrived cars`;
+        document.getElementById('btnLogEntrance').disabled = true;
+        document.getElementById('btnLogEntrance').textContent = 'Already entered';
+      } else {
+        entranceInfo.classList.add('hidden');
+        document.getElementById('btnLogEntrance').disabled = false;
+        document.getElementById('btnLogEntrance').textContent = 'Mark car as entered';
+      }
+
+      const istimaraInfo = document.getElementById('istimaraInfo');
+      const chk = document.getElementById('chkIstimara');
+      const btnVerify = document.getElementById('btnVerifyIstimara');
+      if (ctx.istimaraVerified) {
+        chk.checked = true;
+        chk.disabled = true;
+        btnVerify.disabled = true;
+        btnVerify.textContent = 'Istimara confirmed';
+        istimaraInfo.classList.remove('hidden');
+        istimaraInfo.textContent = `Verified at: ${slot?.securityIstimaraVerifiedDisplay || arrived?.securityIstimaraVerifiedDisplay || '—'}`;
+      } else {
+        chk.checked = false;
+        chk.disabled = !ctx.entranceAt;
+        btnVerify.disabled = !ctx.entranceAt;
+        btnVerify.textContent = 'Confirm Istimara';
+        istimaraInfo.classList.add('hidden');
+      }
+
+      document.getElementById('actionMsg').textContent = '';
+      renderCarList();
+    }
+
+    async function postAction(url, body) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'security', password: session.password, ...body })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      boardData = data;
+      if (selectedVin) selectCar(selectedVin);
+      renderCarList();
+    }
+
+    function renderAll() {
+      renderCarList();
+      if (selectedVin) selectCar(selectedVin);
+    }
+
+    async function loadBoard() {
+      boardData = await SB.fetchBoardData();
+      renderAll();
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      loadBoard();
+      setInterval(loadBoard, SB.REFRESH_MS);
+      wsConn = SB.connectWs((data) => { boardData = data; renderAll(); }, { onStatus: setLivePill });
+    }
+
+    document.getElementById('passwordSubmit').addEventListener('click', async () => {
+      try {
+        await SB.auth('security', document.getElementById('passwordInput').value);
+        session = { password: document.getElementById('passwordInput').value };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        showApp();
+      } catch (e) {
+        const err = document.getElementById('loginError');
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('vinSearch').addEventListener('input', () => {
+      renderCarList();
+      const q = document.getElementById('vinSearch').value.trim().toUpperCase();
+      if (q.length >= 4) {
+        const match = (boardData.securityCars || []).find((c) => c.vin.includes(q));
+        if (match) selectCar(match.vin);
+      }
+    });
+
+    document.getElementById('btnLogEntrance').addEventListener('click', async () => {
+      if (!selectedVin) return;
+      const msg = document.getElementById('actionMsg');
+      msg.textContent = 'Saving…';
+      try {
+        await postAction('/api/showroom-board/security/entrance', { vin: selectedVin });
+        msg.textContent = 'Car marked as entered — appears in Controller Arrived cars';
+        msg.className = 'mt-3 text-xs text-green-400';
+      } catch (e) {
+        msg.textContent = e.message;
+        msg.className = 'mt-3 text-xs text-red-400';
+      }
+    });
+
+    document.getElementById('btnVerifyIstimara').addEventListener('click', async () => {
+      if (!selectedVin || !document.getElementById('chkIstimara').checked) return;
+      const msg = document.getElementById('actionMsg');
+      msg.textContent = 'Saving…';
+      try {
+        await postAction('/api/showroom-board/security/verify-istimara', { vin: selectedVin });
+        msg.textContent = 'Istimara verified — Scheduled Today on dashboard';
+        msg.className = 'mt-3 text-xs text-green-400';
+      } catch (e) {
+        msg.textContent = e.message;
+        msg.className = 'mt-3 text-xs text-red-400';
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      if (wsConn) wsConn.close();
+      sessionStorage.removeItem(SESSION_KEY);
+      location.reload();
+    });
+
+    SB.startClock('liveClock');
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) {
+        session = JSON.parse(raw);
+        if (session.password) showApp();
+      }
+    } catch (e) {}
+  </script>
+</body>
+</html>

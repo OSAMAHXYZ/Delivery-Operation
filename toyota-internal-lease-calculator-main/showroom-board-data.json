@@ -1,0 +1,20 @@
+{
+  "salesRaw": {
+    "uploadedAt": null,
+    "sheetName": null,
+    "filename": null,
+    "rows": []
+  },
+  "leadsInProgress": {
+    "uploadedAt": null,
+    "sheetName": null,
+    "filename": null,
+    "rows": []
+  },
+  "vinLinks": [],
+  "showroomVins": [],
+  "parkingSlots": [],
+  "parkingRecords": [],
+  "vehicles": [],
+  "updatedAt": null
+}

@@ -1,0 +1,321 @@
+/* TOT 2.0 shell — matches simple-app.html top bar & branding */
+:root {
+  --tot-primary: #EB0A1E;
+  --tot-primary-press: #C00818;
+  --tot-ink: #1A1A1A;
+  --tot-muted: #6B7280;
+  --tot-line: #E5E7EB;
+  --tot-surface: #FFFFFF;
+  --tot-background: #FAFBFC;
+  --tot-radius: 18px;
+  --tot-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tot-topbar-h: 80px;
+}
+
+.tot-showroom-page {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.tot-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--tot-topbar-h);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  z-index: 1100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.tot-top-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tot-top-bar-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.tot-top-bar-brand:hover .tot-top-bar-logo {
+  transform: scale(1.04);
+  opacity: 0.92;
+}
+
+.tot-top-bar-product {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tot-muted);
+  line-height: 1.3;
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .tot-top-bar-product {
+    display: block;
+    border-left: 1px solid var(--tot-line);
+    padding-left: 14px;
+  }
+  .tot-top-bar-product strong {
+    display: block;
+    color: var(--tot-ink);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+.tot-top-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.tot-nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: var(--tot-radius);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--tot-ink);
+  text-decoration: none;
+  border: 1px solid var(--tot-line);
+  background: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.tot-nav-link:hover {
+  border-color: rgba(235, 10, 30, 0.35);
+  color: var(--tot-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(235, 10, 30, 0.1);
+}
+
+.tot-nav-link-active,
+.tot-nav-link.tot-nav-link-active {
+  background: var(--tot-primary);
+  border-color: var(--tot-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tot-nav-link-active:hover,
+.tot-nav-link.tot-nav-link-active:hover {
+  color: #fff;
+  background: var(--tot-primary-press);
+  border-color: var(--tot-primary-press);
+}
+
+.tot-top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tot-top-bar-btn {
+  padding: 8px 14px;
+  border-radius: var(--tot-radius);
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid var(--tot-line);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--tot-ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tot-top-bar-btn:hover {
+  border-color: var(--tot-primary);
+  color: var(--tot-primary);
+}
+
+.tot-page-shell {
+  padding-top: var(--tot-topbar-h);
+  min-height: 100vh;
+}
+
+.tot-subheader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tot-subheader-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.tot-subheader-title span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+.tot-subheader-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Login — TOT style */
+.tot-login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, var(--tot-background) 100%);
+}
+
+.tot-login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 32px;
+  background: var(--tot-surface);
+  border: 1px solid var(--tot-line);
+  border-radius: 24px;
+  box-shadow: var(--tot-shadow), 0 16px 48px rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+.tot-login-logo {
+  height: 48px;
+  width: auto;
+  margin: 0 auto 20px;
+  display: block;
+}
+
+.tot-login-card h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--tot-ink);
+  margin: 0 0 6px;
+  letter-spacing: 0.04em;
+}
+
+.tot-login-card .tot-login-sub {
+  font-size: 0.875rem;
+  color: var(--tot-muted);
+  margin: 0 0 24px;
+}
+
+.tot-login-input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--tot-radius);
+  border: 1px solid var(--tot-line);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tot-login-input:focus {
+  border-color: var(--tot-primary);
+  box-shadow: 0 0 0 3px rgba(235, 10, 30, 0.12);
+}
+
+.tot-login-btn {
+  width: 100%;
+  padding: 13px 18px;
+  border: none;
+  border-radius: var(--tot-radius);
+  background: var(--tot-primary);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tot-login-btn:hover {
+  background: var(--tot-primary-press);
+}
+
+.tot-login-error {
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: var(--tot-primary);
+}
+
+.tot-login-links {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.kanban-dashboard.tv-mode .tot-top-nav.admin-only {
+  display: none !important;
+}
+
+@media (max-width: 1100px) {
+  .tot-top-nav {
+    display: none;
+  }
+  .tot-top-bar {
+    padding: 0 16px;
+  }
+}
+
+/* Top bar widgets on light background */
+.tot-top-bar .ctl-live-pill {
+  border: 1px solid var(--tot-line);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--tot-ink);
+  font-size: 0.68rem;
+}
+
+.tot-top-bar .kb-clock {
+  color: var(--tot-ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+/* TV mode — full screen kanban */
+.kanban-dashboard.tv-mode .tot-top-bar {
+  display: none !important;
+}
+
+.kanban-dashboard.tv-mode .tot-page-shell {
+  padding-top: 0;
+}

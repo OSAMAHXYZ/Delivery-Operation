@@ -1,0 +1,1061 @@
+{
+  "banks": [
+    {
+      "id": 1,
+      "name": "al rajhi bank",
+      "interestRate": 4.75,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "profitRate": 4.75,
+      "insuranceRate": 4.8,
+      "balloonPayment": 50,
+      "commissionRate": 1,
+      "adminFees": 1,
+      "hasSpecialOffer": true,
+      "specialOfferFirstPercent": 50,
+      "specialOfferSecondPercent": 50,
+      "specialOfferYears": 2,
+      "specialOfferProfitRate": 0,
+      "specialOfferCrownProfitRate": 1.54,
+      "specialOfferAdminFees": 1,
+      "specialRates": {
+        "Raize_2024": {
+          "ST": 2.28,
+          "NST": 2.28
+        },
+        "Raize_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Urban_Cruiser_2025": {
+          "ST": 2.28,
+          "NST": 2.28
+        },
+        "Veloz_2025": {
+          "ST": 1.56,
+          "NST": 1.56
+        },
+        "Hilux_DC_2025": {
+          "ST": 2.74,
+          "NST": 2.74
+        },
+        "Hilux_SC_2025": {
+          "ST": 2.74,
+          "NST": 2.74
+        },
+        "Corolla_Cross_2025": {
+          "ST": 3.44,
+          "NST": 3.44
+        },
+        "Fortuner_2025": {
+          "ST": 1.56,
+          "NST": 1.56
+        },
+        "Highlander_2025": {
+          "ST": 3.44,
+          "NST": 3.44
+        },
+        "Raize_2026": {
+          "ST": 1.56,
+          "NST": 1.56
+        },
+        "Urban_Cruiser_2026": {
+          "ST": 2.01,
+          "NST": 2.01
+        },
+        "Veloz_2026": {
+          "ST": 2.24,
+          "NST": 2.24
+        },
+        "Hilux_DC_2026": {
+          "ST": 3.44,
+          "NST": 3.44
+        },
+        "Hilux_SC_2026": {
+          "ST": 3.44,
+          "NST": 3.44
+        },
+        "Yaris_2026": {
+          "ST": 2.24,
+          "NST": 2.24
+        },
+        "Corolla_2026": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Crown_2026": {
+          "ST": 3.9,
+          "NST": 3.9
+        },
+        "Fortuner_2026": {
+          "ST": 2.69,
+          "NST": 2.69
+        },
+        "Innova_2026": {
+          "ST": 2.69,
+          "NST": 2.69
+        }
+      },
+      "specialOfferCars": [
+        "Veloz",
+        "Fortuner",
+        "Raize",
+        "Urban Cruiser",
+        "Yaris",
+        "Corolla",
+        "Innova"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "al inma bank",
+      "interestRate": 4.75,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "profitRate": 4.75,
+      "insuranceRate": 4.8,
+      "balloonPayment": 45,
+      "commissionRate": 1,
+      "adminFees": 1,
+      "hasSpecialOffer": true,
+      "specialOfferFirstPercent": 50,
+      "specialOfferSecondPercent": 50,
+      "specialOfferYears": 2,
+      "specialOfferProfitRate": 0,
+      "specialOfferCrownProfitRate": 1.54,
+      "specialOfferAdminFees": 1,
+      "specialRates": {
+        "Raize_2024": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Urban_Cruiser_2025": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Veloz_2025": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Hilux_DC_2025": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Hilux_SC_2025": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Corolla_Cross_2025": {
+          "ST": 2.98,
+          "NST": 2.98
+        },
+        "Fortuner_2025": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Highlander_2025": {
+          "ST": 2.98,
+          "NST": 2.98
+        },
+        "Raize_2026": {
+          "ST": 2.11,
+          "NST": 2.11
+        },
+        "Urban_Cruiser_2026": {
+          "ST": 2.46,
+          "NST": 2.46
+        },
+        "Veloz_2026": {
+          "ST": 2.63,
+          "NST": 2.63
+        },
+        "Hilux_DC_2026": {
+          "ST": 2.46,
+          "NST": 2.46
+        },
+        "Hilux_SC_2026": {
+          "ST": 2.46,
+          "NST": 2.46
+        },
+        "Yaris_2026": {
+          "ST": 2.63,
+          "NST": 2.63
+        },
+        "Corolla_2026": {
+          "ST": 2.63,
+          "NST": 2.63
+        },
+        "Corolla_HEV_2026": {
+          "ST": 3.07,
+          "NST": 3.07
+        },
+        "Camry_HEV_2026": {
+          "ST": 2.98,
+          "NST": 2.98
+        },
+        "Crown_2026": {
+          "ST": 3.33,
+          "NST": 3.33
+        },
+        "Land_Cruiser_2026": {
+          "ST": 2.81,
+          "NST": 2.81
+        },
+        "Innova_2026": {
+          "ST": 2.98,
+          "NST": 2.98
+        },
+        "Fortuner_2026": {
+          "ST": 2.89,
+          "NST": 2.89
+        }
+      },
+      "specialOfferCars": [
+        "Veloz",
+        "Fortuner",
+        "Raize",
+        "Urban Cruiser",
+        "Yaris",
+        "Corolla",
+        "Innova"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "snb bank",
+      "interestRate": 4.75,
+      "maxSalaryPercentage": 30,
+      "minDownPayment": 0,
+      "profitRate": 4.75,
+      "insuranceRate": 2.5,
+      "balloonPayment": 50,
+      "commissionRate": 2,
+      "adminFees": 0,
+      "hasSpecialOffer": true,
+      "specialOfferFirstPercent": 50,
+      "specialOfferSecondPercent": 50,
+      "specialOfferYears": 2,
+      "specialRates": {
+        "Raize_2024": {
+          "ST": 2.4,
+          "NST": 2.4
+        },
+        "Urban_Cruiser_2025": {
+          "ST": 2.4,
+          "NST": 2.4
+        },
+        "Veloz_2025": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Hilux_DC_2025": {
+          "ST": 2.4,
+          "NST": 2.4
+        },
+        "Hilux_SC_2025": {
+          "ST": 2.4,
+          "NST": 2.4
+        },
+        "Corolla_Cross_2025": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Fortuner_2025": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Highlander_2025": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Innova_2025": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Raize_2026": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Urban_Cruiser_2026": {
+          "ST": 3.2,
+          "NST": 3.2
+        },
+        "Hilux_DC_2026": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Hilux_SC_2026": {
+          "ST": 2.8,
+          "NST": 2.8
+        },
+        "Yaris_2026": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Corolla_2026": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Corolla_HEV_2026": {
+          "ST": 3.5,
+          "NST": 3.5
+        },
+        "Camry_HEV_2026": {
+          "ST": 3.4,
+          "NST": 3.4
+        },
+        "Crown_2026": {
+          "ST": 3.8,
+          "NST": 3.8
+        },
+        "Fortuner_2026": {
+          "ST": 3.8,
+          "NST": 3.8
+        },
+        "Land_Cruiser_2026": {
+          "ST": 3.2,
+          "NST": 3.2
+        },
+        "Innova_2026": {
+          "ST": 3.8,
+          "NST": 3.8
+        },
+        "Veloz_2026": {
+          "ST": 3.4,
+          "NST": 3.4
+        }
+      },
+      "specialOfferCars": [
+        "Veloz",
+        "Fortuner",
+        "Raize",
+        "Urban Cruiser",
+        "Yaris",
+        "Corolla",
+        "Innova"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "ALJF",
+      "interestRate": 10,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "insuranceRate": 2.5,
+      "balloonPayment": 45,
+      "commissionRate": 1,
+      "hasSpecialOffer": false,
+      "specialOfferYears": 0
+    },
+    {
+      "id": 5,
+      "name": "al riyad bank",
+      "interestRate": 4,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "insuranceRate": 2.5,
+      "balloonPayment": 45,
+      "commissionRate": 1,
+      "adminFees": 1,
+      "hasSpecialOffer": false
+    },
+    {
+      "id": 6,
+      "name": "al jazira bank",
+      "interestRate": 4.75,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "profitRate": 4.75,
+      "insuranceRate": 2.5,
+      "balloonPayment": 50,
+      "commissionRate": 1,
+      "adminFees": 0.5,
+      "hasSpecialOffer": true,
+      "specialOfferFirstPercent": 50,
+      "specialOfferSecondPercent": 50,
+      "specialOfferYears": 2,
+      "specialOfferAdminFees": 0.5,
+      "specialOfferProfitRate": 0,
+      "specialOfferCrownProfitRate": 2.15,
+      "specialRates": {
+        "Raize_2024": {
+          "ST": 1.99,
+          "NST": 1.99
+        },
+        "Yaris_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Corolla_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Corolla_HEV_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Camry_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Crown_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "GR86_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Supra_2025": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Urban_Cruiser_2025": {
+          "ST": 1.99,
+          "NST": 1.99
+        },
+        "Veloz_2025": {
+          "ST": 1.9,
+          "NST": 1.9
+        },
+        "Hilux_DC_2025": {
+          "ST": 1.99,
+          "NST": 1.99
+        },
+        "Hilux_SC_2025": {
+          "ST": 1.99,
+          "NST": 1.99
+        },
+        "Corolla_Cross_2025": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Fortuner_2025": {
+          "ST": 1.9,
+          "NST": 1.9
+        },
+        "Highlander_2025": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Innova_2025": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Raize_2026": {
+          "ST": 1.9,
+          "NST": 1.9
+        },
+        "Urban_Cruiser_2026": {
+          "ST": 2.39,
+          "NST": 2.39
+        },
+        "Veloz_2026": {
+          "ST": 2.55,
+          "NST": 2.55
+        },
+        "Hilux_DC_2026": {
+          "ST": 2.39,
+          "NST": 2.39
+        },
+        "Hilux_SC_2026": {
+          "ST": 2.39,
+          "NST": 2.39
+        },
+        "Yaris_2026": {
+          "ST": 2.55,
+          "NST": 2.55
+        },
+        "Corolla_2026": {
+          "ST": 2.55,
+          "NST": 2.55
+        },
+        "Corolla_HEV_2026": {
+          "ST": 4.75,
+          "NST": 4.75
+        },
+        "Camry_HEV_2026": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Crown_2026": {
+          "ST": 3.45,
+          "NST": 3.45
+        },
+        "Fortuner_2026": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Innova_2026": {
+          "ST": 3,
+          "NST": 3
+        },
+        "Land_Cruiser_2026": {
+          "ST": 2.9,
+          "NST": 2.9
+        }
+      },
+      "specialOfferCars": [
+        "Veloz",
+        "Fortuner",
+        "Raize",
+        "Urban Cruiser",
+        "Yaris",
+        "Corolla",
+        "Innova",
+        "Crown"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "BSF bank",
+      "interestRate": 5.5,
+      "maxSalaryPercentage": 0,
+      "minDownPayment": 0,
+      "insuranceRate": 2.5,
+      "balloonPayment": 45,
+      "commissionRate": 1,
+      "hasSpecialOffer": false,
+      "specialOfferYears": 0
+    }
+  ],
+  "cars": {
+    "Yaris": [
+      {
+        "name": "Y",
+        "price": 66987.5
+      },
+      {
+        "name": "Y Limited",
+        "price": 66700
+      },
+      {
+        "name": "Y Plus",
+        "price": 72852.5
+      },
+      {
+        "name": "YX",
+        "price": 78832.5
+      }
+    ],
+    "Corolla": [
+      {
+        "name": "1.5L XLI",
+        "price": 82627.5
+      },
+      {
+        "name": "1.5L XLI Executive",
+        "price": 86307.5
+      },
+      {
+        "name": "1.8L XLI Hybrid",
+        "price": 92057.5
+      },
+      {
+        "name": "1.8L XLI Executive HEV M/R",
+        "price": 101832.5
+      },
+      {
+        "name": "2.0L XLI",
+        "price": 86882.5
+      },
+      {
+        "name": "2.0L XLI Executive",
+        "price": 90332.5
+      },
+      {
+        "name": "2.0L XLI Executive MR",
+        "price": 97577.5
+      },
+      {
+        "name": "2.0L GLI MR",
+        "price": 102292.5
+      }
+    ],
+    "Camry": [
+      {
+        "name": "E",
+        "price": 109825
+      },
+      {
+        "name": "LE",
+        "price": 121555
+      },
+      {
+        "name": "GRANDE",
+        "price": 145475
+      },
+      {
+        "name": "E HEV",
+        "price": 111090
+      },
+      {
+        "name": "HEV LE",
+        "price": 124545
+      },
+      {
+        "name": "HEV Lumiere",
+        "price": 153985
+      },
+      {
+        "name": "E PLUS HEV",
+        "price": 116035
+      }
+    ],
+    "Raize": [
+      {
+        "name": "XLE 1.2",
+        "price": 68827.5
+      },
+      {
+        "name": "Limited 1.0T",
+        "price": 75497.5
+      }
+    ],
+    "Urban Cruiser": [
+      {
+        "name": "XR",
+        "price": 84755
+      },
+      {
+        "name": "GL",
+        "price": 93955
+      }
+    ],
+    "Corolla Cross": [
+      {
+        "name": "LE HEV",
+        "price": 103845
+      },
+      {
+        "name": "XLE HEV",
+        "price": 113505
+      },
+      {
+        "name": "Limited HEV",
+        "price": 127206
+      },
+      {
+        "name": "Limited PLUS HEV",
+        "price": 130410
+      }
+    ],
+    "RAV4": [
+      {
+        "name": "LE 4X2",
+        "price": 106662.5
+      },
+      {
+        "name": "LE 4X4",
+        "price": 112642.5
+      },
+      {
+        "name": "XLE 4X4",
+        "price": 129317.5
+      },
+      {
+        "name": "Adventure",
+        "price": 145590
+      },
+      {
+        "name": "HEV LE 4X2",
+        "price": 111377.5
+      },
+      {
+        "name": "HEV LE 4X4",
+        "price": 117357.5
+      },
+      {
+        "name": "HEV XLE 4X4",
+        "price": 138862.5
+      },
+      {
+        "name": "HEV XSE 4X4",
+        "price": 161977.5
+      },
+      {
+        "name": "HEV LTD 4X4",
+        "price": 165542.5
+      }
+    ],
+    "Fortuner": [
+      {
+        "name": "GX2 4X2",
+        "price": 128742.5
+      },
+      {
+        "name": "GX2 4X4",
+        "price": 139552.5
+      },
+      {
+        "name": "GX2 4X4 DSL",
+        "price": 151972.5
+      },
+      {
+        "name": "VX1 4.0",
+        "price": 162897.5
+      },
+      {
+        "name": "VX2 DSL 4.0",
+        "price": 186817.5
+      },
+      {
+        "name": "VX3 4.0",
+        "price": 187047.5
+      }
+    ],
+    "Prado": [
+      {
+        "name": "TX-2",
+        "price": 199582.5
+      },
+      {
+        "name": "TXL-1",
+        "price": 213957.5
+      },
+      {
+        "name": "TXL-3",
+        "price": 238107.5
+      },
+      {
+        "name": "ADV-2",
+        "price": 279622.5
+      },
+      {
+        "name": "ADV-2 2T",
+        "price": 273815
+      },
+      {
+        "name": "VXL-3",
+        "price": 294112.5
+      },
+      {
+        "name": "TX-2 DSL",
+        "price": 207057.5
+      },
+      {
+        "name": "TXL-2 DSL",
+        "price": 230057.5
+      },
+      {
+        "name": "ADV-1 DSL",
+        "price": 255357.5
+      }
+    ],
+    "Land Cruiser": [
+      {
+        "name": "GXR",
+        "price": 263407.5
+      },
+      {
+        "name": "GXR2",
+        "price": 281347.5
+      },
+      {
+        "name": "GXR3",
+        "price": 310557.5
+      },
+      {
+        "name": "GXR4",
+        "price": 322632.5
+      },
+      {
+        "name": "VX",
+        "price": 387032.5
+      },
+      {
+        "name": "VXR",
+        "price": 423947.5
+      }
+    ],
+    "LC300 HEV MAX": [
+      {
+        "name": "GXR HEV MAX",
+        "price": 327290
+      },
+      {
+        "name": "GXR-S HEV MAX",
+        "price": 334535
+      }
+    ],
+    "Hilux Single Cab": [
+      {
+        "name": "Single Cab GLX 4X2 2.7",
+        "price": 99877.5
+      },
+      {
+        "name": "Single Cab GLX 4X4 2.7",
+        "price": 113907.5
+      },
+      {
+        "name": "Deckless 2.8 4X2",
+        "price": 88090
+      },
+      {
+        "name": "GL DSL 4X2 MT",
+        "price": 99992.5
+      },
+      {
+        "name": "GL DSL 4X2 MT 2.8",
+        "price": 104362.5
+      },
+      {
+        "name": "GLX DSL 4X4",
+        "price": 120692.5
+      },
+      {
+        "name": "GLX 2.8 DSL 4X4 MT",
+        "price": 128972.5
+      },
+      {
+        "name": "GLX 2.8 DSL 4X4 AT",
+        "price": 143607.5
+      }
+    ],
+    "Hilux Double Cab": [
+      {
+        "name": "GLX1 2.7L 4X2 AT",
+        "price": 120865
+      },
+      {
+        "name": "GLX2 2.7L 4X2 MT",
+        "price": 123280
+      },
+      {
+        "name": "SGLX 2.7L 4X4 MT",
+        "price": 142772.5
+      },
+      {
+        "name": "SGLX 2.7L 4X4 AT",
+        "price": 148177.5
+      },
+      {
+        "name": "Adventure 4.0L 4X4 AT",
+        "price": 174455
+      },
+      {
+        "name": "GR-S 4.0L 4X4 AT",
+        "price": 183885
+      },
+      {
+        "name": "GR-S Rally Edition 4.0L 4X4 AT",
+        "price": 186300
+      },
+      {
+        "name": "GL 2.4L DSL 4X2 MT",
+        "price": 113850
+      },
+      {
+        "name": "GL2 2.4L DSL 4X4 MT",
+        "price": 132192.5
+      },
+      {
+        "name": "SGLX 2.4L DSL 4X4 AT",
+        "price": 165312.5
+      },
+      {
+        "name": "SGLX 2.8L DSL 4X4 AT",
+        "price": 175087.5
+      }
+    ],
+    "Highlander": [
+      {
+        "name": "LE HEV",
+        "price": 151455
+      },
+      {
+        "name": "GLE HEV",
+        "price": 168360
+      },
+      {
+        "name": "GLE PLUS HEV 4X4",
+        "price": 176870
+      },
+      {
+        "name": "Limited HEV",
+        "price": 207460
+      }
+    ],
+    "Innova": [
+      {
+        "name": "GL",
+        "price": 127765
+      },
+      {
+        "name": "GLX",
+        "price": 137425
+      },
+      {
+        "name": "Limited",
+        "price": 149500
+      }
+    ],
+    "Veloz": [
+      {
+        "name": "GLX",
+        "price": 84007.5
+      }
+    ],
+    "Crown": [
+      {
+        "name": "Majesta",
+        "price": 158355
+      },
+      {
+        "name": "Premium",
+        "price": 170315
+      },
+      {
+        "name": "Platinum",
+        "price": 206195
+      }
+    ],
+    "GR86": [
+      {
+        "name": "MT",
+        "price": 147487.5
+      },
+      {
+        "name": "AT",
+        "price": 147487.5
+      }
+    ],
+    "Supra": [
+      {
+        "name": "AT",
+        "price": 287760
+      },
+      {
+        "name": "Manual",
+        "price": 287760
+      }
+    ],
+    "Land Cruiser Hardtop": [
+      {
+        "name": "DX MT V6",
+        "price": 158240
+      },
+      {
+        "name": "DX AT",
+        "price": 163070
+      },
+      {
+        "name": "DLX3 AT",
+        "price": 179170
+      },
+      {
+        "name": "S-DLX AT",
+        "price": 191360
+      },
+      {
+        "name": "DLX2 DSL AT",
+        "price": 185035
+      },
+      {
+        "name": "S-DXL DSL AT",
+        "price": 201192.5
+      }
+    ],
+    "Land Cruiser Pickup": [
+      {
+        "name": "S-DLX - SC 4x4 AT",
+        "price": 189520
+      },
+      {
+        "name": "S-DLX - DC 4x4 AT",
+        "price": 201710
+      },
+      {
+        "name": "DX DSL - SC 4x4 AT",
+        "price": 168705
+      },
+      {
+        "name": "DLX2 DSL - SC 4x4 AT",
+        "price": 179802.5
+      },
+      {
+        "name": "S-DLX DSL - SC 4x4 AT",
+        "price": 195787.5
+      },
+      {
+        "name": "DX DSL - SC 4x4 MT",
+        "price": 165025
+      },
+      {
+        "name": "DLX3 DSL - SC 4x4 MT",
+        "price": 176180
+      }
+    ],
+    "Lite Ace": [
+      {
+        "name": "Panel Van M/T",
+        "price": 69575
+      },
+      {
+        "name": "Panel Van A/T",
+        "price": 72565
+      }
+    ],
+    "Hiace Van": [
+      {
+        "name": "STD GAS MT",
+        "price": 122360
+      },
+      {
+        "name": "STD DSL MT",
+        "price": 131215
+      },
+      {
+        "name": "HIGH ROOF GAS MT",
+        "price": 139207.5
+      },
+      {
+        "name": "SWING BACKDOOR GAS MT",
+        "price": 138115
+      },
+      {
+        "name": "HIGH ROOF DSL MT",
+        "price": 149557.5
+      },
+      {
+        "name": "SWING BACKDOOR DSL AT",
+        "price": 157032.5
+      }
+    ],
+    "Hiace Bus": [
+      {
+        "name": "GAS MT",
+        "price": 156630
+      },
+      {
+        "name": "DSL MT",
+        "price": 166060
+      },
+      {
+        "name": "DSL AT",
+        "price": 170890
+      }
+    ],
+    "Coaster": [
+      {
+        "name": "GAS",
+        "price": 250930
+      },
+      {
+        "name": "DSL",
+        "price": 260590
+      }
+    ]
+  },
+  "carCategories": {
+    "fastCars": [
+      "camry petrol",
+      "lc300 petrol",
+      "lc70"
+    ],
+    "slowCars": [
+      "camry hybrid",
+      "lc300 diesel"
+    ]
+  }
+}

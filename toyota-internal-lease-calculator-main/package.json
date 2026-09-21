@@ -1,0 +1,49 @@
+{
+  "name": "toyota-lease-calculator",
+  "version": "1.0.1",
+  "description": "Toyota Internal Lease Calculator with Admin Panel",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "electron .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "server": "node server.js",
+    "build-delivery-template": "node scripts/build-muthakara-template.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.69.0",
+    "express": "^4.18.2",
+    "pizzip": "^3.2.0",
+    "ws": "^8.14.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.toyota.leasecalculator",
+    "productName": "Toyota Lease Calculator",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "files": [
+      "simple-app.html",
+      "admin-server.js",
+      "server.js",
+      "admin-data.json",
+      "node_modules/**/*"
+    ]
+  },
+  "keywords": [
+    "toyota",
+    "lease",
+    "calculator",
+    "admin"
+  ],
+  "author": "Toyota Internal",
+  "license": "MIT"
+}

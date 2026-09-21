@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Upload Backorder, RTL Stock, and Central Stock — Full Control validation" />
+  <title>Excel Dashboard — Full Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="layout-focus">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="app app-focus">
+    <header class="topbar topbar-focus">
+      <div class="brand brand-inline">
+        <div class="brand-mark" aria-hidden="true">XL</div>
+        <div>
+          <p class="brand-name">Excel Dashboard</p>
+          <p class="brand-tag">Full control</p>
+        </div>
+      </div>
+      <div class="topbar-text">
+        <h1 id="page-title">Full Control</h1>
+        <p id="page-sub">Upload Backorder, RTL Stock, and Central Stock</p>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="btn" id="clear-btn" disabled>Clear all</button>
+        <button type="button" class="btn btn-primary" id="analyze-btn" disabled>Run matching</button>
+      </div>
+    </header>
+
+    <main id="main" class="main main-focus">
+      <section class="panel panel-upload" id="upload" aria-labelledby="upload-heading">
+        <div class="panel-head">
+          <div>
+            <h2 id="upload-heading">Upload files</h2>
+            <p>
+              <code>.xlsx</code> / <code>.xls</code> / <code>.csv</code> ·
+              Backorder = first sheet + Fleet · RTL &amp; Central = first sheet
+            </p>
+          </div>
+          <div id="global-status" class="status-pill" role="status" aria-live="polite">Waiting for files</div>
+        </div>
+
+        <div class="upload-grid" id="upload-grid"></div>
+
+        <div id="load-banner" class="load-banner" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="load-text">Reading workbooks…</p>
+        </div>
+        <div id="error-banner" class="error-banner" role="alert" hidden></div>
+      </section>
+
+      <section class="panel section-block" id="section-3" aria-labelledby="s3-heading" hidden>
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Central inventory</p>
+            <h2 id="s3-heading">Full control</h2>
+            <p id="s3-meta" class="muted">Unique central VINs with BO match + RTL Stock matched.</p>
+          </div>
+        </div>
+        <div class="kpi-grid kpi-grid-flex" id="s3-kpis"></div>
+
+        <article class="card table-card" id="bo-orders-card">
+          <div class="card-head table-toolbar">
+            <h3>Back orders</h3>
+            <div class="toolbar-controls">
+              <label class="sr-only" for="bo-search">Search back orders</label>
+              <input id="bo-search" type="search" placeholder="Search order #, salesman…" autocomplete="off" />
+              <label class="field-inline compact">
+                <span>Cars</span>
+                <select id="bo-cars-filter">
+                  <option value="">All</option>
+                  <option value="multi">Multiple cars</option>
+                  <option value="single">Single car</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <p class="bo-hint muted">Same Back Order Number is one order — click a row to see cars under it.</p>
+          <div class="table-scroll" id="bo-orders-wrap"></div>
+          <p class="table-foot" id="bo-orders-foot"></p>
+        </article>
+
+        <article class="card table-card">
+          <div class="card-head table-toolbar">
+            <h3>Full control results</h3>
+            <div class="toolbar-controls">
+              <label class="sr-only" for="s3-search">Search table</label>
+              <input id="s3-search" type="search" placeholder="Search…" autocomplete="off" />
+              <label class="field-inline compact">
+                <span>BO Match</span>
+                <select id="s3-bo-filter">
+                  <option value="">All</option>
+                  <option>Matched</option>
+                  <option>No BO</option>
+                </select>
+              </label>
+              <label class="field-inline compact">
+                <span>RTL</span>
+                <select id="s3-rtl-filter">
+                  <option value="">All</option>
+                  <option>In Stock</option>
+                  <option>Not in RTL Stock</option>
+                </select>
+              </label>
+              <button type="button" class="btn" id="s3-download">Download CSV</button>
+            </div>
+          </div>
+          <div class="table-scroll" id="s3-table-wrap"></div>
+          <p class="table-foot" id="s3-table-foot"></p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer footer-focus">
+      <p>Client-side only · files stay in your browser</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../master-excel/master-excel.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+name: Protect delivery-hub path
+on:
+  pull_request:
+    paths:
+      - 'delivery-hub/**'
+jobs:
+  require-label-in-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require [delivery-hub] in commit/PR context
+        run: |
+          echo "This PR touches delivery-hub/."
+          echo "Make sure changes are intentional and the PR/commit mentions [delivery-hub]."
+          echo "No hard fail — advisory check for visibility."

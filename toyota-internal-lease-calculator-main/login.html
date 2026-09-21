@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Toyota Queue System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #EB0A1E;
+            --primary-dark: #C00818;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --background: #FAFBFC;
+            --surface: #FFFFFF;
+            --text: #1A1A1A;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-group select,
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .input-group select:focus,
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #D1D5DB;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔐 Login</h1>
+            <p id="stepDescription">Select your role to continue</p>
+        </div>
+
+        <div class="message" id="loginMessage"></div>
+
+        <!-- Step 1: Role Selection -->
+        <div class="step active" id="step1">
+            <form id="roleForm" onsubmit="selectRole(event)">
+                <div class="input-group">
+                    <label>Select Role</label>
+                    <select id="roleSelect" required>
+                        <option value="">-- Select Role --</option>
+                        <option value="promoter">Promoter</option>
+                        <option value="advisor">Sales Advisor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn" id="roleBtn">Continue</button>
+            </form>
+        </div>
+
+        <!-- Step 2: Name and Password -->
+        <div class="step" id="step2">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <label id="nameLabel">Name</label>
+                    <select id="nameSelect">
+                        <option value="">-- Select Name --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required autofocus>
+                </div>
+
+                <button type="submit" class="btn" id="loginBtn">Continue</button>
+                <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
+            </form>
+        </div>
+
+        <!-- Step 3: Position Selection (for Sales Advisors only) -->
+        <div class="step" id="step3">
+            <form id="positionForm" onsubmit="selectPosition(event)">
+                <div class="input-group">
+                    <label>Select Your Position Today</label>
+                    <select id="positionSelect" required>
+                        <option value="">-- Select Position --</option>
+                        <option value="S1">Sales Advisor Position 1 (S1)</option>
+                        <option value="S2">Sales Advisor Position 2 (S2)</option>
+                        <option value="S3">Sales Advisor Position 3 (S3)</option>
+                        <option value="S4">Sales Advisor Position 4 (S4)</option>
+                    </select>
+                </div>
+                <div style="margin-top: 16px; padding: 12px; background: rgba(235, 10, 30, 0.1); border-radius: 8px; font-size: 14px; color: var(--text-muted);">
+                    <strong>Note:</strong> This position will be visible to promoters. Choose the position you will work at today.
+                </div>
+                <button type="submit" class="btn" id="positionBtn" style="margin-top: 20px;">Login</button>
+                <button type="button" class="btn btn-secondary" onclick="goBackFromPosition()">Back</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const PROMOTER_DATA = {
+            'haifa': { id: '11', password: '1111' },
+            'shahad': { id: '12', password: '1111' },
+            'shorog': { id: '13', password: '1111' },
+            'saeed': { id: '14', password: '1111' },
+            'omar': { id: '15', password: '1111' },
+            'fahad': { id: '16', password: '1111' }
+        };
+
+        // Advisor name and password mapping
+        const ADVISOR_LOGIN_MAP = {
+            'ali': { id: 'S1', password: '48476', name: 'ali' },
+            'muteb': { id: 'S2', password: '50345', name: 'muteb' },
+            'lujain': { id: 'S3', password: '50093', name: 'lujain' },
+            'al jawhara': { id: 'S4', password: '48448', name: 'al jawhara' },
+            'eissa': { id: 'S5', password: '45646', name: 'eissa' },
+            'kholod': { id: 'S6', password: '46662', name: 'kholod' },
+            'haneen': { id: 'S7', password: '49601', name: 'haneen' },
+            'raoom': { id: 'S8', password: '46643', name: 'raoom' }
+        };
+
+        const ADVISOR_DATA = {
+            'Sales Advisor 1': { id: 'S1', password: '1111' },
+            'Sales Advisor 2': { id: 'S2', password: '1111' },
+            'Sales Advisor 3': { id: 'S3', password: '1111' },
+            'Sales Advisor 4': { id: 'S4', password: '1111' }
+        };
+
+        const ADMIN_PASSWORD = '1234';
+
+        let selectedRole = null;
+
+        function selectRole(event) {
+            event.preventDefault();
+            selectedRole = document.getElementById('roleSelect').value;
+            
+            if (!selectedRole) {
+                showMessage('Please select a role', 'error');
+                return;
+            }
+
+            // For admin, skip name selection and go directly to password
+            if (selectedRole === 'admin') {
+                document.getElementById('step1').classList.remove('active');
+                document.getElementById('step2').classList.add('active');
+                document.getElementById('stepDescription').textContent = 'Enter admin password';
+                document.getElementById('nameSelect').style.display = 'none';
+                document.getElementById('nameLabel').style.display = 'none';
+                document.getElementById('nameSelect').removeAttribute('required');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            // Populate names based on role
+            const nameSelect = document.getElementById('nameSelect');
+            nameSelect.innerHTML = '<option value="">-- Select Name --</option>';
+            nameSelect.style.display = 'block';
+            nameSelect.setAttribute('required', 'required');
+            document.getElementById('nameLabel').style.display = 'block';
+            
+            const data = selectedRole === 'promoter' ? PROMOTER_DATA : ADVISOR_DATA;
+            const label = document.getElementById('nameLabel');
+            
+            if (selectedRole === 'promoter') {
+                label.textContent = 'Promoter Name';
+                Object.keys(data).forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+                    nameSelect.appendChild(option);
+                });
+            } else if (selectedRole === 'advisor') {
+                // For sales advisor, show name selection
+                label.textContent = 'Advisor Name';
+                Object.keys(ADVISOR_LOGIN_MAP).forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+                    nameSelect.appendChild(option);
+                });
+            } else {
+                // For other roles, hide name selection
+                label.textContent = 'Sales Advisor Password';
+                nameSelect.style.display = 'none';
+                nameSelect.removeAttribute('required');
+                document.getElementById('password').placeholder = 'Enter your password';
+            }
+
+            // Show step 2, hide step 1
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('stepDescription').textContent = selectedRole === 'promoter' 
+                ? 'Enter your name and password' 
+                : 'Enter your name and password';
+        }
+
+        function goBack() {
+            if (document.getElementById('step3').classList.contains('active')) {
+                // Go back from position selection to password
+                document.getElementById('step3').classList.remove('active');
+                document.getElementById('step2').classList.add('active');
+                document.getElementById('stepDescription').textContent = 'Enter your password';
+                sessionStorage.removeItem('tempAdvisorId');
+                sessionStorage.removeItem('tempAdvisorName');
+            } else {
+                // Go back from password to role selection
+                selectedRole = null;
+                document.getElementById('step2').classList.remove('active');
+                document.getElementById('step1').classList.add('active');
+                document.getElementById('stepDescription').textContent = 'Select your role to continue';
+                document.getElementById('roleSelect').value = '';
+                document.getElementById('nameSelect').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('nameSelect').style.display = 'block';
+                document.getElementById('nameLabel').style.display = 'block';
+            }
+        }
+
+        function goBackFromPosition() {
+            goBack();
+        }
+
+        async function selectPosition(event) {
+            event.preventDefault();
+            
+            const position = document.getElementById('positionSelect').value;
+            const positionBtn = document.getElementById('positionBtn');
+            const messageEl = document.getElementById('loginMessage');
+
+            if (!position) {
+                showMessage('Please select a position', 'error');
+                return;
+            }
+
+            const tempAdvisorId = sessionStorage.getItem('tempAdvisorId');
+            const tempAdvisorName = sessionStorage.getItem('tempAdvisorName');
+            const password = sessionStorage.getItem('advisorPassword');
+
+            if (!tempAdvisorId || !tempAdvisorName) {
+                showMessage('Session expired. Please login again.', 'error');
+                window.location.reload();
+                return;
+            }
+
+            positionBtn.disabled = true;
+            positionBtn.textContent = 'Logging in...';
+
+            try {
+                // Assign advisor to position via API
+                const response = await fetch('/api/queue/advisor/assign-position', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        advisorId: tempAdvisorId,
+                        advisorName: tempAdvisorName,
+                        position: position,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Store advisor info with position
+                    sessionStorage.setItem('currentAdvisorId', position);
+                    sessionStorage.setItem('currentAdvisorName', tempAdvisorName);
+                    sessionStorage.setItem('actualAdvisorId', tempAdvisorId);
+                    sessionStorage.removeItem('tempAdvisorId');
+                    sessionStorage.removeItem('tempAdvisorName');
+                    
+                    // Set flag to indicate fresh login (not a refresh)
+                    sessionStorage.setItem('justLoggedIn', 'true');
+                    sessionStorage.removeItem('pageRefreshed');
+                    
+                    window.location.href = 'track.html';
+                } else {
+                    showMessage(result.error || 'Failed to assign position', 'error');
+                    positionBtn.disabled = false;
+                    positionBtn.textContent = 'Login';
+                }
+            } catch (error) {
+                console.error('Error assigning position:', error);
+                showMessage('Error assigning position. Please try again.', 'error');
+                positionBtn.disabled = false;
+                positionBtn.textContent = 'Login';
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('nameSelect').value;
+            const password = document.getElementById('password').value.trim();
+            const loginBtn = document.getElementById('loginBtn');
+            const messageEl = document.getElementById('loginMessage');
+
+            // Clear previous messages
+            messageEl.className = 'message';
+            messageEl.textContent = '';
+
+            // Admin doesn't need name
+            if (selectedRole === 'admin') {
+                // Admin handled separately below
+            } else if (selectedRole === 'advisor') {
+                if (!name || !password) {
+                    showMessage('Please enter name and password', 'error');
+                    return;
+                }
+            } else if (selectedRole === 'promoter' && (!name || !password)) {
+                showMessage('Please select a name and enter password', 'error');
+                return;
+            }
+            
+            // Handle admin login
+            if (selectedRole === 'admin') {
+                if (password !== ADMIN_PASSWORD) {
+                    showMessage('Invalid admin password', 'error');
+                    return;
+                }
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Logging in...';
+                sessionStorage.setItem('isAdmin', 'true');
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+
+            // Handle sales advisor login by name and password
+            if (selectedRole === 'advisor') {
+                const advisorInfo = ADVISOR_LOGIN_MAP[name.toLowerCase()];
+                
+                if (!advisorInfo) {
+                    showMessage('Invalid name', 'error');
+                    return;
+                }
+
+                if (password !== advisorInfo.password) {
+                    showMessage('Invalid password', 'error');
+                    return;
+                }
+
+                // Store advisor info and redirect directly to dashboard
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Logging in...';
+                
+                sessionStorage.setItem('advisorId', advisorInfo.id);
+                sessionStorage.setItem('advisorName', advisorInfo.name);
+                sessionStorage.setItem('userRole', 'advisor');
+                
+                // Sign in advisor via API
+                fetch('/api/queue/advisor/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        advisorId: advisorInfo.id,
+                        advisorName: advisorInfo.name,
+                        password: password
+                    })
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Set flag to indicate fresh login (not a refresh)
+                        sessionStorage.setItem('justLoggedIn', 'true');
+                        sessionStorage.removeItem('pageRefreshed');
+                        window.location.href = 'track.html';
+                    } else {
+                        showMessage(data.error || 'Failed to sign in', 'error');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Login';
+                    }
+                }).catch(error => {
+                    console.error('Error signing in:', error);
+                    showMessage('Error signing in. Please try again.', 'error');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                });
+                return;
+            }
+
+            // Get user data based on role (for promoters)
+            const data = PROMOTER_DATA;
+            const userData = data[name];
+
+            if (!userData) {
+                showMessage('Invalid name', 'error');
+                return;
+            }
+
+            // Verify password
+            if (password !== userData.password) {
+                showMessage('Invalid password', 'error');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                // Promoter - redirect to promoter-queue.html
+                sessionStorage.setItem('currentUserId', userData.id);
+                sessionStorage.setItem('currentUserName', name);
+                sessionStorage.setItem('userRole', 'promoter');
+                window.location.href = 'promoter-queue.html';
+            } catch (error) {
+                console.error('Error during login:', error);
+                showMessage('Error during login. Please try again.', 'error');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('loginMessage');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type} show`;
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 5000);
+        }
+
+        // Handle Enter key
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.getElementById('roleSelect').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('roleForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

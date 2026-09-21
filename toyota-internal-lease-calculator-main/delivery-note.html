@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مذكرة ترحيل السيارات — Delivery Note</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --tot-primary: #EB0A1E;
+            --tot-ink: #1A1A1A;
+            --tot-muted: #6B7280;
+            --tot-line: #E5E7EB;
+            --tot-bg: #FAFBFC;
+            --nav-h: 64px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Tajawal', 'Inter', sans-serif;
+            background: linear-gradient(180deg, #f8f9fb, #fff 40%, var(--tot-bg));
+            color: var(--tot-ink);
+            padding: calc(var(--nav-h) + 20px) 16px 48px;
+            min-height: 100vh;
+        }
+        .page-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; background: rgba(255,255,255,.95);
+            border-bottom: 1px solid var(--tot-line);
+            box-shadow: 0 4px 20px rgba(0,0,0,.05); z-index: 100;
+        }
+        .page-nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+        .page-nav-brand img { height: 36px; }
+        .page-nav-brand span { font-weight: 800; font-size: .95rem; }
+        .nav-btn {
+            display: inline-flex; align-items: center; padding: 10px 16px;
+            border-radius: 999px; border: 1px solid var(--tot-line); background: #fff;
+            color: var(--tot-ink); text-decoration: none; font-size: .85rem; font-weight: 600;
+        }
+        .nav-btn:hover { border-color: var(--tot-primary); }
+        .wrap { max-width: 1100px; margin: 0 auto; }
+        .hero { text-align: center; margin-bottom: 24px; }
+        .hero h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+        .hero p { color: var(--tot-muted); font-size: .95rem; }
+        .card {
+            background: #fff; border: 1px solid var(--tot-line); border-radius: 16px;
+            padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,.04);
+        }
+        .card h2 {
+            font-size: .8rem; font-weight: 800; letter-spacing: .06em;
+            text-transform: uppercase; color: var(--tot-primary); margin-bottom: 14px;
+        }
+        .grid { display: grid; gap: 12px; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+        label { display: block; font-size: .78rem; font-weight: 600; color: var(--tot-muted); margin-bottom: 4px; }
+        input, textarea, select {
+            width: 100%; padding: 10px 12px; border-radius: 10px;
+            border: 1px solid var(--tot-line); font: inherit; background: #fff;
+        }
+        input:focus, textarea:focus { outline: 2px solid rgba(235,10,30,.15); border-color: var(--tot-primary); }
+        .cars-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        .cars-table th, .cars-table td { border: 1px solid var(--tot-line); padding: 8px; text-align: center; }
+        .cars-table th { background: #f9fafb; font-size: .72rem; }
+        .cars-table input { border: none; padding: 6px; text-align: center; background: transparent; }
+        .cars-table input:focus { outline: none; background: #fff8f8; }
+        .row-no { width: 40px; font-weight: 700; color: var(--tot-muted); background: #f9fafb; }
+        .checks { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+        .checks label { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--tot-ink); cursor: pointer; }
+        .actions {
+            display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+            margin-top: 8px; padding-top: 8px;
+        }
+        .btn {
+            border: none; border-radius: 12px; padding: 14px 24px; font: inherit;
+            font-weight: 700; cursor: pointer; transition: transform .15s, box-shadow .15s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary {
+            background: var(--tot-primary); color: #fff;
+            box-shadow: 0 8px 24px rgba(235,10,30,.25);
+        }
+        .btn-secondary { background: #fff; border: 1px solid var(--tot-line); color: var(--tot-ink); }
+        .status {
+            text-align: center; font-size: .85rem; margin-top: 12px; min-height: 1.2em;
+        }
+        .status.err { color: #b91c1c; }
+        .status.ok { color: #15803d; }
+        .hint { font-size: .75rem; color: var(--tot-muted); margin-top: 6px; }
+    </style>
+</head>
+<body>
+    <nav class="page-nav">
+        <a href="simple-app.html" class="page-nav-brand">
+            <img src="images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'">
+            <span>مذكرة ترحيل السيارات</span>
+        </a>
+        <a href="detailed-calculations.html" class="nav-btn">← Detailed Calculator</a>
+    </nav>
+
+    <div class="wrap">
+        <header class="hero">
+            <h1>مذكرة ترحيل السيارات</h1>
+            <p>املأ البيانات ثم حمّل ملف Word جاهز للطباعة — Vehicle Transfer Delivery Note</p>
+        </header>
+
+        <form id="deliveryForm">
+            <section class="card">
+                <h2>بيانات المذكرة — Header</h2>
+                <div class="grid grid-4">
+                    <div>
+                        <label for="doc_date">التاريخ / Date</label>
+                        <input id="doc_date" name="doc_date" type="date" required>
+                    </div>
+                    <div>
+                        <label for="memo_number">رقم / No.</label>
+                        <input id="memo_number" name="memo_number" type="text" placeholder="رقم المذكرة">
+                    </div>
+                    <div>
+                        <label for="dep_hour">ساعة الخروج / Hour</label>
+                        <input id="dep_hour" name="dep_hour" type="text" inputmode="numeric" placeholder="10">
+                    </div>
+                    <div>
+                        <label for="dep_minute">دقيقة الخروج / Minute</label>
+                        <input id="dep_minute" name="dep_minute" type="text" inputmode="numeric" placeholder="30">
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>بيانات العميل والنقل — Customer &amp; Transport</h2>
+                <div class="grid grid-2">
+                    <div>
+                        <label for="customer_name">الإسم / Name</label>
+                        <input id="customer_name" name="customer_name" type="text" required>
+                    </div>
+                    <div>
+                        <label for="company_rep">مندوب شركة / Company Rep</label>
+                        <input id="company_rep" name="company_rep" type="text">
+                    </div>
+                    <div>
+                        <label for="transfer_date">تاريخ الترحيل / Transfer Date</label>
+                        <input id="transfer_date" name="transfer_date" type="date">
+                    </div>
+                    <div>
+                        <label for="corresponding_date">الموافق / Corresponding Date</label>
+                        <input id="corresponding_date" name="corresponding_date" type="date">
+                    </div>
+                    <div>
+                        <label for="day_name">اليوم / Day</label>
+                        <input id="day_name" name="day_name" type="text" placeholder="الجمعة / Friday">
+                    </div>
+                    <div>
+                        <label for="trailer_number">رقم التريلا / Trailer No.</label>
+                        <input id="trailer_number" name="trailer_number" type="text">
+                    </div>
+                    <div>
+                        <label for="car_count">عدد السيارات / Car Count</label>
+                        <input id="car_count" name="car_count" type="text" inputmode="numeric">
+                    </div>
+                    <div>
+                        <label for="branch_to">محولة إلى فرع / Branch</label>
+                        <input id="branch_to" name="branch_to" type="text">
+                    </div>
+                    <div class="grid" style="grid-column: 1 / -1">
+                        <label for="attachments">المرفقات / Attachments</label>
+                        <textarea id="attachments" name="attachments" rows="2"></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>جدول السيارات — Vehicles (up to 10)</h2>
+                <p class="hint">أدخل بيانات كل سيارة في الصف المناسب</p>
+                <div style="overflow-x:auto;margin-top:10px">
+                    <table class="cars-table" id="carsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الموديل / Model</th>
+                                <th>الشاسية / Chassis</th>
+                                <th>رقم اللوحة / Plate</th>
+                                <th>ملاحظات / Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carsBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>التوقيعات — Signatures</h2>
+                <div class="grid grid-2">
+                    <div>
+                        <label for="warehouse_supervisor_sign">توقيع مشرف المستودع</label>
+                        <input id="warehouse_supervisor_sign" name="warehouse_supervisor_sign" type="text">
+                    </div>
+                    <div>
+                        <label for="transport_rep_sign">توقيع مندوب النقليات</label>
+                        <input id="transport_rep_sign" name="transport_rep_sign" type="text">
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>استلام الفرع — Branch Receipt</h2>
+                <div class="checks">
+                    <label><input type="checkbox" id="received_intact" name="received_intact"> سليمة / Intact</label>
+                    <label><input type="checkbox" id="received_damaged" name="received_damaged"> بها تلفيات / Damaged</label>
+                </div>
+                <div class="grid grid-2" style="margin-top:14px">
+                    <div>
+                        <label for="recipient_name">اسم المستلم / Recipient</label>
+                        <input id="recipient_name" name="recipient_name" type="text">
+                    </div>
+                    <div>
+                        <label for="recipient_signature">التوقيع / Signature</label>
+                        <input id="recipient_signature" name="recipient_signature" type="text">
+                    </div>
+                    <div>
+                        <label for="recipient_date">تاريخ الاستلام / Date</label>
+                        <input id="recipient_date" name="recipient_date" type="text" placeholder="03/07/2026">
+                    </div>
+                    <div>
+                        <label for="rec_hour">ساعة الاستلام / Hour</label>
+                        <input id="rec_hour" name="rec_hour" type="text" inputmode="numeric">
+                    </div>
+                    <div>
+                        <label for="rec_minute">دقيقة الاستلام / Minute</label>
+                        <input id="rec_minute" name="rec_minute" type="text" inputmode="numeric">
+                    </div>
+                    <div>
+                        <label for="branch_stamp">ختم الفرع / Branch Stamp</label>
+                        <input id="branch_stamp" name="branch_stamp" type="text">
+                    </div>
+                </div>
+            </section>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-primary" id="btnDownload">⬇ تحميل Word للطباعة</button>
+                <button type="button" class="btn btn-secondary" id="btnToday">تعيين تاريخ اليوم</button>
+                <button type="reset" class="btn btn-secondary">مسح النموذج</button>
+            </div>
+            <p class="status" id="status" role="status"></p>
+        </form>
+    </div>
+
+    <script>
+        const AR_NUMS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠'];
+        const carsBody = document.getElementById('carsBody');
+        const statusEl = document.getElementById('status');
+        const form = document.getElementById('deliveryForm');
+
+        function buildCarRows() {
+            carsBody.innerHTML = AR_NUMS.map((n, i) => `
+                <tr>
+                    <td class="row-no">${n}</td>
+                    <td><input name="car_model_${i}" data-field="model" aria-label="Model row ${i + 1}"></td>
+                    <td><input name="car_chassis_${i}" data-field="chassis" aria-label="Chassis row ${i + 1}"></td>
+                    <td><input name="car_plate_${i}" data-field="plate" aria-label="Plate row ${i + 1}"></td>
+                    <td><input name="car_remarks_${i}" data-field="remarks" aria-label="Remarks row ${i + 1}"></td>
+                </tr>
+            `).join('');
+        }
+
+        function setStatus(msg, type) {
+            statusEl.textContent = msg || '';
+            statusEl.className = 'status' + (type ? ` ${type}` : '');
+        }
+
+        function collectPayload() {
+            const fd = new FormData(form);
+            const cars = AR_NUMS.map((_, i) => ({
+                model: fd.get(`car_model_${i}`)?.trim() || '',
+                chassis: fd.get(`car_chassis_${i}`)?.trim() || '',
+                plate: fd.get(`car_plate_${i}`)?.trim() || '',
+                remarks: fd.get(`car_remarks_${i}`)?.trim() || ''
+            }));
+            const filled = cars.filter((c) => c.model || c.chassis || c.plate).length;
+            return {
+                doc_date: fd.get('doc_date'),
+                memo_number: fd.get('memo_number')?.trim(),
+                dep_hour: fd.get('dep_hour')?.trim(),
+                dep_minute: fd.get('dep_minute')?.trim(),
+                customer_name: fd.get('customer_name')?.trim(),
+                company_rep: fd.get('company_rep')?.trim(),
+                transfer_date: fd.get('transfer_date') || fd.get('doc_date'),
+                corresponding_date: fd.get('corresponding_date') || fd.get('transfer_date') || fd.get('doc_date'),
+                day_name: fd.get('day_name')?.trim(),
+                trailer_number: fd.get('trailer_number')?.trim(),
+                car_count: fd.get('car_count')?.trim() || String(filled || ''),
+                branch_to: fd.get('branch_to')?.trim(),
+                attachments: fd.get('attachments')?.trim(),
+                warehouse_supervisor_sign: fd.get('warehouse_supervisor_sign')?.trim(),
+                transport_rep_sign: fd.get('transport_rep_sign')?.trim(),
+                received_intact: document.getElementById('received_intact').checked,
+                received_damaged: document.getElementById('received_damaged').checked,
+                recipient_name: fd.get('recipient_name')?.trim(),
+                recipient_signature: fd.get('recipient_signature')?.trim(),
+                recipient_date: fd.get('recipient_date')?.trim(),
+                rec_hour: fd.get('rec_hour')?.trim(),
+                rec_minute: fd.get('rec_minute')?.trim(),
+                branch_stamp: fd.get('branch_stamp')?.trim(),
+                cars
+            };
+        }
+
+        function setTodayDates() {
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('doc_date').value = today;
+            document.getElementById('transfer_date').value = today;
+            document.getElementById('corresponding_date').value = today;
+            const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            document.getElementById('day_name').value = days[new Date().getDay()];
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setStatus('جاري إنشاء ملف Word…');
+            const btn = document.getElementById('btnDownload');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/delivery-note/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(collectPayload())
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || `Server error ${res.status}`);
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `delivery_note_${Date.now()}.docx`;
+                a.click();
+                URL.revokeObjectURL(url);
+                setStatus('تم التحميل — افتح الملف في Word واطبعه', 'ok');
+            } catch (err) {
+                setStatus(err.message || 'فشل إنشاء الملف', 'err');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('btnToday').addEventListener('click', setTodayDates);
+        document.getElementById('received_intact').addEventListener('change', (e) => {
+            if (e.target.checked) document.getElementById('received_damaged').checked = false;
+        });
+        document.getElementById('received_damaged').addEventListener('change', (e) => {
+            if (e.target.checked) document.getElementById('received_intact').checked = false;
+        });
+
+        buildCarRows();
+        setTodayDates();
+    </script>
+</body>
+</html>

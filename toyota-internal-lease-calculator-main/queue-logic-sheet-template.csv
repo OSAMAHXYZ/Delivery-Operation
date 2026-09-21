@@ -1,0 +1,14 @@
+Section,Cell,Formula,What it does
+Inputs,A2,(type order number here),Lookup Order No
+Matched Values,B2,"=XLOOKUP($A2, BO[Order No], BO[Product], """")",1) Matched Product
+Matched Values,C2,"=XLOOKUP($A2, BO[Order No], BO[Alj Suffix], """")",2) Matched ALJ Suffix
+Matched Values,D2,"=XLOOKUP($A2, BO[Order No], BO[Exterior Color 1], """")",3) Matched Exterior Color 1
+Matched Values,E2,"=XLOOKUP($A2, BO[Order No], BO[Interior Color 1], """")",4) Matched Interior Color 1
+Helper (date),I2,"=XLOOKUP($A2, BO[Order No], BO[Created_Date], """")",Reservation creation time for this row (rename Created_Date to match your BO table column)
+Queue Metrics,F2,"=COUNTIFS(BO[Product],B2, BO[Alj Suffix],C2, BO[Exterior Color 1],D2, BO[Interior Color 1],E2)",5) Total matched orders in this list
+Queue Metrics,J2,"=LET(p,B2,s,C2,ex,D2,i,E2,d,$I2,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Exterior Color 1],ex,BO[Interior Color 1],i,BO[Created_Date],""<""&d))",How many are strictly earlier by reservation creation time
+Queue Metrics,G2,"=LET(p,B2,s,C2,ex,D2,i,E2,d,$I2,o,$A2,older,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Exterior Color 1],ex,BO[Interior Color 1],i,BO[Created_Date],""<""&d),sameDateBefore,COUNTIFS(BO[Product],p,BO[Alj Suffix],s,BO[Exterior Color 1],ex,BO[Interior Color 1],i,BO[Created_Date],d,BO[Order No],""<""&o),older+sameDateBefore)",0-based rank: earlier creation times first; same timestamp uses smaller Order No only as tie-break
+Display,H2,"=""Rank ""&G2&"" of ""&F2&"" matched orders (oldest=0) | Earlier reservations: ""&J2",Readable output
+Notes,A5,Expected table name: BO,Your data table must be named BO
+Notes,A6,"Required BO columns: Product|Alj Suffix|Created_Date (reservation creation)|Exterior Color 1|Interior Color 1|Order No",Rename Created_Date in formulas if your export uses another header (e.g. Order Created On)
+Notes,A7,"Queue logic matches Product + Suffix + Exterior Color 1 + Interior Color 1; ranking uses reservation creation time not order number sequence",Header mapping note

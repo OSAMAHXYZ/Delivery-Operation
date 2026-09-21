@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BO Order Lookup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="../page-translate.js"></script>
+  <script src="../i18n-pages.js"></script>
+  <style>
+    :root {
+      --primary: #ff3b4a;
+      --primary-dark: #c8102e;
+      --primary-soft: rgba(255, 59, 74, 0.12);
+      --accent: #f0f4fc;
+      --bg: #070b14;
+      --bg-elevated: #0d1320;
+      --card: rgba(14, 20, 34, 0.82);
+      --card-solid: #121a2b;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-bright: rgba(255, 255, 255, 0.14);
+      --text: #e8ecf4;
+      --muted: #8b95a8;
+      --ok: #34d399;
+      --ok-soft: rgba(52, 211, 153, 0.12);
+      --err: #f87171;
+      --glow: rgba(255, 59, 74, 0.35);
+      --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+      --shadow-pop: 0 24px 60px rgba(0, 0, 0, 0.55);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: auto; color-scheme: dark; }
+    body {
+      margin: 0;
+      padding: 96px 24px 48px;
+      background:
+        radial-gradient(1200px 600px at 10% -5%, rgba(255, 59, 74, 0.14), transparent 55%),
+        radial-gradient(900px 500px at 95% 5%, rgba(56, 189, 248, 0.08), transparent 50%),
+        radial-gradient(800px 400px at 50% 100%, rgba(99, 102, 241, 0.06), transparent 60%),
+        linear-gradient(180deg, #050810 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: 'Inter', "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    .page-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 24px;
+      background: rgba(7, 11, 20, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      z-index: 200;
+    }
+    .page-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--card-solid);
+      border: 1px solid var(--line-bright);
+      box-shadow: var(--shadow-card);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .page-nav-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px var(--glow);
+    }
+    .page-nav-btn-accent {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+    .page-nav-btn-accent:hover {
+      color: #fff;
+      box-shadow: 0 8px 32px var(--glow);
+    }
+    .lang-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--card-solid);
+      border: 1px solid var(--line-bright);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s ease;
+    }
+    .lang-toggle-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    body.lang-ar {
+      font-family: 'Tajawal', 'Inter', "Segoe UI", Arial, sans-serif;
+    }
+
+    /* Hero / Header card */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(700px 280px at 0% 0%, rgba(255, 59, 74, 0.28), transparent 65%),
+        radial-gradient(500px 200px at 100% 0%, rgba(56, 189, 248, 0.12), transparent 60%),
+        linear-gradient(135deg, #0a0f1a 0%, #121a2e 55%, #1a2340 100%);
+      color: #fff;
+      border-radius: 24px;
+      padding: 28px 28px 24px;
+      margin-bottom: 22px;
+      border: 1px solid var(--line-bright);
+      box-shadow: var(--shadow-pop);
+      animation: fadeInUp .5s ease both;
+    }
+    .hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(900px 350px at 100% 100%, rgba(255,255,255,.07), transparent 60%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.18);
+      padding: 6px 12px; border-radius: 999px;
+      font-size: 12px; letter-spacing: .8px; text-transform: uppercase; font-weight: 700;
+      color: #fde2e4;
+    }
+    .hero-eyebrow::before {
+      content: ""; width: 6px; height: 6px; border-radius: 999px; background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(235,10,30,.25);
+    }
+    h1 {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      margin: 12px 0 6px;
+      color: #fff;
+      font-size: 36px;
+      letter-spacing: -.4px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .hero .sub { margin: 0; color: #cbd2e0; max-width: 720px; }
+    .hero .meta { color: #93a0b9; font-size: 13px; margin-top: 14px; }
+
+    .hero-search {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 18px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      padding: 6px;
+      backdrop-filter: blur(6px);
+    }
+    .hero-search input {
+      flex: 1; min-width: 240px;
+      padding: 14px 14px;
+      border-radius: 12px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font-size: 16px;
+    }
+    .hero-search input::placeholder { color: rgba(255,255,255,.6); }
+    .hero-search input:focus { outline: none; box-shadow: none; }
+
+    /* Generic card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line-bright);
+      border-radius: 22px;
+      box-shadow: var(--shadow-soft);
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      animation: fadeInUp .4s ease both;
+    }
+    .card-title {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 22px; font-weight: 800;
+      color: var(--accent);
+      margin: 0 0 4px;
+      letter-spacing: -.2px;
+    }
+    .sub { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    input {
+      flex: 1; min-width: 260px;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line-bright);
+      font-size: 15px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-family: inherit;
+    }
+    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+
+    button {
+      padding: 12px 22px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary) 0%, #ff5c6a 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      letter-spacing: .15px;
+      transition: transform .18s ease, box-shadow .25s ease, filter .2s ease;
+      box-shadow: 0 8px 28px var(--glow);
+      font-family: inherit;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 14px 36px var(--glow); filter: brightness(1.05); }
+    button:active { transform: translateY(0); }
+
+    .meta { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .status { margin-top: 12px; font-weight: 600; font-size: 14px; }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+
+    /* Result -> queue */
+    .queue-box {
+      margin-top: 16px;
+      padding: 22px;
+      border-radius: 22px;
+      background: linear-gradient(165deg, rgba(18, 26, 43, 0.95) 0%, rgba(10, 15, 26, 0.98) 100%);
+      border: 1px solid var(--line-bright);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--shadow-card);
+    }
+    .queue-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .queue-stat-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 16px;
+      text-align: center;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+    }
+    .queue-stat-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    }
+    .queue-stat-card.primary {
+      border-color: rgba(255, 59, 74, 0.45);
+      background: linear-gradient(180deg, rgba(255, 59, 74, 0.12) 0%, rgba(255, 59, 74, 0.04) 100%);
+      box-shadow: 0 8px 32px rgba(255, 59, 74, 0.15);
+    }
+    .queue-stat-card.primary::before {
+      background: linear-gradient(90deg, var(--primary), #ff8a94, transparent);
+    }
+    .queue-stat-card:hover { transform: translateY(-2px); border-color: var(--line-bright); }
+    .qsc-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .qsc-value {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .queue-stat-card.primary .qsc-value { color: #fff; text-shadow: 0 0 40px var(--glow); }
+    .queue-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 24px;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .queue-meta-row strong { color: var(--text); font-weight: 600; }
+    .queue-pairs-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .qp-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .color-pair-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line-bright);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .cp-sep { color: var(--muted); font-weight: 400; }
+    .pair-queue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 4px;
+    }
+    .pair-queue-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .pair-queue-card:hover {
+      border-color: var(--line-bright);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    }
+    .pair-queue-head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 8px 12px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .pair-queue-tier {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .pair-wild-note {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-left: auto;
+    }
+    .queue-wild-banner {
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      background: rgba(56, 189, 248, 0.08);
+      color: #bae6fd;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .queue-wild-banner strong { color: #7dd3fc; }
+    .pair-queue-card .queue-hero-grid {
+      margin-bottom: 0;
+      gap: 10px;
+    }
+    .pair-queue-card .queue-stat-card {
+      padding: 14px 10px;
+    }
+    .pair-queue-card .qsc-value {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+    }
+    .queue-preview-wrap { margin-top: 8px; overflow-x: auto; }
+    .queue-preview-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    .queue-preview-table th,
+    .queue-preview-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+    .queue-preview-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    .queue-preview-table tr:last-child td { border-bottom: none; }
+    .queue-ref-row { background: rgba(255, 59, 74, 0.1); }
+    .queue-ref-row td { color: #fff; font-weight: 600; }
+    .queue-cards {
+      display: block;
+    }
+    .queue-card {
+      position: relative;
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      border-radius: 20px;
+      padding: 18px 18px 20px;
+      box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 8px 28px rgba(15, 23, 42, 0.06);
+      transition:
+        transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.25s ease,
+        border-color 0.22s ease;
+      overflow: hidden;
+    }
+    .queue-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(
+        90deg,
+        rgba(235, 10, 30, 0.88) 0%,
+        rgba(255, 122, 134, 0.55) 42%,
+        rgba(241, 245, 249, 0.35) 100%
+      );
+      opacity: 1;
+    }
+    .queue-card:hover {
+      transform: translateY(-3px);
+      border-color: #e2e8f0;
+      box-shadow:
+        0 4px 12px rgba(15, 23, 42, 0.05),
+        0 16px 44px rgba(15, 23, 42, 0.09);
+    }
+    .queue-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
+      line-height: 1.35;
+    }
+    .queue-rank {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 6px;
+      line-height: 1.08;
+      letter-spacing: -0.35px;
+    }
+    .queue-sub { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 14px; }
+    .queue-colors { font-size: 13px; color: #334155; line-height: 1.5; margin-bottom: 8px; }
+    .queue-choice { font-size: 12px; color: #334155; line-height: 1.45; margin-top: 6px; }
+    .queue-wild { margin-top: 8px; font-size: 12px; color: #475569; line-height: 1.45; }
+    .queue-cards .queue-card {
+      animation: fadeInUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .queue-cards .queue-card:nth-child(1) { animation-delay: 0.05s; }
+    .queue-cards .queue-card:nth-child(2) { animation-delay: 0.12s; }
+    .queue-cards .queue-card:nth-child(3) { animation-delay: 0.18s; }
+    .int-variant-wrap { margin-top: 14px; }
+    .int-variant-hint {
+      font-size: 12px; color: var(--muted); line-height: 1.45; margin-bottom: 10px;
+    }
+    .int-variant-table { margin-top: 0; }
+    .int-variant-gap { margin-top: 16px; }
+    .queue-rank-note { font-weight: 600; font-size: 12px; color: var(--muted); }
+    .order-units-box { margin-top: 18px; padding-top: 8px; border-top: 1px solid var(--line); }
+    .order-units-table { margin-top: 8px; font-size: 12px; }
+    .order-units-table th, .order-units-table td { white-space: nowrap; }
+
+    /* Steps */
+    .nc-step { margin-top: 22px; position: relative; }
+    .nc-step-head {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-size: 16px; font-weight: 800; color: var(--accent);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 12px;
+      letter-spacing: -.1px;
+    }
+    .nc-step-head .nc-step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 999px;
+      background: linear-gradient(135deg, var(--primary), #ff3a4f);
+      color: #fff; font-size: 13px; font-weight: 800;
+      box-shadow: 0 6px 16px rgba(235,10,30,.28);
+    }
+    .nc-step.disabled { opacity: .55; pointer-events: none; }
+
+    /* Product picker */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 16px;
+    }
+    .product-card {
+      cursor: pointer;
+      background: var(--card-solid);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px 12px 14px;
+      transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s ease, border-color .25s ease, background .25s ease;
+      display: flex; flex-direction: column; align-items: stretch;
+      position: relative;
+    }
+    .product-card::after {
+      content: ""; position: absolute; inset: 0; border-radius: 18px;
+      box-shadow: 0 0 0 0 rgba(235,10,30,0); transition: box-shadow .25s ease;
+      pointer-events: none;
+    }
+    .product-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(255, 59, 74, 0.5);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 59, 74, 0.2);
+    }
+    .product-card.selected {
+      border-color: var(--primary);
+      background: linear-gradient(180deg, rgba(255, 59, 74, 0.08) 0%, var(--card-solid) 100%);
+    }
+    .product-card.selected::after { box-shadow: 0 0 0 3px var(--primary-soft); }
+    .product-card .pc-img-wrap {
+      position: relative;
+      background:
+        radial-gradient(160px 80px at 50% 100%, rgba(255, 59, 74, 0.15), transparent 70%),
+        linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+      border-radius: 14px;
+      aspect-ratio: 16/10;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .product-card img { max-width: 92%; max-height: 92%; object-fit: contain; transition: transform .35s ease; filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.5)); }
+    .product-card:hover img { transform: scale(1.04); }
+    .product-card .pc-fallback {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 22px; font-weight: 800; color: var(--muted); letter-spacing: .8px;
+    }
+    .product-card .pc-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 800; color: var(--accent); letter-spacing: -.1px;
+    }
+    .product-card .pc-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .product-card .pc-pill {
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(15, 23, 42, .75); color: #fff;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .4px;
+      padding: 4px 8px; border-radius: 999px;
+      backdrop-filter: blur(6px);
+    }
+    .product-card.selected .pc-pill { background: var(--primary); }
+
+    /* Step 2 controls */
+    .nc-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .nc-controls label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .8px; }
+    .nc-controls select {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line-bright);
+      font-size: 14px;
+      background: var(--card-solid);
+      color: var(--text);
+      transition: border-color .2s ease, box-shadow .2s ease;
+      font-family: inherit;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b95a8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 12px;
+      padding-right: 38px;
+    }
+    .nc-controls select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+    .nc-actions { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+    .nc-selected-summary {
+      font-size: 13px; color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      border-radius: 999px; padding: 8px 14px;
+      font-weight: 600;
+    }
+    .secondary-btn {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line-bright);
+      border-radius: 14px;
+      padding: 11px 18px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .2s ease, border-color .2s ease, transform .15s ease;
+      font-family: inherit;
+      box-shadow: none;
+    }
+    .secondary-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--muted); transform: none; }
+
+    .nc-total-hero {
+      text-align: center;
+      padding: 22px 16px 26px;
+      margin: -4px -4px 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(52, 211, 153, 0.15) 0%, rgba(52, 211, 153, 0.06) 100%);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 10px 32px rgba(52, 211, 153, 0.12);
+    }
+    .nc-total-hero-label {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--ok);
+      margin-bottom: 6px;
+    }
+    .nc-total-hero-value {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(2.5rem, 8vw, 3.75rem);
+      font-weight: 800;
+      line-height: 1.05;
+      color: #6ee7b7;
+      text-shadow: 0 0 40px rgba(52, 211, 153, 0.3);
+    }
+    .nc-total-hero-sub {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.45;
+    }
+
+    .matrix-box {
+      margin-top: 22px;
+      background: var(--card-solid);
+      border: 1px solid var(--line-bright);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .matrix-summary {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800; color: var(--accent); font-size: 16px; margin-bottom: 10px; letter-spacing: -.1px;
+    }
+    .matrix-rule { color: var(--muted); font-size: 12px; margin: 8px 0 12px; }
+    .matrix-suggestion {
+      margin: 12px 0;
+      padding: 14px 16px;
+      background: var(--ok-soft);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--ok);
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .matrix-suggestion strong { color: #6ee7b7; }
+    .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(0,0,0,0.2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .matrix-table th, .matrix-table td { padding: 11px 14px; font-size: 13px; text-align: left; border-bottom: 1px solid var(--line); color: var(--text); }
+    .matrix-table th { background: rgba(255,255,255,0.04); color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .5px; font-size: 11px; }
+    .matrix-table tr:last-child td { border-bottom: none; }
+    .matrix-rank { font-weight: 800; color: var(--accent); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; }
+    .matrix-row-best td:first-child::before {
+      content: "★"; color: var(--ok); margin-right: 8px; font-size: 14px;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 12px; text-align: left; font-size: 14px; vertical-align: top; color: var(--text); }
+    th { background: rgba(255,255,255,0.04); width: 35%; color: var(--muted); font-weight: 700; }
+    .result-top { margin-top: 10px; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 88px 14px 32px; }
+      .hero { padding: 22px; border-radius: 20px; }
+      h1 { font-size: 28px; }
+      .queue-hero-grid { grid-template-columns: 1fr; }
+      .nc-controls { grid-template-columns: 1fr; }
+      .product-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    }
+  </style>
+</head>
+<body data-i18n-title="page_title">
+  <nav class="page-nav" aria-label="Page navigation" style="justify-content: flex-end; gap: 10px;">
+    <button type="button" class="lang-toggle-btn" data-lang-toggle>العربية</button>
+    <a href="../detailed-calculations.html" class="page-nav-btn page-nav-btn-accent" data-i18n="nav_detailed">Detailed Calculator →</a>
+    <a href="bo-data-admin.html" class="page-nav-btn">BO Admin</a>
+  </nav>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-eyebrow" data-i18n="hero_eyebrow">BO Lookup · Live Queue Insights</div>
+      <h1 data-i18n="hero_title">BO Order Lookup</h1>
+      <p class="sub" data-i18n="hero_sub">Enter a back order number to see your queue position, orders ahead, and matching reservations — all from the latest daily BO upload.</p>
+      <div class="hero-search">
+        <input id="orderNumberInput" type="text" data-i18n-placeholder="ph_order" placeholder="Enter Order Number" />
+        <button id="searchBtn" type="button" data-i18n="btn_search">Search</button>
+      </div>
+      <div class="meta" id="boMeta" data-i18n="meta_checking">Checking latest BO upload...</div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h3 class="card-title" data-i18n="card_order">Order Details</h3>
+      <p class="sub" id="resultMeta"></p>
+      <div class="result-top">
+        <div class="queue-box" id="queueBox" style="display:none;">
+          <div class="queue-cards" id="queueOptions"></div>
+        </div>
+      </div>
+      <div id="orderUnitsBox" class="order-units-box" style="display:none;">
+        <h4 class="card-title" style="margin-top:0;" data-i18n="order_content">Order content</h4>
+        <p class="sub" id="orderUnitsSub"></p>
+        <div id="orderUnitsTableWrap"></div>
+      </div>
+      <table>
+        <tbody id="detailsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="newCustomerQueueCard">
+      <h3 class="card-title" data-i18n="card_queue">For new customers the queue will be</h3>
+      <p class="sub" data-i18n="card_queue_sub">Pick a car, then choose its suffix and the exterior / interior colors. Options are pulled from the latest BO file.</p>
+
+      <div class="nc-step" id="ncStep1">
+        <div class="nc-step-head"><span class="nc-step-num">1</span> <span data-i18n="step1">Choose a car</span></div>
+        <div class="product-grid" id="productGrid">
+          <div class="meta" data-i18n="loading_cars">Loading cars from BO...</div>
+        </div>
+      </div>
+
+      <div class="nc-step disabled" id="ncStep2">
+        <div class="nc-step-head"><span class="nc-step-num">2</span> <span data-i18n="step2">Choose suffix &amp; colors</span></div>
+        <div class="nc-controls">
+          <div>
+            <label for="suffixSelect" data-i18n="label_suffix">Suffix</label>
+            <select id="suffixSelect"><option value="" data-i18n="opt_select_suffix">— Select suffix —</option></select>
+          </div>
+          <div>
+            <label for="exteriorSelect" data-i18n="label_exterior">Exterior color</label>
+            <select id="exteriorSelect"><option value="*" data-i18n="opt_any_ext">* (any exterior)</option></select>
+          </div>
+          <div>
+            <label for="interiorSelect" data-i18n="label_interior">Interior color</label>
+            <select id="interiorSelect"><option value="*" data-i18n="opt_any_int">* (any interior)</option></select>
+          </div>
+        </div>
+        <div class="nc-actions">
+          <button id="queueCheckBtn" type="button" data-i18n="btn_check_queue">Check queue</button>
+          <button id="queueResetBtn" type="button" class="secondary-btn" data-i18n="btn_reset">Reset</button>
+          <div class="nc-selected-summary" id="ncSelectedSummary" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="matrix-box" id="queueMatrixBox">
+        <div id="ncTotalHero" class="nc-total-hero" style="display: none;" aria-live="polite">
+          <div class="nc-total-hero-label"></div>
+          <div class="nc-total-hero-value"></div>
+          <div class="nc-total-hero-sub"></div>
+        </div>
+        <div class="matrix-summary" id="queueMatrixSummary" data-i18n="matrix_pick_car">Pick a car above to start.</div>
+        <div id="queueMatrixSuggestion"></div>
+        <div class="matrix-rule" id="queueMatrixRule"></div>
+        <div id="queueMatrixTableWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Queue algorithm: scripts/bo-order-lookup.js (BoOrderLookup class)
+    const boMetaEl = document.getElementById('boMeta');
+    const statusEl = document.getElementById('status');
+    const resultCard = document.getElementById('resultCard');
+    const resultMeta = document.getElementById('resultMeta');
+    const detailsBody = document.getElementById('detailsBody');
+    const orderInput = document.getElementById('orderNumberInput');
+    const queueBox = document.getElementById('queueBox');
+    const queueOptionsEl = document.getElementById('queueOptions');
+    const queueMatrixBox = document.getElementById('queueMatrixBox');
+    const queueMatrixSummary = document.getElementById('queueMatrixSummary');
+    const queueMatrixSuggestion = document.getElementById('queueMatrixSuggestion');
+    const queueMatrixRule = document.getElementById('queueMatrixRule');
+    const queueMatrixTableWrap = document.getElementById('queueMatrixTableWrap');
+    const ncTotalHero = document.getElementById('ncTotalHero');
+    const ncTotalHeroLabel = ncTotalHero ? ncTotalHero.querySelector('.nc-total-hero-label') : null;
+    const ncTotalHeroValue = ncTotalHero ? ncTotalHero.querySelector('.nc-total-hero-value') : null;
+    const ncTotalHeroSub = ncTotalHero ? ncTotalHero.querySelector('.nc-total-hero-sub') : null;
+    const productGridEl = document.getElementById('productGrid');
+    const ncStep2 = document.getElementById('ncStep2');
+    const suffixSelect = document.getElementById('suffixSelect');
+    const exteriorSelect = document.getElementById('exteriorSelect');
+    const interiorSelect = document.getElementById('interiorSelect');
+    const queueResetBtn = document.getElementById('queueResetBtn');
+    const ncSelectedSummary = document.getElementById('ncSelectedSummary');
+
+    // Local cache of taxonomy: { products: [{ product, suffixes: [{ suffix, exteriors:[], interiors:[] }] }] }
+    let boTaxonomy = null;
+    let selectedProduct = null;
+    let lastOrderNumber = '';
+    let lastOrderPayload = null;
+
+    function tl(key, vars) {
+      return window.i18nFmt ? i18nFmt(key, vars) : key;
+    }
+
+    function queueOptionTitle(index) {
+      const keys = ['queue_opt_1', 'queue_opt_2', 'queue_opt_3'];
+      if (keys[index]) return tl(keys[index]);
+      return tl('queue_opt_n', { n: index + 1 });
+    }
+
+    function refreshBoSelectDefaults() {
+      if (suffixSelect.options.length) suffixSelect.options[0].textContent = tl('opt_select_suffix');
+      if (exteriorSelect.options.length) exteriorSelect.options[0].textContent = tl('opt_any_ext');
+      if (interiorSelect.options.length) interiorSelect.options[0].textContent = tl('opt_any_int');
+    }
+
+    async function loadMeta() {
+      try {
+        const res = await fetch('/api/bo-data/meta');
+        const data = await res.json();
+        if (!data.exists) {
+          boMetaEl.textContent = tl('meta_no_file');
+          return;
+        }
+        boMetaEl.textContent = `Latest file: ${data.filename} | Sheet: ${data.sheetName} | Rows: ${data.rowCount} | Uploaded: ${new Date(data.uploadedAt).toLocaleString()}`;
+      } catch (e) {
+        boMetaEl.textContent = tl('meta_failed');
+      }
+    }
+
+    function setStatus(text, type) {
+      statusEl.textContent = text;
+      statusEl.className = `status ${type || ''}`;
+    }
+
+    function renderOrderUnits(orderUnits) {
+      const box = document.getElementById('orderUnitsBox');
+      const sub = document.getElementById('orderUnitsSub');
+      const wrap = document.getElementById('orderUnitsTableWrap');
+      if (!box || !sub || !wrap) return;
+      if (!orderUnits || orderUnits.length === 0) {
+        box.style.display = 'none';
+        wrap.innerHTML = '';
+        return;
+      }
+      box.style.display = 'block';
+      const n = orderUnits.length;
+      sub.textContent = n === 1
+        ? '1 line for this order number (queue counts this order once).'
+        : `${n} lines for this order number — queue treats them as one place in line (earliest reservation date).`;
+
+      const columns = new Set();
+      orderUnits.forEach((row) => {
+        Object.keys(row).forEach((k) => {
+          if (!k.startsWith('__') || k === '__sourceSheet') columns.add(k);
+        });
+      });
+      const cols = [...columns].sort((a, b) => {
+        if (a === '__sourceSheet') return 1;
+        if (b === '__sourceSheet') return -1;
+        return a.localeCompare(b, undefined, { sensitivity: 'base' });
+      });
+      const th = cols.map((c) => {
+        const label = c === '__sourceSheet' ? 'Source sheet' : c;
+        return `<th>${escHtml(label)}</th>`;
+      }).join('');
+      const trs = orderUnits.map((row) => {
+        const tds = cols.map((c) => {
+          let v = row[c];
+          if (v === null || v === undefined) v = '';
+          const s = String(v).trim();
+          return `<td>${escHtml(s || '—')}</td>`;
+        }).join('');
+        return `<tr>${tds}</tr>`;
+      }).join('');
+      wrap.innerHTML = `<div style="overflow-x:auto;"><table class="matrix-table order-units-table"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></div>`;
+    }
+
+    function renderDetails(details) {
+      detailsBody.innerHTML = '';
+      Object.entries(details).forEach(([key, value]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<th>${key}</th><td>${value === null || value === undefined || value === '' ? '-' : String(value)}</td>`;
+        detailsBody.appendChild(tr);
+      });
+    }
+
+    function escHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showNcTotalHero({ value, label, sub }) {
+      if (!ncTotalHero || !ncTotalHeroValue || !ncTotalHeroLabel || !ncTotalHeroSub) return;
+      if (value === undefined || value === null || (typeof value === 'number' && Number.isNaN(value))) {
+        ncTotalHero.style.display = 'none';
+        return;
+      }
+      ncTotalHero.style.display = 'block';
+      ncTotalHeroValue.textContent =
+        typeof value === 'number'
+          ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+          : String(value);
+      ncTotalHeroLabel.textContent = label || tl('total');
+      ncTotalHeroSub.textContent = sub || '';
+    }
+
+    function hideNcTotalHero() {
+      if (ncTotalHero) ncTotalHero.style.display = 'none';
+    }
+
+    function scrollNcResultsIntoView() {
+      const el = ncTotalHero && ncTotalHero.style.display !== 'none' ? ncTotalHero : document.getElementById('queueMatrixBox');
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    const NC_PAIR_COUNT_SEP = '\x1f';
+
+    /** BO row counts from taxonomy; exterior/interior totals count any priority slot 1–3. */
+    function refreshNcHeroFromTaxonomy() {
+      if (!selectedProduct || !boTaxonomy) return;
+      const productEntry = boTaxonomy.products.find((p) => p.product === selectedProduct);
+      if (!productEntry) return;
+      const suffix = suffixSelect.value.trim();
+      if (!suffix) {
+        showNcTotalHero({
+          value: productEntry.rowCount,
+          label: 'Total reservations (this model)',
+          sub: 'All suffixes in the latest BO upload. After you run Check queue, this number updates to the combined total across all Ext × Int queues (exterior in Ext Color 1–3, interior in Int Color 1–3 on each row).'
+        });
+        return;
+      }
+      const suffixEntry = productEntry.suffixes.find((s) => s.suffix === suffix);
+      if (!suffixEntry) {
+        showNcTotalHero({
+          value: productEntry.rowCount,
+          label: 'Total reservations (this model)',
+          sub: 'Could not resolve this suffix in taxonomy.'
+        });
+        return;
+      }
+
+      const extSel = (exteriorSelect.value || '*').trim();
+      const intSel = (interiorSelect.value || '*').trim();
+      const extWild = extSel === '*' || extSel === '';
+      const intWild = intSel === '*' || intSel === '';
+
+      const extCounts = suffixEntry.exteriorCountsAnySlot || {};
+      const intCounts = suffixEntry.interiorCountsAnySlot || {};
+      const pairCounts = suffixEntry.pairCountsAnySlot || {};
+
+      let value;
+      let label;
+      let sub;
+
+      if (!extWild && !intWild) {
+        const pk = `${extSel}${NC_PAIR_COUNT_SEP}${intSel}`;
+        value = pairCounts[pk] != null ? pairCounts[pk] : 0;
+        label = 'Cars with this exterior & interior';
+        sub = 'Each BO row counts once if this exterior appears in Ext Color 1, 2, or 3 and this interior in Int Color 1, 2, or 3. Use Check queue for wildcard matrix totals.';
+      } else if (!extWild && intWild) {
+        value = extCounts[extSel] != null ? extCounts[extSel] : 0;
+        label = 'Cars with this exterior (Ext 1–3 merged)';
+        sub = 'Counts every row where this exterior code appears in Exterior Color 1, 2, or 3 (same code in two slots still counts as one row).';
+      } else if (extWild && !intWild) {
+        value = intCounts[intSel] != null ? intCounts[intSel] : 0;
+        label = 'Cars with this interior (Int 1–3 merged)';
+        sub = 'Counts every row where this interior code appears in Interior Color 1, 2, or 3.';
+      } else {
+        value = suffixEntry.rowCount;
+        label = 'Total reservations (this model & suffix)';
+        sub = 'All rows for this suffix. Choose exterior and/or interior to see counts merged across priority columns 1–3.';
+      }
+
+      showNcTotalHero({ value, label, sub });
+    }
+
+    function renderQueueMatrix(matrix) {
+      if (!matrix || !Array.isArray(matrix.possibilities) || matrix.possibilities.length === 0) {
+        queueMatrixSummary.textContent = tl('no_queue');
+        queueMatrixSuggestion.innerHTML = '';
+        queueMatrixRule.textContent = matrix && matrix.rule ? tl('rule_prefix') + matrix.rule : '';
+        queueMatrixTableWrap.innerHTML = '';
+        refreshNcHeroFromTaxonomy();
+        return;
+      }
+      const sm = matrix.summary || {};
+      queueMatrixBox.style.display = 'block';
+      const totalAll = sm.totalCustomersInQueues != null ? sm.totalCustomersInQueues : null;
+      showNcTotalHero({
+        value: totalAll,
+        label: 'Total across all queue combinations',
+        sub: 'Sum of matching reservations in the table (each row: exterior may appear in Ext Color 1–3, interior in Int Color 1–3 on that BO row).'
+      });
+
+      queueMatrixSummary.innerHTML =
+        `${matrix.possibilities.length} queue${matrix.possibilities.length === 1 ? '' : 's'} available · ` +
+        `${sm.distinctExteriors || 0} exterior${(sm.distinctExteriors || 0) === 1 ? '' : 's'} × ` +
+        `${sm.distinctInteriors || 0} interior${(sm.distinctInteriors || 0) === 1 ? '' : 's'}.`;
+
+      const sug = sm.lightestSuggestion;
+      queueMatrixSuggestion.innerHTML = sug
+        ? `<div class="matrix-suggestion">Suggestion: fewest matches is <strong>${escHtml(sug.exteriorColor)} / ${escHtml(sug.interiorColor)}</strong> → <strong>${sug.matchingTotal}</strong> reservation${sug.matchingTotal === 1 ? '' : 's'}.</div>`
+        : '';
+
+      queueMatrixRule.textContent = tl('rule_prefix') + (matrix.rule || '');
+
+      const rowsHtml = matrix.possibilities.map((p, i) => `
+        <tr${i === 0 ? ' class="matrix-row-best"' : ''}>
+          <td>${escHtml(p.exteriorColor)}</td>
+          <td>${escHtml(p.interiorColor)}</td>
+          <td class="matrix-rank">${p.matchingTotal}</td>
+        </tr>
+      `).join('');
+
+      queueMatrixTableWrap.innerHTML = `
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Exterior Color</th>
+              <th>Interior Color</th>
+              <th>Matching reservations</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      `;
+    }
+
+    function renderInteriorVariantBlock(cc) {
+      if (!cc || !Object.prototype.hasOwnProperty.call(cc, 'interiorVariantQueues')) return '';
+      const rows = cc.interiorVariantQueues;
+      if (!Array.isArray(rows)) return '';
+      if (rows.length === 0) {
+        return `
+          <div class="int-variant-wrap">
+            <p class="int-variant-hint">Int Color 1 is <strong>*</strong>. No concrete interior codes appear with this exterior among same product/suffix peers, so no per-interior breakdown is available.</p>
+          </div>`;
+      }
+      const tbody = rows.map((r) => {
+        const pos = r.position != null ? String(r.position) : '—';
+        return `<tr><td>${escHtml(String(r.interiorColor ?? ''))}</td><td class="matrix-rank">${escHtml(pos)}</td><td class="matrix-rank">${escHtml(String(r.total ?? ''))}</td></tr>`;
+      }).join('');
+      const gapOrders = Array.isArray(cc.exteriorOnlyGapOrders) ? cc.exteriorOnlyGapOrders : [];
+      const gapOthers = gapOrders.filter((g) => !g.isMatchedOrder);
+      let gapHtml = '';
+      if (gapOthers.length) {
+        const gapRows = gapOthers.map((g) => {
+          const ord = g.orderNumber ? String(g.orderNumber) : '—';
+          const intDisp = g.interiorColor1 != null && String(g.interiorColor1).trim() !== ''
+            ? String(g.interiorColor1).trim()
+            : '(blank)';
+          return `<tr><td>${escHtml(ord)}</td><td>${escHtml(intDisp)}</td></tr>`;
+        }).join('');
+        gapHtml = `
+            <div class="int-variant-gap">
+              <div class="int-variant-hint"><strong>${gapOthers.length}</strong> order${gapOthers.length === 1 ? '' : 's'} in the exterior-only total (${escHtml(String(cc.total ?? ''))}) but not in the per-interior table above (Int Color 1 is not one of the listed interiors):</div>
+              <table class="matrix-table int-variant-table">
+                <thead><tr><th>Order number</th><th>Int Color 1</th></tr></thead>
+                <tbody>${gapRows}</tbody>
+              </table>
+            </div>`;
+      }
+      return `
+          <div class="int-variant-wrap">
+            <div class="int-variant-hint">Int Color 1 is <strong>*</strong> (any interior). Below: each concrete interior that appears with this exterior among peers. Each line includes orders with that interior <strong>or Int Color 1 *</strong>. <strong>Your position</strong> is where this order sits in that combined line (same date and order-number rules as above). Shortest lines first.</div>
+            <table class="matrix-table int-variant-table">
+              <thead><tr><th>Interior</th><th>Your position</th><th>Total in line</th></tr></thead>
+              <tbody>${tbody}</tbody>
+            </table>
+            ${gapHtml}
+          </div>`;
+    }
+
+    function formatBoDate(value) {
+      if (value == null || value === '') return '—';
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      return String(value);
+    }
+
+    function renderQueue(queue) {
+      if (!queue) {
+        queueBox.style.display = 'none';
+        return;
+      }
+      queueBox.style.display = 'block';
+      const qr = queue.queueResult || {};
+      const values = queue.values || {};
+      const pairQueues = Array.isArray(queue.pairQueues) && queue.pairQueues.length
+        ? queue.pairQueues
+        : (queue.referencePairs || []).map((p) => ({
+            tier: p.tier,
+            exterior: p.exterior,
+            interior: p.interior,
+            position: qr.position,
+            ordersAhead: qr.ordersAhead,
+            totalQueueSize: qr.totalQueueSize
+          }));
+
+      function statCard(label, value, primary) {
+        return `
+          <div class="queue-stat-card${primary ? ' primary' : ''}">
+            <div class="qsc-label">${escHtml(label)}</div>
+            <div class="qsc-value">${escHtml(value != null ? String(value) : '—')}</div>
+          </div>`;
+      }
+
+      const pairCardsHtml = pairQueues.map((pq, idx) => {
+        const tierLabel = pq.tier != null ? `Tier ${pq.tier}` : `Pair ${idx + 1}`;
+        const wildNote = pq.expandedFromWildcard && pq.wildcardSource
+          ? `<span class="pair-wild-note">from ${escHtml(pq.wildcardSource)} (* = any)</span>`
+          : '';
+        const pairChip = `<span class="color-pair-chip"><span class="cp-ext">${escHtml(pq.exterior)}</span><span class="cp-sep">/</span><span class="cp-int">${escHtml(pq.interior)}</span></span>`;
+        return `
+          <div class="pair-queue-card">
+            <div class="pair-queue-head">
+              <span class="pair-queue-tier">${escHtml(tierLabel)}</span>
+              ${pairChip}
+              ${wildNote}
+            </div>
+            <div class="queue-hero-grid">
+              ${statCard('Queue Position', pq.position, true)}
+              ${statCard('Orders Ahead', pq.ordersAhead, false)}
+              ${statCard('Total Queue', pq.totalQueueSize, false)}
+            </div>
+          </div>`;
+      }).join('');
+
+      const hasWildExpand = pairQueues.some((pq) => pq.expandedFromWildcard);
+      const wildBanner = hasWildExpand
+        ? `<div class="queue-wild-banner"><strong>*</strong> means any color — this order is shown in every concrete Ext/Int queue for this Product + Suffix (e.g. 202/* → 202/00 and 202/20).</div>`
+        : '';
+
+      queueOptionsEl.innerHTML = `
+        <div class="queue-meta-row">
+          <span><strong>Back Order:</strong> ${escHtml(String(values.orderNumber ?? ''))}</span>
+          <span><strong>Product:</strong> ${escHtml(String(values.product ?? qr.product ?? ''))}</span>
+          <span><strong>Suffix:</strong> ${escHtml(String(values.suffix ?? qr.suffix ?? ''))}</span>
+          <span><strong>Reservation:</strong> ${escHtml(formatBoDate(qr.reservationDate || values.reservationDate))}</span>
+        </div>
+        ${wildBanner}
+        <div class="pair-queue-grid">${pairCardsHtml}</div>
+      `;
+    }
+
+    function renderExactQueue(data) {
+      queueMatrixBox.style.display = 'block';
+      const raw = data.matchingTotal != null ? data.matchingTotal : data.queueSizeBeforeAdding;
+      const nNum = typeof raw === 'number' && !Number.isNaN(raw) ? raw : null;
+      if (nNum != null) {
+        showNcTotalHero({
+          value: nNum,
+          label: 'Matching reservations',
+          sub: `Product ${String(data.product ?? '')} + suffix ${String(data.suffix ?? '')}; colors ${String(data.exteriorColor ?? '')} / ${String(data.interiorColor ?? '')}. Exterior checked in Ext Color 1–3 and interior in Int Color 1–3 on each row.`
+        });
+      } else {
+        refreshNcHeroFromTaxonomy();
+      }
+      const nDisp = raw != null && raw !== undefined ? String(raw) : '—';
+      queueMatrixSummary.innerHTML =
+        `Matching reservations: <strong>${escHtml(nDisp)}</strong> for ${escHtml(data.product)} + ${escHtml(data.suffix)} ` +
+        `(${escHtml(data.exteriorColor)} / ${escHtml(data.interiorColor)}).`;
+      queueMatrixSuggestion.innerHTML = '';
+      queueMatrixRule.textContent = tl('rule_prefix') + (data.rule || '');
+      queueMatrixTableWrap.innerHTML = '';
+    }
+
+    function productSlug(name) {
+      return String(name || '').toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    // Maps BO product codes to the actual image filenames present in
+    // /images/cars/. Multiple basenames per product are tried in order.
+    const productImageAliases = {
+      '86':            ['gr86'],
+      'gr 86':         ['gr86'],
+      'gr86':          ['gr86'],
+      'hilux dc':      ['hilux double cab'],
+      'hilux double cab': ['hilux double cab'],
+      'hilux sc':      ['hilux single cab', 'Hilux single cab'],
+      'hilux single cab': ['hilux single cab', 'Hilux single cab'],
+      'lc70':          ['land cruiser hard top', 'land cruiser pickup', 'land cruiser'],
+      'lc 70':         ['land cruiser hard top', 'land cruiser pickup', 'land cruiser'],
+      'land cruiser 70': ['land cruiser hard top', 'land cruiser pickup', 'land cruiser'],
+      'lc300':         ['land cruiser', 'land cruiser hard top'],
+      'lc 300':        ['land cruiser', 'land cruiser hard top'],
+      'land cruiser 300': ['land cruiser', 'land cruiser hard top'],
+      'land cruiser':  ['land cruiser'],
+      'land cruiser pickup': ['land cruiser pickup'],
+      'land cruiser hard top': ['land cruiser hard top'],
+      'rav 4':         ['rav4'],
+      'rav4':          ['rav4'],
+      'corolla cross': ['corolla cross'],
+      'urban cruiser': ['urban cruiser'],
+      'yaris':           ['yaris'],
+      'yaris sd':        ['yaris'],
+      'coaster':         ['coaster'],
+      'supra':           ['supra'],
+      'gr supra':        ['supra'],
+      'lite ace':        ['lite ace'],
+      'liteace':         ['lite ace'],
+      'hiace bus':       ['hiace bus'],
+      'hiace van':       ['hiace van']
+    };
+
+    function productImageCandidates(productName) {
+      const lower = String(productName || '').toLowerCase().trim();
+      const noSpace = lower.replace(/\s+/g, '');
+      const slug = productSlug(productName);
+      const aliasNames = productImageAliases[lower] || [];
+      const exts = ['png', 'jpg', 'jpeg', 'webp'];
+      const candidates = new Set();
+
+      // 1) Aliased filenames (highest priority).
+      aliasNames.forEach((basename) => {
+        exts.forEach((ext) => {
+          candidates.add(`/images/cars/${encodeURIComponent(basename)}.${ext}`);
+        });
+      });
+      // 2) Direct variations of the product name.
+      exts.forEach((ext) => {
+        if (lower)   candidates.add(`/images/cars/${encodeURIComponent(lower)}.${ext}`);
+        if (noSpace) candidates.add(`/images/cars/${noSpace}.${ext}`);
+        if (slug)    candidates.add(`/images/cars/${slug}.${ext}`);
+      });
+      return Array.from(candidates);
+    }
+
+    function attachImageWithFallback(imgEl, fallbackEl, urls) {
+      let i = 0;
+      function tryNext() {
+        if (i >= urls.length) {
+          imgEl.style.display = 'none';
+          fallbackEl.style.display = 'block';
+          return;
+        }
+        imgEl.onerror = () => { i += 1; tryNext(); };
+        imgEl.src = urls[i];
+      }
+      imgEl.style.display = 'block';
+      fallbackEl.style.display = 'none';
+      tryNext();
+    }
+
+    function renderProductGrid() {
+      productGridEl.innerHTML = '';
+      if (!boTaxonomy || !Array.isArray(boTaxonomy.products) || boTaxonomy.products.length === 0) {
+        productGridEl.innerHTML = `<div class="meta">${tl('no_cars')}</div>`;
+        return;
+      }
+      boTaxonomy.products.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.dataset.product = p.product;
+
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'pc-img-wrap';
+
+        const img = document.createElement('img');
+        img.alt = p.product;
+
+        const fallback = document.createElement('div');
+        fallback.className = 'pc-fallback';
+        fallback.textContent = p.product;
+
+        imgWrap.appendChild(img);
+        imgWrap.appendChild(fallback);
+        attachImageWithFallback(img, fallback, productImageCandidates(p.product));
+
+        const pill = document.createElement('div');
+        pill.className = 'pc-pill';
+        pill.textContent = tl('on_order', { n: p.rowCount });
+
+        const name = document.createElement('div');
+        name.className = 'pc-name';
+        name.textContent = p.product;
+
+        const meta = document.createElement('div');
+        meta.className = 'pc-meta';
+        meta.textContent = p.suffixes.length === 1
+          ? tl('suffixes_avail', { n: p.suffixes.length })
+          : tl('suffixes_avail_plural', { n: p.suffixes.length });
+
+        card.appendChild(pill);
+        card.appendChild(imgWrap);
+        card.appendChild(name);
+        card.appendChild(meta);
+        card.addEventListener('click', () => selectProduct(p.product));
+        productGridEl.appendChild(card);
+      });
+    }
+
+    function setProductCardSelection(productName) {
+      productGridEl.querySelectorAll('.product-card').forEach((el) => {
+        el.classList.toggle('selected', el.dataset.product === productName);
+      });
+    }
+
+    function selectProduct(productName, opts = {}) {
+      if (!boTaxonomy) return;
+      const productEntry = boTaxonomy.products.find((p) => p.product === productName);
+      if (!productEntry) return;
+      selectedProduct = productName;
+      setProductCardSelection(productName);
+
+      ncStep2.classList.remove('disabled');
+
+      suffixSelect.innerHTML = `<option value="">${tl('opt_select_suffix')}</option>`;
+      productEntry.suffixes.forEach((s) => {
+        const opt = document.createElement('option');
+        opt.value = s.suffix;
+        opt.textContent = `${s.suffix} (${s.rowCount})`;
+        suffixSelect.appendChild(opt);
+      });
+      suffixSelect.value = '';
+
+      resetColorSelectors();
+      updateSelectedSummary();
+      refreshNcHeroFromTaxonomy();
+      if (opts.scroll !== false) scrollNcResultsIntoView();
+    }
+
+    function resetColorSelectors() {
+      exteriorSelect.innerHTML = `<option value="*">${tl('opt_any_ext')}</option>`;
+      interiorSelect.innerHTML = `<option value="*">${tl('opt_any_int')}</option>`;
+      exteriorSelect.value = '*';
+      interiorSelect.value = '*';
+    }
+
+    function populateColorsForSuffix() {
+      if (!boTaxonomy || !selectedProduct || !suffixSelect.value) {
+        resetColorSelectors();
+        updateSelectedSummary();
+        refreshNcHeroFromTaxonomy();
+        return;
+      }
+      const productEntry = boTaxonomy.products.find((p) => p.product === selectedProduct);
+      if (!productEntry) return;
+      const suffixEntry = productEntry.suffixes.find((s) => s.suffix === suffixSelect.value);
+      if (!suffixEntry) return;
+
+      exteriorSelect.innerHTML = `<option value="*">${tl('opt_any_ext')}</option>`;
+      suffixEntry.exteriors.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        exteriorSelect.appendChild(opt);
+      });
+
+      interiorSelect.innerHTML = `<option value="*">${tl('opt_any_int')}</option>`;
+      suffixEntry.interiors.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        interiorSelect.appendChild(opt);
+      });
+
+      exteriorSelect.value = '*';
+      interiorSelect.value = '*';
+      updateSelectedSummary();
+      refreshNcHeroFromTaxonomy();
+    }
+
+    function updateSelectedSummary() {
+      if (!selectedProduct) {
+        ncSelectedSummary.style.display = 'none';
+        ncSelectedSummary.textContent = '';
+        return;
+      }
+      const parts = [`Car: ${selectedProduct}`];
+      if (suffixSelect.value) parts.push(`Suffix: ${suffixSelect.value}`);
+      parts.push(`Ext: ${exteriorSelect.value || '*'}`);
+      parts.push(`Int: ${interiorSelect.value || '*'}`);
+      ncSelectedSummary.textContent = parts.join(' · ');
+      ncSelectedSummary.style.display = 'inline-block';
+    }
+
+    async function loadBoTaxonomy() {
+      try {
+        const res = await fetch('/api/bo-data/taxonomy');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          productGridEl.innerHTML = `<div class="meta">${escHtml(data.error || 'Failed to load taxonomy.')}</div>`;
+          return;
+        }
+        boTaxonomy = await res.json();
+        renderProductGrid();
+      } catch (e) {
+        productGridEl.innerHTML = `<div class="meta">Failed to load BO taxonomy: ${escHtml(e.message || '')}</div>`;
+      }
+    }
+
+    async function searchNewCustomerQueue() {
+      if (!selectedProduct) {
+        queueMatrixSummary.textContent = tl('pick_car_first');
+        queueMatrixSuggestion.innerHTML = '';
+        queueMatrixRule.textContent = '';
+        queueMatrixTableWrap.innerHTML = '';
+        hideNcTotalHero();
+        return;
+      }
+      const suffix = suffixSelect.value.trim();
+      if (!suffix) {
+        queueMatrixSummary.textContent = tl('pick_suffix');
+        queueMatrixSuggestion.innerHTML = '';
+        queueMatrixRule.textContent = '';
+        queueMatrixTableWrap.innerHTML = '';
+        refreshNcHeroFromTaxonomy();
+        return;
+      }
+      const exteriorColor = exteriorSelect.value || '*';
+      const interiorColor = interiorSelect.value || '*';
+
+      queueMatrixSummary.textContent = tl('calc_queue');
+      queueMatrixSuggestion.innerHTML = '';
+      queueMatrixRule.textContent = '';
+      queueMatrixTableWrap.innerHTML = '';
+
+      try {
+        const qs = new URLSearchParams({
+          product: selectedProduct,
+          suffix,
+          exteriorColor,
+          interiorColor
+        });
+        const res = await fetch(`/api/bo-data/new-customer-queue?${qs.toString()}`);
+        const data = await res.json();
+        if (!res.ok) {
+          queueMatrixSummary.textContent = data.error || `Failed (${res.status})`;
+          refreshNcHeroFromTaxonomy();
+          return;
+        }
+        if (data.wildcard) renderQueueMatrix(data);
+        else renderExactQueue(data);
+        scrollNcResultsIntoView();
+      } catch (e) {
+        queueMatrixSummary.textContent = `Failed to calculate queue number: ${e.message || 'Try again.'}`;
+        refreshNcHeroFromTaxonomy();
+      }
+    }
+
+    function resetNewCustomerQueue() {
+      selectedProduct = null;
+      hideNcTotalHero();
+      setProductCardSelection(null);
+      ncStep2.classList.add('disabled');
+      suffixSelect.innerHTML = `<option value="">${tl('opt_select_suffix')}</option>`;
+      resetColorSelectors();
+      updateSelectedSummary();
+      queueMatrixSummary.textContent = tl('matrix_pick_car');
+      queueMatrixSuggestion.innerHTML = '';
+      queueMatrixRule.textContent = '';
+      queueMatrixTableWrap.innerHTML = '';
+    }
+
+    function fillNewCustomerQueueFromOrder(queue) {
+      if (!boTaxonomy || !queue || !queue.values) return;
+      const productName = String(queue.values.product || '').trim();
+      const suffixName = String(queue.values.suffix || '').trim();
+      if (!productName) return;
+      const productEntry = boTaxonomy.products.find((p) => normalize(p.product) === normalize(productName));
+      if (!productEntry) return;
+      selectProduct(productEntry.product, { scroll: false });
+      if (suffixName) {
+        const suffixEntry = productEntry.suffixes.find((s) => normalize(s.suffix) === normalize(suffixName));
+        if (suffixEntry) {
+          suffixSelect.value = suffixEntry.suffix;
+          populateColorsForSuffix();
+        }
+      }
+      exteriorSelect.value = '*';
+      interiorSelect.value = '*';
+      updateSelectedSummary();
+      refreshNcHeroFromTaxonomy();
+    }
+
+    function normalize(s) {
+      return String(s ?? '').trim().toLowerCase();
+    }
+
+    async function searchOrder() {
+      const orderNumber = orderInput.value.trim();
+      resultCard.style.display = 'none';
+      if (!orderNumber) {
+        setStatus(tl('status_enter_order'), 'err');
+        return;
+      }
+
+      lastOrderNumber = orderNumber;
+      setStatus(tl('status_searching'), '');
+      try {
+        const res = await fetch(`/api/bo-data/order/${encodeURIComponent(orderNumber)}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus(data.error || tl('status_not_found'), 'err');
+          return;
+        }
+
+        lastOrderPayload = data;
+        setStatus(tl('status_order_found', { col: data.matchedColumn }), 'ok');
+        resultMeta.textContent = `Source: ${data.source.filename} | Sheet: ${data.source.sheetName} | Uploaded: ${new Date(data.source.uploadedAt).toLocaleString()}`;
+        renderQueue(data.queue);
+        renderOrderUnits(data.orderUnits);
+        renderDetails(data.details);
+        resultCard.style.display = 'block';
+        fillNewCustomerQueueFromOrder(data.queue);
+      } catch (e) {
+        setStatus(tl('status_lookup_fail'), 'err');
+      }
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', searchOrder);
+    document.getElementById('queueCheckBtn').addEventListener('click', searchNewCustomerQueue);
+    queueResetBtn.addEventListener('click', resetNewCustomerQueue);
+    suffixSelect.addEventListener('change', populateColorsForSuffix);
+    exteriorSelect.addEventListener('change', () => {
+      updateSelectedSummary();
+      refreshNcHeroFromTaxonomy();
+    });
+    interiorSelect.addEventListener('change', () => {
+      updateSelectedSummary();
+      refreshNcHeroFromTaxonomy();
+    });
+    orderInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchOrder();
+    });
+
+    loadMeta();
+    loadBoTaxonomy();
+
+    PageTranslate.init('bo-order-lookup', PAGE_TRANSLATIONS['bo-order-lookup'], {
+      onLangChange() {
+        refreshBoSelectDefaults();
+        loadMeta();
+        if (boTaxonomy && boTaxonomy.products) {
+          const sel = selectedProduct;
+          renderProductGrid();
+          if (sel) selectProduct(sel);
+        }
+        if (lastOrderPayload && resultCard.style.display !== 'none') {
+          setStatus(tl('status_order_found', { col: lastOrderPayload.matchedColumn }), 'ok');
+          renderQueue(lastOrderPayload.queue);
+          renderOrderUnits(lastOrderPayload.orderUnits);
+          renderDetails(lastOrderPayload.details);
+        }
+        if (!selectedProduct) {
+          queueMatrixSummary.textContent = tl('matrix_pick_car');
+        } else if (suffixSelect.value) {
+          searchNewCustomerQueue();
+        }
+      }
+    });
+    refreshBoSelectDefaults();
+  </script>
+</body>
+</html>
