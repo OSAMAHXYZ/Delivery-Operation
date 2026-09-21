@@ -158,13 +158,13 @@ const HEADER_MAP = Object.freeze({
   product: ['product', 'product name', 'model', 'المنتج'],
   damage: ['damage', 'ضرر'],
   pic: ['pic', 'p.i.c', 'assigned', 'assigned to', 'assignee', 'employee', 'المسؤول', 'مسؤول'],
-  salesType: ['sales type', 'نوع البيع', 'طريقة البيع'],
-  invoiceOwner: ['invoice owner', 'مالك الفاتورة'],
+  salesType: ['sales type', 'sales type2', 'نوع البيع', 'طريقة البيع'],
+  invoiceOwner: ['invoice owner', 'owner', 'مالك الفاتورة'],
   userName: [
     'customer name', 'customer', 'اسم العميل', 'اسم الزبون',
     'user name', 'username', 'اسم المستخدم',
   ],
-  salesAdvisor: ['s/a', 'sa', 's a', 'sales advisor', 'مستشار المبيعات'],
+  salesAdvisor: ['s/a', 's a', 'sales advisor', 'مستشار المبيعات'],
   proformaDate: ['proforma date', 'proforma invoice date', 'pro forma date', 'تاريخ البروفورما'],
   deliveryDate: ['delivery date', 'تاريخ التسليم'],
   gtLocation: ['gt location', 'gt', 'موقع gt'],
@@ -270,7 +270,13 @@ const RAW_COL = Object.freeze({
 
 /** E sales / Delivery sheet fixed column indexes (0-based) */
 const E_SALES_COL = Object.freeze({
+  salesOrder: 1,
+  product: 3,
   pic: 5,
+  salesType: 6,
+  invoiceOwner: 7,
+  userName: 8,
+  salesAdvisor: 9,
   carrier: 24, // الناقل
   transferCity: 23, // مدينة الترحيل
   status: 17, // الحالة Status

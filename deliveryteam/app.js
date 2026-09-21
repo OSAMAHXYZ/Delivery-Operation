@@ -19,7 +19,7 @@
     assignEmployee: '',
     editsTimer: null,
     liveTimer: null,
-    liveFilters: { q: '', employee: '', status: '', month: '', carrier: '' },
+    liveFilters: { q: '', employee: '', status: '', month: '', carrier: '', proforma: '' },
     liveFingerprint: '',
     monthFilter: '',
     guestTickTimer: null,
@@ -43,9 +43,9 @@
     return s && s !== 'N/A' ? s : 'N/A';
   }
 
-  /** Customer / phone / invoice owner — admin only. */
+  /** Customer / phone / invoice owner — Admin + Hanouf. */
   function canSeePii() {
-    return !!(state.user && state.user.role === 'admin');
+    return !!(state.user && (state.user.role === 'admin' || state.user.role === 'hanouf'));
   }
 
   function displayName(value) {
@@ -484,6 +484,11 @@
 
   async function loadLiveSheet({ silent = false } = {}) {
     const f = state.liveFilters;
+    // Hanouf: her assigned VINs with today's proforma only
+    if (state.user && state.user.role === 'hanouf') {
+      if (!f.employee) f.employee = 'Hanouf';
+      f.proforma = 'today';
+    }
     const params = new URLSearchParams();
     params.set('tzOffset', String(state.tzOffset));
     params.set('sort', 'updatedAt');
@@ -493,6 +498,7 @@
     if (f.status) params.set('status', f.status);
     if (f.carrier) params.set('carrier', f.carrier);
     if (f.month) params.set('month', f.month);
+    if (f.proforma) params.set('proforma', f.proforma);
     const data = await api(`/live-sheet?${params}`);
     if (data.hubRaw) renderRawStatus(data.hubRaw);
     const rows = data.rows || [];
@@ -852,7 +858,7 @@
     return esc(v || '—');
   }
 
-  function scheduleColumns({ editable = false, carrierEditable = false } = {}) {
+  function scheduleColumns({ editable = false, carrierEditable = false, hideCarrier = false } = {}) {
     const cols = [
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Order', (r) => na(r.raw.salesOrder)],
@@ -888,7 +894,11 @@
         ['Insurance', (r) => editableControl(r.vin, 'insuranceOps', 'yn', r.ops.insuranceOps)],
         ['إصدار الاستمارة', (r) => editableControl(r.vin, 'registrationIssueDate', 'date', r.ops.registrationIssueDate)],
         ['مدينة الترحيل', (r) => editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity)],
-        ['الناقل', (r) => editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)],
+      );
+      if (!hideCarrier) {
+        cols.push(['الناقل', (r) => editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)]);
+      }
+      cols.push(
         ['ملاحظات', (r) => editableControl(r.vin, 'notes', 'notes', r.ops.notes)],
         ['Open', (r) => `<button type="button" class="btn vin-link" data-vin="${esc(r.vin)}">Full edit</button>`],
       );
@@ -905,9 +915,13 @@
         ['Insurance', (r) => ynBadge(r.ops.insuranceOps)],
         ['إصدار الاستمارة', (r) => na(r.ops.registrationIssueDate)],
         ['مدينة الترحيل', (r) => na(r.ops.transferCity)],
-        ['الناقل', (r) => (carrierEditable
+      );
+      if (!hideCarrier) {
+        cols.push(['الناقل', (r) => (carrierEditable
           ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)
-          : na(r.ops.carrier))],
+          : na(r.ops.carrier))]);
+      }
+      cols.push(
         ['ملاحظات', (r) => esc((r.ops.notes || '').slice(0, 40))],
         ['Employee', (r) => na(r.ops.assignedEmployeeName)],
       );
@@ -967,27 +981,21 @@
   function fillCarrierLists() {
     const carriers = (state.meta && state.meta.carriers) || [];
     const html = carriers.map((c) => `<option value="${esc(c)}"></option>`).join('');
-    ['#edit-carrier-list', '#all-carrier-list', '#assign-carrier-list'].forEach((sel) => {
+    ['#edit-carrier-list', '#all-carrier-list'].forEach((sel) => {
       const el = $(sel);
       if (el) el.innerHTML = html;
     });
-    const bulk = $('#assign-bulk-carrier');
-    if (bulk && bulk.tagName === 'SELECT' && !bulk.dataset.filled) {
-      bulk.innerHTML = `<option value="">— اختر الناقل —</option>${carriers.map((c) =>
-        `<option value="${esc(c)}">${esc(c)}</option>`
-      ).join('')}`;
-      bulk.dataset.filled = '1';
-    }
   }
 
   function renderScheduleTable(tableEl, rows, {
     selectable = false,
     editable = false,
     carrierEditable = false,
+    hideCarrier = false,
     selectionSet = null,
   } = {}) {
     const selected = selectionSet || state.selectedVins;
-    const cols = scheduleColumns({ editable, carrierEditable });
+    const cols = scheduleColumns({ editable, carrierEditable, hideCarrier });
     const head = `<thead><tr>${selectable ? '<th></th>' : ''}${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
     const body = `<tbody>${rows.map((r) => {
       const statusCls = statusRowClass(r.ops.opsStatus);
@@ -1141,9 +1149,15 @@
   }
 
   async function loadMy() {
-    // Hanouf "My VINs" = rows assigned to herself (she can receive assignments)
+    // Hanouf "My VINs" = her assignments with today's proforma only
     if (state.user.role === 'hanouf') {
       state.filters.employee = 'Hanouf';
+    }
+    const myHint = $('#my-vins-hint');
+    if (myHint) {
+      myHint.textContent = state.user.role === 'hanouf'
+        ? 'Today’s Proforma only · edit your work · select VINs to hand over'
+        : 'Edit your work below · select VINs to hand over to another employee';
     }
     buildToolbar($('#my-toolbar'), { showEmployee: false });
     const cities = (state.meta && state.meta.transferCities) || [];
@@ -1154,7 +1168,9 @@
     if (carrierList) carrierList.innerHTML = carriers.map((c) => `<option value="${esc(c)}"></option>`).join('');
     fillCarrierLists();
 
-    const pack = await api(`/vehicles?${filterQuery()}`);
+    const pack = await api(`/vehicles?${filterQuery(
+      state.user.role === 'hanouf' ? { proforma: 'today' } : {}
+    )}`);
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     const w = state.user.role === 'employee'
       ? (dash.myWorkload || {})
@@ -1194,7 +1210,7 @@
     state.selectedVins.clear();
     fillCarrierLists();
     renderAssignEmpGrid();
-    await loadAssignPool(true);
+    await loadAssignPool();
     renderAssignDisplay();
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     $('#assign-lanes').innerHTML = (dash.employees || []).map((e) => {
@@ -1268,13 +1284,13 @@
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  async function loadAssignPool(todayOnly) {
-    const data = await api(`/unassigned?tzOffset=${state.tzOffset}${todayOnly ? '&today=1' : ''}`);
+  async function loadAssignPool() {
+    const data = await api(`/unassigned?tzOffset=${state.tzOffset}`);
     state.assignPool = data.rows || [];
     renderAssignPool();
-    $('#assign-pool-hint').textContent = todayOnly
-      ? `${state.assignPool.length} today’s unassigned · check VINs then Submit & display`
-      : `${state.assignPool.length} unassigned · check VINs then Submit & display`;
+    const today = data.today || '';
+    const yesterday = data.yesterday || '';
+    $('#assign-pool-hint').textContent = `${state.assignPool.length} unassigned · proforma ${today || 'today'} / ${yesterday || 'yesterday'} · check VINs then Submit & display`;
   }
 
   function renderAssignPool() {
@@ -1282,16 +1298,17 @@
     let rows = state.assignPool || [];
     if (q) {
       rows = rows.filter((r) =>
-        `${r.vin} ${r.raw.product} ${r.raw.salesOrder} ${r.raw.salesType}`.toLowerCase().includes(q)
+        `${r.vin} ${r.raw.product} ${r.raw.salesOrder} ${r.raw.salesType} ${r.raw.salesAdvisor}`.toLowerCase().includes(q)
       );
     }
     const cols = [
       ['VIN', (r) => esc(r.vin)],
+      ['Order', (r) => na(r.raw.salesOrder)],
       ['Product', (r) => na(r.raw.product)],
       ['Sales Type', (r) => na(r.raw.salesType)],
+      ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Status', (r) => statusBadge(r.ops.opsStatus)],
-      ['Currently', (r) => na(r.ops.assignedEmployeeName)],
     ];
     const head = `<thead><tr><th></th>${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
     const body = `<tbody>${rows.map((r) => {
@@ -1300,7 +1317,7 @@
         <td><input class="checkbox assign-pool-check" type="checkbox" data-vin="${esc(r.vin)}" ${checked} /></td>
         ${cols.map((c) => `<td>${c[1](r)}</td>`).join('')}
       </tr>`;
-    }).join('') || '<tr><td colspan="7">No unassigned VINs in this pool.</td></tr>'}</tbody>`;
+    }).join('') || '<tr><td colspan="8">No unassigned VINs with today’s or yesterday’s proforma.</td></tr>'}</tbody>`;
     $('#assign-pool-table').innerHTML = head + body;
     $$('.assign-pool-check').forEach((cb) => cb.addEventListener('change', () => {
       if (cb.checked) state.selectedVins.add(cb.dataset.vin);
@@ -1324,13 +1341,30 @@
       alert('Select VINs from the pool and/or paste VINs, then Submit & display.');
       return;
     }
-    const data = await api('/resolve-vins', { method: 'POST', json: { vins } });
+    const data = await api('/resolve-vins', {
+      method: 'POST',
+      json: { vins, tzOffset: state.tzOffset },
+    });
     state.assignDisplay = data.rows || [];
+    const notes = [];
     if (data.missing && data.missing.length) {
-      alert(`${data.missing.length} VIN(s) not found in Raw Data:\n${data.missing.slice(0, 12).join('\n')}`);
+      notes.push(`${data.missing.length} not found in Raw Data:\n${data.missing.slice(0, 12).join('\n')}`);
     }
+    if (data.alreadyAssigned && data.alreadyAssigned.length) {
+      notes.push(
+        `${data.alreadyAssigned.length} already assigned (skipped):\n`
+        + data.alreadyAssigned.slice(0, 12).map((x) => `${x.vin} → ${x.employee || '—'}`).join('\n')
+      );
+    }
+    if (data.outOfWindow && data.outOfWindow.length) {
+      notes.push(
+        `${data.outOfWindow.length} skipped (proforma must be today ${data.today || ''} or yesterday ${data.yesterday || ''}):\n`
+        + data.outOfWindow.slice(0, 12).map((x) => `${x.vin} · ${x.proformaDate}`).join('\n')
+      );
+    }
+    if (notes.length) alert(notes.join('\n\n'));
     if (!state.assignDisplay.length) {
-      alert('None of the submitted VINs were found. Upload Raw Data first.');
+      alert('No assignable VINs left. Already assigned / out of date / missing from Raw Data.');
       return;
     }
     state.selectedVins.clear();
@@ -1353,8 +1387,7 @@
     empty.hidden = true;
     body.hidden = false;
     $('#assign-display-count').textContent = String(rows.length);
-    fillCarrierLists();
-    renderScheduleTable($('#assign-display-table'), rows, { selectable: false, carrierEditable: true });
+    renderScheduleTable($('#assign-display-table'), rows, { selectable: false, hideCarrier: true });
     updateAssignConfirmState();
   }
 
@@ -1362,42 +1395,31 @@
     const emp = state.assignEmployee;
     const has = (state.assignDisplay || []).length > 0;
     $('#assign-confirm-btn').disabled = !(emp && has);
-    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
     $('#assign-picked-label').textContent = emp
-      ? `Selected: ${emp}${carrier ? ` · الناقل: ${carrier}` : ''} · ${state.assignDisplay.length} VIN(s)`
+      ? `Selected: ${emp} · ${state.assignDisplay.length} VIN(s)`
       : 'No employee selected';
     $$('.assign-emp-btn').forEach((b) => b.classList.toggle('active', b.dataset.emp === emp));
-    const carrierBtn = $('#assign-carrier-btn');
-    if (carrierBtn) carrierBtn.disabled = !(has && carrier);
   }
 
   async function doAssign() {
     const employee = state.assignEmployee;
     const vins = (state.assignDisplay || []).map((r) => r.vin);
-    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
     if (!employee) return alert('Choose an employee first');
     if (!vins.length) return alert('Submit & display VINs first');
-    const res = await api('/assign', { method: 'POST', json: { vins, employee, carrier: carrier || undefined } });
+    const res = await api('/assign', {
+      method: 'POST',
+      json: { vins, employee, tzOffset: state.tzOffset },
+    });
     const ok = (res.results || []).filter((r) => r.ok).length;
-    alert(`Assigned ${ok} VIN(s) to ${employee}${carrier ? ` · الناقل: ${carrier}` : ''}`);
+    const failed = (res.results || []).filter((r) => !r.ok);
+    let msg = `Assigned ${ok} VIN(s) to ${employee}`;
+    if (failed.length) {
+      msg += `\n${failed.length} failed:\n${failed.slice(0, 8).map((r) => `${r.vin}: ${r.error}`).join('\n')}`;
+    }
+    alert(msg);
     state.assignDisplay = [];
     state.assignEmployee = '';
-    if ($('#assign-bulk-carrier')) $('#assign-bulk-carrier').value = '';
     await loadAssign();
-  }
-
-  async function doAssignCarrier() {
-    const vins = (state.assignDisplay || []).map((r) => r.vin);
-    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
-    if (!vins.length) return alert('Submit & display VINs first');
-    if (!carrier) return alert('اختر الناقل أولاً');
-    const res = await api('/assign-carrier', { method: 'POST', json: { vins, carrier } });
-    const ok = (res.results || []).filter((r) => r.ok).length;
-    alert(`تم تعيين الناقل «${carrier}» لـ ${ok} VIN(s)`);
-    // refresh displayed rows with updated carrier
-    const data = await api('/resolve-vins', { method: 'POST', json: { vins } });
-    state.assignDisplay = data.rows || [];
-    renderAssignDisplay();
   }
 
   async function loadAudit() {
@@ -1714,10 +1736,7 @@
   $('#export-btn').addEventListener('click', () => doExport().catch((e) => alert(e.message)));
   $('#assign-submit-btn')?.addEventListener('click', () => submitVinsForDisplay().catch((e) => alert(e.message)));
   $('#assign-confirm-btn')?.addEventListener('click', () => doAssign().catch((e) => alert(e.message)));
-  $('#assign-carrier-btn')?.addEventListener('click', () => doAssignCarrier().catch((e) => alert(e.message)));
-  $('#assign-bulk-carrier')?.addEventListener('change', () => updateAssignConfirmState());
-  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool(true).catch((e) => alert(e.message)));
-  $('#assign-load-all-unassigned')?.addEventListener('click', () => loadAssignPool(false).catch((e) => alert(e.message)));
+  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool().catch((e) => alert(e.message)));
   $('#assign-clear-display')?.addEventListener('click', () => {
     state.assignDisplay = [];
     state.assignEmployee = '';

@@ -1562,23 +1562,23 @@ function syncHubVehiclesToDeliveryTeam(vehicles) {
     const rawPatch = {
       vin,
       product: String(veh.product || veh.model || '').trim(),
-      userName: String(veh.customerName || '').trim(),
+      userName: String(veh.customerName || veh.userName || '').trim(),
       phone: String(veh.phone || '').trim(),
       gtLocation: String(veh.gt || '').trim(),
       vehicleLocation: String(veh.location || '').trim(),
       proformaDate: String(veh.proformaDate || '').trim(),
       deliveryDate: String(veh.deliveryNoteDate || '').trim(),
-      salesOrder: '',
-      salesType: '',
-      invoiceOwner: '',
-      salesAdvisor: '',
-      pic: '',
+      salesOrder: String(veh.salesOrder || '').trim(),
+      salesType: String(veh.salesType || '').trim(),
+      invoiceOwner: String(veh.invoiceOwner || '').trim(),
+      salesAdvisor: String(veh.salesAdvisor || '').trim(),
+      pic: String(veh.pic || '').trim(),
       status: '',
       traffic: '',
       trafficFees: '',
       insurance: '',
       registrationDate: '',
-      date: '',
+      date: String(veh.proformaDate || '').trim(),
       year: '',
     };
     const existing = deliveryTeamStore.getVehicle(vin);
@@ -3003,7 +3003,10 @@ function rowToVehicle(row) {
         'warehouse', 'yard', 'الموقع', 'المستودع'
       ]);
   const plate = pickExactishCol(row, ['plate', 'plate no', 'plate number', 'veh plate', 'لوحة', 'رقم اللوحة']);
-      const customerName = pickCol(row, ['customer name', 'customer', 'اسم العميل', 'العميل']);
+      const customerName = pickCol(row, [
+        'customer name', 'customer', 'user name', 'username',
+        'اسم العميل', 'العميل', 'اسم المستخدم'
+      ]);
   const phone = pickCol(row, [
     'contact no', 'contact no.', 'contact number', 'contact',
     'phone', 'phone no', 'phone number', 'mobile', 'mobile no', 'mobile number',
@@ -3011,8 +3014,21 @@ function rowToVehicle(row) {
   ]);
       const imageUrl = pickCol(row, ['image', 'image url', 'imageurl', 'photo', 'صورة']);
       const suffix = pickCol(row, ['suffix', 'ext', 'color', 'model year']);
+  const salesOrder = pickCol(row, [
+    'sales order no', 'sales order number', 'sales order', 'order number', 'order no', 'so',
+    'رقم الطلب', 'sales order no رقم الطلب'
+  ]);
+  const salesType = pickCol(row, [
+    'sales type', 'sales type2', 'نوع البيع', 'طريقة البيع'
+  ]);
+  const invoiceOwner = pickCol(row, [
+    'invoice owner', 'owner', 'مالك الفاتورة'
+  ]);
+  const salesAdvisor = pickCol(row, [
+    's/a', 's a', 'sales advisor', 'مستشار المبيعات'
+  ]);
   const proformaDate = normalizeExcelDate(pickCol(row, [
-    'proforma date', 'proforma', 'pro forma date', 'تاريخ البروفورما', 'تاريخ العرض'
+    'proforma date', 'proforma', 'pro forma date', 'تاريخ البروفورما', 'تاريخ العرض', 'تاريخ'
   ]));
   const invoiceDate = normalizeExcelDate(pickCol(row, [
     'invoice date', 'inv date', 'billing date', 'تاريخ الفاتورة', 'تاريخ الفاتوره'
@@ -3033,6 +3049,10 @@ function rowToVehicle(row) {
     phone: phone === '#' ? '' : phone,
         imageUrl,
     suffix,
+    salesOrder,
+    salesType,
+    invoiceOwner,
+    salesAdvisor,
     proformaDate,
     invoiceDate,
     deliveryNoteDate

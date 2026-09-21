@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260921salesraw1" />
+  <link rel="stylesheet" href="styles.css?v=20260921assign3" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -170,7 +170,7 @@
           <div class="kpi-row" id="my-kpis"></div>
           <div class="card">
             <h2>My delivery schedule</h2>
-            <p class="hint">Edit your work below · select VINs to hand over to another employee</p>
+            <p class="hint" id="my-vins-hint">Edit your work below · select VINs to hand over to another employee</p>
             <div id="my-save-toast" class="save-toast" hidden>Saved ✓</div>
             <div class="toolbar" id="my-toolbar"></div>
             <div class="reassign-bar" id="my-reassign-bar">
@@ -193,10 +193,9 @@
             <div class="card assign-step" id="assign-step-1">
               <div class="assign-step-badge">1</div>
               <h2>Submit VINs</h2>
-              <p class="hint">Paste VINs (one per line or comma-separated), or load today’s unassigned proformas, then submit to display them for assignment.</p>
+              <p class="hint">Only VINs with Proforma Date = today or yesterday can be assigned. Load the pool or paste VINs, then submit to display them.</p>
               <div class="toolbar">
-                <button type="button" class="btn" id="assign-load-today">Load today’s unassigned</button>
-                <button type="button" class="btn" id="assign-load-all-unassigned">Load all unassigned</button>
+                <button type="button" class="btn-primary" id="assign-load-today">Load today + yesterday</button>
                 <input type="search" id="assign-pool-search" placeholder="Filter pool…" style="min-width:160px" />
               </div>
               <div class="table-wrap assign-pool-wrap"><table class="data" id="assign-pool-table"></table></div>
@@ -212,8 +211,8 @@
 
             <div class="card assign-step" id="assign-step-2">
               <div class="assign-step-badge">2</div>
-              <h2>Displayed VINs · employee &amp; الناقل</h2>
-              <p class="hint">Set الناقل per VIN in the table, or apply one الناقل to all displayed VINs. Then choose the employee.</p>
+              <h2>Displayed VINs · choose employee</h2>
+              <p class="hint">Review Raw Data details, then assign to an employee (including Hanouf).</p>
               <div id="assign-display-empty" class="assign-empty">
                 No VINs displayed yet. Submit VINs in step 1 first.
               </div>
@@ -222,17 +221,7 @@
                   <strong id="assign-display-count">0</strong> VIN(s) ready to assign
                   <button type="button" class="btn" id="assign-clear-display">Clear list</button>
                 </div>
-                <datalist id="assign-carrier-list"></datalist>
                 <div class="table-wrap"><table class="data" id="assign-display-table"></table></div>
-                <div class="assign-carrier-pick">
-                  <p class="assign-emp-label">تعيين الناقل للـ VINs المعروضة</p>
-                  <div class="toolbar">
-                    <select id="assign-bulk-carrier" aria-label="الناقل">
-                      <option value="">— اختر الناقل —</option>
-                    </select>
-                    <button type="button" class="btn" id="assign-carrier-btn" disabled>Apply الناقل to displayed VINs</button>
-                  </div>
-                </div>
                 <div class="assign-emp-pick">
                   <p class="assign-emp-label">Assign displayed VINs to (including Hanouf)</p>
                   <div class="assign-emp-grid" id="assign-emp-grid"></div>
@@ -355,6 +344,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260921salesraw1"></script>
+  <script src="app.js?v=20260921assign3"></script>
 </body>
 </html>

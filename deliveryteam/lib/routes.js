@@ -112,6 +112,30 @@ function todayIso(tzOffsetMinutes) {
   return now.toISOString().slice(0, 10);
 }
 
+function shiftIsoDays(isoDate, days) {
+  const s = String(isoDate || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const d = new Date(`${s}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return '';
+  d.setUTCDate(d.getUTCDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+function assignableProformaDates(tzOffsetMinutes) {
+  const today = todayIso(tzOffsetMinutes);
+  return { today, yesterday: shiftIsoDays(today, -1) };
+}
+
+function vehicleProformaDay(v) {
+  return String((v && v.raw && (v.raw.proformaDate || v.raw.date)) || '').slice(0, 10);
+}
+
+function isAssignableProformaDay(v, tzOffsetMinutes) {
+  const { today, yesterday } = assignableProformaDates(tzOffsetMinutes);
+  const d = vehicleProformaDay(v);
+  return d === today || d === yesterday;
+}
+
 function monthKeyFromIso(value) {
   const s = String(value || '').trim();
   if (/^\d{4}-\d{2}/.test(s)) return s.slice(0, 7);
@@ -232,7 +256,7 @@ function cellText(line, idx) {
   return String(v == null ? '' : v).trim();
 }
 
-function mapRawRow(row, line, { useLegacyCols = false } = {}) {
+function mapRawRow(row, line, { useLegacyCols = false, useESalesCols = false } = {}) {
   const raw = {};
   for (const [key, aliases] of Object.entries(HEADER_MAP)) {
     raw[key] = pickCol(row, aliases);
@@ -249,9 +273,15 @@ function mapRawRow(row, line, { useLegacyCols = false } = {}) {
     if (ph) raw.phone = ph;
   }
   if (!raw.phone) raw.phone = findPhoneInLine(line);
-  if (!useLegacyCols && Array.isArray(line) && line.length >= 25) {
-    // Delivery / E sales fixed PIC when header alias missed
+  if ((useESalesCols || (!useLegacyCols && Array.isArray(line) && line.length >= 25)) && Array.isArray(line) && line.length) {
+    // Delivery / E sales fixed columns when header alias missed
     if (!raw.pic) raw.pic = cellText(line, E_SALES_COL.pic);
+    if (!raw.salesOrder) raw.salesOrder = cellText(line, E_SALES_COL.salesOrder);
+    if (!raw.product) raw.product = cellText(line, E_SALES_COL.product);
+    if (!raw.salesType) raw.salesType = cellText(line, E_SALES_COL.salesType);
+    if (!raw.invoiceOwner) raw.invoiceOwner = cellText(line, E_SALES_COL.invoiceOwner);
+    if (!raw.userName) raw.userName = cellText(line, E_SALES_COL.userName);
+    if (!raw.salesAdvisor) raw.salesAdvisor = cellText(line, E_SALES_COL.salesAdvisor);
   }
   // Delivery sheet uses تاريخ as the main date (treat as proforma when missing)
   raw.proformaDate = normalizeDate(raw.proformaDate) || normalizeDate(raw.date);
@@ -574,7 +604,10 @@ function createDeliveryTeamRouter(opts) {
     if (q.assigned === 'no') out = out.filter((v) => !v.ops.assignedEmployeeId);
     if (q.proforma === 'today') {
       const today = todayIso(Number(q.tzOffset));
-      out = out.filter((v) => v.raw.proformaDate === today);
+      out = out.filter((v) => vehicleProformaDay(v) === today);
+    }
+    if (q.proforma === 'today_yesterday' || q.proforma === 'assignable') {
+      out = out.filter((v) => isAssignableProformaDay(v, Number(q.tzOffset)));
     }
     if (q.date) {
       const d = normalizeDate(q.date) || String(q.date).slice(0, 10);
@@ -814,22 +847,36 @@ function createDeliveryTeamRouter(opts) {
   router.get('/todays-proformas', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const today = todayIso(Number(req.query.tzOffset));
     const rows = store.allVehicles()
-      .filter((v) => v.raw.proformaDate === today)
+      .filter((v) => vehicleProformaDay(v) === today)
       .map((v) => publicVehicle(v, req.dtUser));
     res.json({ today, total: rows.length, rows });
   });
 
   router.get('/unassigned', auth, requireRole('admin', 'hanouf'), (req, res) => {
+    const tz = Number(req.query.tzOffset);
+    const { today, yesterday } = assignableProformaDates(tz);
+    // Default: today + yesterday proforma (assignable window). ?all=1 loads every unassigned.
+    const allDays = String(req.query.all || '') === '1';
     const todayOnly = String(req.query.today || '') === '1';
-    const today = todayIso(Number(req.query.tzOffset));
     let list = store.allVehicles().filter((v) => !v.ops.assignedEmployeeId);
-    if (todayOnly) list = list.filter((v) => v.raw.proformaDate === today);
+    if (!allDays) {
+      if (todayOnly) list = list.filter((v) => vehicleProformaDay(v) === today);
+      else list = list.filter((v) => isAssignableProformaDay(v, tz));
+    }
     list = sortVehicles(list, 'proformaDate', 'desc');
-    res.json({ total: list.length, rows: list.map((v) => publicVehicle(v, req.dtUser)) });
+    res.json({
+      total: list.length,
+      today,
+      yesterday,
+      window: allDays ? 'all' : (todayOnly ? 'today' : 'today_yesterday'),
+      rows: list.map((v) => publicVehicle(v, req.dtUser)),
+    });
   });
 
   /** Resolve a submitted VIN list for Hanouf display-before-assign. */
   router.post('/resolve-vins', auth, requireRole('admin', 'hanouf'), (req, res) => {
+    const tz = Number(req.body.tzOffset != null ? req.body.tzOffset : req.query.tzOffset);
+    const { today, yesterday } = assignableProformaDates(tz);
     const rawList = Array.isArray(req.body.vins) ? req.body.vins : String(req.body.vins || '').split(/[\s,;]+/);
     const keys = [];
     const seen = new Set();
@@ -843,14 +890,34 @@ function createDeliveryTeamRouter(opts) {
 
     const found = [];
     const missing = [];
+    const outOfWindow = [];
+    const alreadyAssigned = [];
     keys.forEach((key) => {
       const v = store.getVehicle(key);
-      if (v) found.push(publicVehicle(v, req.dtUser));
-      else missing.push(key);
+      if (!v) {
+        missing.push(key);
+        return;
+      }
+      if (v.ops && v.ops.assignedEmployeeId) {
+        alreadyAssigned.push({
+          vin: key,
+          employee: v.ops.assignedEmployeeName || v.ops.assignedEmployeeId,
+        });
+        return;
+      }
+      if (!isAssignableProformaDay(v, tz)) {
+        outOfWindow.push({ vin: key, proformaDate: vehicleProformaDay(v) || 'N/A' });
+        return;
+      }
+      found.push(publicVehicle(v, req.dtUser));
     });
     return res.json({
       total: found.length,
       missing,
+      outOfWindow,
+      alreadyAssigned,
+      today,
+      yesterday,
       rows: found,
     });
   });
@@ -976,7 +1043,7 @@ function createDeliveryTeamRouter(opts) {
           const key = String(h == null ? '' : h).trim() || `Column ${i + 1}`;
           if (obj[key] === undefined) obj[key] = line[i] != null ? line[i] : '';
         });
-        const raw = mapRawRow(obj, line, { useLegacyCols });
+        const raw = mapRawRow(obj, line, { useLegacyCols, useESalesCols: !!deliveryFmt });
         const vinKey = normVin(raw.vin);
         if (!vinKey) {
           errors.push({ row: r + 1, error: 'Missing VIN' });
@@ -1120,15 +1187,13 @@ function createDeliveryTeamRouter(opts) {
   router.post('/assign', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const vins = Array.isArray(req.body.vins) ? req.body.vins : [req.body.vin];
     const employeeName = String(req.body.employee || '').trim();
-    const carrierRaw = req.body.carrier != null ? String(req.body.carrier).trim() : '';
+    const tz = Number(req.body.tzOffset != null ? req.body.tzOffset : req.query.tzOffset);
+    const { today, yesterday } = assignableProformaDates(tz);
     const emp = findAssignableUser(employeeName);
     if (!emp) {
       return res.status(400).json({
         error: `Select a valid person (${ASSIGNABLE_NAMES.join(' / ')})`,
       });
-    }
-    if (carrierRaw) {
-      // allow known list or free text from Delivery sheet
     }
 
     const results = [];
@@ -1139,46 +1204,43 @@ function createDeliveryTeamRouter(opts) {
         results.push({ vin: key, ok: false, error: 'Not found' });
         return;
       }
+      if (v.ops && v.ops.assignedEmployeeId) {
+        results.push({
+          vin: key,
+          ok: false,
+          error: `Already assigned to ${v.ops.assignedEmployeeName || v.ops.assignedEmployeeId}`,
+          employee: v.ops.assignedEmployeeName || '',
+        });
+        return;
+      }
+      if (!isAssignableProformaDay(v, tz)) {
+        results.push({
+          vin: key,
+          ok: false,
+          error: `Proforma must be today (${today}) or yesterday (${yesterday})`,
+          proformaDate: vehicleProformaDay(v) || '',
+        });
+        return;
+      }
       const old = v.ops.assignedEmployeeName || '';
       v.ops.assignedEmployeeId = emp.id;
       v.ops.assignedEmployeeName = emp.name;
       v.ops.assignedBy = req.dtUser.name;
       v.ops.assignedAt = new Date().toISOString();
-      if (carrierRaw) {
-        const oldCarrier = v.ops.carrier || '';
-        if (oldCarrier !== carrierRaw) {
-          v.ops.carrier = carrierRaw;
-          store.pushAudit({
-            vin: key,
-            user: req.dtUser.name,
-            action: 'update_carrier',
-            oldValue: oldCarrier || '(empty)',
-            newValue: carrierRaw,
-          });
-        }
-      }
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = new Date().toISOString();
       store.upsertVehicle(key, v);
       store.pushAudit({
         vin: key,
         user: req.dtUser.name,
-        action: old ? 'reassign' : 'assign',
+        action: 'assign',
         oldValue: old || '(unassigned)',
         newValue: emp.name,
       });
-      results.push({ vin: key, ok: true, employee: emp.name, carrier: v.ops.carrier || '' });
+      results.push({ vin: key, ok: true, employee: emp.name });
     });
     store.save();
-    const carrierItems = results
-      .filter((r) => r.ok && r.carrier)
-      .map((r) => {
-        const v = store.getVehicle(r.vin);
-        return v ? { vin: r.vin, carrier: r.carrier, vehicle: v, by: req.dtUser.name } : null;
-      })
-      .filter(Boolean);
-    const hubSync = notifyCarrierAssigned(carrierItems);
-    res.json({ ok: true, results, hubSync: hubSync || undefined });
+    res.json({ ok: true, today, yesterday, results });
   });
 
   /** Reassign VINs to another employee (or Hanouf). Employees may only move their own VINs. */
