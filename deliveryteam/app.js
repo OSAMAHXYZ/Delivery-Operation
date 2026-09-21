@@ -9,7 +9,7 @@
     user: null,
     meta: null,
     view: 'dashboard',
-    filters: { q: '', status: '', employee: '', month: '', page: 1, limit: 40 },
+    filters: { q: '', status: '', employee: '', month: '', page: 1, limit: 2000 },
     selectedVins: new Set(),
     reassignVins: new Set(),
     reassignFrom: '',
@@ -156,13 +156,16 @@
     return state.user && (state.user.id === 'ruba' || state.user.name === 'Ruba');
   }
 
+  function isRasha() {
+    return state.user && (state.user.id === 'rasha' || state.user.name === 'Rasha');
+  }
+
+  function canUploadSalesRaw() {
+    return canManage() || isRuba() || isRasha();
+  }
+
   function canEditGuest(row) {
-    if (!state.user || !row) return false;
-    if (canManage()) return true;
-    if (!isRuba()) return false;
-    const id = (row.ops && row.ops.assignedEmployeeId) || '';
-    const name = (row.ops && row.ops.assignedEmployeeName) || '';
-    return id === 'ruba' || name === 'Ruba';
+    return canEditVinOps(row);
   }
 
   function formatGuestAt(iso) {
@@ -185,44 +188,19 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
+  /** Guest Exp column = Yes / No only. Ruba schedules on Guest Exp page. */
   function guestCellHtml(r) {
     const ops = r.ops || {};
-    const isGuest = !!(r.guestCenter || String(ops.guestCenter || '').toLowerCase() === 'yes' || ops.guestCollectAt);
-    const collected = String(ops.guestCollected || '') === 'Yes';
-    const due = !!r.guestDue || (ops.guestCollectAt && (r.guestTimerMs == null ? false : r.guestTimerMs <= 0) && !collected);
-    const canEdit = canEditGuest(r);
-
-    if (collected) {
-      return `<span class="guest-badge collected">Collected ✓</span>
-        <div class="hint">${esc(formatGuestAt(ops.guestCollectAt))}</div>`;
+    const val = String(ops.guestCenter || '') === 'Yes' ? 'Yes'
+      : String(ops.guestCenter || '') === 'No' ? 'No' : '';
+    if (canEditGuest(r)) {
+      return editableControl(r.vin, 'guestCenter', 'yn', val);
     }
+    return ynBadge(val);
+  }
 
-    if (!isGuest) {
-      if (!canEdit) return '<span class="hint">—</span>';
-      return `<button type="button" class="btn-guest" data-guest-act="mark" data-vin="${esc(r.vin)}">Guest Exp</button>`;
-    }
-
-    if (!ops.guestCollectAt) {
-      if (!canEdit) return `<span class="guest-badge">Guest Exp</span>`;
-      return `<button type="button" class="btn-guest" data-guest-act="schedule" data-vin="${esc(r.vin)}">Schedule pickup</button>`;
-    }
-
-    if (due && canEdit) {
-      return `<span class="guest-timer is-due">DUE NOW</span>
-        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
-          <button type="button" class="btn-guest due" data-guest-act="collected-yes" data-vin="${esc(r.vin)}">Collected?</button>
-          <button type="button" class="btn-guest" data-guest-act="collected-no" data-vin="${esc(r.vin)}">Not yet</button>
-        </div>
-        <div class="hint">${esc(formatGuestAt(ops.guestCollectAt))}</div>`;
-    }
-
-    const ms = r.guestTimerMs != null
-      ? r.guestTimerMs
-      : (ops.guestCollectAt ? new Date(ops.guestCollectAt).getTime() - Date.now() : null);
-    return `<span class="guest-badge">Guest Exp</span>
-      <span class="guest-timer" data-guest-timer="${esc(ops.guestCollectAt)}">${esc(formatCountdown(ms))}</span>
-      <div class="hint">${esc(formatGuestAt(ops.guestCollectAt))}</div>
-      ${canEdit ? `<button type="button" class="btn-guest" data-guest-act="schedule" data-vin="${esc(r.vin)}" style="margin-top:4px">Reschedule</button>` : ''}`;
+  function canSeeGuestPage() {
+    return isRuba() || canManage();
   }
 
   function bindGuestButtons(root = document) {
@@ -242,12 +220,9 @@
       const ms = new Date(at).getTime() - Date.now();
       el.textContent = formatCountdown(ms);
       el.classList.toggle('is-due', ms <= 0);
-      if (ms <= 0 && state.view === 'my') {
-        // soft refresh once due so Collected? buttons appear
-        if (!el.dataset.refreshed) {
-          el.dataset.refreshed = '1';
-          loadMy().catch(() => {});
-        }
+      if (ms <= 0 && state.view === 'guest' && !el.dataset.refreshed) {
+        el.dataset.refreshed = '1';
+        loadGuestExperience().catch(() => {});
       }
     });
   }
@@ -271,10 +246,10 @@
     back.onclick = (e) => { if (e.target === back) close(); };
 
     if (action === 'collected-yes') {
-      title.textContent = 'Guest collected?';
+      title.textContent = 'Customer claimed?';
       sub.textContent = `${v.vin} · ${displayName(v.raw.userName)} · choose status after collection`;
       body.innerHTML = `
-        <p class="hint">Appointment was <b>${esc(formatGuestAt(existing))}</b>. Confirm the car was collected, then set status.</p>
+        <p class="hint">Appointment was <b>${esc(formatGuestAt(existing))}</b>. Confirm the customer claimed the car, then set status.</p>
         <div class="field">
           <label>New status</label>
           <select id="guest-status">
@@ -283,7 +258,7 @@
           </select>
         </div>
         <div class="guest-modal-actions">
-          <button type="button" class="btn-primary" id="guest-save-yes">Yes — collected</button>
+          <button type="button" class="btn-primary" id="guest-save-yes">Yes — claimed</button>
           <button type="button" class="btn" id="guest-cancel">Cancel</button>
         </div>`;
       $('#guest-cancel').onclick = close;
@@ -301,7 +276,7 @@
     }
 
     if (action === 'collected-no') {
-      title.textContent = 'Not collected — new time';
+      title.textContent = 'Not claimed — new appointment';
       sub.textContent = `${v.vin} · set another date & time for the customer`;
       body.innerHTML = `
         <div class="field"><label>New date</label><input type="date" id="guest-date" value="${esc(dateVal)}" /></div>
@@ -329,8 +304,8 @@
       return;
     }
 
-    // mark / schedule / reschedule
-    title.textContent = action === 'mark' ? 'Mark Guest Experience' : 'Guest Exp · Schedule pickup';
+    // schedule / reschedule
+    title.textContent = action === 'reschedule' ? 'Reschedule collection' : 'Schedule collection';
     sub.textContent = `${v.vin} · ${displayName(v.raw.userName)} · ${na(v.raw.product)}`;
     body.innerHTML = `
       <p class="hint">Set the date and time for the customer to collect this VIN at Guest Experience.</p>
@@ -357,6 +332,84 @@
     back.classList.add('open');
   }
 
+  function guestCardHtml(r, { canOperate = false } = {}) {
+    const ops = r.ops || {};
+    const collected = String(ops.guestCollected || '') === 'Yes';
+    const due = !!r.guestDue;
+    const ms = r.guestTimerMs != null
+      ? r.guestTimerMs
+      : (ops.guestCollectAt ? new Date(ops.guestCollectAt).getTime() - Date.now() : null);
+    let actions = '';
+    if (canOperate && !collected) {
+      if (!ops.guestCollectAt) {
+        actions = `<button type="button" class="btn-primary" data-guest-act="schedule" data-vin="${esc(r.vin)}">Set collection time</button>`;
+      } else if (due) {
+        actions = `<div class="guest-claim-ask">
+          <p class="guest-claim-q">Did the customer claim the car?</p>
+          <button type="button" class="btn-guest due" data-guest-act="collected-yes" data-vin="${esc(r.vin)}">Yes — claimed</button>
+          <button type="button" class="btn-guest" data-guest-act="collected-no" data-vin="${esc(r.vin)}">No — reschedule</button>
+        </div>`;
+      } else {
+        actions = `<button type="button" class="btn" data-guest-act="reschedule" data-vin="${esc(r.vin)}">Reschedule</button>`;
+      }
+    } else if (!canOperate && due && !collected) {
+      actions = `<p class="hint guest-watch-note">Waiting for Ruba to confirm claim…</p>`;
+    }
+
+    const timerBlock = collected
+      ? `<span class="guest-badge collected">Collected ✓</span>`
+      : (ops.guestCollectAt
+        ? `<span class="guest-timer ${due ? 'is-due' : ''}" data-guest-timer="${esc(ops.guestCollectAt)}">${esc(formatCountdown(ms))}</span>
+           <div class="hint">${esc(formatGuestAt(ops.guestCollectAt))}</div>`
+        : `<span class="hint">No appointment yet</span>`);
+
+    return `<article class="guest-card ${due && !collected ? 'is-due' : ''} ${collected ? 'is-done' : ''}" data-vin="${esc(r.vin)}">
+      <div class="guest-card-top">
+        <div>
+          <button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>
+          <div class="guest-card-product">${esc(na(r.raw.product))}</div>
+        </div>
+        ${statusBadge(ops.opsStatus)}
+      </div>
+      <div class="guest-card-meta">
+        <span>${esc(displayName(r.raw.userName))}</span>
+        <span>${esc(displayPhone(r.raw.phone))}</span>
+        <span>PIC · ${esc(na(ops.assignedEmployeeName))}</span>
+      </div>
+      <div class="guest-card-timer">${timerBlock}</div>
+      <div class="guest-card-actions">${actions}</div>
+    </article>`;
+  }
+
+  async function loadGuestExperience() {
+    const data = await api('/guest-experience');
+    const kpis = $('#guest-kpis');
+    if (kpis) {
+      kpis.innerHTML = [
+        ['Guest Exp Yes', data.total || 0, ''],
+        ['Awaiting claim', data.pending || 0, 'warn'],
+        ['Due now', data.due || 0, data.due ? 'warn' : 'ok'],
+      ].map(([l, v, c]) => `<article class="kpi ${c}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`).join('');
+    }
+    const banner = $('#guest-watch-banner');
+    if (banner) {
+      banner.hidden = !data.watcher;
+      banner.textContent = data.watcher
+        ? 'Watcher mode — you can see timers and appointments. Only Ruba confirms claim / reschedules.'
+        : '';
+    }
+    const grid = $('#guest-grid');
+    if (!grid) return;
+    const rows = data.rows || [];
+    if (!rows.length) {
+      grid.innerHTML = '<p class="hint">No Guest Exp = Yes vehicles yet. Mark Guest Exp Yes on My VINs / Live Sheet.</p>';
+      return;
+    }
+    grid.innerHTML = rows.map((r) => guestCardHtml(r, { canOperate: !!data.canOperate })).join('');
+    $$('.vin-link', grid).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
+    bindGuestButtons(grid);
+  }
+
   function assignableNames() {
     const fromMeta = state.meta && state.meta.assignable;
     if (Array.isArray(fromMeta) && fromMeta.length) return fromMeta.slice();
@@ -366,10 +419,6 @@
   function currentMonthValue() {
     const d = new Date(Date.now() + state.tzOffset * 60000);
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-  }
-
-  function canUploadSalesRaw() {
-    return canManage() || isRuba();
   }
 
   function formatRawUpdatedAt(iso) {
@@ -415,7 +464,7 @@
     const detail = $('#sales-raw-status-detail');
     if (detail) {
       if (!status || !status.uploadedAt) {
-        detail.textContent = 'Not uploaded yet — Hanouf or Ruba can upload Sales Raw here';
+        detail.textContent = 'Not uploaded yet — Hanouf, Ruba, or Rasha can upload Sales Raw here';
       } else {
         const parts = [
           formatRawUpdatedAt(status.uploadedAt),
@@ -432,6 +481,7 @@
     const items = [
       { id: 'dashboard', label: 'Dashboard', roles: ['admin', 'hanouf', 'employee'] },
       { id: 'live', label: 'Live Sheet', roles: ['admin', 'hanouf', 'employee'] },
+      { id: 'guest', label: 'Guest Experience', roles: ['admin', 'hanouf', 'employee'], guestOnly: true },
       { id: 'today', label: "Today's Vehicles", roles: ['admin', 'hanouf'] },
       { id: 'my', label: 'My VINs', roles: ['employee', 'admin', 'hanouf'] },
       { id: 'assign', label: 'Assignment', roles: ['admin', 'hanouf'] },
@@ -443,6 +493,7 @@
     return items.filter((i) => {
       if (!i.roles.includes(state.user.role)) return false;
       if (i.salesRawOnly) return canUploadSalesRaw();
+      if (i.guestOnly) return canSeeGuestPage();
       return true;
     });
   }
@@ -473,12 +524,15 @@
     const titles = {
       dashboard: ['Dashboard', 'Delivery Control Tower'],
       live: ['Live Sheet', 'All teammates’ schedules · Sales Type (cash / bank)'],
+      guest: ['Guest Experience', isRuba()
+        ? 'Your Guest Exp = Yes cars · set collect time · timer · claim'
+        : 'Watcher · Guest Exp = Yes cars · Ruba confirms claim'],
       today: ["Today's Vehicles", 'Proforma Date = today'],
       my: ['My VINs', 'Your schedule · edit your work · الناقل'],
       assign: ['Assignment', 'Upload → assign employee (incl. Hanouf) → الناقل'],
       all: ['All Vehicles', 'Full fleet · filters · export'],
       upload: ['Upload Delivery sheet', 'E sales layout · status · الناقل · مدينة الترحيل'],
-      'sales-raw': ['Sales Raw', 'Hanouf / Ruba · shared inventory · everyone sees the update time'],
+      'sales-raw': ['Sales Raw', 'Hanouf / Ruba / Rasha · shared with Delivery Hub & Coordinator'],
       audit: ['Audit Log', 'Full history of every edit'],
     };
     const t = titles[view] || ['Delivery Team', ''];
@@ -495,6 +549,11 @@
         loadLiveSheet({ silent: true }).catch(() => {});
       }, 5000);
     }
+    if (view === 'guest') {
+      state.liveTimer = setInterval(() => {
+        loadGuestExperience().catch(() => {});
+      }, 8000);
+    }
     if (!state.guestTickTimer) {
       state.guestTickTimer = setInterval(() => tickGuestTimers(), 1000);
     }
@@ -504,6 +563,7 @@
     try {
       if (state.view === 'dashboard') await loadDashboard();
       if (state.view === 'live') await loadLiveSheet();
+      if (state.view === 'guest') await loadGuestExperience();
       if (state.view === 'today') await loadToday();
       if (state.view === 'my') await loadMy();
       if (state.view === 'assign') await loadAssign();
@@ -704,13 +764,12 @@
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th class="col-${c.key}">${esc(c.label)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((r, i) => {
         const statusCls = statusRowClass(r.ops.opsStatus);
-        const guestCls = (r.guestCenter || r.ops.guestCollectAt) ? 'row-guest-exp' : '';
+        const guestCls = String(r.ops.guestCenter || '') === 'Yes' ? 'row-guest-exp' : '';
         return `<tr class="${statusCls} ${guestCls}" data-vin="${esc(r.vin)}">${cols.map((c) =>
           `<td class="col-${c.key}">${c.html(r, i)}</td>`
         ).join('')}</tr>`;
       }).join('') || `<tr><td colspan="${cols.length}">No assigned VINs yet. Use Assignment to assign vehicles.</td></tr>`}</tbody>`;
     $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
-    bindGuestButtons(table);
     bindEditableCells(table);
   }
 
@@ -866,6 +925,7 @@
       transferCity: 'مدينة الترحيل',
       carrier: 'الناقل',
       notes: 'ملاحظات',
+      guestCenter: 'Guest Exp',
       assign: 'Assigned',
       reassign: 'Reassigned',
     };
@@ -1001,6 +1061,10 @@
           tr.dataset.status = value || '';
         }
       }
+      if (field === 'guestCenter') {
+        const tr = el.closest('tr');
+        if (tr) tr.classList.toggle('row-guest-exp', value === 'Yes');
+      }
       const toast = $('#my-save-toast');
       if (toast) {
         toast.hidden = false;
@@ -1064,7 +1128,7 @@
     const head = `<thead><tr>${selectable ? '<th></th>' : ''}${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
     const body = `<tbody>${rows.map((r) => {
       const statusCls = statusRowClass(r.ops.opsStatus);
-      const guestCls = (r.guestCenter || r.ops.guestCollectAt) ? 'row-guest-exp' : '';
+      const guestCls = String(r.ops.guestCenter || '') === 'Yes' ? 'row-guest-exp' : '';
       const checked = selected.has(r.vin) ? 'checked' : '';
       return `<tr class="${statusCls} ${guestCls} ${checked ? 'selected' : ''}" data-vin="${esc(r.vin)}" data-status="${esc(r.ops.opsStatus || '')}">
         ${selectable ? `<td><input class="checkbox vin-select-check" type="checkbox" data-vin="${esc(r.vin)}" ${checked} /></td>` : ''}
@@ -1073,7 +1137,6 @@
     }).join('')}</tbody>`;
     tableEl.innerHTML = head + body;
     $$('.vin-link', tableEl).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
-    bindGuestButtons(tableEl);
     if (editable || carrierEditable) bindEditableCells(tableEl);
     if (selectable) {
       $$('.vin-select-check', tableEl).forEach((cb) => cb.addEventListener('change', () => {
@@ -1162,7 +1225,7 @@
     const p = new URLSearchParams();
     p.set('tzOffset', String(state.tzOffset));
     p.set('page', String(state.filters.page || 1));
-    p.set('limit', String(state.filters.limit || 40));
+    p.set('limit', String(state.filters.limit || 2000));
     p.set('sort', 'status');
     p.set('dir', 'asc');
     if (state.filters.q) p.set('q', state.filters.q);
@@ -1176,9 +1239,14 @@
 
   function renderPager(el, pack, onPage) {
     if (!el) return;
-    el.innerHTML = `<span>${pack.total} rows · page ${pack.page}/${pack.pages}</span>
+    const pages = Math.max(1, Number(pack.pages) || 1);
+    if (pages <= 1) {
+      el.innerHTML = `<span>${pack.total || 0} VIN(s)</span>`;
+      return;
+    }
+    el.innerHTML = `<span>${pack.total} rows · page ${pack.page}/${pages}</span>
       <button type="button" class="btn" ${pack.page <= 1 ? 'disabled' : ''} data-p="${pack.page - 1}">Prev</button>
-      <button type="button" class="btn" ${pack.page >= pack.pages ? 'disabled' : ''} data-p="${pack.page + 1}">Next</button>`;
+      <button type="button" class="btn" ${pack.page >= pages ? 'disabled' : ''} data-p="${pack.page + 1}">Next</button>`;
     $$('button[data-p]', el).forEach((b) => b.addEventListener('click', () => onPage(Number(b.dataset.p))));
   }
 
@@ -1205,7 +1273,7 @@
       });
     });
     $('[data-clear]', el)?.addEventListener('click', () => {
-      state.filters = { q: '', status: '', employee: '', month: '', page: 1, limit: 40 };
+      state.filters = { q: '', status: '', employee: '', month: '', page: 1, limit: 2000 };
       state.monthFilter = '';
       refreshView();
     });
@@ -1606,6 +1674,7 @@
           ${dt('signatureReceivedDate', 'تاريخ استلام التواقيع من الضيف', v.ops.signatureReceivedDate)}
           ${dt('accountsSentDate', 'تاريخ إرسال الملف للحسابات', v.ops.accountsSentDate)}
           ${dt('accountsApprovalDate', 'تاريخ موافقة الحسابات', v.ops.accountsApprovalDate)}
+          ${yn('guestCenter', 'Guest Exp', v.ops.guestCenter)}
           ${readOnly
             ? `<div class="field"><label>Status</label><input value="${esc(na(v.ops.opsStatus))}" readonly /></div>`
             : `<div class="field"><label>Status</label>
@@ -1650,7 +1719,7 @@
   async function doSalesRawUpload(file) {
     if (!file) return;
     if (!canUploadSalesRaw()) {
-      alert('Only Hanouf, Ruba, or Admin can upload Sales Raw');
+      alert('Only Hanouf, Ruba, Rasha, or Admin can upload Sales Raw');
       return;
     }
     const summary = $('#sales-raw-summary');
@@ -1675,13 +1744,14 @@
         <p><b>Sales Raw updated</b> · ${esc(data.sheetName || '')} · ${esc(data.filename || file.name)}</p>
         <div class="summary-grid">
           <div><strong>${data.imported || 0}</strong><span>Vehicles imported</span></div>
-          <div><strong>${data.queueRefreshed || 0}</strong><span>Queue rows</span></div>
+          <div><strong>${data.queueRefreshed || 0}</strong><span>Coordinator queue</span></div>
           <div><strong>${data.matchedUpdated || 0}</strong><span>Matched</span></div>
           <div><strong>${(data.deliveryTeamSync && data.deliveryTeamSync.upserted) || 0}</strong><span>Synced to team</span></div>
         </div>
-        <p class="hint" style="margin-top:10px">Last update: <b>${esc(formatRawUpdatedAt(data.rawStatus && data.rawStatus.uploadedAt))}</b>
+        <p class="hint" style="margin-top:10px">Same file for Delivery Hub + Coordinator · last update:
+          <b>${esc(formatRawUpdatedAt(data.rawStatus && data.rawStatus.uploadedAt))}</b>
           ${data.rawStatus && data.rawStatus.uploadedByName ? ` · by ${esc(data.rawStatus.uploadedByName)}` : ''}
-          — visible to all users</p>`;
+          ${data.hubUpdated ? ' · hub inventory updated ✓' : ''}</p>`;
     } catch (err) {
       summary.innerHTML = `<p style="color:var(--red)">${esc(err.message)}</p>`;
     }

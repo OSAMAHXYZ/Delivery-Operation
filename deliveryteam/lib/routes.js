@@ -508,6 +508,10 @@ function createDeliveryTeamRouter(opts) {
     }
     if (canSeeAll(req.dtUser.role)) return v;
     const isMine = v.ops.assignedEmployeeId === req.dtUser.userId;
+    const isRubaGuest = (
+      (req.dtUser.userId === 'ruba' || String(req.dtUser.name || '').toLowerCase() === 'ruba')
+      && String(v.ops.guestCenter || '').toLowerCase() === 'yes'
+    );
     if (write) {
       if (!isMine) {
         res.status(403).json({ error: 'You do not have access to edit this VIN' });
@@ -515,8 +519,8 @@ function createDeliveryTeamRouter(opts) {
       }
       return v;
     }
-    // Read: own VINs or any assigned teammate VIN (team schedule)
-    if (isMine || v.ops.assignedEmployeeId) return v;
+    // Read: own VINs, teammate assigned VINs, or Ruba reading Guest Exp = Yes
+    if (isMine || v.ops.assignedEmployeeId || isRubaGuest) return v;
     res.status(403).json({ error: 'You do not have access to this VIN' });
     return null;
   }
@@ -617,6 +621,11 @@ function createDeliveryTeamRouter(opts) {
     eq((v) => v.ops.trafficFeesOps, q.trafficFees);
     eq((v) => v.ops.insuranceOps, q.insurance);
     eq((v) => v.ops.vin1502, q.vin1502);
+    if (q.guestCenter === 'yes' || q.guest === 'yes') {
+      out = out.filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'yes');
+    } else if (q.guestCenter === 'no' || q.guest === 'no') {
+      out = out.filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'no');
+    }
     if (q.assigned === 'yes') out = out.filter((v) => !!v.ops.assignedEmployeeId);
     if (q.assigned === 'no') out = out.filter((v) => !v.ops.assignedEmployeeId);
     if (q.proforma === 'today') {
@@ -683,7 +692,7 @@ function createDeliveryTeamRouter(opts) {
     list = applyFilters(list, req.query || {}, req.dtUser);
     list = sortVehicles(list, req.query.sort, req.query.dir);
     const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
+    const limit = Math.min(5000, Math.max(10, Number(req.query.limit) || 500));
     const total = list.length;
     const start = (page - 1) * limit;
     const slice = list.slice(start, start + limit).map((v) => publicVehicle(v, req.dtUser));
@@ -1500,6 +1509,24 @@ function createDeliveryTeamRouter(opts) {
           newValue: String(newVal) || '(empty)',
         });
       });
+      // Clearing Guest Exp Yes also clears collection appointment
+      if (Object.prototype.hasOwnProperty.call(body, 'guestCenter')) {
+        const gc = String(v.ops.guestCenter || '');
+        if (gc !== 'Yes') {
+          if (v.ops.guestCollectAt) {
+            store.pushAudit({
+              vin: v.vin,
+              user: req.dtUser.name,
+              action: 'guest_cleared',
+              oldValue: v.ops.guestCollectAt,
+              newValue: '(cleared)',
+            });
+          }
+          v.ops.guestCollectAt = '';
+          v.ops.guestCollected = '';
+          v.ops.guestCollectNote = '';
+        }
+      }
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = new Date().toISOString();
       store.upsertVehicle(v.vin, v);
@@ -1531,12 +1558,31 @@ function createDeliveryTeamRouter(opts) {
     }
   });
 
-  // ——— Guest Experience (Ruba) ———
-  function canManageGuest(req, v) {
-    if (!v) return false;
-    if (canSeeAll(req.dtUser.role)) return true;
-    if (req.dtUser.userId === 'ruba' && v.ops.assignedEmployeeId === 'ruba') return true;
-    return false;
+  // ——— Guest Experience (Ruba operates · Admin/Hanouf watch) ———
+  function isRubaUser(user) {
+    if (!user) return false;
+    const id = String(user.userId || user.id || '').toLowerCase();
+    const name = String(user.name || '').toLowerCase();
+    return id === 'ruba' || name === 'ruba';
+  }
+
+  function canWatchGuest(req) {
+    return isRubaUser(req.dtUser) || canSeeAll(req.dtUser.role);
+  }
+
+  /** Only Ruba answers claimed / schedules; Admin watches */
+  function canManageGuest(req) {
+    return isRubaUser(req.dtUser);
+  }
+
+  function getGuestVehicle(req, res, vin) {
+    const key = normVin(vin);
+    const v = store.getVehicle(key);
+    if (!v) {
+      res.status(404).json({ error: 'VIN not found' });
+      return null;
+    }
+    return v;
   }
 
   function parseGuestDateTime(dateStr, timeStr) {
@@ -1552,13 +1598,41 @@ function createDeliveryTeamRouter(opts) {
     return `${d}T${hh}:${mm}:00`;
   }
 
-  /** Schedule / reschedule Guest Exp customer collection (Ruba) */
-  router.post('/vehicles/:vin/guest-schedule', auth, (req, res) => {
-    const v = assertVinAccess(req, res, req.params.vin, { write: true });
-    if (!v) return undefined;
-    if (!canManageGuest(req, v)) {
-      return res.status(403).json({ error: 'Only Ruba (on her VINs) or Admin/Hanouf can schedule Guest Exp' });
+  /** All Guest Exp = Yes VINs — Ruba works; Admin/Hanouf watch */
+  router.get('/guest-experience', auth, (req, res) => {
+    if (!canWatchGuest(req)) {
+      return res.status(403).json({ error: 'Guest Experience page is for Ruba (and Admin watchers)' });
     }
+    let list = store.allVehicles().filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'yes');
+    list = list.slice().sort((a, b) => {
+      const ac = String(a.ops.guestCollected || '') === 'Yes' ? 1 : 0;
+      const bc = String(b.ops.guestCollected || '') === 'Yes' ? 1 : 0;
+      if (ac !== bc) return ac - bc;
+      const atA = a.ops.guestCollectAt ? new Date(a.ops.guestCollectAt).getTime() : Infinity;
+      const atB = b.ops.guestCollectAt ? new Date(b.ops.guestCollectAt).getTime() : Infinity;
+      if (atA !== atB) return atA - atB;
+      return String(a.vin || '').localeCompare(String(b.vin || ''));
+    });
+    const rows = list.map((v) => publicVehicle(v, req.dtUser));
+    const due = rows.filter((r) => r.guestDue).length;
+    const pending = rows.filter((r) => String(r.ops.guestCollected || '') !== 'Yes').length;
+    return res.json({
+      total: rows.length,
+      due,
+      pending,
+      canOperate: canManageGuest(req),
+      watcher: !canManageGuest(req),
+      rows,
+    });
+  });
+
+  /** Schedule / reschedule Guest Exp customer collection (Ruba only) */
+  router.post('/vehicles/:vin/guest-schedule', auth, (req, res) => {
+    if (!canManageGuest(req)) {
+      return res.status(403).json({ error: 'Only Ruba can schedule Guest Exp collection times' });
+    }
+    const v = getGuestVehicle(req, res, req.params.vin);
+    if (!v) return undefined;
     try {
       const at = parseGuestDateTime(req.body && req.body.date, req.body && req.body.time);
       const old = v.ops.guestCollectAt || '';
@@ -1583,13 +1657,13 @@ function createDeliveryTeamRouter(opts) {
     }
   });
 
-  /** After timer: mark collected (then optional status) or reschedule */
+  /** After timer: mark collected (then optional status) or reschedule — Ruba only */
   router.post('/vehicles/:vin/guest-collect', auth, (req, res) => {
-    const v = assertVinAccess(req, res, req.params.vin, { write: true });
-    if (!v) return undefined;
-    if (!canManageGuest(req, v)) {
-      return res.status(403).json({ error: 'Only Ruba (on her VINs) or Admin/Hanouf can confirm Guest Exp collection' });
+    if (!canManageGuest(req)) {
+      return res.status(403).json({ error: 'Only Ruba can confirm whether the customer claimed the car' });
     }
+    const v = getGuestVehicle(req, res, req.params.vin);
+    if (!v) return undefined;
     const collected = req.body && (req.body.collected === true || req.body.collected === 'yes' || req.body.collected === 'Yes');
     try {
       if (collected) {
@@ -1743,12 +1817,12 @@ function createDeliveryTeamRouter(opts) {
     if (session.role === 'admin' || session.role === 'hanouf') return true;
     const id = String(session.userId || session.id || '').toLowerCase();
     const name = String(session.name || '').toLowerCase();
-    return id === 'ruba' || name === 'ruba';
+    return id === 'ruba' || name === 'ruba' || id === 'rasha' || name === 'rasha';
   }
 
   /**
-   * Sales Raw upload (hub inventory) — Hanouf, Ruba, Admin.
-   * Updates shared raw data once; everyone sees uploadedAt.
+   * Sales Raw upload — Hanouf, Ruba, Rasha, Admin.
+   * Writes the same hub inventory file the Coordinator / Delivery Hub uses.
    */
   function salesRawUploadHandler(req, res) {
     const header = req.headers['x-delivery-team-token'] || req.headers.authorization || '';
@@ -1757,7 +1831,7 @@ function createDeliveryTeamRouter(opts) {
     const session = store.getSession(token);
     if (!session) return res.status(401).json({ error: 'Unauthorized — please sign in' });
     if (!canUploadSalesRawUser(session)) {
-      return res.status(403).json({ error: 'Only Hanouf, Ruba, or Admin can upload Sales Raw' });
+      return res.status(403).json({ error: 'Only Hanouf, Ruba, Rasha, or Admin can upload Sales Raw' });
     }
     req.dtUser = session;
 

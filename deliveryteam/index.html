@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260921sort1" />
+  <link rel="stylesheet" href="styles.css?v=20260922raw1" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -156,6 +156,17 @@
           </div>
         </section>
 
+        <!-- GUEST EXPERIENCE (Ruba + Admin watcher) -->
+        <section class="panel" id="panel-guest">
+          <div class="guest-watch-banner" id="guest-watch-banner" hidden></div>
+          <div class="kpi-row" id="guest-kpis"></div>
+          <div class="card">
+            <h2>Guest Experience cars</h2>
+            <p class="hint" id="guest-page-hint">VINs marked Guest Exp = Yes · Ruba sets collection time and confirms claim when the timer is due</p>
+            <div class="guest-grid" id="guest-grid"></div>
+          </div>
+        </section>
+
         <!-- TODAY -->
         <section class="panel" id="panel-today">
           <div class="card">
@@ -294,7 +305,8 @@
           <div class="card">
             <h2>Upload Sales Raw</h2>
             <p class="hint">
-              Upload <b>Sales Raw Data</b> here once — Hanouf or Ruba. Updates shared inventory for the whole team and the Coordinator.
+              Upload <b>Sales Raw Data</b> here — Hanouf, Ruba, or Rasha.
+              Updates the <b>same shared inventory</b> for Delivery Team, the Coordinator, and Delivery Hub (one file for everyone).
               Everyone sees the last update time in the top bar.
             </p>
             <div class="raw-status-card" id="sales-raw-status-card">
@@ -344,6 +356,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260921sort1"></script>
+  <script src="app.js?v=20260922raw1"></script>
 </body>
 </html>

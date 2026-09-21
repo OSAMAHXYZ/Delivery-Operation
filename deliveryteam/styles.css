@@ -1470,6 +1470,83 @@ table.live-sheet tr.row-guest-exp td.col-vin {
   box-shadow: inset 3px 0 0 #7c3aed;
 }
 
+.guest-watch-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.guest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.guest-card {
+  border: 1px solid var(--line-soft, #e2e8f0);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guest-card.is-due {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+.guest-card.is-done {
+  opacity: 0.72;
+  background: #f8fafc;
+}
+.guest-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.guest-card-product {
+  font-weight: 700;
+  margin-top: 2px;
+}
+.guest-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--muted, #64748b);
+}
+.guest-card-timer {
+  min-height: 2.2rem;
+}
+.guest-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.guest-claim-ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+.guest-claim-q {
+  width: 100%;
+  margin: 0;
+  font-weight: 700;
+  color: #b45309;
+}
+.guest-watch-note {
+  margin: 0;
+  color: #1e40af;
+}
+
 /* My VINs / All: table uses more of the page */
 #panel-my.active .table-wrap,
 #panel-all.active .table-wrap,

@@ -17,6 +17,9 @@ const PERSISTENT_ROOT = String(
   || ''
 ).trim() || ROOT;
 const DATA_FILE = path.join(PERSISTENT_ROOT, 'delivery-inventory-data.json');
+/** Shared Sales Raw Excel — one file for Delivery Team + Delivery Hub / Coordinator */
+const LAST_SALES_RAW_FILE = path.join(PERSISTENT_ROOT, 'last-sales-raw.xlsx');
+const LAST_SALES_RAW_META = path.join(PERSISTENT_ROOT, 'last-sales-raw.meta.json');
 const REPORT_SHEET_DIR = path.join(PERSISTENT_ROOT, 'report-sheet-data');
 const REPORT_SHEET_META = path.join(REPORT_SHEET_DIR, 'meta.json');
 const REPORT_SHEET_FILES = path.join(REPORT_SHEET_DIR, 'files');
@@ -301,6 +304,41 @@ function saveStore() {
   const tmp = `${DATA_FILE}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
   fs.renameSync(tmp, DATA_FILE);
+}
+
+/**
+ * Persist the uploaded Sales Raw workbook so Delivery Team and Delivery Hub
+ * always share the same physical file + inventory data.
+ */
+function saveSharedSalesRawFile(buffer, filename, byUser) {
+  if (!buffer || !Buffer.isBuffer(buffer) || !buffer.length) return null;
+  try {
+    const tmp = `${LAST_SALES_RAW_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, buffer);
+    fs.renameSync(tmp, LAST_SALES_RAW_FILE);
+    const meta = {
+      filename: String(filename || 'Sales Raw Data.xlsx').trim() || 'Sales Raw Data.xlsx',
+      savedAt: new Date().toISOString(),
+      uploadedBy: String((byUser && (byUser.userId || byUser.id || byUser)) || '').trim(),
+      uploadedByName: String((byUser && byUser.name) || byUser || '').trim(),
+      bytes: buffer.length,
+      path: LAST_SALES_RAW_FILE,
+    };
+    fs.writeFileSync(LAST_SALES_RAW_META, JSON.stringify(meta, null, 2), 'utf8');
+    return meta;
+  } catch (err) {
+    console.error('[sales-raw] failed to save shared file:', err.message || err);
+    return null;
+  }
+}
+
+function readSharedSalesRawMeta() {
+  try {
+    if (!fs.existsSync(LAST_SALES_RAW_META)) return null;
+    return JSON.parse(fs.readFileSync(LAST_SALES_RAW_META, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function broadcastHubUpdate() {
@@ -1778,6 +1816,160 @@ function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   };
 }
 
+/**
+ * Put every Sales Raw / hub inventory VIN on the Coordinator queue as «بدون شركة»
+ * when it is not already on a board — so the coordinator can see and assign all of them.
+ */
+function ensureUnassignedQueueFromInventory() {
+  ensureOptions();
+  if (!Array.isArray(store.vehicles) || !store.vehicles.length) {
+    return { added: 0, existing: 0 };
+  }
+  store.queue = dedupeQueue(store.queue || []);
+  const now = new Date().toISOString();
+  let added = 0;
+  let existing = 0;
+  for (const veh of store.vehicles) {
+    const vin = normVin(veh && veh.vin);
+    if (!vin) continue;
+    const found = findQueueItem(vin);
+    if (found) {
+      existing += 1;
+      // Keep inventory fields fresh on existing queue rows
+      Object.assign(found, enrichFromVehicle(found, veh));
+      continue;
+    }
+    const base = {
+      vin,
+      status: 'available',
+      agentStatus: '',
+      assignedTo: '',
+      addedAt: now,
+      assignedAt: '',
+      deliveryCompany: 'بدون شركة',
+      company: 'بدون شركة',
+      plannedDeliveryMode: '',
+      plannedBranch: '',
+      deliveryCity: '',
+      source: 'sales-raw',
+    };
+    store.queue.push(enrichFromVehicle(base, veh));
+    added += 1;
+  }
+  if (added) store.queue = dedupeQueue(store.queue);
+  return { added, existing };
+}
+
+/**
+ * Coordinator (or agent) company change → Delivery Team الناقل selection.
+ * Overwrites the Live Sheet الناقل so the sheet matches the company board.
+ * @param {Array<{vin:string, company?:string}>|string[]} items
+ * @param {string} [fallbackCompany]
+ */
+function syncCoordinatorCompaniesToDeliveryTeam(items, fallbackCompany = '') {
+  if (!deliveryTeamStore || typeof deliveryTeamStore.upsertVehicle !== 'function') {
+    return { updated: 0, cleared: 0, skipped: 0 };
+  }
+  const list = Array.isArray(items) ? items : [];
+  const now = new Date().toISOString();
+  let updated = 0;
+  let cleared = 0;
+  let skipped = 0;
+
+  for (const raw of list) {
+    const vin = normVin(typeof raw === 'string' ? raw : (raw && raw.vin));
+    if (!vin) {
+      skipped += 1;
+      continue;
+    }
+    let company = '';
+    if (typeof raw === 'object' && raw) {
+      company = String(raw.company || raw.deliveryCompany || '').trim();
+    }
+    if (!company) company = String(fallbackCompany || '').trim();
+    if (!company) {
+      const q = findQueueItem(vin);
+      company = String((q && (q.deliveryCompany || q.company)) || '').trim();
+    }
+
+    let v = deliveryTeamStore.getVehicle(vin);
+    if (!v) {
+      // Ensure Delivery Team has the VIN so الناقل can show on Live Sheet
+      const hubVeh = (store.vehicles || []).find((x) => normVin(x.vin) === vin);
+      if (!hubVeh) {
+        skipped += 1;
+        continue;
+      }
+      v = {
+        vin,
+        raw: {
+          vin,
+          product: hubVeh.product || hubVeh.model || '',
+          userName: hubVeh.customerName || '',
+          phone: hubVeh.phone || '',
+          gtLocation: hubVeh.gt || '',
+          vehicleLocation: hubVeh.location || '',
+          proformaDate: hubVeh.proformaDate || '',
+          deliveryDate: hubVeh.deliveryNoteDate || '',
+          salesOrder: hubVeh.salesOrder || '',
+          salesType: hubVeh.salesType || '',
+          invoiceOwner: hubVeh.invoiceOwner || '',
+          salesAdvisor: hubVeh.salesAdvisor || '',
+          pic: hubVeh.pic || '',
+          status: '',
+          traffic: '',
+          trafficFees: '',
+          insurance: '',
+          registrationDate: '',
+          date: hubVeh.proformaDate || '',
+          year: '',
+        },
+        ops: {
+          guestSentDate: '', signatureReceivedDate: '', accountsSentDate: '', accountsApprovalDate: '',
+          vin1502: '', opsStatus: '', trafficFile: '', trafficFeesOps: '', insuranceOps: '',
+          registrationIssueDate: '', transferCity: '', carrier: '', notes: '',
+          assignedEmployeeId: '', assignedEmployeeName: '', assignedBy: '', assignedAt: '',
+          guestCenter: '', guestCollectAt: '', guestCollected: '', guestCollectNote: '',
+          updatedBy: '', updatedAt: '',
+        },
+        createdAt: now,
+        rawUpdatedAt: now,
+        lastUploadId: 'hub-company-sync',
+      };
+    }
+    if (!v.ops) v.ops = {};
+
+    const carrier = isUnassignedDeliveryCompany({ company, deliveryCompany: company })
+      ? ''
+      : mapCoordinatorCompanyToCarrier(company);
+    const prev = String(v.ops.carrier || '').trim();
+    if (prev === carrier) {
+      skipped += 1;
+      continue;
+    }
+    v.ops.carrier = carrier;
+    v.ops.updatedAt = now;
+    v.ops.updatedBy = 'coordinator';
+    deliveryTeamStore.upsertVehicle(vin, v);
+    if (carrier) updated += 1;
+    else cleared += 1;
+  }
+
+  if (updated || cleared) deliveryTeamStore.save();
+  return { updated, cleared, skipped };
+}
+
+/** Sync الناقل for every queue row that already has a real company. */
+function syncAllQueueCompaniesToDeliveryTeam() {
+  const pairs = (store.queue || [])
+    .filter((q) => q && !isUnassignedDeliveryCompany(q))
+    .map((q) => ({
+      vin: q.vin,
+      company: q.deliveryCompany || q.company || '',
+    }));
+  return syncCoordinatorCompaniesToDeliveryTeam(pairs);
+}
+
 deliveryTeamHooks.onCarrierAssigned = (items) => {
   const result = syncTeamCarriersToCoordinator(items);
   // Always nudge live hub pages (Coordinator / Delivery_pdf) after الناقل or city edit
@@ -1786,38 +1978,52 @@ deliveryTeamHooks.onCarrierAssigned = (items) => {
 };
 deliveryTeamHooks.onRawUploaded = (payload) => {
   const hub = syncTeamRawToHubInventory(payload && payload.store);
+  const unassigned = ensureUnassignedQueueFromInventory();
   // After Delivery sheet upload, stamp الناقل from Print Drafts when archive drafts exist
   const draftCarriers = (store.drafts && store.drafts.length)
     ? syncPrintDraftCompaniesToDeliveryTeam(store.drafts)
     : null;
-  return { ...hub, draftCarriers };
+  // Coordinator company boards → Delivery Team الناقل (so sheet matches boards)
+  const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
+  if (unassigned.added || (queueCarriers && (queueCarriers.updated || queueCarriers.cleared))) {
+    persistAndBroadcast();
+  }
+  return { ...hub, unassigned, draftCarriers, queueCarriers };
 };
 let lastDraftCarrierSyncAt = 0;
 deliveryTeamHooks.onEnsureDraftCarriers = () => {
-  if (!store.drafts || !store.drafts.length) return null;
   const now = Date.now();
   // Throttle — Live Sheet polls often; still heals within ~45s after deploy / archive restore
   if (now - lastDraftCarrierSyncAt < 45_000) return null;
   lastDraftCarrierSyncAt = now;
-  return syncPrintDraftCompaniesToDeliveryTeam(store.drafts);
+  const draftResult = (store.drafts && store.drafts.length)
+    ? syncPrintDraftCompaniesToDeliveryTeam(store.drafts)
+    : null;
+  // Also re-apply coordinator company → الناقل so sheet matches boards after coordinator edits
+  const queueResult = syncAllQueueCompaniesToDeliveryTeam();
+  return { drafts: draftResult, queue: queueResult };
 };
 
 function getHubRawStatus() {
   const uploadedAt = store.meta?.uploadedAt || null;
+  const sharedMeta = readSharedSalesRawMeta();
   return {
     uploaded: Boolean((store.vehicles && store.vehicles.length) || uploadedAt),
     uploadedAt,
     uploadedBy: store.meta?.uploadedBy || '',
     uploadedByName: store.meta?.uploadedByName || '',
-    filename: store.meta?.filename || '',
+    filename: store.meta?.filename || (sharedMeta && sharedMeta.filename) || '',
     sheetName: store.meta?.sheetName || '',
     vehicleCount: Array.isArray(store.vehicles) ? store.vehicles.length : 0,
+    sharedFile: Boolean(sharedMeta && fs.existsSync(LAST_SALES_RAW_FILE)),
+    sharedFileAt: (sharedMeta && sharedMeta.savedAt) || '',
+    sharedFileName: (sharedMeta && sharedMeta.filename) || '',
   };
 }
 
 deliveryTeamHooks.getHubRawStatus = () => getHubRawStatus();
 
-/** Hanouf / Ruba / Admin — upload Sales Raw once; hub + Delivery Team all see the same timestamp. */
+/** Hanouf / Ruba / Rasha / Admin — one shared Sales Raw for Delivery Team + Delivery Hub. */
 deliveryTeamHooks.onSalesRawUpload = ({ buffer, filename, byUser } = {}) => {
   if (!buffer || !Buffer.isBuffer(buffer) || !buffer.length) {
     const err = new Error('Invalid file — empty upload');
@@ -1835,13 +2041,17 @@ deliveryTeamHooks.onSalesRawUpload = ({ buffer, filename, byUser } = {}) => {
   const byName = String((byUser && byUser.name) || '').trim();
   const hasDrafts = Array.isArray(parsed.drafts) && parsed.drafts.length > 0;
   const hasQueue = Array.isArray(parsed.queue) && parsed.queue.length > 0;
+  // Same inventory file the Coordinator / Delivery Hub reads
   const refresh = applyParsedInventory(parsed, {
     replaceDrafts: Boolean(parsed.isExport && hasDrafts),
     replaceQueue: Boolean(parsed.isExport && hasQueue),
     uploadedBy: byId,
     uploadedByName: byName,
   });
+  const sharedFile = saveSharedSalesRawFile(buffer, name, { id: byId, name: byName });
   const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
+  const unassigned = ensureUnassignedQueueFromInventory();
+  const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
   persistAndBroadcast();
   return {
     ok: true,
@@ -1854,6 +2064,10 @@ deliveryTeamHooks.onSalesRawUpload = ({ buffer, filename, byUser } = {}) => {
     companiesFromDrafts: refresh.draftsApplied?.assigned || 0,
     teamCarriersFromDrafts: refresh.teamDraftCarriers || null,
     deliveryTeamSync: teamSync,
+    unassignedQueue: unassigned,
+    teamCarriersFromQueue: queueCarriers,
+    sharedFile: Boolean(sharedFile),
+    hubUpdated: true,
     rawStatus: getHubRawStatus(),
   };
 };
@@ -1972,6 +2186,11 @@ function applyAgentCompanyChange(vins, typedCompany, { warehouseDelivery = false
     item.deliveryCompany = to;
     item.company = to;
   }
+  // Keep Delivery Team الناقل in sync with the printed / changed company
+  syncCoordinatorCompaniesToDeliveryTeam(
+    (Array.isArray(vins) ? vins : []).map((vin) => ({ vin, company: to })),
+    to
+  );
   return changes;
 }
 
@@ -3782,12 +4001,21 @@ function applyParsedInventory(parsed, {
   }
 
   const refresh = refreshQueueFromVehicles();
+  const unassigned = ensureUnassignedQueueFromInventory();
   let teamDraftCarriers = null;
   if (Array.isArray(store.drafts) && store.drafts.length) {
     teamDraftCarriers = syncPrintDraftCompaniesToDeliveryTeam(store.drafts);
     lastDraftCarrierSyncAt = Date.now();
   }
-  return { ...refresh, draftsApplied, teamDraftCarriers };
+  const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
+  return {
+    ...refresh,
+    draftsApplied,
+    teamDraftCarriers,
+    unassigned,
+    queueCarriers,
+    total: store.queue.length,
+  };
 }
 
 function arabicWeekdayName(isoDate) {
@@ -5157,7 +5385,13 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
       uploadedBy: 'coordinator',
       uploadedByName: 'Coordinator',
     });
+    const sharedFile = saveSharedSalesRawFile(buffer, filename || parsed.filename, {
+      id: 'coordinator',
+      name: 'Coordinator',
+    });
     const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
+    const unassigned = ensureUnassignedQueueFromInventory();
+    const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
     persistAndBroadcast();
     res.json({
       imported: parsed.vehicles.length,
@@ -5173,6 +5407,10 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
       matchedUpdated: refresh.matched,
       notInNewFile: refresh.missing,
       deliveryTeamSync: teamSync,
+      unassignedQueue: unassigned,
+      teamCarriersFromQueue: queueCarriers,
+      sharedFile: Boolean(sharedFile),
+      hubUpdated: true,
       rawStatus: getHubRawStatus(),
     });
   } catch (err) {
@@ -5654,6 +5892,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
   const alreadySameCompany = [];
   const forceReassign = Boolean(req.body?.forceReassign || req.body?.allowReassign);
   const seenBatch = new Set();
+  const syncedToTeam = [];
   const now = new Date().toISOString();
 
   for (const raw of vins) {
@@ -5681,6 +5920,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
         existingItem.company = deliveryCompany;
         existingItem.plannedDeliveryMode = plannedDeliveryMode;
         reassigned += 1;
+        syncedToTeam.push(vin);
         const wh = findWarehouseInStock(vin);
         if (wh) {
           alreadyInWarehouse.push({ vin, slot: wh.slot, zone: wh.zone });
@@ -5691,6 +5931,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
       // Already on this company
       if (sameCompany) {
         alreadySameCompany.push({ vin, company: prevCompany });
+        syncedToTeam.push(vin); // heal الناقل if sheet drifted
         skipped += 1;
         continue;
       }
@@ -5701,6 +5942,7 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
         existingItem.company = deliveryCompany;
         existingItem.plannedDeliveryMode = plannedDeliveryMode;
         reassigned += 1;
+        syncedToTeam.push(vin);
         const wh = findWarehouseInStock(vin);
         if (wh) {
           alreadyInWarehouse.push({ vin, slot: wh.slot, zone: wh.zone });
@@ -5743,7 +5985,13 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
     };
     store.queue.push(enrichFromVehicle(base, veh));
     added += 1;
+    syncedToTeam.push(vin);
   }
+
+  const teamCarrierSync = syncCoordinatorCompaniesToDeliveryTeam(
+    syncedToTeam.map((vin) => ({ vin, company: deliveryCompany })),
+    deliveryCompany
+  );
 
   persistAndBroadcast();
   res.json({
@@ -5757,7 +6005,8 @@ app.post('/api/delivery-coordinator/submit-vins', (req, res) => {
     alreadySameCompany,
     forceReassign,
     deliveryCompany,
-    plannedDeliveryMode
+    plannedDeliveryMode,
+    teamCarrierSync,
   });
 });
 
@@ -5804,8 +6053,19 @@ app.post('/api/delivery-coordinator/assign-meta', (req, res) => {
     updated.push(enrichQueueItem(item));
   }
   if (!updated.length) return res.status(404).json({ error: 'لم يتم تحديث أي شاسيه', missing });
+  const teamCarrierSync = syncCoordinatorCompaniesToDeliveryTeam(
+    updated.map((u) => ({ vin: u.vin, company: deliveryCompany })),
+    deliveryCompany
+  );
   persistAndBroadcast();
-  res.json({ ok: true, updated, missing, deliveryCompany, plannedDeliveryMode });
+  res.json({
+    ok: true,
+    updated,
+    missing,
+    deliveryCompany,
+    plannedDeliveryMode,
+    teamCarrierSync,
+  });
 });
 
 app.post('/api/delivery-coordinator/claim', (req, res) => {
