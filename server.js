@@ -4220,6 +4220,14 @@ function getDeliveryCheckPdfBuffer() {
 // ——— HTTP app ———
 const app = express();
 
+// Health checks first — Railway / probes must get a fast response even if startup work is heavy
+app.get('/health', (_req, res) => {
+  res.status(200).type('text').send('ok');
+});
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ ok: true, at: new Date().toISOString() });
+});
+
 /** Binary upload — avoids base64 JSON bloat (Railway/proxy size limits). Must be before express.json. */
 app.post('/api/delivery-inventory/restore-export-bin', express.raw({ limit: '80mb', type: '*/*' }), (req, res) => {
   try {
@@ -6773,29 +6781,43 @@ const wss = new WebSocketServer({ server });
 
 wss.on('connection', (socket) => {
   wsClients.add(socket);
-  socket.send(JSON.stringify({ type: 'delivery_hub_updated', at: Date.now() }));
+  try {
+    socket.send(JSON.stringify({ type: 'delivery_hub_updated', at: Date.now() }));
+  } catch {
+    /* ignore */
+  }
   socket.on('close', () => wsClients.delete(socket));
   socket.on('error', () => wsClients.delete(socket));
 });
 
-server.listen(PORT, () => {
-  migrateLegacyRtlDailyDir();
-  try {
-    loadRtlDailyIndex();
-    const hydrated = rehydrateRtlFromByDayMirrors();
-    if (hydrated && hydrated.restored) {
-      console.log(`[rtl-daily] rehydrated ${hydrated.restored} day(s) from by-day Excel mirrors`);
-    }
-  } catch (err) {
-    console.error('[rtl-daily] index rebuild failed', err);
-  }
-  console.log(`[delivery] listening on http://localhost:${PORT}`);
+// Bind all interfaces — Railway proxies need 0.0.0.0, not localhost-only
+const HOST = process.env.HOST || '0.0.0.0';
+server.listen(PORT, HOST, () => {
+  console.log(`[delivery] listening on http://${HOST}:${PORT}`);
   console.log(`[delivery] agents password: ${AGENT_PASSWORD}`);
   console.log(`[delivery-team] password: ${DELIVERY_TEAM_PASSWORD}`);
   console.log(`[delivery-team] data: ${DELIVERY_TEAM_DATA}`);
-  console.log(`[delivery-team] UI: http://localhost:${PORT}/deliveryteam/`);
+  console.log(`[delivery-team] UI: http://${HOST}:${PORT}/deliveryteam/`);
   console.log(`[delivery] persistent root: ${PERSISTENT_ROOT}`);
   console.log(`[delivery] data file: ${DATA_FILE}`);
   console.log(`[delivery] RTL archive (append-only): ${RTL_DAILY_DIR}`);
   console.log(`[delivery] RTL by-day mirrors: ${path.join(RTL_DAILY_DIR, 'by-day')}`);
+
+  // Defer heavy disk work so HTTP/health can answer immediately after boot
+  setImmediate(() => {
+    try {
+      migrateLegacyRtlDailyDir();
+    } catch (err) {
+      console.error('[rtl-daily] migrate legacy failed', err);
+    }
+    try {
+      loadRtlDailyIndex();
+      const hydrated = rehydrateRtlFromByDayMirrors();
+      if (hydrated && hydrated.restored) {
+        console.log(`[rtl-daily] rehydrated ${hydrated.restored} day(s) from by-day Excel mirrors`);
+      }
+    } catch (err) {
+      console.error('[rtl-daily] index rebuild failed', err);
+    }
+  });
 });
