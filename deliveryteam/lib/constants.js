@@ -260,8 +260,9 @@ const E_SALES_EXPORT_HEADERS = Object.freeze([
   'PIAging',
 ]);
 
-/** Fixed Raw Data letter positions (legacy admin dump): D/N/O/Y — only when format detected */
+/** Fixed Raw Data letter positions (legacy admin dump): A=S/A, D=Order, N/O/Y */
 const RAW_COL = Object.freeze({
+  salesAdvisor: 0, // A
   salesOrder: 3, // D
   invoiceOwner: 13, // N
   customerName: 14, // O

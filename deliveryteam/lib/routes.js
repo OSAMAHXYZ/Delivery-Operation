@@ -261,13 +261,17 @@ function mapRawRow(row, line, { useLegacyCols = false, useESalesCols = false } =
   for (const [key, aliases] of Object.entries(HEADER_MAP)) {
     raw[key] = pickCol(row, aliases);
   }
-  // Legacy fixed columns only for classic Raw Data dumps (not Delivery sheet / E sales)
-  if (useLegacyCols && Array.isArray(line) && line.length) {
+  // Legacy / Sales Raw fixed columns: A = S/A, D = Order (not Delivery sheet / E sales)
+  if (!useESalesCols && Array.isArray(line) && line.length) {
+    const sa = cellText(line, RAW_COL.salesAdvisor);
     const so = cellText(line, RAW_COL.salesOrder);
+    if (sa) raw.salesAdvisor = sa;
+    if (so) raw.salesOrder = so;
+  }
+  if (useLegacyCols && Array.isArray(line) && line.length) {
     const inv = cellText(line, RAW_COL.invoiceOwner);
     const cust = cellText(line, RAW_COL.customerName);
     const ph = cellText(line, RAW_COL.phone);
-    if (so) raw.salesOrder = so;
     if (inv) raw.invoiceOwner = inv;
     if (cust) raw.userName = cust;
     if (ph) raw.phone = ph;

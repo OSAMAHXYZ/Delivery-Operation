@@ -3178,6 +3178,34 @@ function backfillProformaColumnP(wb, sheetName, vehicles) {
 }
 
 /**
+ * Sales Raw: column A (index 0) = S/A (sales advisor),
+ * column D (index 3) = Sales Order number.
+ */
+function backfillOrderAndSaColumnsAD(wb, sheetName, vehicles) {
+  const sheet = wb && wb.Sheets ? wb.Sheets[sheetName] : null;
+  if (!sheet || !Array.isArray(vehicles) || !vehicles.length) return;
+  const rowsArr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  if (!rowsArr.length) return;
+  const headerRow = rowsArr[0] || [];
+  const byVin = new Map(vehicles.map((v) => [normVin(v.vin), v]));
+  const COL_A = 0; // S/A
+  const COL_D = 3; // Order number
+  for (let i = 1; i < rowsArr.length; i++) {
+    const line = rowsArr[i];
+    const vin = extractVinFromArrayLine(headerRow, line);
+    if (!vin) continue;
+    const veh = byVin.get(vin);
+    if (!veh) continue;
+    const saRaw = line[COL_A];
+    const orderRaw = line[COL_D];
+    const sa = saRaw != null ? String(saRaw).trim() : '';
+    const order = orderRaw != null ? String(orderRaw).trim() : '';
+    if (sa && sa !== '#') veh.salesAdvisor = sa;
+    if (order && order !== '#') veh.salesOrder = order;
+  }
+}
+
+/**
  * Sales Raw: column O (index 14) = guest / customer name,
  * column Y (index 24) = phone — used by Yassin parking board.
  */
@@ -3416,6 +3444,7 @@ function parseSalesFromWorkbook(wb, filename) {
       vehicles = found;
       backfillProformaColumnP(wb, name, vehicles);
       backfillGuestColumnsOY(wb, name, vehicles);
+      backfillOrderAndSaColumnsAD(wb, name, vehicles);
       headers = Object.keys(sheetRowsData[0] || {});
       break;
     }
@@ -3434,6 +3463,7 @@ function parseSalesFromWorkbook(wb, filename) {
           vehicles = found;
           backfillProformaColumnP(wb, name, vehicles);
           backfillGuestColumnsOY(wb, name, vehicles);
+          backfillOrderAndSaColumnsAD(wb, name, vehicles);
           headers = Object.keys(sheetRowsData[0] || {});
           break;
         }
