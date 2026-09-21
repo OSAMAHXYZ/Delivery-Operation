@@ -1091,13 +1091,19 @@ function createDeliveryTeamRouter(opts) {
           existing.raw = { ...existing.raw, ...raw, vin: vinKey };
           existing.rawUpdatedAt = new Date().toISOString();
           existing.lastUploadId = uploadId;
+          const lockedCarrier = String((existing.ops && existing.ops.carrier) || '').trim();
           let ops = { ...emptyOps(), ...existing.ops };
           if (hasSheetOps) {
-            ops = mergeOpsFromSheet(ops, sheetOps);
+            const sheetOpsSafe = { ...sheetOps };
+            // Do not overwrite الناقل once the team has set it
+            if (lockedCarrier) delete sheetOpsSafe.carrier;
+            ops = mergeOpsFromSheet(ops, sheetOpsSafe);
+            if (lockedCarrier) ops.carrier = lockedCarrier;
             opsImported += 1;
           }
           const asg = assignFromPic(ops, raw.pic || cellText(line, E_SALES_COL.pic), req.dtUser.name, { force: forceAssign });
           ops = asg.ops;
+          if (lockedCarrier) ops.carrier = lockedCarrier;
           if (asg.changed) assignedFromPic += 1;
           else if (String(raw.pic || cellText(line, E_SALES_COL.pic) || '').trim() && !asg.name) picUnresolved += 1;
           if (ops.carrier) carriersTouched = true;
@@ -1299,11 +1305,12 @@ function createDeliveryTeamRouter(opts) {
     res.json({ ok: true, results });
   });
 
-  /** Hanouf / Admin: set الناقل on any VIN list */
+  /** Hanouf / Admin: set الناقل on any VIN list (only if still empty) */
   router.post('/assign-carrier', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const vins = Array.isArray(req.body.vins) ? req.body.vins : [req.body.vin];
     const carrier = String(req.body.carrier || '').trim();
     if (!carrier) return res.status(400).json({ error: 'اختر الناقل' });
+    const allowOverwrite = req.dtUser.role === 'admin';
 
     const results = [];
     vins.forEach((rawVin) => {
@@ -1313,9 +1320,19 @@ function createDeliveryTeamRouter(opts) {
         results.push({ vin: key, ok: false, error: 'Not found' });
         return;
       }
-      const oldCarrier = v.ops.carrier || '';
+      const oldCarrier = String(v.ops.carrier || '').trim();
       if (oldCarrier === carrier) {
         results.push({ vin: key, ok: true, carrier, unchanged: true });
+        return;
+      }
+      if (oldCarrier && !allowOverwrite) {
+        results.push({
+          vin: key,
+          ok: false,
+          error: 'الناقل مقفل بعد التعيين',
+          carrier: oldCarrier,
+          locked: true,
+        });
         return;
       }
       v.ops.carrier = carrier;
@@ -1428,6 +1445,26 @@ function createDeliveryTeamRouter(opts) {
     };
 
     try {
+      // الناقل is locked once set — only Admin may change it
+      if (Object.prototype.hasOwnProperty.call(body, 'carrier')) {
+        const prevCarrier = String(v.ops.carrier || '').trim();
+        const nextCarrier = String(body.carrier == null ? '' : body.carrier).trim();
+        if (prevCarrier && nextCarrier !== prevCarrier && req.dtUser.role !== 'admin') {
+          return res.status(403).json({
+            error: 'الناقل مقفل بعد التعيين — لا يمكن تغييره',
+            carrier: prevCarrier,
+            locked: true,
+          });
+        }
+        if (prevCarrier && !nextCarrier && req.dtUser.role !== 'admin') {
+          return res.status(403).json({
+            error: 'الناقل مقفل بعد التعيين — لا يمكن مسحه',
+            carrier: prevCarrier,
+            locked: true,
+          });
+        }
+      }
+
       Object.keys(allowed).forEach((field) => {
         if (!Object.prototype.hasOwnProperty.call(body, field)) return;
         const oldVal = v.ops[field] == null ? '' : String(v.ops[field]);

@@ -1726,12 +1726,12 @@ function buildCompanyByVinFromDrafts(drafts) {
 }
 
 /**
- * Stamp Delivery Team Live Sheet الناقل from Print Drafts for every dashboard VIN.
- * Matched company → الناقل (short carrier name when known). Unmatched / unassigned → empty.
+ * Stamp Delivery Team Live Sheet الناقل from Print Drafts when empty.
+ * Never clears or overwrites a carrier already set by Hanouf / Ruba / team.
  */
 function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   if (!deliveryTeamStore || typeof deliveryTeamStore.allVehicles !== 'function') {
-    return { updated: 0, cleared: 0, matched: 0, scanned: 0, draftVins: 0 };
+    return { updated: 0, cleared: 0, matched: 0, scanned: 0, draftVins: 0, preserved: 0 };
   }
   const byVin = buildCompanyByVinFromDrafts(
     drafts != null ? drafts : (store.drafts || [])
@@ -1739,44 +1739,41 @@ function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   const all = deliveryTeamStore.allVehicles() || [];
   const now = new Date().toISOString();
   let updated = 0;
-  let cleared = 0;
   let matched = 0;
   let scanned = 0;
+  let preserved = 0;
 
   for (const v of all) {
     const vin = normVin(v && v.vin);
     if (!vin) continue;
     scanned += 1;
-    const hasDraft = byVin.has(vin);
-    const company = hasDraft ? byVin.get(vin) : '';
-    // Only rewrite when drafts are present for this run; for full dashboard pass
-    // every VIN is looked up — no draft ⇒ empty الناقل
-    const carrier = company ? mapCoordinatorCompanyToCarrier(company) : '';
     if (!v.ops) v.ops = {};
     const prev = String(v.ops.carrier || '').trim();
-    const next = String(carrier || '').trim();
-    if (prev === next) {
-      if (next) matched += 1;
+    // Once الناقل is set by the team, never wipe or change it from drafts
+    if (prev) {
+      preserved += 1;
+      matched += 1;
       continue;
     }
-    v.ops.carrier = next;
+    if (!byVin.has(vin)) continue;
+    const company = byVin.get(vin);
+    const carrier = company ? mapCoordinatorCompanyToCarrier(company) : '';
+    if (!carrier) continue;
+    v.ops.carrier = carrier;
     v.ops.updatedAt = now;
     v.ops.updatedBy = 'print-drafts';
     deliveryTeamStore.upsertVehicle(vin, v);
-    if (next) {
-      updated += 1;
-      matched += 1;
-    } else {
-      cleared += 1;
-    }
+    updated += 1;
+    matched += 1;
   }
 
-  if (updated || cleared) deliveryTeamStore.save();
+  if (updated) deliveryTeamStore.save();
   return {
     updated,
-    cleared,
+    cleared: 0,
     matched,
     scanned,
+    preserved,
     draftVins: byVin.size,
   };
 }

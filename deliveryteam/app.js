@@ -125,6 +125,25 @@
       || row.ops.assignedEmployeeName === state.user.name;
   }
 
+  /** الناقل locked after first selection (Admin may still change). */
+  function isCarrierLocked(row) {
+    const has = !!(row && row.ops && String(row.ops.carrier || '').trim());
+    if (!has) return false;
+    return !(state.user && state.user.role === 'admin');
+  }
+
+  function carrierCellHtml(row, { allowEdit = false } = {}) {
+    const val = row && row.ops ? row.ops.carrier : '';
+    if (allowEdit && !isCarrierLocked(row)) {
+      return editableControl(row.vin, 'carrier', 'carrier', val);
+    }
+    const label = na(val);
+    if (String(val || '').trim()) {
+      return `<span class="badge" title="الناقل مقفل بعد التعيين">${esc(label)}</span>`;
+    }
+    return esc(label);
+  }
+
   function hubSyncToast(hubSync) {
     if (!hubSync || typeof hubSync !== 'object') return '';
     const moved = Number(hubSync.added || 0) + Number(hubSync.reassigned || 0);
@@ -501,11 +520,6 @@
 
   async function loadLiveSheet({ silent = false } = {}) {
     const f = state.liveFilters;
-    // Hanouf: her assigned VINs with today's proforma only
-    if (state.user && state.user.role === 'hanouf') {
-      if (!f.employee) f.employee = 'Hanouf';
-      f.proforma = 'today';
-    }
     const params = new URLSearchParams();
     params.set('tzOffset', String(state.tzOffset));
     params.set('sort', 'updatedAt');
@@ -674,9 +688,7 @@
       {
         key: 'carrier',
         label: 'الناقل',
-        html: (r) => (canEditVinOps(r)
-          ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)
-          : na(r.ops.carrier)),
+        html: (r) => carrierCellHtml(r, { allowEdit: canEditVinOps(r) }),
       },
       { key: 'notes', label: 'ملاحظات', html: (r) => esc(r.ops.notes || '') },
       { key: 'updated', label: 'Updated', html: (r) => esc((r.ops.updatedAt || '').replace('T', ' ').slice(0, 19) || '—') },
@@ -896,6 +908,7 @@
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Order', (r) => na(r.raw.salesOrder)],
       ['VIN', (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>`],
+      ['S/A name', (r) => na(r.raw.salesAdvisor)],
       ['Sales Type', (r) => na(r.raw.salesType)],
       ['Product', (r) => na(r.raw.product)],
     ];
@@ -906,7 +919,6 @@
       );
     }
     cols.push(
-      ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['GT Loc', (r) => na(r.raw.gtLocation)],
       ['Veh Loc', (r) => na(r.raw.vehicleLocation)],
     );
@@ -929,7 +941,7 @@
         ['مدينة الترحيل', (r) => editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity)],
       );
       if (!hideCarrier) {
-        cols.push(['الناقل', (r) => editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)]);
+        cols.push(['الناقل', (r) => carrierCellHtml(r, { allowEdit: true })]);
       }
       cols.push(
         ['ملاحظات', (r) => editableControl(r.vin, 'notes', 'notes', r.ops.notes)],
@@ -951,8 +963,8 @@
       );
       if (!hideCarrier) {
         cols.push(['الناقل', (r) => (carrierEditable
-          ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)
-          : na(r.ops.carrier))]);
+          ? carrierCellHtml(r, { allowEdit: true })
+          : carrierCellHtml(r, { allowEdit: false }))]);
       }
       cols.push(
         ['ملاحظات', (r) => esc((r.ops.notes || '').slice(0, 40))],
@@ -1351,10 +1363,10 @@
     }
     const cols = [
       ['VIN', (r) => esc(r.vin)],
+      ['S/A name', (r) => na(r.raw.salesAdvisor)],
       ['Order', (r) => na(r.raw.salesOrder)],
       ['Product', (r) => na(r.raw.product)],
       ['Sales Type', (r) => na(r.raw.salesType)],
-      ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Status', (r) => statusBadge(r.ops.opsStatus)],
     ];
@@ -1604,9 +1616,11 @@
             <input list="city-list" data-ops="transferCity" value="${esc(v.ops.transferCity || '')}" placeholder="Search city…" />
             <datalist id="city-list">${cities.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>
           </div>
-          <div class="field"><label>الناقل</label>
-            <input list="carrier-list" data-ops="carrier" value="${esc(v.ops.carrier || '')}" placeholder="Search carrier…" />
-            <datalist id="carrier-list">${carriers.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>
+          <div class="field"><label>الناقل${String(v.ops.carrier || '').trim() && state.user.role !== 'admin' ? ' (مقفل)' : ''}</label>
+            ${String(v.ops.carrier || '').trim() && state.user.role !== 'admin'
+              ? `<input value="${esc(na(v.ops.carrier))}" readonly title="الناقل مقفل بعد التعيين" />`
+              : `<input list="carrier-list" data-ops="carrier" value="${esc(v.ops.carrier || '')}" placeholder="Search carrier…" />
+            <datalist id="carrier-list">${carriers.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>`}
           </div>
           <div class="field"><label>ملاحظات</label>
             <textarea data-ops="notes">${esc(v.ops.notes || '')}</textarea>
