@@ -118,6 +118,23 @@
     return state.user && (state.user.role === 'admin' || state.user.role === 'hanouf');
   }
 
+  function canEditVinOps(row) {
+    if (canManage()) return true;
+    if (!state.user || !row || !row.ops) return false;
+    return row.ops.assignedEmployeeId === state.user.id
+      || row.ops.assignedEmployeeName === state.user.name;
+  }
+
+  function hubSyncToast(hubSync) {
+    if (!hubSync || typeof hubSync !== 'object') return '';
+    const moved = Number(hubSync.added || 0) + Number(hubSync.reassigned || 0);
+    const city = Number(hubSync.cityUpdated || 0);
+    const parts = [];
+    if (moved) parts.push(`${moved} → لوحة الشركة`);
+    if (city) parts.push(`مدينة ${city}`);
+    return parts.length ? ` · ${parts.join(' · ')}` : '';
+  }
+
   function isRuba() {
     return state.user && (state.user.id === 'ruba' || state.user.name === 'Ruba');
   }
@@ -615,6 +632,9 @@
 
     if (!changed && silent) return;
 
+    fillCarrierLists();
+    fillCityLists();
+
     const cols = [
       { key: 'num', label: '#', html: (_r, i) => i + 1 },
       { key: 'employee', label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` },
@@ -644,8 +664,20 @@
       { key: 'fees', label: 'Traffic Fees', html: (r) => ynBadge(r.ops.trafficFeesOps) },
       { key: 'ins', label: 'Insurance', html: (r) => ynBadge(r.ops.insuranceOps) },
       { key: 'reg', label: 'إصدار الاستمارة', html: (r) => na(r.ops.registrationIssueDate) },
-      { key: 'city', label: 'مدينة الترحيل', html: (r) => na(r.ops.transferCity) },
-      { key: 'carrier', label: 'الناقل', html: (r) => na(r.ops.carrier) },
+      {
+        key: 'city',
+        label: 'مدينة الترحيل',
+        html: (r) => (canEditVinOps(r)
+          ? editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity)
+          : na(r.ops.transferCity)),
+      },
+      {
+        key: 'carrier',
+        label: 'الناقل',
+        html: (r) => (canEditVinOps(r)
+          ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)
+          : na(r.ops.carrier)),
+      },
       { key: 'notes', label: 'ملاحظات', html: (r) => esc(r.ops.notes || '') },
       { key: 'updated', label: 'Updated', html: (r) => esc((r.ops.updatedAt || '').replace('T', ' ').slice(0, 19) || '—') },
       { key: 'by', label: 'By', html: (r) => na(r.ops.updatedBy) },
@@ -662,6 +694,7 @@
       }).join('') || `<tr><td colspan="${cols.length}">No assigned VINs yet. Use Assignment to assign vehicles.</td></tr>`}</tbody>`;
     $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
     bindGuestButtons(table);
+    bindEditableCells(table);
   }
 
   async function loadDashboard() {
@@ -936,7 +969,7 @@
     if (!vin || !field) return;
     el.classList.add('is-saving');
     try {
-      await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: { [field]: value } });
+      const res = await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: { [field]: value } });
       el.classList.remove('is-saving');
       el.classList.add('is-saved');
       if (field === 'opsStatus') {
@@ -954,8 +987,16 @@
       const toast = $('#my-save-toast');
       if (toast) {
         toast.hidden = false;
-        toast.textContent = `Saved ✓ ${fieldLabel(field)} · ${new Date().toLocaleTimeString()}`;
-        setTimeout(() => { toast.hidden = true; }, 2200);
+        toast.textContent = `Saved ✓ ${fieldLabel(field)}${hubSyncToast(res.hubSync)} · ${new Date().toLocaleTimeString()}`;
+        setTimeout(() => { toast.hidden = true; }, 2800);
+      } else if (field === 'carrier' || field === 'transferCity') {
+        const note = hubSyncToast(res.hubSync);
+        if (note) {
+          // Live Sheet has no toast strip — brief title flash
+          const prev = document.title;
+          document.title = `Saved${note}`;
+          setTimeout(() => { document.title = prev; }, 2000);
+        }
       }
       setTimeout(() => el.classList.remove('is-saved'), 1200);
     } catch (err) {
@@ -985,6 +1026,13 @@
       const el = $(sel);
       if (el) el.innerHTML = html;
     });
+  }
+
+  function fillCityLists() {
+    const cities = (state.meta && state.meta.transferCities) || [];
+    const html = cities.map((c) => `<option value="${esc(c)}"></option>`).join('');
+    const el = $('#edit-city-list');
+    if (el) el.innerHTML = html;
   }
 
   function renderScheduleTable(tableEl, rows, {
@@ -1467,9 +1515,9 @@
         const res = await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: patch });
         const line = $('#save-line', drawer);
         line.hidden = false;
-        line.textContent = `Saved ✓ · ${new Date(res.lastUpdated).toLocaleTimeString()}`;
+        line.textContent = `Saved ✓${hubSyncToast(res.hubSync)} · ${new Date(res.lastUpdated).toLocaleTimeString()}`;
         $('#last-updated', drawer).textContent = `Last updated: ${res.lastUpdated}`;
-        setTimeout(() => { line.hidden = true; }, 2500);
+        setTimeout(() => { line.hidden = true; }, 2800);
       } catch (err) {
         alert(err.message || 'Save failed');
       }

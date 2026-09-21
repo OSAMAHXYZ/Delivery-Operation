@@ -438,13 +438,16 @@ function createDeliveryTeamRouter(opts) {
     if (typeof fn !== 'function' || !items || !items.length) return null;
     try {
       return fn(items.map((it) => {
-        const ops = it.ops || (it.vehicle && it.vehicle.ops) || {};
+        const vehicle = it.vehicle || null;
+        const ops = it.ops || (vehicle && vehicle.ops) || {};
+        const raw = it.raw || (vehicle && vehicle.raw) || {};
         return {
-          vin: it.vin,
+          vin: it.vin || (vehicle && vehicle.vin) || '',
           carrier: it.carrier != null ? it.carrier : (ops.carrier || ''),
           transferCity: it.transferCity != null ? it.transferCity : (ops.transferCity || ''),
-          raw: it.raw || (it.vehicle && it.vehicle.raw) || {},
+          raw,
           ops,
+          vehicle: vehicle || { vin: it.vin, raw, ops },
           by: it.by || '',
         };
       }));
@@ -1449,15 +1452,14 @@ function createDeliveryTeamRouter(opts) {
       if (carrierChanged || cityChanged) {
         const carrier = String(v.ops.carrier || '').trim();
         const transferCity = String(v.ops.transferCity || '').trim();
-        if (carrier || transferCity) {
-          hubSync = notifyCarrierAssigned([{
-            vin: v.vin,
-            carrier,
-            transferCity,
-            vehicle: v,
-            by: req.dtUser.name,
-          }]);
-        }
+        // Always push — empty city clears hub branch; الناقل change moves company board live
+        hubSync = notifyCarrierAssigned([{
+          vin: v.vin,
+          carrier,
+          transferCity,
+          vehicle: v,
+          by: req.dtUser.name,
+        }]) || { pushed: true };
       }
       return res.json({
         ok: true,

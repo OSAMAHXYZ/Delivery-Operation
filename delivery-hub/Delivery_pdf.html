@@ -4886,7 +4886,7 @@
                 return loadAutomallBoard();
             }
             return loadWorkspace();
-        });
+        }, { pollMs: 5000, debounceMs: 250 });
         setInterval(updateLivePill, 2000);
     </script>
 </body>

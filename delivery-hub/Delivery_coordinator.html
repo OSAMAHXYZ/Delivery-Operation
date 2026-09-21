@@ -1691,6 +1691,6 @@
         });
     </script>
     <script src="delivery-hub-live.js"></script>
-    <script>DeliveryHubLive.start(loadQueue);</script>
+    <script>DeliveryHubLive.start(loadQueue, { pollMs: 5000, debounceMs: 250 });</script>
 </body>
 </html>

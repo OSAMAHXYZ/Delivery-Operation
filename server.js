@@ -1415,13 +1415,46 @@ function resolveCoordinatorCityFromTeam(city) {
   return name;
 }
 
-function applyTeamCityToQueueItem(item, transferCity) {
+function applyTeamCityToQueueItem(item, transferCity, { allowClear = false } = {}) {
   if (!item) return false;
-  const city = resolveCoordinatorCityFromTeam(transferCity);
+  const raw = String(transferCity == null ? '' : transferCity).trim();
+  if (!raw) {
+    if (!allowClear) return false;
+    const had = String(item.plannedBranch || item.deliveryCity || '').trim();
+    if (!had) return false;
+    item.plannedBranch = '';
+    item.deliveryCity = '';
+    return true;
+  }
+  const city = resolveCoordinatorCityFromTeam(raw);
   if (!city) return false;
-  if (String(item.plannedBranch || '').trim() === city) return false;
+  const prevBranch = String(item.plannedBranch || '').trim();
+  const prevCity = String(item.deliveryCity || '').trim();
+  if (prevBranch === city && prevCity === city) return false;
   item.plannedBranch = city;
+  item.deliveryCity = city;
   return true;
+}
+
+/**
+ * Re-trace مدينة الترحيل from every Delivery Team VIN onto the hub queue
+ * so city edits always land on Coordinator / Delivery_pdf.
+ */
+function syncAllTeamCitiesFromDeliveryTeam() {
+  if (!deliveryTeamStore || typeof deliveryTeamStore.allVehicles !== 'function') {
+    return { cityUpdated: 0 };
+  }
+  let cityUpdated = 0;
+  for (const v of deliveryTeamStore.allVehicles() || []) {
+    const vin = normVin(v && v.vin);
+    if (!vin) continue;
+    const q = findQueueItem(vin);
+    if (!q) continue;
+    if (applyTeamCityToQueueItem(q, teamVehicleTransferCity(v), { allowClear: true })) {
+      cityUpdated += 1;
+    }
+  }
+  return { cityUpdated };
 }
 
 /**
@@ -1440,21 +1473,43 @@ function syncTeamCarriersToCoordinator(items) {
   let skipped = 0;
   let same = 0;
   let cityUpdated = 0;
+  let optionsChanged = false;
+  let touched = false;
 
   for (const item of list) {
     const vin = normVin(item.vin || (item.raw && item.raw.vin) || (item.vehicle && item.vehicle.vin));
-    const carrier = teamVehicleCarrier(item.vehicle ? { ...item, ...item.vehicle, ops: item.ops || item.vehicle.ops, raw: item.raw || item.vehicle.raw } : item);
-    const transferCity = teamVehicleTransferCity(item.vehicle ? { ...item, ...item.vehicle, ops: item.ops || item.vehicle.ops, raw: item.raw || item.vehicle.raw } : item);
+    const merged = item.vehicle
+      ? {
+        ...item,
+        ...item.vehicle,
+        ops: { ...(item.vehicle.ops || {}), ...(item.ops || {}) },
+        raw: item.raw || item.vehicle.raw || {},
+      }
+      : item;
+    if (item.ops) merged.ops = { ...(merged.ops || {}), ...item.ops };
+
+    const carrier = String(
+      item.carrier != null ? item.carrier : teamVehicleCarrier(merged)
+    ).trim();
+    const transferCity = String(
+      item.transferCity != null ? item.transferCity : teamVehicleTransferCity(merged)
+    ).trim();
+
     if (!vin) {
       skipped += 1;
       continue;
     }
 
-    // City-only update when VIN already on a board
+    // City-only update when no الناقل (VIN already on a board)
     if (!carrier) {
       const existingOnly = findQueueItem(vin);
-      if (existingOnly && transferCity && applyTeamCityToQueueItem(existingOnly, transferCity)) {
-        cityUpdated += 1;
+      if (existingOnly) {
+        if (applyTeamCityToQueueItem(existingOnly, transferCity, { allowClear: true })) {
+          cityUpdated += 1;
+          touched = true;
+        } else {
+          skipped += 1;
+        }
       } else {
         skipped += 1;
       }
@@ -1471,9 +1526,10 @@ function syncTeamCarriersToCoordinator(items) {
     );
     if (!existsOpt) {
       store.options.companies = uniqueSorted([...(store.options.companies || []), deliveryCompany]);
+      optionsChanged = true;
     }
 
-    const hubVeh = upsertHubVehicleFromTeamVehicle(item.vehicle || item);
+    const hubVeh = upsertHubVehicleFromTeamVehicle(item.vehicle || merged);
     const existingItem = findQueueItem(vin);
     if (existingItem) {
       const prevCompany = String(existingItem.deliveryCompany || existingItem.company || '').trim();
@@ -1483,21 +1539,31 @@ function syncTeamCarriersToCoordinator(items) {
         && companyNameKey(prevCompany) === companyNameKey(deliveryCompany);
 
       if (sameCompany) {
-        if (transferCity && applyTeamCityToQueueItem(existingItem, transferCity)) cityUpdated += 1;
+        if (applyTeamCityToQueueItem(existingItem, transferCity, { allowClear: true })) {
+          cityUpdated += 1;
+        }
+        if (existingItem.plannedDeliveryMode !== 'memo' && existingItem.plannedDeliveryMode !== 'warehouse') {
+          existingItem.plannedDeliveryMode = 'memo';
+        }
         same += 1;
+        touched = true;
         continue;
       }
 
-      // بدون شركة / empty / different company → apply الناقل from Delivery Team sheet
+      // Different الناقل → move VIN to the new company board (live)
       existingItem.deliveryCompany = deliveryCompany;
       existingItem.company = deliveryCompany;
       existingItem.plannedDeliveryMode = 'memo';
-      if (transferCity && applyTeamCityToQueueItem(existingItem, transferCity)) cityUpdated += 1;
       if (hubVeh) Object.assign(existingItem, enrichFromVehicle(existingItem, hubVeh));
-      // keep deliveryCompany after enrich (enrich does not clear it, but be explicit)
       existingItem.deliveryCompany = deliveryCompany;
       existingItem.company = deliveryCompany;
+      existingItem.plannedDeliveryMode = 'memo';
+      if (applyTeamCityToQueueItem(existingItem, transferCity, { allowClear: true })) {
+        cityUpdated += 1;
+      }
+      existingItem.updatedAt = now;
       reassigned += 1;
+      touched = true;
       continue;
     }
 
@@ -1511,16 +1577,30 @@ function syncTeamCarriersToCoordinator(items) {
       deliveryCompany,
       plannedDeliveryMode: 'memo',
       company: deliveryCompany,
-      plannedBranch: transferCity ? resolveCoordinatorCityFromTeam(transferCity) : '',
+      plannedBranch: '',
+      deliveryCity: '',
       source: 'delivery-team',
       sourceBy: item.by || '',
     };
-    store.queue.push(enrichFromVehicle(base, hubVeh));
+    const row = enrichFromVehicle(base, hubVeh);
+    row.deliveryCompany = deliveryCompany;
+    row.company = deliveryCompany;
+    row.plannedDeliveryMode = 'memo';
+    applyTeamCityToQueueItem(row, transferCity, { allowClear: true });
+    store.queue.push(row);
     added += 1;
+    touched = true;
   }
 
-  if (added || reassigned || cityUpdated) persistAndBroadcast();
-  return { added, reassigned, skipped, same, cityUpdated };
+  // Re-trace cities from ALL Delivery Team VINs so mid-stream city edits stick everywhere
+  const allCities = syncAllTeamCitiesFromDeliveryTeam();
+  cityUpdated += Number(allCities.cityUpdated || 0);
+  if (allCities.cityUpdated) touched = true;
+
+  if (added || reassigned || cityUpdated || optionsChanged || touched) {
+    persistAndBroadcast();
+  }
+  return { added, reassigned, skipped, same, cityUpdated, optionsChanged };
 }
 
 /** Merge all Delivery Team vehicles into hub inventory + sync carriers to boards. */
@@ -1701,7 +1781,12 @@ function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   };
 }
 
-deliveryTeamHooks.onCarrierAssigned = (items) => syncTeamCarriersToCoordinator(items);
+deliveryTeamHooks.onCarrierAssigned = (items) => {
+  const result = syncTeamCarriersToCoordinator(items);
+  // Always nudge live hub pages (Coordinator / Delivery_pdf) after الناقل or city edit
+  broadcastHubUpdate();
+  return result;
+};
 deliveryTeamHooks.onRawUploaded = (payload) => {
   const hub = syncTeamRawToHubInventory(payload && payload.store);
   // After Delivery sheet upload, stamp الناقل from Print Drafts when archive drafts exist
