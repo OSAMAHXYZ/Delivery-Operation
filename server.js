@@ -2041,17 +2041,18 @@ deliveryTeamHooks.onSalesRawUpload = ({ buffer, filename, byUser } = {}) => {
   const byName = String((byUser && byUser.name) || '').trim();
   const hasDrafts = Array.isArray(parsed.drafts) && parsed.drafts.length > 0;
   const hasQueue = Array.isArray(parsed.queue) && parsed.queue.length > 0;
+  const fileLooksExport = /delivery[\s_-]*export|admin[\s_-]*export|تصدير|archive|أرشيف/i.test(name);
+  const isArchive = Boolean(parsed.isExport || fileLooksExport || hasDrafts || hasQueue);
   // Same inventory file the Coordinator / Delivery Hub reads
   const refresh = applyParsedInventory(parsed, {
-    replaceDrafts: Boolean(parsed.isExport && hasDrafts),
-    replaceQueue: Boolean(parsed.isExport && hasQueue),
+    replaceDrafts: Boolean((parsed.isExport || fileLooksExport || hasDrafts) && hasDrafts),
+    replaceQueue: Boolean((parsed.isExport || fileLooksExport || hasQueue) && hasQueue),
+    seedUnassigned: !isArchive,
     uploadedBy: byId,
     uploadedByName: byName,
   });
   const sharedFile = saveSharedSalesRawFile(buffer, name, { id: byId, name: byName });
   const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
-  const unassigned = ensureUnassignedQueueFromInventory();
-  const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
   persistAndBroadcast();
   return {
     ok: true,
@@ -2061,11 +2062,13 @@ deliveryTeamHooks.onSalesRawUpload = ({ buffer, filename, byUser } = {}) => {
     queueRefreshed: refresh.total,
     matchedUpdated: refresh.matched,
     notInNewFile: refresh.missing,
-    companiesFromDrafts: refresh.draftsApplied?.assigned || 0,
+    companiesFromDrafts: refresh.draftsApplied?.finalAssigned
+      || refresh.draftsApplied?.assigned
+      || 0,
     teamCarriersFromDrafts: refresh.teamDraftCarriers || null,
     deliveryTeamSync: teamSync,
-    unassignedQueue: unassigned,
-    teamCarriersFromQueue: queueCarriers,
+    unassignedQueue: refresh.unassigned || null,
+    teamCarriersFromQueue: refresh.queueCarriers || null,
     sharedFile: Boolean(sharedFile),
     hubUpdated: true,
     rawStatus: getHubRawStatus(),
@@ -3389,7 +3392,14 @@ function finishRestoreExport(buffer, filename, res) {
   }
 
   if (!fullArchive && !fileLooksExport) {
-    const refresh = applyParsedInventory(parsed, { replaceDrafts: false, replaceQueue: false });
+    const refresh = applyParsedInventory(parsed, {
+      replaceDrafts: false,
+      replaceQueue: false,
+      seedUnassigned: true,
+      uploadedBy: 'restore',
+      uploadedByName: 'Archive restore',
+    });
+    const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
     persistAndBroadcast();
     return res.json({
       ok: true,
@@ -3400,11 +3410,20 @@ function finishRestoreExport(buffer, filename, res) {
       sheetName: parsed.sheetName,
       filename: parsed.filename,
       queueRefreshed: refresh.total,
+      deliveryTeamSync: teamSync,
       note: 'تم استيراد المركبات فقط — لاستيراد المسودات والقائمة استخدم ملف delivery_export'
     });
   }
 
-  const refresh = applyParsedInventory(parsed, { replaceDrafts: true, replaceQueue: true });
+  // Full archive: restore queue + drafts and auto-assign companies from Print Drafts
+  const refresh = applyParsedInventory(parsed, {
+    replaceDrafts: true,
+    replaceQueue: true,
+    seedUnassigned: false,
+    uploadedBy: 'restore',
+    uploadedByName: 'Archive restore',
+  });
+  const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
   persistAndBroadcast();
   return res.json({
     ok: true,
@@ -3412,12 +3431,16 @@ function finishRestoreExport(buffer, filename, res) {
     imported: parsed.vehicles.length,
     draftsImported: (parsed.drafts || []).length,
     queueImported: (parsed.queue || []).length,
-    companiesFromDrafts: refresh.draftsApplied?.assigned || 0,
+    companiesFromDrafts: refresh.draftsApplied?.finalAssigned
+      || refresh.draftsApplied?.assigned
+      || 0,
     draftsByCompany: refresh.draftsApplied?.byCompany || computeDraftsByCompany(),
     teamCarriersFromDrafts: refresh.teamDraftCarriers || null,
+    teamCarriersFromQueue: refresh.queueCarriers || null,
+    deliveryTeamSync: teamSync,
     sheetName: parsed.sheetName,
     filename: parsed.filename,
-    queueRefreshed: refresh.total
+    queueRefreshed: refresh.total,
   });
 }
 
@@ -3685,7 +3708,11 @@ function parseQueueFromRows(rows) {
     const isWh = deliveryModeRaw === 'warehouse'
       || isWarehouseExportRow(row);
     const companyName = String(pickCol(row, [
-      'company name', 'company', 'delivery company', 'اسم الشركة', 'الشركة', 'الناقل'
+      'company name', 'company', 'delivery company', 'اسم الشركة', 'الشركة', 'الناقل',
+      'company changed to', 'changed to', 'إلى شركة'
+    ]) || '').trim();
+    const companyFrom = String(pickCol(row, [
+      'company changed from', 'changed from', 'من شركة'
     ]) || '').trim();
     queue.push({
       vin,
@@ -3705,6 +3732,8 @@ function parseQueueFromRows(rows) {
       company: companyName,
       plannedDeliveryMode: isWh ? 'warehouse' : (companyName ? 'memo' : ''),
       imageUrl: '',
+      companyChangedFrom: companyFrom || '',
+      companyChangedTo: companyName || '',
     });
   }
   return queue;
@@ -3958,6 +3987,7 @@ function applyParsedInventory(parsed, {
   replaceQueue = false,
   uploadedBy = '',
   uploadedByName = '',
+  seedUnassigned = null,
 } = {}) {
   store.vehicles = parsed.vehicles;
   store.raw = {
@@ -3975,13 +4005,17 @@ function applyParsedInventory(parsed, {
     nextDeliveryNoteSeq: Number(store.meta?.nextDeliveryNoteSeq) || 1
   };
 
+  const hasDrafts = Array.isArray(parsed.drafts) && parsed.drafts.length > 0;
+  const hasQueue = Array.isArray(parsed.queue) && parsed.queue.length > 0;
+  const isArchive = Boolean(parsed.isExport || hasDrafts || hasQueue);
+
   let draftsApplied = null;
-  if (replaceDrafts || (Array.isArray(parsed.drafts) && parsed.drafts.length)) {
+  if (replaceDrafts || hasDrafts) {
     store.drafts = Array.isArray(parsed.drafts) ? parsed.drafts.slice(0, MAX_DRAFTS) : [];
     migrateDeliveryNoteFields();
     draftsApplied = applyCompaniesFromPrintDrafts(store.drafts);
   }
-  if (replaceQueue || (Array.isArray(parsed.queue) && parsed.queue.length)) {
+  if (replaceQueue || hasQueue) {
     store.queue = Array.isArray(parsed.queue) ? dedupeQueue(parsed.queue) : [];
     // Queue sheet may lack company — backfill from drafts when present
     if (store.drafts && store.drafts.length) {
@@ -4001,7 +4035,29 @@ function applyParsedInventory(parsed, {
   }
 
   const refresh = refreshQueueFromVehicles();
-  const unassigned = ensureUnassignedQueueFromInventory();
+
+  // Sales Raw only: put unknown VINs on بدون شركة.
+  // Full archive restore must NOT do this — it floods the board and hides draft companies.
+  const shouldSeedUnassigned = seedUnassigned != null ? Boolean(seedUnassigned) : !isArchive;
+  const unassigned = shouldSeedUnassigned
+    ? ensureUnassignedQueueFromInventory()
+    : { added: 0, existing: 0, skipped: true };
+
+  // Always stamp companies from Print Drafts LAST so archive VINs land on company boards
+  if (Array.isArray(store.drafts) && store.drafts.length) {
+    const finalAssign = applyCompaniesFromPrintDrafts(store.drafts, { onlyUnassigned: false });
+    draftsApplied = draftsApplied
+      ? {
+          assigned: Math.max(Number(draftsApplied.assigned || 0), Number(finalAssign.assigned || 0)),
+          created: (draftsApplied.created || 0) + (finalAssign.created || 0),
+          companies: [...new Set([...(draftsApplied.companies || []), ...(finalAssign.companies || [])])],
+          byCompany: { ...(draftsApplied.byCompany || {}), ...(finalAssign.byCompany || {}) },
+          draftCount: draftsApplied.draftCount || finalAssign.draftCount,
+          finalAssigned: finalAssign.assigned || 0,
+        }
+      : { ...finalAssign, finalAssigned: finalAssign.assigned || 0 };
+  }
+
   let teamDraftCarriers = null;
   if (Array.isArray(store.drafts) && store.drafts.length) {
     teamDraftCarriers = syncPrintDraftCompaniesToDeliveryTeam(store.drafts);
@@ -4015,6 +4071,7 @@ function applyParsedInventory(parsed, {
     unassigned,
     queueCarriers,
     total: store.queue.length,
+    archiveMode: isArchive,
   };
 }
 
@@ -5387,9 +5444,13 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
     }
     const hasDrafts = Array.isArray(parsed.drafts) && parsed.drafts.length > 0;
     const hasQueue = Array.isArray(parsed.queue) && parsed.queue.length > 0;
+    const fileLooksExport = /delivery[\s_-]*export|admin[\s_-]*export|تصدير|archive|أرشيف/i.test(String(filename || ''));
+    const isArchive = Boolean(parsed.isExport || fileLooksExport || hasDrafts || hasQueue);
     const refresh = applyParsedInventory(parsed, {
-      replaceDrafts: Boolean(parsed.isExport && hasDrafts),
-      replaceQueue: Boolean(parsed.isExport && hasQueue),
+      // Restore drafts/queue whenever the file includes them (archive or mixed)
+      replaceDrafts: Boolean((parsed.isExport || fileLooksExport || hasDrafts) && hasDrafts),
+      replaceQueue: Boolean((parsed.isExport || fileLooksExport || hasQueue) && hasQueue),
+      seedUnassigned: !isArchive,
       uploadedBy: 'coordinator',
       uploadedByName: 'Coordinator',
     });
@@ -5398,25 +5459,25 @@ app.post('/api/delivery-inventory/upload', (req, res) => {
       name: 'Coordinator',
     });
     const teamSync = syncHubVehiclesToDeliveryTeam(parsed.vehicles || []);
-    const unassigned = ensureUnassignedQueueFromInventory();
-    const queueCarriers = syncAllQueueCompaniesToDeliveryTeam();
     persistAndBroadcast();
     res.json({
       imported: parsed.vehicles.length,
       vehicles: parsed.vehicles.slice(0, 200),
       draftsImported: (parsed.drafts || []).length,
       queueImported: (parsed.queue || []).length,
-      companiesFromDrafts: refresh.draftsApplied?.assigned || 0,
+      companiesFromDrafts: refresh.draftsApplied?.finalAssigned
+        || refresh.draftsApplied?.assigned
+        || 0,
       draftsByCompany: refresh.draftsApplied?.byCompany || (hasDrafts ? computeDraftsByCompany() : {}),
       teamCarriersFromDrafts: refresh.teamDraftCarriers || null,
-      isExport: Boolean(parsed.isExport),
+      isExport: Boolean(parsed.isExport || isArchive),
       sheetName: parsed.sheetName,
       queueRefreshed: refresh.total,
       matchedUpdated: refresh.matched,
       notInNewFile: refresh.missing,
       deliveryTeamSync: teamSync,
-      unassignedQueue: unassigned,
-      teamCarriersFromQueue: queueCarriers,
+      unassignedQueue: refresh.unassigned || null,
+      teamCarriersFromQueue: refresh.queueCarriers || null,
       sharedFile: Boolean(sharedFile),
       hubUpdated: true,
       rawStatus: getHubRawStatus(),
