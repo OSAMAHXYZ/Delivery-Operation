@@ -302,7 +302,8 @@ function loadStore() {
 
 function saveStore() {
   const tmp = `${DATA_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+  // Compact JSON — pretty-print was blocking the event loop on large archives
+  fs.writeFileSync(tmp, JSON.stringify(store), 'utf8');
   fs.renameSync(tmp, DATA_FILE);
 }
 
@@ -1993,15 +1994,20 @@ deliveryTeamHooks.onRawUploaded = (payload) => {
 let lastDraftCarrierSyncAt = 0;
 deliveryTeamHooks.onEnsureDraftCarriers = () => {
   const now = Date.now();
-  // Throttle — Live Sheet polls often; still heals within ~45s after deploy / archive restore
-  if (now - lastDraftCarrierSyncAt < 45_000) return null;
+  // Live Sheet polls every few seconds — keep this rare and non-blocking
+  if (now - lastDraftCarrierSyncAt < 5 * 60_000) return null;
   lastDraftCarrierSyncAt = now;
-  const draftResult = (store.drafts && store.drafts.length)
-    ? syncPrintDraftCompaniesToDeliveryTeam(store.drafts)
-    : null;
-  // Also re-apply coordinator company → الناقل so sheet matches boards after coordinator edits
-  const queueResult = syncAllQueueCompaniesToDeliveryTeam();
-  return { drafts: draftResult, queue: queueResult };
+  setImmediate(() => {
+    try {
+      if (store.drafts && store.drafts.length) {
+        syncPrintDraftCompaniesToDeliveryTeam(store.drafts);
+      }
+      syncAllQueueCompaniesToDeliveryTeam();
+    } catch (err) {
+      console.error('[draft-carriers] background sync failed:', err.message || err);
+    }
+  });
+  return { deferred: true };
 };
 
 function getHubRawStatus() {
@@ -5675,15 +5681,16 @@ app.get('/api/delivery-inventory/vehicles', (req, res) => {
 app.get('/api/delivery-coordinator/queue', (req, res) => {
   const admin = String(req.query.admin || '') === '1';
   const username = String(req.query.username || '').trim();
+  const forCoordinator = String(req.query.coordinator || '') === '1';
 
   // Always serve a unique VIN list enriched from the latest raw inventory
   const deduped = dedupeQueue(store.queue);
   if (deduped.length !== store.queue.length) {
     store.queue = deduped;
-    saveStore();
+    // Do not saveStore() on GET — keeps the page responsive; next write persists
   }
 
-  // Backfill warehouse delivery label from warehouse drafts
+  // Backfill warehouse delivery label from warehouse drafts (in-memory only)
   const warehouseVins = new Set();
   for (const d of store.drafts || []) {
     if (!isWarehouseDraftPayload(d.payload || {})) continue;
@@ -5703,13 +5710,21 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     }
   }
 
-  // Heal بدون شركة from Print Drafts already in store (archive restore / prior import)
-  const forCoordinator = String(req.query.coordinator || '') === '1';
+  // Rare background heal only — never block every coordinator refresh
   if ((admin || forCoordinator) && Array.isArray(store.drafts) && store.drafts.length) {
-    const heal = applyCompaniesFromPrintDrafts(store.drafts, { onlyUnassigned: true });
-    const teamDraftCarriers = syncPrintDraftCompaniesToDeliveryTeam(store.drafts);
-    if (heal.assigned || (teamDraftCarriers && (teamDraftCarriers.updated || teamDraftCarriers.cleared))) {
-      persistAndBroadcast();
+    const now = Date.now();
+    if (!app._lastQueueHealAt || now - app._lastQueueHealAt > 3 * 60_000) {
+      app._lastQueueHealAt = now;
+      setImmediate(() => {
+        try {
+          const heal = applyCompaniesFromPrintDrafts(store.drafts, { onlyUnassigned: true });
+          if (heal.assigned) {
+            persistAndBroadcast();
+          }
+        } catch (err) {
+          console.error('[queue] background heal failed:', err.message || err);
+        }
+      });
     }
   }
 
@@ -5731,16 +5746,14 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     queue = queue.filter((q) => !isPriorMonthDelivered(q));
   }
 
-  if (admin) {
+  // Coordinator UI only needs queue + draftsByCompany — skip huge drafts payload
+  if (forCoordinator && !admin) {
     ensureWarehouseStock();
     ensureShowroomParking();
     return res.json({
       queue,
       stats: computeStats(),
       draftsByCompany: computeDraftsByCompany(),
-      drafts: store.drafts,
-      deliveryNoteStats: computeDeliveryNoteStats(store.drafts || []),
-      manualVehicles: store.manualVehicles || [],
       warehouseStock: store.warehouseStock.filter((e) => e.status === 'in').map(enrichWarehouseEntry),
       warehouseZones: warehouseOccupancy(),
       showroomParking: store.showroomParking.filter((e) => e.status === 'in').map(enrichShowroomParkingEntry),
@@ -5750,13 +5763,17 @@ app.get('/api/delivery-coordinator/queue', (req, res) => {
     });
   }
 
-  if (forCoordinator) {
+  if (admin) {
     ensureWarehouseStock();
     ensureShowroomParking();
     return res.json({
       queue,
       stats: computeStats(),
       draftsByCompany: computeDraftsByCompany(),
+      // Admin may need drafts; keep but do not force sync work on this GET
+      drafts: store.drafts,
+      deliveryNoteStats: computeDeliveryNoteStats(store.drafts || []),
+      manualVehicles: store.manualVehicles || [],
       warehouseStock: store.warehouseStock.filter((e) => e.status === 'in').map(enrichWarehouseEntry),
       warehouseZones: warehouseOccupancy(),
       showroomParking: store.showroomParking.filter((e) => e.status === 'in').map(enrichShowroomParkingEntry),

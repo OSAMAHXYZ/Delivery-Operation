@@ -1521,7 +1521,7 @@
         }
 
         async function loadQueue() {
-            const res = await fetch('/api/delivery-coordinator/queue?admin=1&coordinator=1');
+            const res = await fetch('/api/delivery-coordinator/queue?coordinator=1');
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'فشل التحميل');
             currentQueue = data.queue || [];
@@ -1691,6 +1691,6 @@
         });
     </script>
     <script src="delivery-hub-live.js"></script>
-    <script>DeliveryHubLive.start(loadQueue, { pollMs: 5000, debounceMs: 250 });</script>
+    <script>DeliveryHubLive.start(loadQueue, { pollMs: 20000, debounceMs: 400, pollWhenConnected: false });</script>
 </body>
 </html>

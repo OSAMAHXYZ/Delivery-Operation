@@ -707,10 +707,13 @@ function createDeliveryTeamRouter(opts) {
 
   /** Live Excel-style board — all assigned VINs (Admin, Hanouf, and every employee) */
   router.get('/live-sheet', auth, (req, res) => {
+    // Kick background heal without blocking this response
     if (typeof opts.onEnsureDraftCarriers === 'function') {
-      try { opts.onEnsureDraftCarriers(); } catch (err) {
-        console.error('[delivery-team] onEnsureDraftCarriers failed:', err.message || err);
-      }
+      setImmediate(() => {
+        try { opts.onEnsureDraftCarriers(); } catch (err) {
+          console.error('[delivery-team] onEnsureDraftCarriers failed:', err.message || err);
+        }
+      });
     }
     const q = { ...(req.query || {}), assigned: 'yes' };
     let list = store.allVehicles();

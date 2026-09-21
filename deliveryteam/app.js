@@ -547,12 +547,12 @@
     if (view === 'live') {
       state.liveTimer = setInterval(() => {
         loadLiveSheet({ silent: true }).catch(() => {});
-      }, 5000);
+      }, 15000);
     }
     if (view === 'guest') {
       state.liveTimer = setInterval(() => {
         loadGuestExperience().catch(() => {});
-      }, 8000);
+      }, 15000);
     }
     if (!state.guestTickTimer) {
       state.guestTickTimer = setInterval(() => tickGuestTimers(), 1000);
