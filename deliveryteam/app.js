@@ -43,19 +43,17 @@
     return s && s !== 'N/A' ? s : 'N/A';
   }
 
-  /** Customer / phone / invoice owner — Admin + Hanouf. */
+  /** Customer / phone — visible to all Delivery Team users. */
   function canSeePii() {
-    return !!(state.user && (state.user.role === 'admin' || state.user.role === 'hanouf'));
+    return !!(state.user && state.user.role);
   }
 
   function displayName(value) {
-    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
 
   function displayPhone(value) {
-    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
