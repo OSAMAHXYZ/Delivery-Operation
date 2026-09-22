@@ -1,15 +1,21 @@
 'use strict';
 
 /**
- * Delivery Team privacy — customer name, invoice owner, and phone
- * are visible to admin and Hanouf (assignment).
+ * Delivery Team privacy —
+ * - Customer name + phone: visible to all roles
+ * - Invoice owner: admin + Hanouf only
  */
 
 const PII_KEYS = Object.freeze(['invoiceOwner', 'userName', 'phone']);
 
-function canSeeCustomerPii(role) {
+function canSeeInvoiceOwner(role) {
   const r = String(role || '').trim().toLowerCase();
   return r === 'admin' || r === 'hanouf';
+}
+
+/** @deprecated Prefer canSeeInvoiceOwner — customer name/phone are open to all. */
+function canSeeCustomerPii(role) {
+  return canSeeInvoiceOwner(role);
 }
 
 function maskPersonName(value) {
@@ -26,21 +32,20 @@ function phoneDisplay(value) {
   return s || '—';
 }
 
-/** Redact PII for API responses unless viewer is admin. */
+/** Redact invoice owner unless viewer is admin/Hanouf. Name + phone always pass through. */
 function redactRawPii(raw, viewerRole) {
   if (!raw || typeof raw !== 'object') return raw;
-  if (canSeeCustomerPii(viewerRole)) return { ...raw };
-  return {
-    ...raw,
-    invoiceOwner: '—',
-    userName: '—',
-    phone: '—',
-  };
+  const out = { ...raw };
+  if (!canSeeInvoiceOwner(viewerRole)) {
+    out.invoiceOwner = '—';
+  }
+  return out;
 }
 
 module.exports = {
   PII_KEYS,
   canSeeCustomerPii,
+  canSeeInvoiceOwner,
   maskPersonName,
   maskPhone,
   phoneDisplay,

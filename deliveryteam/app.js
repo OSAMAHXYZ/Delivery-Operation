@@ -44,20 +44,18 @@
     return s && s !== 'N/A' ? s : 'N/A';
   }
 
-  /** Customer / phone / invoice owner — admin + Hanouf (assignment). */
-  function canSeePii() {
+  /** Invoice owner — admin + Hanouf only. Customer name + phone are open to all. */
+  function canSeeInvoiceOwner() {
     const role = state.user && state.user.role;
     return role === 'admin' || role === 'hanouf';
   }
 
   function displayName(value) {
-    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
 
   function displayPhone(value) {
-    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
@@ -664,14 +662,12 @@
       { key: 'order', label: 'Order', html: (r) => na(r.raw.salesOrder) },
       { key: 'product', label: 'Product', html: (r) => na(r.raw.product) },
       { key: 'salestype', label: 'Sales Type', html: (r) => na(r.raw.salesType) },
-      ...(canSeePii() ? [
+      ...(canSeeInvoiceOwner() ? [
         { key: 'owner', label: 'Owner', html: (r) => na(r.raw.invoiceOwner) },
-        { key: 'customer', label: 'Customer', html: (r) => displayName(r.raw.userName) },
       ] : []),
+      { key: 'customer', label: 'Customer', html: (r) => displayName(r.raw.userName) },
       { key: 'sa', label: 'S/A', html: (r) => na(r.raw.salesAdvisor) },
-      ...(canSeePii() ? [
-        { key: 'phone', label: 'Phone', html: (r) => displayPhone(r.raw.phone) },
-      ] : []),
+      { key: 'phone', label: 'Phone', html: (r) => displayPhone(r.raw.phone) },
       { key: 'guest', label: 'Guest Exp', html: (r) => guestCellHtml(r, { editable: liveEditable }) },
       { key: 'gt', label: 'GT Loc', html: (r) => na(r.raw.gtLocation) },
       { key: 'veh', label: 'Veh Loc', html: (r) => na(r.raw.vehicleLocation) },
@@ -1320,20 +1316,16 @@
       ['Sales Type', (r) => na(r.raw.salesType)],
       ['Product', (r) => na(r.raw.product)],
     ];
-    if (canSeePii()) {
-      cols.push(
-        ['Invoice Owner', (r) => na(r.raw.invoiceOwner)],
-        ['Customer Name', (r) => displayName(r.raw.userName)],
-      );
+    if (canSeeInvoiceOwner()) {
+      cols.push(['Invoice Owner', (r) => na(r.raw.invoiceOwner)]);
     }
     cols.push(
+      ['Customer Name', (r) => displayName(r.raw.userName)],
       ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['GT Loc', (r) => na(r.raw.gtLocation)],
       ['Veh Loc', (r) => na(r.raw.vehicleLocation)],
+      ['Phone', (r) => displayPhone(r.raw.phone)],
     );
-    if (canSeePii()) {
-      cols.push(['Phone', (r) => displayPhone(r.raw.phone)]);
-    }
     cols.push(['Guest Exp', (r) => guestCellHtml(r, { editable })]);
     if (editable) {
       cols.push(
@@ -2010,13 +2002,13 @@
           ${[
             ['Proforma Date', v.raw.proformaDate], ['Sales Order', v.raw.salesOrder],
             ['Sales Type', v.raw.salesType],
-            ...(canSeePii() ? [
+            ...(canSeeInvoiceOwner() ? [
               ['Invoice Owner', v.raw.invoiceOwner],
-              ['Customer Name', displayName(v.raw.userName)],
             ] : []),
+            ['Customer Name', displayName(v.raw.userName)],
             ['S/A', v.raw.salesAdvisor],
             ['GT Location', v.raw.gtLocation], ['Vehicle Location', v.raw.vehicleLocation],
-            ...(canSeePii() ? [['Phone', displayPhone(v.raw.phone)]] : []),
+            ['Phone', displayPhone(v.raw.phone)],
             ['PIC', v.raw.pic],
           ].map(([l, val]) => `<div class="field"><label>${esc(l)}</label><input value="${esc(na(val))}" readonly /></div>`).join('')}
         </div>

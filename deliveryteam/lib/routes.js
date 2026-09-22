@@ -22,7 +22,7 @@ const {
   isGuestCenterRaw,
 } = require('./constants');
 const { createStore } = require('./store');
-const { phoneDisplay, redactRawPii, canSeeCustomerPii } = require('./privacy');
+const { phoneDisplay, redactRawPii, canSeeInvoiceOwner } = require('./privacy');
 
 function na(v) {
   const s = String(v == null ? '' : v).trim();
@@ -461,7 +461,7 @@ function publicVehicle(v, viewer) {
     }
   }
   const role = viewer && (viewer.role || viewer);
-  const allowPii = canSeeCustomerPii(role);
+  const allowOwner = canSeeInvoiceOwner(role);
   const safeRaw = redactRawPii(v.raw || {}, role);
   const used = Number(ops.carrierChangeCount || 0) || 0;
   const isHanouf = String(role || '').toLowerCase() === 'hanouf';
@@ -478,14 +478,14 @@ function publicVehicle(v, viewer) {
       product: na(safeRaw.product),
       pic: na(safeRaw.pic),
       salesType: na(safeRaw.salesType),
-      invoiceOwner: allowPii ? na(safeRaw.invoiceOwner) : '—',
-      userName: allowPii ? na(safeRaw.userName) : '—',
+      invoiceOwner: allowOwner ? na(safeRaw.invoiceOwner) : '—',
+      userName: na(safeRaw.userName),
       salesAdvisor: na(safeRaw.salesAdvisor),
       proformaDate: na(safeRaw.proformaDate),
       deliveryDate: na(safeRaw.deliveryDate),
       gtLocation: na(safeRaw.gtLocation),
       vehicleLocation: na(safeRaw.vehicleLocation),
-      phone: allowPii ? phoneDisplay(safeRaw.phone) : '—',
+      phone: phoneDisplay(safeRaw.phone),
       status: na(safeRaw.status),
       traffic: na(safeRaw.traffic),
       trafficFees: na(safeRaw.trafficFees),
@@ -703,7 +703,7 @@ function createDeliveryTeamRouter(opts) {
     let out = list.slice();
     const search = String(q.q || q.search || '').trim().toLowerCase();
     if (search) {
-      const allowPii = canSeeCustomerPii(viewer && viewer.role);
+      const allowOwner = canSeeInvoiceOwner(viewer && viewer.role);
       out = out.filter((v) => {
         const hay = [
           v.vin,
@@ -717,10 +717,10 @@ function createDeliveryTeamRouter(opts) {
           v.ops.carrier,
           v.raw.gtLocation,
           v.raw.vehicleLocation,
+          v.raw.userName,
+          v.raw.phone,
         ];
-        if (allowPii) {
-          hay.push(v.raw.invoiceOwner, v.raw.userName, v.raw.phone);
-        }
+        if (allowOwner) hay.push(v.raw.invoiceOwner);
         return hay.join(' ').toLowerCase().includes(search);
       });
     }
@@ -2041,7 +2041,7 @@ function createDeliveryTeamRouter(opts) {
     };
 
     const matrix = [E_SALES_EXPORT_HEADERS.slice()];
-    const allowPii = canSeeCustomerPii(req.dtUser && req.dtUser.role);
+    const allowOwner = canSeeInvoiceOwner(req.dtUser && req.dtUser.role);
     list.forEach((v) => {
       const raw = v.raw || {};
       const ops = v.ops || {};
@@ -2054,8 +2054,8 @@ function createDeliveryTeamRouter(opts) {
         raw.damage || '',
         pic,
         raw.salesType || '',
-        allowPii ? (raw.invoiceOwner || '') : '',
-        allowPii ? (raw.userName || '') : '',
+        allowOwner ? (raw.invoiceOwner || '') : '',
+        raw.userName || '',
         raw.salesAdvisor || '',
         ops.guestSentDate || '',
         ops.signatureReceivedDate || '',
@@ -2075,7 +2075,7 @@ function createDeliveryTeamRouter(opts) {
         raw.financeOfficer || '',
         raw.salesType || '',
         raw.salePlace || '',
-        allowPii ? (raw.phone || '') : '',
+        raw.phone || '',
         '', '', '',
         raw.deliveryDate || '',
         '', '', '', '', '', '', '', '',
