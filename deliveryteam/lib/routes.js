@@ -22,7 +22,7 @@ const {
   isGuestCenterRaw,
 } = require('./constants');
 const { createStore } = require('./store');
-const { phoneDisplay, redactRawPii, canSeeInvoiceOwner } = require('./privacy');
+const { phoneDisplay, redactRawPii } = require('./privacy');
 
 function na(v) {
   const s = String(v == null ? '' : v).trim();
@@ -461,7 +461,6 @@ function publicVehicle(v, viewer) {
     }
   }
   const role = viewer && (viewer.role || viewer);
-  const allowOwner = canSeeInvoiceOwner(role);
   const safeRaw = redactRawPii(v.raw || {}, role);
   const used = Number(ops.carrierChangeCount || 0) || 0;
   const isHanouf = String(role || '').toLowerCase() === 'hanouf';
@@ -478,7 +477,7 @@ function publicVehicle(v, viewer) {
       product: na(safeRaw.product),
       pic: na(safeRaw.pic),
       salesType: na(safeRaw.salesType),
-      invoiceOwner: allowOwner ? na(safeRaw.invoiceOwner) : '—',
+      invoiceOwner: na(safeRaw.invoiceOwner),
       userName: na(safeRaw.userName),
       salesAdvisor: na(safeRaw.salesAdvisor),
       proformaDate: na(safeRaw.proformaDate),
@@ -703,7 +702,6 @@ function createDeliveryTeamRouter(opts) {
     let out = list.slice();
     const search = String(q.q || q.search || '').trim().toLowerCase();
     if (search) {
-      const allowOwner = canSeeInvoiceOwner(viewer && viewer.role);
       out = out.filter((v) => {
         const hay = [
           v.vin,
@@ -718,9 +716,9 @@ function createDeliveryTeamRouter(opts) {
           v.raw.gtLocation,
           v.raw.vehicleLocation,
           v.raw.userName,
+          v.raw.invoiceOwner,
           v.raw.phone,
         ];
-        if (allowOwner) hay.push(v.raw.invoiceOwner);
         return hay.join(' ').toLowerCase().includes(search);
       });
     }
@@ -2041,7 +2039,6 @@ function createDeliveryTeamRouter(opts) {
     };
 
     const matrix = [E_SALES_EXPORT_HEADERS.slice()];
-    const allowOwner = canSeeInvoiceOwner(req.dtUser && req.dtUser.role);
     list.forEach((v) => {
       const raw = v.raw || {};
       const ops = v.ops || {};
@@ -2054,7 +2051,7 @@ function createDeliveryTeamRouter(opts) {
         raw.damage || '',
         pic,
         raw.salesType || '',
-        allowOwner ? (raw.invoiceOwner || '') : '',
+        raw.invoiceOwner || '',
         raw.userName || '',
         raw.salesAdvisor || '',
         ops.guestSentDate || '',

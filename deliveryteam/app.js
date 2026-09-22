@@ -44,12 +44,7 @@
     return s && s !== 'N/A' ? s : 'N/A';
   }
 
-  /** Invoice owner — admin + Hanouf only. Customer name + phone are open to all. */
-  function canSeeInvoiceOwner() {
-    const role = state.user && state.user.role;
-    return role === 'admin' || role === 'hanouf';
-  }
-
+  /** Customer name, owner (raw N), and phone — open to all roles. */
   function displayName(value) {
     const s = String(value == null ? '' : value).trim();
     return s || '—';
@@ -662,10 +657,8 @@
       { key: 'order', label: 'Order', html: (r) => na(r.raw.salesOrder) },
       { key: 'product', label: 'Product', html: (r) => na(r.raw.product) },
       { key: 'salestype', label: 'Sales Type', html: (r) => na(r.raw.salesType) },
-      ...(canSeeInvoiceOwner() ? [
-        { key: 'owner', label: 'Owner', html: (r) => na(r.raw.invoiceOwner) },
-      ] : []),
       { key: 'customer', label: 'Customer', html: (r) => displayName(r.raw.userName) },
+      { key: 'owner', label: 'Owner', html: (r) => displayName(r.raw.invoiceOwner) },
       { key: 'sa', label: 'S/A', html: (r) => na(r.raw.salesAdvisor) },
       { key: 'phone', label: 'Phone', html: (r) => displayPhone(r.raw.phone) },
       { key: 'guest', label: 'Guest Exp', html: (r) => guestCellHtml(r, { editable: liveEditable }) },
@@ -1316,11 +1309,9 @@
       ['Sales Type', (r) => na(r.raw.salesType)],
       ['Product', (r) => na(r.raw.product)],
     ];
-    if (canSeeInvoiceOwner()) {
-      cols.push(['Invoice Owner', (r) => na(r.raw.invoiceOwner)]);
-    }
     cols.push(
       ['Customer Name', (r) => displayName(r.raw.userName)],
+      ['Owner', (r) => displayName(r.raw.invoiceOwner)],
       ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['GT Loc', (r) => na(r.raw.gtLocation)],
       ['Veh Loc', (r) => na(r.raw.vehicleLocation)],
@@ -1750,7 +1741,8 @@
       ['Order', (r) => na(r.raw.salesOrder)],
       ['Product', (r) => na(r.raw.product)],
       ['Sales Type', (r) => na(r.raw.salesType)],
-      ['Invoice Owner', (r) => na(r.raw.invoiceOwner)],
+      ['Customer Name', (r) => displayName(r.raw.userName)],
+      ['Owner', (r) => displayName(r.raw.invoiceOwner)],
       ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Status', (r) => statusBadge(r.ops.opsStatus)],
@@ -2002,10 +1994,8 @@
           ${[
             ['Proforma Date', v.raw.proformaDate], ['Sales Order', v.raw.salesOrder],
             ['Sales Type', v.raw.salesType],
-            ...(canSeeInvoiceOwner() ? [
-              ['Invoice Owner', v.raw.invoiceOwner],
-            ] : []),
             ['Customer Name', displayName(v.raw.userName)],
+            ['Owner', displayName(v.raw.invoiceOwner)],
             ['S/A', v.raw.salesAdvisor],
             ['GT Location', v.raw.gtLocation], ['Vehicle Location', v.raw.vehicleLocation],
             ['Phone', displayPhone(v.raw.phone)],

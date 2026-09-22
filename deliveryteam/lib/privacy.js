@@ -2,20 +2,18 @@
 
 /**
  * Delivery Team privacy —
- * - Customer name + phone: visible to all roles
- * - Invoice owner: admin + Hanouf only
+ * Customer name, invoice owner (raw col N), and phone are visible to all roles.
  */
 
 const PII_KEYS = Object.freeze(['invoiceOwner', 'userName', 'phone']);
 
-function canSeeInvoiceOwner(role) {
-  const r = String(role || '').trim().toLowerCase();
-  return r === 'admin' || r === 'hanouf';
+function canSeeInvoiceOwner(_role) {
+  return true;
 }
 
-/** @deprecated Prefer canSeeInvoiceOwner — customer name/phone are open to all. */
-function canSeeCustomerPii(role) {
-  return canSeeInvoiceOwner(role);
+/** @deprecated All contact fields are open to every role. */
+function canSeeCustomerPii(_role) {
+  return true;
 }
 
 function maskPersonName(value) {
@@ -32,14 +30,10 @@ function phoneDisplay(value) {
   return s || '—';
 }
 
-/** Redact invoice owner unless viewer is admin/Hanouf. Name + phone always pass through. */
-function redactRawPii(raw, viewerRole) {
+/** No PII redaction — name, owner, and phone pass through for every viewer. */
+function redactRawPii(raw, _viewerRole) {
   if (!raw || typeof raw !== 'object') return raw;
-  const out = { ...raw };
-  if (!canSeeInvoiceOwner(viewerRole)) {
-    out.invoiceOwner = '—';
-  }
-  return out;
+  return { ...raw };
 }
 
 module.exports = {
