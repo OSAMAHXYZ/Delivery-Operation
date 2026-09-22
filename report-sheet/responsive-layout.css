@@ -1,0 +1,626 @@
+/**
+ * Responsive layout polish for report-sheet (CSS only).
+ * Does not change colors, branding, or visual language — only flex/grid,
+ * overflow containment, and breakpoint adaptation.
+ */
+
+/* ─── Sidebar: stay full-height while page scrolls ───
+   overflow-x:hidden on ancestors breaks position:sticky, which left a
+   cut-off light strip under the sidebar when scrolling long pages. */
+@media (min-width: 901px) {
+  .live-app .app-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    align-self: auto;
+    z-index: 40;
+  }
+
+  .live-app .app-main {
+    margin-left: var(--sidebar-w);
+    width: auto;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .live-app.sidebar-collapsed .app-main {
+    margin-left: var(--sidebar-w-collapsed);
+  }
+
+  .live-app .app-frame {
+    /* Sidebar is fixed; main column owns horizontal space */
+    display: block;
+    min-height: 100vh;
+  }
+
+  .live-app .page-foot {
+    margin-left: 0;
+    padding-left: clamp(12px, 2vw, 24px);
+    padding-right: clamp(12px, 2vw, 24px);
+    text-align: left;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 900px) {
+  .live-app .app-main {
+    margin-left: 0;
+  }
+}
+
+/* ─── Global page containment ─── */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body.live-app,
+body.admin-page {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.live-app .app-frame,
+.live-app .app-main,
+.live-app .app-content,
+.live-app #dashboard,
+.live-app #dashboard.show,
+.live-app .panel-section,
+.live-app .shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.live-app .app-frame {
+  width: 100%;
+  max-width: 100vw;
+}
+
+.live-app .app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  overflow-x: hidden;
+}
+
+.live-app .app-content {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-inline: clamp(12px, 2vw, 24px);
+}
+
+/* ─── Top bar / header ─── */
+.live-app .app-topbar {
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.live-app .app-topbar-left,
+.live-app .app-topbar-titles,
+.live-app .app-topbar-actions,
+.live-app .top-actions {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.live-app .app-topbar-actions,
+.live-app .top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-app .app-topbar-search {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: min(420px, 100%);
+}
+
+.live-app .app-topbar-search input {
+  width: 100%;
+  min-width: 0;
+}
+
+.live-app .app-page-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ─── Sidebar safety ─── */
+.live-app .app-sidebar {
+  max-width: 100vw;
+}
+
+.live-app .sidebar-brand-text,
+.live-app .side-nav-label,
+.live-app .sidebar-user-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Cards, panels, sections ─── */
+.live-app .card,
+.live-app .pbi-viz,
+.live-app .bo-dash,
+.live-app .rv-dash,
+.live-app .aa-dash,
+.live-app .boe-dash,
+.live-app .sr-panel,
+.live-app .bas-section-card,
+.live-app .admin-section-card,
+.live-app .wait-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ─── Flexible toolbars / filters / heads ─── */
+.live-app .bo-toolbar,
+.live-app .stock-toolbar,
+.live-app .bas-toolbar,
+.live-app .bas-filters,
+.live-app .admin-toolbar,
+.live-app .rv-head,
+.live-app .rv-head-actions,
+.live-app .dvp-head,
+.live-app .dvp-head-meta,
+.live-app .pbi-viz-head,
+.live-app .boe-type-chips,
+.live-app .rv-sheets,
+.live-app .aa-drill-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+}
+
+.live-app .bo-toolbar input,
+.live-app .bo-toolbar select,
+.live-app .stock-toolbar select,
+.live-app .stock-toolbar input,
+.live-app .bas-filters select,
+.live-app .bas-filters input,
+.live-app .rv-head-actions input,
+.live-app .rv-head-actions select,
+.live-app .boe-dash .rv-head-actions input,
+.live-app .boe-dash .rv-head-actions select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.live-app .bo-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ─── KPI / metric grids ─── */
+.live-app .kpis,
+.live-app .bo-kpis,
+.live-app .admin-kpis {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.live-app .bo-kpi,
+.live-app .kpi,
+.live-app .kpis > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ─── Dashboard section grids ─── */
+.live-app .bo-grid,
+.live-app .bo-row-main,
+.live-app .bo-row-mid,
+.live-app .bo-row-bottom,
+.live-app .bo-row-insights,
+.live-app .bo-car-charts,
+.live-app .bo-strategic,
+.live-app .sr-grid,
+.live-app .bas-targets-layout,
+.live-app .admin-targets-layout,
+.live-app .dvp-channels,
+.live-app .slot-grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.live-app .bo-grid > *,
+.live-app .bo-row-main > *,
+.live-app .bo-car-charts > *,
+.live-app .pbi-viz {
+  min-width: 0;
+}
+
+/* ─── Tables: page never scrolls horizontally; wrappers may ─── */
+.live-app .table-wrap,
+.live-app .bas-table-wrap,
+.live-app .icc-table-wrap,
+.live-app .xl-table-wrap,
+.live-app .sr-table-scroll,
+.live-app .sr-sched-wrap,
+.live-app .bas-month-table-wrap,
+.live-app .bo-product-table-wrap,
+.live-app .act-alert-table,
+.live-app .pbi-wide-table-wrap,
+.live-app .acc-remain-table-wrap,
+.live-app .aa-table-wrap,
+.live-app .rv-table-wrap,
+.live-app .boe-detail-wrap,
+.live-app .aa-drill-table-wrap {
+  max-width: 100%;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.live-app #boe-table-wrap.aa-table-wrap,
+.live-app #boe-table-wrap.table-wrap {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.live-app .table-wrap table,
+.live-app .bas-table-wrap table,
+.live-app .icc-table-wrap table,
+.live-app .xl-table-wrap table,
+.live-app .aa-table-wrap table,
+.live-app .rv-table-wrap table,
+.live-app .data-table,
+.live-app .bo-table,
+.live-app .aa-table,
+.live-app .rv-table,
+.live-app .boe-table {
+  max-width: none;
+}
+
+.live-app .data-table th,
+.live-app .data-table td,
+.live-app .bo-table th,
+.live-app .bo-table td,
+.live-app .aa-table th,
+.live-app .aa-table td {
+  overflow-wrap: anywhere;
+}
+
+/* Keep compact nowrap on large screens where it already exists;
+   allow wrap on narrow viewports to reduce forced min widths */
+@media (max-width: 900px) {
+  .live-app .data-table th,
+  .live-app .data-table td,
+  .live-app .aa-table th,
+  .live-app .aa-table td,
+  .live-app .boe-table th,
+  .live-app .boe-table td {
+    white-space: normal;
+  }
+}
+
+/* ─── Charts ─── */
+.live-app .chart-scroll,
+.live-app .chart-box,
+.live-app .pbi-box,
+.live-app .pbi-wide-box,
+.live-app .pbi-wide-scroll {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.live-app .chart-box,
+.live-app .pbi-box {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-app .chart-box canvas,
+.live-app .pbi-box canvas,
+.live-app .pbi-wide-box canvas {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.live-app .chart-scroll.is-scroll {
+  max-width: 100%;
+}
+
+/* ─── Drawers / modals stay in viewport ─── */
+.live-app .emp-drawer,
+.live-app .aa-drill-drawer,
+.live-app .act-drawer,
+.live-app .pbi-wide-modal {
+  max-width: min(100vw - 16px, 720px);
+  box-sizing: border-box;
+}
+
+.live-app .pbi-wide-backdrop .pbi-wide-modal {
+  max-width: min(96vw, 1200px);
+  max-height: min(94vh, 900px);
+  width: 100%;
+}
+
+.live-app .pbi-wide-body,
+.live-app .emp-drawer-body,
+.live-app .act-drawer-body {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+
+/* ─── Chips / tags ─── */
+.live-app .boe-type-chips,
+.live-app .rv-sheets,
+.live-app .boe-tags,
+.live-app .rv-pair-chips {
+  max-width: 100%;
+}
+
+.live-app .boe-chip,
+.live-app .rv-sheet-chip,
+.live-app .boe-tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ─── Buttons ─── */
+.live-app .btn,
+.live-app .btn-primary,
+.live-app button.btn,
+.live-app button.btn-primary {
+  max-width: 100%;
+}
+
+/* ═══════════════════════════════════════
+   Breakpoints — desktop-first refinement
+   ═══════════════════════════════════════ */
+
+/* Large laptop */
+@media (max-width: 1440px) {
+  .live-app .app-content {
+    padding-inline: clamp(12px, 1.6vw, 20px);
+  }
+
+  .live-app .bo-kpis,
+  .live-app .kpis {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+/* Standard laptop */
+@media (max-width: 1280px) {
+  .live-app {
+    --sidebar-w: min(220px, 28vw);
+  }
+
+  .live-app .bo-row-main,
+  .live-app .bo-strategic {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-app .dvp-head {
+    align-items: flex-start;
+  }
+
+  .live-app .dvp-head-meta {
+    width: 100%;
+  }
+}
+
+/* Small laptop / large tablet landscape */
+@media (max-width: 1100px) {
+  .live-app .bo-row-main,
+  .live-app .bo-row-mid,
+  .live-app .bo-row-bottom,
+  .live-app .bo-row-insights,
+  .live-app .bo-car-charts,
+  .live-app .admin-targets-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .live-app .app-topbar-search {
+    max-width: 240px;
+  }
+
+  .live-app .pbi-wide-modal--table .pbi-wide-body,
+  .live-app .pbi-wide-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet / narrow laptop */
+@media (max-width: 1024px) {
+  .live-app .bo-kpis,
+  .live-app .kpis,
+  .live-app .admin-kpis {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+
+  .live-app .bo-strategic {
+    grid-template-columns: 1fr;
+  }
+
+  .live-app .rv-head,
+  .live-app .dvp-head,
+  .live-app .pbi-viz-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .live-app .rv-head-actions,
+  .live-app .bo-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .live-app .rv-head-actions input[type="search"],
+  .live-app .rv-head-actions select {
+    flex: 1 1 140px;
+  }
+}
+
+/* Existing mobile sidebar breakpoint — reinforce main column */
+@media (max-width: 900px) {
+  .live-app .app-main {
+    width: 100%;
+  }
+
+  .live-app .app-topbar-search {
+    display: none;
+  }
+
+  .live-app .app-topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .live-app .bo-kpis,
+  .live-app .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .live-app .bo-grid,
+  .live-app .bo-car-charts,
+  .live-app .sr-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .live-app .bo-toolbar {
+    align-items: stretch;
+  }
+
+  .live-app .bo-toolbar input,
+  .live-app .bo-toolbar select {
+    flex: 1 1 140px;
+  }
+
+  .live-app .emp-drawer,
+  .live-app .aa-drill-drawer,
+  .live-app .act-drawer {
+    width: min(100vw, 420px);
+    max-width: 100vw;
+  }
+
+  .live-app .pbi-wide-backdrop .pbi-wide-modal {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Phone / small tablet */
+@media (max-width: 768px) {
+  .live-app .app-content {
+    padding-inline: 10px;
+    padding-bottom: 28px;
+  }
+
+  .live-app .app-topbar {
+    padding: 10px 10px;
+  }
+
+  .live-app .app-page-title {
+    font-size: clamp(0.98rem, 4vw, 1.15rem);
+  }
+
+  .live-app .status {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .live-app .boe-type-chips {
+    gap: 6px;
+  }
+
+  .live-app .boe-chip {
+    font-size: 0.75rem;
+  }
+
+  .live-app .chart-box,
+  .live-app .chart-box.pbi-box {
+    min-height: 160px;
+  }
+}
+
+@media (max-width: 640px) {
+  .live-app .bo-kpis,
+  .live-app .kpis,
+  .live-app .admin-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .live-app .app-topbar-actions .btn,
+  .live-app .app-topbar-actions .btn-primary {
+    flex: 1 1 auto;
+  }
+
+  .live-app .dvp-filter-chip {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .live-app .bo-kpis,
+  .live-app .kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Admin page extras ─── */
+body.admin-page .shell,
+body.admin-page .admin-targets-layout,
+body.admin-page .admin-section-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.admin-page .admin-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  body.admin-page .admin-targets-layout {
+    grid-template-columns: 1fr;
+  }
+
+  body.admin-page .app-topbar-actions {
+    width: 100%;
+  }
+}
+
+/* ─── Zoom / very wide monitors ─── */
+@media (min-width: 1600px) {
+  .live-app .app-content {
+    padding-inline: clamp(20px, 2.2vw, 32px);
+  }
+}
+
+/* Prevent any leftover absolute/fixed chrome from forcing page width */
+.live-app .drawer-backdrop,
+.live-app .sidebar-backdrop,
+.live-app .pbi-wide-backdrop,
+.live-app .act-drawer-backdrop {
+  max-width: 100vw;
+}

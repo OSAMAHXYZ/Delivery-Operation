@@ -4,7 +4,7 @@ const express = require('express');
 const XLSX = require('xlsx');
 const {
   STATUSES,
-  statusSortRank,
+  STATUS_SORT_ORDER,
   COMPLETED_STATUS,
   YES_NO,
   CARRIERS,
@@ -59,7 +59,9 @@ function pickCol(row, aliases) {
     const hit = entries.find((e) => {
       if (!e.norm || e.norm === a) return false;
       if (e.norm.startsWith(`${a} `) || e.norm.endsWith(` ${a}`) || e.norm.includes(` ${a} `)) return true;
-      if (a.length <= 3) return e.norm.startsWith(`${a} `) || e.norm.startsWith(a);
+      // Never let 1–2 letter aliases (sa, so) prefix-match "sales order" / "sales type"
+      if (a.length <= 2) return false;
+      if (a.length === 3) return e.norm.startsWith(`${a} `);
       return e.norm.includes(a);
     });
     if (hit && row[hit.orig] != null && String(row[hit.orig]).trim() !== '') {
@@ -113,30 +115,6 @@ function todayIso(tzOffsetMinutes) {
   return now.toISOString().slice(0, 10);
 }
 
-function shiftIsoDays(isoDate, days) {
-  const s = String(isoDate || '').slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
-  const d = new Date(`${s}T12:00:00Z`);
-  if (Number.isNaN(d.getTime())) return '';
-  d.setUTCDate(d.getUTCDate() + Number(days || 0));
-  return d.toISOString().slice(0, 10);
-}
-
-function assignableProformaDates(tzOffsetMinutes) {
-  const today = todayIso(tzOffsetMinutes);
-  return { today, yesterday: shiftIsoDays(today, -1) };
-}
-
-function vehicleProformaDay(v) {
-  return String((v && v.raw && (v.raw.proformaDate || v.raw.date)) || '').slice(0, 10);
-}
-
-function isAssignableProformaDay(v, tzOffsetMinutes) {
-  const { today, yesterday } = assignableProformaDates(tzOffsetMinutes);
-  const d = vehicleProformaDay(v);
-  return d === today || d === yesterday;
-}
-
 function monthKeyFromIso(value) {
   const s = String(value || '').trim();
   if (/^\d{4}-\d{2}/.test(s)) return s.slice(0, 7);
@@ -179,8 +157,10 @@ function normalizeSheetStatus(value) {
   if (map[lower]) return map[lower];
   const hit = STATUSES.find((st) => st === s || st.toLowerCase() === lower);
   if (hit) return hit;
-  // fuzzy contains
-  const soft = STATUSES.find((st) => lower.includes(st.toLowerCase()) || st.toLowerCase().includes(lower));
+  // Prefer longest status name so «رجوع مرور» does not collapse to «مرور»
+  const soft = [...STATUSES]
+    .sort((a, b) => b.length - a.length)
+    .find((st) => lower.includes(st.toLowerCase()) || st.toLowerCase().includes(lower));
   return soft || s;
 }
 
@@ -223,6 +203,24 @@ function isLegacyRawColHeaders(headers) {
   return hasChassis && hasProforma && !isDeliverySheetHeaders(headers);
 }
 
+/** Sales Raw letter layout: Col A = S/A (not Chassis), Col C often VIN */
+function sheetLooksLikeSalesRawHeaders(headers) {
+  const norms = (headers || []).map((h) => normalizeHeader(h));
+  if (!norms.length) return false;
+  const h0 = norms[0] || '';
+  if (
+    h0 === 'vin'
+    || h0 === 'chassis'
+    || (h0.includes('chassis') && h0.includes('vin'))
+    || h0.includes('شاس')
+  ) {
+    return false;
+  }
+  if (/salesman|advisor|s a|^sa$|consultant|employee|مستشار/.test(h0)) return true;
+  const h2 = norms[2] || '';
+  return h2.includes('vin') || h2.includes('chassis') || h2.includes('شاس');
+}
+
 function emptyOps() {
   return {
     guestSentDate: '',
@@ -237,6 +235,7 @@ function emptyOps() {
     registrationIssueDate: '',
     transferCity: '',
     carrier: '',
+    carrierChangeCount: 0,
     notes: '',
     assignedEmployeeId: '',
     assignedEmployeeName: '',
@@ -251,42 +250,114 @@ function emptyOps() {
   };
 }
 
+/** Hanouf may manually change الناقل at most this many times per VIN */
+const HANOUF_CARRIER_CHANGE_LIMIT = 2;
+
+/**
+ * Apply a الناقل change with Hanouf’s 2-change cap.
+ * Returns { changed, remaining } or throws Error.
+ * Sheet/import paths should set carrier directly without this helper.
+ */
+function applyManualCarrierChange(v, nextCarrier, user) {
+  if (!v.ops) v.ops = emptyOps();
+  const old = String(v.ops.carrier || '').trim();
+  const next = String(nextCarrier == null ? '' : nextCarrier).trim();
+  if (old === next) {
+    const used = Number(v.ops.carrierChangeCount || 0) || 0;
+    const limit = user && user.role === 'hanouf' ? HANOUF_CARRIER_CHANGE_LIMIT : null;
+    return {
+      changed: false,
+      remaining: limit == null ? null : Math.max(0, limit - used),
+    };
+  }
+  if (user && user.role === 'hanouf') {
+    const used = Number(v.ops.carrierChangeCount || 0) || 0;
+    if (used >= HANOUF_CARRIER_CHANGE_LIMIT) {
+      throw new Error(
+        `Hanouf يمكنها تغيير الناقل مرتين فقط لكل VIN (${HANOUF_CARRIER_CHANGE_LIMIT}/${HANOUF_CARRIER_CHANGE_LIMIT})`
+      );
+    }
+    v.ops.carrierChangeCount = used + 1;
+  }
+  v.ops.carrier = next;
+  const usedAfter = Number(v.ops.carrierChangeCount || 0) || 0;
+  return {
+    changed: true,
+    remaining: user && user.role === 'hanouf'
+      ? Math.max(0, HANOUF_CARRIER_CHANGE_LIMIT - usedAfter)
+      : null,
+  };
+}
+
 function cellText(line, idx) {
   if (!Array.isArray(line) || idx == null || idx < 0) return '';
   const v = line[idx];
   return String(v == null ? '' : v).trim();
 }
 
-function mapRawRow(row, line, { useLegacyCols = false, useESalesCols = false } = {}) {
+function looksLikeDateValue(value) {
+  const s = String(value == null ? '' : value).trim();
+  if (!s) return false;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return true;
+  if (/^\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}$/.test(s)) return true;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return true;
+  if (typeof value === 'number' && Number.isFinite(value) && value > 20000 && value < 80000) return true;
+  return false;
+}
+
+function mapRawRow(row, line, { useLegacyCols = false, applySalesRawLetters = false } = {}) {
   const raw = {};
   for (const [key, aliases] of Object.entries(HEADER_MAP)) {
     raw[key] = pickCol(row, aliases);
   }
-  // Legacy / Sales Raw fixed columns: A = S/A, D = Order (not Delivery sheet / E sales)
-  if (!useESalesCols && Array.isArray(line) && line.length) {
-    const sa = cellText(line, RAW_COL.salesAdvisor);
+  // Drop header-matched Sales Type when it is clearly a date (wrong column)
+  if (raw.salesType && looksLikeDateValue(raw.salesType)) raw.salesType = '';
+
+  // Fixed Sales Raw letters — A/B/C/K/N always win on Sales Raw layout
+  if (applySalesRawLetters && Array.isArray(line) && line.length >= 11) {
+    const scrub = (s) => (s === '#' ? '' : s);
+    const sa = scrub(cellText(line, RAW_COL.salesAdvisor));
+    const prod = scrub(cellText(line, RAW_COL.product));
+    const vinFixed = scrub(cellText(line, RAW_COL.vin));
+    const so = scrub(cellText(line, RAW_COL.salesOrder));
+    const gt = scrub(cellText(line, RAW_COL.gtLocation));
+    const vehLoc = scrub(cellText(line, RAW_COL.vehicleLocation));
+    const stype = scrub(cellText(line, RAW_COL.salesType));
+    const inv = scrub(cellText(line, RAW_COL.invoiceOwner));
+    const cust = scrub(cellText(line, RAW_COL.customerName));
+    const ph = scrub(cellText(line, RAW_COL.phone));
+    const vinKey = normVin(vinFixed || raw.vin);
+
+    // A → S/A
+    if (sa && (!vinKey || normVin(sa) !== vinKey)) raw.salesAdvisor = sa;
+    // B → Product
+    if (prod) raw.product = prod;
+    // C → VIN
+    if (vinFixed) raw.vin = vinFixed;
+    // K → Sales Type (always overwrite; never keep a date here)
+    raw.salesType = stype && !looksLikeDateValue(stype) ? stype : '';
+    // N → Owner (+ D/F/G when wide enough)
+    if (line.length >= 14 || so || gt || vehLoc || inv) {
+      if (so && (!vinKey || normVin(so) !== vinKey)) raw.salesOrder = so;
+      raw.gtLocation = gt;
+      raw.vehicleLocation = vehLoc;
+      raw.invoiceOwner = inv;
+    }
+    if (cust) raw.userName = cust;
+    if (ph) raw.phone = ph;
+  } else if (useLegacyCols && Array.isArray(line) && line.length) {
     const so = cellText(line, RAW_COL.salesOrder);
-    if (sa) raw.salesAdvisor = sa;
-    if (so) raw.salesOrder = so;
-  }
-  if (useLegacyCols && Array.isArray(line) && line.length) {
     const inv = cellText(line, RAW_COL.invoiceOwner);
     const cust = cellText(line, RAW_COL.customerName);
     const ph = cellText(line, RAW_COL.phone);
+    if (so) raw.salesOrder = so;
     if (inv) raw.invoiceOwner = inv;
     if (cust) raw.userName = cust;
     if (ph) raw.phone = ph;
   }
   if (!raw.phone) raw.phone = findPhoneInLine(line);
-  if ((useESalesCols || (!useLegacyCols && Array.isArray(line) && line.length >= 25)) && Array.isArray(line) && line.length) {
-    // Delivery / E sales fixed columns when header alias missed
+  if (!useLegacyCols && Array.isArray(line) && line.length >= 25) {
     if (!raw.pic) raw.pic = cellText(line, E_SALES_COL.pic);
-    if (!raw.salesOrder) raw.salesOrder = cellText(line, E_SALES_COL.salesOrder);
-    if (!raw.product) raw.product = cellText(line, E_SALES_COL.product);
-    if (!raw.salesType) raw.salesType = cellText(line, E_SALES_COL.salesType);
-    if (!raw.invoiceOwner) raw.invoiceOwner = cellText(line, E_SALES_COL.invoiceOwner);
-    if (!raw.userName) raw.userName = cellText(line, E_SALES_COL.userName);
-    if (!raw.salesAdvisor) raw.salesAdvisor = cellText(line, E_SALES_COL.salesAdvisor);
   }
   // Delivery sheet uses تاريخ as the main date (treat as proforma when missing)
   raw.proformaDate = normalizeDate(raw.proformaDate) || normalizeDate(raw.date);
@@ -392,6 +463,13 @@ function publicVehicle(v, viewer) {
   const role = viewer && (viewer.role || viewer);
   const allowPii = canSeeCustomerPii(role);
   const safeRaw = redactRawPii(v.raw || {}, role);
+  const used = Number(ops.carrierChangeCount || 0) || 0;
+  const isHanouf = String(role || '').toLowerCase() === 'hanouf';
+  const carrierChangeLimit = isHanouf ? HANOUF_CARRIER_CHANGE_LIMIT : null;
+  const carrierChangeRemaining = isHanouf
+    ? Math.max(0, HANOUF_CARRIER_CHANGE_LIMIT - used)
+    : null;
+  const carrierLocked = isHanouf && used >= HANOUF_CARRIER_CHANGE_LIMIT;
   return {
     vin: v.vin,
     raw: {
@@ -415,6 +493,10 @@ function publicVehicle(v, viewer) {
       registrationDate: na(safeRaw.registrationDate),
     },
     ops,
+    carrierChangeCount: used,
+    carrierChangeLimit,
+    carrierChangeRemaining,
+    carrierLocked,
     guestCenter: !!guestCenter,
     guestTimerMs,
     guestDue,
@@ -428,27 +510,74 @@ function canSeeAll(role) {
   return role === 'admin' || role === 'hanouf';
 }
 
+function blankRaw(v) {
+  const s = String(v == null ? '' : v).trim();
+  return !s || s === 'N/A' || s === '—' || s === '-';
+}
+
+/** Fill Order / Sales Type / Owner / S/A (and other blanks) from hub Sales Raw. */
+function enrichRawFromHub(raw, hubVeh) {
+  if (!hubVeh || !raw) return { raw, changed: false };
+  const next = { ...raw };
+  let changed = false;
+  const fill = (key, hubVal) => {
+    const val = String(hubVal == null ? '' : hubVal).trim();
+    if (!val || val === '#') return;
+    if (!blankRaw(next[key])) return;
+    next[key] = val;
+    changed = true;
+  };
+  fill('salesOrder', hubVeh.salesOrder);
+  fill('salesType', hubVeh.salesType);
+  fill('invoiceOwner', hubVeh.invoiceOwner);
+  fill('salesAdvisor', hubVeh.salesAdvisor);
+  fill('product', hubVeh.product || hubVeh.model);
+  fill('userName', hubVeh.customerName || hubVeh.userName);
+  fill('phone', hubVeh.phone);
+  fill('gtLocation', hubVeh.gt || hubVeh.gtLocation);
+  fill('vehicleLocation', hubVeh.location || hubVeh.vehicleLocation);
+  fill('proformaDate', hubVeh.proformaDate);
+  fill('pic', hubVeh.pic);
+  return { raw: next, changed };
+}
+
 function createDeliveryTeamRouter(opts) {
   const filePath = opts.filePath;
   const password = String(opts.password || '1234').trim();
   const store = createStore(filePath);
   const router = express.Router();
 
+  function hubVehicleFor(vin) {
+    const fn = opts && opts.getHubVehicle;
+    if (typeof fn !== 'function') return null;
+    try { return fn(vin); } catch { return null; }
+  }
+
+  /** Ensure Sales Raw fields are on the team vehicle (persist fills for Assignment / Live Sheet). */
+  function withHubRawEnrichment(v) {
+    if (!v) return null;
+    const hub = hubVehicleFor(v.vin);
+    const { raw, changed } = enrichRawFromHub(v.raw || {}, hub);
+    if (changed) {
+      v.raw = raw;
+      v.rawUpdatedAt = new Date().toISOString();
+      store.upsertVehicle(v.vin, v);
+    }
+    return v;
+  }
+
   function notifyCarrierAssigned(items) {
     const fn = opts && opts.onCarrierAssigned;
     if (typeof fn !== 'function' || !items || !items.length) return null;
     try {
       return fn(items.map((it) => {
-        const vehicle = it.vehicle || null;
-        const ops = it.ops || (vehicle && vehicle.ops) || {};
-        const raw = it.raw || (vehicle && vehicle.raw) || {};
+        const ops = it.ops || (it.vehicle && it.vehicle.ops) || {};
         return {
-          vin: it.vin || (vehicle && vehicle.vin) || '',
+          vin: it.vin,
           carrier: it.carrier != null ? it.carrier : (ops.carrier || ''),
           transferCity: it.transferCity != null ? it.transferCity : (ops.transferCity || ''),
-          raw,
+          raw: it.raw || (it.vehicle && it.vehicle.raw) || {},
           ops,
-          vehicle: vehicle || { vin: it.vin, raw, ops },
           by: it.by || '',
         };
       }));
@@ -499,7 +628,7 @@ function createDeliveryTeamRouter(opts) {
     return all.filter((v) => v.ops && v.ops.assignedEmployeeId === user.userId);
   }
 
-  function assertVinAccess(req, res, vin, { write = false } = {}) {
+  function assertVinAccess(req, res, vin, { write = false, carrierOnly = false } = {}) {
     const key = normVin(vin);
     const v = store.getVehicle(key);
     if (!v) {
@@ -508,19 +637,22 @@ function createDeliveryTeamRouter(opts) {
     }
     if (canSeeAll(req.dtUser.role)) return v;
     const isMine = v.ops.assignedEmployeeId === req.dtUser.userId;
-    const isRubaGuest = (
-      (req.dtUser.userId === 'ruba' || String(req.dtUser.name || '').toLowerCase() === 'ruba')
-      && String(v.ops.guestCenter || '').toLowerCase() === 'yes'
-    );
+    const liveEditors = new Set(['ruba', 'rasha']);
+    const isLiveEditor = liveEditors.has(String(req.dtUser.userId || '').toLowerCase())
+      || liveEditors.has(String(req.dtUser.name || '').trim().toLowerCase());
     if (write) {
+      // Any team member may change الناقل on an assigned VIN (from the VIN drawer)
+      if (carrierOnly && v.ops && v.ops.assignedEmployeeId) return v;
+      // Ruba / Rasha / Hanouf(admin via canSeeAll): edit any assigned Live Sheet VIN
+      if (isLiveEditor && v.ops && v.ops.assignedEmployeeId) return v;
       if (!isMine) {
         res.status(403).json({ error: 'You do not have access to edit this VIN' });
         return null;
       }
       return v;
     }
-    // Read: own VINs, teammate assigned VINs, or Ruba reading Guest Exp = Yes
-    if (isMine || v.ops.assignedEmployeeId || isRubaGuest) return v;
+    // Read: own VINs or any assigned teammate VIN (team schedule)
+    if (isMine || v.ops.assignedEmployeeId) return v;
     res.status(403).json({ error: 'You do not have access to this VIN' });
     return null;
   }
@@ -577,6 +709,7 @@ function createDeliveryTeamRouter(opts) {
           v.vin,
           v.raw.salesOrder,
           v.raw.product,
+          v.raw.salesType,
           v.ops.assignedEmployeeName,
           v.ops.opsStatus,
           v.raw.salesAdvisor,
@@ -599,16 +732,7 @@ function createDeliveryTeamRouter(opts) {
     eq((v) => v.ops.assignedEmployeeName || v.ops.assignedEmployeeId, q.employee);
     eq((v) => v.raw.product, q.product);
     eq((v) => v.raw.salesType, q.salesType);
-    if (
-      q.status === '__empty__'
-      || q.status === '(blank)'
-      || q.status === 'non_selected'
-      || String(q.status || '').toLowerCase() === 'non selected'
-    ) {
-      out = out.filter((v) => !String(v.ops.opsStatus || '').trim());
-    } else {
-      eq((v) => v.ops.opsStatus, q.status);
-    }
+    eq((v) => v.ops.opsStatus, q.status);
     eq((v) => v.raw.vehicleLocation, q.vehicleLocation);
     eq((v) => v.raw.gtLocation, q.gtLocation);
     eq((v) => v.ops.transferCity, q.transferCity);
@@ -621,19 +745,11 @@ function createDeliveryTeamRouter(opts) {
     eq((v) => v.ops.trafficFeesOps, q.trafficFees);
     eq((v) => v.ops.insuranceOps, q.insurance);
     eq((v) => v.ops.vin1502, q.vin1502);
-    if (q.guestCenter === 'yes' || q.guest === 'yes') {
-      out = out.filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'yes');
-    } else if (q.guestCenter === 'no' || q.guest === 'no') {
-      out = out.filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'no');
-    }
     if (q.assigned === 'yes') out = out.filter((v) => !!v.ops.assignedEmployeeId);
     if (q.assigned === 'no') out = out.filter((v) => !v.ops.assignedEmployeeId);
     if (q.proforma === 'today') {
       const today = todayIso(Number(q.tzOffset));
-      out = out.filter((v) => vehicleProformaDay(v) === today);
-    }
-    if (q.proforma === 'today_yesterday' || q.proforma === 'assignable') {
-      out = out.filter((v) => isAssignableProformaDay(v, Number(q.tzOffset)));
+      out = out.filter((v) => v.raw.proformaDate === today);
     }
     if (q.date) {
       const d = normalizeDate(q.date) || String(q.date).slice(0, 10);
@@ -656,9 +772,39 @@ function createDeliveryTeamRouter(opts) {
     return out;
   }
 
+  function statusSortRank(status) {
+    const s = String(status || '').trim();
+    if (!s) return STATUS_SORT_ORDER.length + 10;
+    // Exact match first
+    let idx = STATUS_SORT_ORDER.indexOf(s);
+    if (idx >= 0) return idx;
+    // Soft: صادرة / صادر
+    if (s === 'صادر') {
+      idx = STATUS_SORT_ORDER.indexOf('صادرة');
+      if (idx >= 0) return idx;
+    }
+    const lower = s.toLowerCase();
+    idx = STATUS_SORT_ORDER.findIndex((st) => st.toLowerCase() === lower);
+    if (idx >= 0) return idx;
+    return STATUS_SORT_ORDER.length + 5;
+  }
+
   function sortVehicles(list, sort, dir) {
-    const key = String(sort || 'status');
-    const desc = String(dir || 'asc').toLowerCase() === 'desc';
+    const key = String(sort || 'proformaDate');
+    const desc = String(dir || 'desc').toLowerCase() === 'desc';
+    if (key === 'status' || key === 'opsStatus' || key === 'statusOrder') {
+      // Custom pipeline order (top → bottom). dir=asc keeps that order; desc reverses it.
+      return list.slice().sort((a, b) => {
+        const ra = statusSortRank(a.ops && a.ops.opsStatus);
+        const rb = statusSortRank(b.ops && b.ops.opsStatus);
+        if (ra !== rb) return desc ? rb - ra : ra - rb;
+        const ea = String((a.ops && a.ops.assignedEmployeeName) || '');
+        const eb = String((b.ops && b.ops.assignedEmployeeName) || '');
+        const empCmp = ea.localeCompare(eb, 'ar');
+        if (empCmp) return empCmp;
+        return String(a.vin || '').localeCompare(String(b.vin || ''));
+      });
+    }
     const getter = {
       vin: (v) => v.vin,
       product: (v) => v.raw.product,
@@ -669,17 +815,6 @@ function createDeliveryTeamRouter(opts) {
       updatedAt: (v) => v.ops.updatedAt || v.rawUpdatedAt || '',
     }[key] || ((v) => v.raw.proformaDate);
     return list.slice().sort((a, b) => {
-      if (key === 'status') {
-        const ra = statusSortRank(a.ops && a.ops.opsStatus);
-        const rb = statusSortRank(b.ops && b.ops.opsStatus);
-        if (ra !== rb) return desc ? rb - ra : ra - rb;
-        // secondary: proforma date desc, then VIN
-        const da = String((a.raw && a.raw.proformaDate) || '');
-        const db = String((b.raw && b.raw.proformaDate) || '');
-        const dcmp = db.localeCompare(da);
-        if (dcmp) return dcmp;
-        return String(a.vin || '').localeCompare(String(b.vin || ''));
-      }
       const av = String(getter(a) || '');
       const bv = String(getter(b) || '');
       const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
@@ -691,29 +826,35 @@ function createDeliveryTeamRouter(opts) {
     let list = scopedVehicles(req.dtUser);
     list = applyFilters(list, req.query || {}, req.dtUser);
     list = sortVehicles(list, req.query.sort, req.query.dir);
-    const page = Math.max(1, Number(req.query.page) || 1);
-    const limit = Math.min(5000, Math.max(10, Number(req.query.limit) || 500));
     const total = list.length;
-    const start = (page - 1) * limit;
-    const slice = list.slice(start, start + limit).map((v) => publicVehicle(v, req.dtUser));
+    const wantAll = String(req.query.all || '') === '1';
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = wantAll
+      ? Math.max(total, 1)
+      : Math.min(5000, Math.max(10, Number(req.query.limit) || 50));
+    const start = wantAll ? 0 : (page - 1) * limit;
+    const slice = (wantAll ? list : list.slice(start, start + limit))
+      .map((v) => publicVehicle(v, req.dtUser));
     res.json({
       total,
-      page,
-      limit,
-      pages: Math.max(1, Math.ceil(total / limit)),
+      page: wantAll ? 1 : page,
+      limit: wantAll ? total : limit,
+      pages: wantAll ? 1 : Math.max(1, Math.ceil(total / limit)),
       rows: slice,
     });
   });
 
   /** Live Excel-style board — all assigned VINs (Admin, Hanouf, and every employee) */
   router.get('/live-sheet', auth, (req, res) => {
-    // Kick background heal without blocking this response
     if (typeof opts.onEnsureDraftCarriers === 'function') {
-      setImmediate(() => {
-        try { opts.onEnsureDraftCarriers(); } catch (err) {
-          console.error('[delivery-team] onEnsureDraftCarriers failed:', err.message || err);
-        }
-      });
+      try { opts.onEnsureDraftCarriers(); } catch (err) {
+        console.error('[delivery-team] onEnsureDraftCarriers failed:', err.message || err);
+      }
+    }
+    if (typeof opts.onEnsureHubRawOnLiveSheet === 'function') {
+      try { opts.onEnsureHubRawOnLiveSheet(); } catch (err) {
+        console.error('[delivery-team] onEnsureHubRawOnLiveSheet failed:', err.message || err);
+      }
     }
     const q = { ...(req.query || {}), assigned: 'yes' };
     let list = store.allVehicles();
@@ -780,6 +921,16 @@ function createDeliveryTeamRouter(opts) {
       bySalesType[st] = (bySalesType[st] || 0) + 1;
     });
 
+    const targetMonth = (month && /^\d{4}-\d{2}$/.test(month))
+      ? month
+      : currentMonthKey(tz);
+    const monthTargets = store.getMonthTargets(targetMonth);
+    // Claimed counts for Ach% always use the target month scope (even if dashboard shows all months)
+    const targetMonthFleet = (month && month === targetMonth)
+      ? assigned
+      : applyFilters(store.allVehicles(), { month: targetMonth, tzOffset: tz }, req.dtUser)
+        .filter((v) => v.ops && v.ops.assignedEmployeeId);
+
     const employees = ASSIGNABLE_NAMES.map((name) => {
       const id = name.toLowerCase();
       const mine = assigned.filter((v) => v.ops.assignedEmployeeId === id);
@@ -791,6 +942,11 @@ function createDeliveryTeamRouter(opts) {
         const st = (v.raw && v.raw.salesType) || '(blank)';
         salesTypes[st] = (salesTypes[st] || 0) + 1;
       });
+      const target = Number(monthTargets[id]) || 0;
+      const claimedForTarget = targetMonthFleet
+        .filter((v) => v.ops.assignedEmployeeId === id && v.ops.opsStatus === COMPLETED_STATUS)
+        .length;
+      const achPct = target > 0 ? Math.round((claimedForTarget / target) * 1000) / 10 : null;
       return {
         id,
         name,
@@ -798,6 +954,9 @@ function createDeliveryTeamRouter(opts) {
         claimed: done.length,
         remaining: rem,
         progress: pct,
+        target,
+        claimedForTarget,
+        achPct,
         bySalesType: salesTypes,
       };
     });
@@ -853,6 +1012,61 @@ function createDeliveryTeamRouter(opts) {
     const months = [...monthSet].sort().reverse();
     if (!months.includes(currentMonthKey(tz))) months.unshift(currentMonthKey(tz));
 
+    const hubTransfer = typeof opts.getHubTransferStats === 'function'
+      ? opts.getHubTransferStats()
+      : null;
+
+    // الناقل totals from live sheet fleet (always available even without hub hook)
+    const byCarrierMap = {};
+    teamFleet.forEach((v) => {
+      const car = String((v.ops && v.ops.carrier) || '').trim();
+      if (!car) return;
+      byCarrierMap[car] = (byCarrierMap[car] || 0) + 1;
+    });
+    const byCarrier = Object.entries(byCarrierMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
+
+    // الناقل change history from audit (from → to · date)
+    const blankCarrier = (s) => {
+      const t = String(s == null ? '' : s).trim();
+      return !t || t === '(empty)' || t === '—' || t === '-';
+    };
+    const carrierChangeAll = (store.data.audit || [])
+      .filter((a) => a && a.action === 'update_carrier' && a.vin)
+      .filter((a) => {
+        if (!month || !/^\d{4}-\d{2}$/.test(month)) return true;
+        const mk = monthKeyFromIso(a.at);
+        return mk === month;
+      })
+      .map((a) => ({
+        id: a.id,
+        vin: String(a.vin || '').trim(),
+        from: blankCarrier(a.oldValue) ? '' : String(a.oldValue).trim(),
+        to: blankCarrier(a.newValue) ? '' : String(a.newValue).trim(),
+        at: a.at || '',
+        user: a.user || '',
+      }))
+      .filter((c) => c.from !== c.to);
+
+    // How many VINs left each company (had a الناقل, then moved to another)
+    const leftMap = {};
+    carrierChangeAll.forEach((c) => {
+      if (!c.from) return; // first assignment — not a "left" move
+      if (!leftMap[c.from]) leftMap[c.from] = { name: c.from, count: 0, vins: [] };
+      leftMap[c.from].count += 1;
+      leftMap[c.from].vins.push({
+        vin: c.vin,
+        to: c.to || '(empty)',
+        at: c.at,
+        user: c.user,
+      });
+    });
+    const carrierLeft = Object.values(leftMap)
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
+
+    const carrierChanges = carrierChangeAll.slice(0, 80);
+
     res.json({
       today,
       month: month || '',
@@ -867,9 +1081,19 @@ function createDeliveryTeamRouter(opts) {
         ready: byStatus['جاهز للتسليم'] || 0,
         delivered: byStatus['تم التسليم'] || 0,
         blankStatus,
+        carriersAssigned: byCarrier.reduce((s, r) => s + r.count, 0),
+        carrierKinds: byCarrier.length,
+        cityCount: hubTransfer ? hubTransfer.cityCount : 0,
+        cityTotal: hubTransfer ? hubTransfer.cityTotal : 0,
+        companyChangeTotal: hubTransfer ? hubTransfer.companyChangeTotal : 0,
+        carrierMoveTotal: carrierChangeAll.filter((c) => c.from).length,
       },
       byStatus,
       bySalesType,
+      byCarrier,
+      carrierLeft,
+      carrierChanges,
+      hubTransfer,
       pipeline: {
         todaysProformas: todays.length,
         assigned: assigned.length,
@@ -880,6 +1104,9 @@ function createDeliveryTeamRouter(opts) {
       employees,
       myWorkload: mine,
       recentEdits,
+      targetMonth,
+      targetsUpdatedAt: monthTargets._updatedAt || null,
+      targetsUpdatedBy: monthTargets._updatedBy || '',
       hubRaw: typeof opts.getHubRawStatus === 'function' ? opts.getHubRawStatus() : null,
     });
   });
@@ -887,36 +1114,40 @@ function createDeliveryTeamRouter(opts) {
   router.get('/todays-proformas', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const today = todayIso(Number(req.query.tzOffset));
     const rows = store.allVehicles()
-      .filter((v) => vehicleProformaDay(v) === today)
+      .filter((v) => v.raw.proformaDate === today)
       .map((v) => publicVehicle(v, req.dtUser));
     res.json({ today, total: rows.length, rows });
   });
 
   router.get('/unassigned', auth, requireRole('admin', 'hanouf'), (req, res) => {
-    const tz = Number(req.query.tzOffset);
-    const { today, yesterday } = assignableProformaDates(tz);
-    // Default: today + yesterday proforma (assignable window). ?all=1 loads every unassigned.
-    const allDays = String(req.query.all || '') === '1';
-    const todayOnly = String(req.query.today || '') === '1';
-    let list = store.allVehicles().filter((v) => !v.ops.assignedEmployeeId);
-    if (!allDays) {
-      if (todayOnly) list = list.filter((v) => vehicleProformaDay(v) === today);
-      else list = list.filter((v) => isAssignableProformaDay(v, tz));
+    if (typeof opts.onEnsureHubRawOnLiveSheet === 'function') {
+      try { opts.onEnsureHubRawOnLiveSheet(); } catch (err) {
+        console.error('[delivery-team] hub raw enrich before unassigned:', err.message || err);
+      }
     }
+    const todayOnly = String(req.query.today || '') === '1';
+    const today = todayIso(Number(req.query.tzOffset));
+    let list = store.allVehicles().filter((v) => !v.ops.assignedEmployeeId);
+    if (todayOnly) list = list.filter((v) => v.raw.proformaDate === today);
     list = sortVehicles(list, 'proformaDate', 'desc');
-    res.json({
-      total: list.length,
-      today,
-      yesterday,
-      window: allDays ? 'all' : (todayOnly ? 'today' : 'today_yesterday'),
-      rows: list.map((v) => publicVehicle(v, req.dtUser)),
+    let saved = false;
+    const rows = list.map((v) => {
+      const before = JSON.stringify(v.raw || {});
+      const enriched = withHubRawEnrichment(v) || v;
+      if (JSON.stringify(enriched.raw || {}) !== before) saved = true;
+      return publicVehicle(enriched, req.dtUser);
     });
+    if (saved) store.save();
+    res.json({ total: rows.length, rows });
   });
 
   /** Resolve a submitted VIN list for Hanouf display-before-assign. */
   router.post('/resolve-vins', auth, requireRole('admin', 'hanouf'), (req, res) => {
-    const tz = Number(req.body.tzOffset != null ? req.body.tzOffset : req.query.tzOffset);
-    const { today, yesterday } = assignableProformaDates(tz);
+    if (typeof opts.onEnsureHubRawOnLiveSheet === 'function') {
+      try { opts.onEnsureHubRawOnLiveSheet(); } catch (err) {
+        console.error('[delivery-team] hub raw enrich before resolve-vins:', err.message || err);
+      }
+    }
     const rawList = Array.isArray(req.body.vins) ? req.body.vins : String(req.body.vins || '').split(/[\s,;]+/);
     const keys = [];
     const seen = new Set();
@@ -930,34 +1161,53 @@ function createDeliveryTeamRouter(opts) {
 
     const found = [];
     const missing = [];
-    const outOfWindow = [];
-    const alreadyAssigned = [];
+    let saved = false;
     keys.forEach((key) => {
-      const v = store.getVehicle(key);
+      let v = store.getVehicle(key);
       if (!v) {
+        // Create from hub Sales Raw so Assignment can show Order / S/A / Sales Type / Owner
+        const hub = hubVehicleFor(key);
+        if (hub) {
+          const now = new Date().toISOString();
+          v = {
+            vin: key,
+            raw: {
+              vin: key,
+              product: String(hub.product || hub.model || '').trim(),
+              userName: String(hub.customerName || hub.userName || '').trim(),
+              phone: String(hub.phone || '').trim(),
+              gtLocation: String(hub.gt || hub.gtLocation || '').trim(),
+              vehicleLocation: String(hub.location || hub.vehicleLocation || '').trim(),
+              proformaDate: String(hub.proformaDate || '').trim(),
+              deliveryDate: String(hub.deliveryNoteDate || hub.deliveryDate || '').trim(),
+              salesOrder: String(hub.salesOrder || '').trim(),
+              salesType: String(hub.salesType || '').trim(),
+              invoiceOwner: String(hub.invoiceOwner || '').trim(),
+              salesAdvisor: String(hub.salesAdvisor || '').trim(),
+              pic: String(hub.pic || '').trim(),
+            },
+            ops: emptyOps(),
+            createdAt: now,
+            rawUpdatedAt: now,
+            lastUploadId: 'hub-resolve',
+          };
+          store.upsertVehicle(key, v);
+          saved = true;
+        }
+      }
+      if (v) {
+        const before = JSON.stringify(v.raw || {});
+        const enriched = withHubRawEnrichment(v) || v;
+        if (JSON.stringify(enriched.raw || {}) !== before) saved = true;
+        found.push(publicVehicle(enriched, req.dtUser));
+      } else {
         missing.push(key);
-        return;
       }
-      if (v.ops && v.ops.assignedEmployeeId) {
-        alreadyAssigned.push({
-          vin: key,
-          employee: v.ops.assignedEmployeeName || v.ops.assignedEmployeeId,
-        });
-        return;
-      }
-      if (!isAssignableProformaDay(v, tz)) {
-        outOfWindow.push({ vin: key, proformaDate: vehicleProformaDay(v) || 'N/A' });
-        return;
-      }
-      found.push(publicVehicle(v, req.dtUser));
     });
+    if (saved) store.save();
     return res.json({
       total: found.length,
       missing,
-      outOfWindow,
-      alreadyAssigned,
-      today,
-      yesterday,
       rows: found,
     });
   });
@@ -1052,6 +1302,10 @@ function createDeliveryTeamRouter(opts) {
       });
       const deliveryFmt = isDeliverySheetHeaders(headers);
       const useLegacyCols = !deliveryFmt && isLegacyRawColHeaders(headers);
+      const applySalesRawLetters = !deliveryFmt && (
+        useLegacyCols
+        || sheetLooksLikeSalesRawHeaders(headers)
+      );
       const hasVin = headers.some((h) => {
         const n = normalizeHeader(h);
         return vinAliases.some((a) => n === a || n.includes(a)) || n.includes('الشاس');
@@ -1083,7 +1337,7 @@ function createDeliveryTeamRouter(opts) {
           const key = String(h == null ? '' : h).trim() || `Column ${i + 1}`;
           if (obj[key] === undefined) obj[key] = line[i] != null ? line[i] : '';
         });
-        const raw = mapRawRow(obj, line, { useLegacyCols, useESalesCols: !!deliveryFmt });
+        const raw = mapRawRow(obj, line, { useLegacyCols, applySalesRawLetters });
         const vinKey = normVin(raw.vin);
         if (!vinKey) {
           errors.push({ row: r + 1, error: 'Missing VIN' });
@@ -1124,19 +1378,13 @@ function createDeliveryTeamRouter(opts) {
           existing.raw = { ...existing.raw, ...raw, vin: vinKey };
           existing.rawUpdatedAt = new Date().toISOString();
           existing.lastUploadId = uploadId;
-          const lockedCarrier = String((existing.ops && existing.ops.carrier) || '').trim();
           let ops = { ...emptyOps(), ...existing.ops };
           if (hasSheetOps) {
-            const sheetOpsSafe = { ...sheetOps };
-            // Do not overwrite الناقل once the team has set it
-            if (lockedCarrier) delete sheetOpsSafe.carrier;
-            ops = mergeOpsFromSheet(ops, sheetOpsSafe);
-            if (lockedCarrier) ops.carrier = lockedCarrier;
+            ops = mergeOpsFromSheet(ops, sheetOps);
             opsImported += 1;
           }
           const asg = assignFromPic(ops, raw.pic || cellText(line, E_SALES_COL.pic), req.dtUser.name, { force: forceAssign });
           ops = asg.ops;
-          if (lockedCarrier) ops.carrier = lockedCarrier;
           if (asg.changed) assignedFromPic += 1;
           else if (String(raw.pic || cellText(line, E_SALES_COL.pic) || '').trim() && !asg.name) picUnresolved += 1;
           if (ops.carrier) carriersTouched = true;
@@ -1229,17 +1477,76 @@ function createDeliveryTeamRouter(opts) {
     }
   }
 
+  // ——— Monthly targets (Hanouf only entry · everyone can read via dashboard) ———
+  router.post('/targets', auth, requireRole('hanouf'), (req, res) => {
+    const month = String((req.body && req.body.month) || '').trim().slice(0, 7);
+    const employee = String((req.body && (req.body.employee || req.body.employeeId || req.body.name)) || '').trim();
+    const target = req.body && req.body.target;
+    const emp = findAssignableUser(employee);
+    if (!emp) {
+      return res.status(400).json({
+        error: `Select a valid person (${ASSIGNABLE_NAMES.join(' / ')})`,
+      });
+    }
+    try {
+      const saved = store.setEmployeeTarget(month, emp.id, target, req.dtUser);
+      store.pushAudit({
+        vin: '',
+        user: req.dtUser.name,
+        action: 'set_target',
+        oldValue: '',
+        newValue: `${saved.month} · ${emp.name} · ${saved.target}`,
+      });
+      store.save();
+      const tz = Number(req.body && req.body.tzOffset);
+      const claimedInMonth = applyFilters(
+        store.allVehicles().filter((v) => v.ops && v.ops.assignedEmployeeId === emp.id),
+        { month: saved.month, tzOffset: tz },
+        req.dtUser
+      );
+      const done = claimedInMonth.filter((v) => v.ops.opsStatus === COMPLETED_STATUS).length;
+      const achPct = saved.target > 0 ? Math.round((done / saved.target) * 1000) / 10 : null;
+      return res.json({
+        ok: true,
+        ...saved,
+        employeeName: emp.name,
+        claimed: done,
+        achPct,
+      });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Failed to save target' });
+    }
+  });
+
+  router.get('/targets', auth, (req, res) => {
+    const month = String((req.query && req.query.month) || '').trim().slice(0, 7)
+      || currentMonthKey(Number(req.query && req.query.tzOffset));
+    const map = store.getMonthTargets(month);
+    const rows = ASSIGNABLE_NAMES.map((name) => {
+      const id = name.toLowerCase();
+      return { id, name, target: Number(map[id]) || 0 };
+    });
+    res.json({
+      month,
+      updatedAt: map._updatedAt || null,
+      updatedBy: map._updatedBy || '',
+      rows,
+    });
+  });
+
   // ——— Assignment ———
   router.post('/assign', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const vins = Array.isArray(req.body.vins) ? req.body.vins : [req.body.vin];
     const employeeName = String(req.body.employee || '').trim();
-    const tz = Number(req.body.tzOffset != null ? req.body.tzOffset : req.query.tzOffset);
-    const { today, yesterday } = assignableProformaDates(tz);
+    const carrierRaw = req.body.carrier != null ? String(req.body.carrier).trim() : '';
     const emp = findAssignableUser(employeeName);
     if (!emp) {
       return res.status(400).json({
         error: `Select a valid person (${ASSIGNABLE_NAMES.join(' / ')})`,
       });
+    }
+    if (carrierRaw) {
+      // allow known list or free text from Delivery sheet
     }
 
     const results = [];
@@ -1250,43 +1557,51 @@ function createDeliveryTeamRouter(opts) {
         results.push({ vin: key, ok: false, error: 'Not found' });
         return;
       }
-      if (v.ops && v.ops.assignedEmployeeId) {
-        results.push({
-          vin: key,
-          ok: false,
-          error: `Already assigned to ${v.ops.assignedEmployeeName || v.ops.assignedEmployeeId}`,
-          employee: v.ops.assignedEmployeeName || '',
-        });
-        return;
-      }
-      if (!isAssignableProformaDay(v, tz)) {
-        results.push({
-          vin: key,
-          ok: false,
-          error: `Proforma must be today (${today}) or yesterday (${yesterday})`,
-          proformaDate: vehicleProformaDay(v) || '',
-        });
-        return;
-      }
       const old = v.ops.assignedEmployeeName || '';
       v.ops.assignedEmployeeId = emp.id;
       v.ops.assignedEmployeeName = emp.name;
       v.ops.assignedBy = req.dtUser.name;
       v.ops.assignedAt = new Date().toISOString();
+      if (carrierRaw) {
+        const oldCarrier = v.ops.carrier || '';
+        if (oldCarrier !== carrierRaw) {
+          try {
+            applyManualCarrierChange(v, carrierRaw, req.dtUser);
+            store.pushAudit({
+              vin: key,
+              user: req.dtUser.name,
+              action: 'update_carrier',
+              oldValue: oldCarrier || '(empty)',
+              newValue: carrierRaw,
+            });
+          } catch (err) {
+            results.push({ vin: key, ok: false, error: err.message || 'Carrier change blocked' });
+            return;
+          }
+        }
+      }
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = new Date().toISOString();
       store.upsertVehicle(key, v);
       store.pushAudit({
         vin: key,
         user: req.dtUser.name,
-        action: 'assign',
+        action: old ? 'reassign' : 'assign',
         oldValue: old || '(unassigned)',
         newValue: emp.name,
       });
-      results.push({ vin: key, ok: true, employee: emp.name });
+      results.push({ vin: key, ok: true, employee: emp.name, carrier: v.ops.carrier || '' });
     });
     store.save();
-    res.json({ ok: true, today, yesterday, results });
+    const carrierItems = results
+      .filter((r) => r.ok && r.carrier)
+      .map((r) => {
+        const v = store.getVehicle(r.vin);
+        return v ? { vin: r.vin, carrier: r.carrier, vehicle: v, by: req.dtUser.name } : null;
+      })
+      .filter(Boolean);
+    const hubSync = notifyCarrierAssigned(carrierItems);
+    res.json({ ok: true, results, hubSync: hubSync || undefined });
   });
 
   /** Reassign VINs to another employee (or Hanouf). Employees may only move their own VINs. */
@@ -1338,12 +1653,11 @@ function createDeliveryTeamRouter(opts) {
     res.json({ ok: true, results });
   });
 
-  /** Hanouf / Admin: set الناقل on any VIN list (only if still empty) */
+  /** Hanouf / Admin: set الناقل on any VIN list */
   router.post('/assign-carrier', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const vins = Array.isArray(req.body.vins) ? req.body.vins : [req.body.vin];
     const carrier = String(req.body.carrier || '').trim();
     if (!carrier) return res.status(400).json({ error: 'اختر الناقل' });
-    const allowOverwrite = req.dtUser.role === 'admin';
 
     const results = [];
     vins.forEach((rawVin) => {
@@ -1353,22 +1667,17 @@ function createDeliveryTeamRouter(opts) {
         results.push({ vin: key, ok: false, error: 'Not found' });
         return;
       }
-      const oldCarrier = String(v.ops.carrier || '').trim();
+      const oldCarrier = v.ops.carrier || '';
       if (oldCarrier === carrier) {
         results.push({ vin: key, ok: true, carrier, unchanged: true });
         return;
       }
-      if (oldCarrier && !allowOverwrite) {
-        results.push({
-          vin: key,
-          ok: false,
-          error: 'الناقل مقفل بعد التعيين',
-          carrier: oldCarrier,
-          locked: true,
-        });
+      try {
+        applyManualCarrierChange(v, carrier, req.dtUser);
+      } catch (err) {
+        results.push({ vin: key, ok: false, error: err.message || 'Carrier change blocked' });
         return;
       }
-      v.ops.carrier = carrier;
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = new Date().toISOString();
       store.upsertVehicle(key, v);
@@ -1428,9 +1737,11 @@ function createDeliveryTeamRouter(opts) {
 
   // ——— Ops update (employee / admin / hanouf) ———
   router.patch('/vehicles/:vin', auth, (req, res) => {
-    const v = assertVinAccess(req, res, req.params.vin, { write: true });
-    if (!v) return undefined;
     const body = req.body || {};
+    const bodyKeys = Object.keys(body).filter((k) => k !== 'token');
+    const carrierOnly = bodyKeys.length > 0 && bodyKeys.every((k) => k === 'carrier');
+    const v = assertVinAccess(req, res, req.params.vin, { write: true, carrierOnly });
+    if (!v) return undefined;
     const allowed = {
       guestSentDate: (x) => normalizeDate(x),
       signatureReceivedDate: (x) => normalizeDate(x),
@@ -1478,29 +1789,67 @@ function createDeliveryTeamRouter(opts) {
     };
 
     try {
-      // الناقل is locked once set — only Admin may change it
-      if (Object.prototype.hasOwnProperty.call(body, 'carrier')) {
-        const prevCarrier = String(v.ops.carrier || '').trim();
-        const nextCarrier = String(body.carrier == null ? '' : body.carrier).trim();
-        if (prevCarrier && nextCarrier !== prevCarrier && req.dtUser.role !== 'admin') {
-          return res.status(403).json({
-            error: 'الناقل مقفل بعد التعيين — لا يمكن تغييره',
-            carrier: prevCarrier,
-            locked: true,
+      // Carrier-only patch from drawer: teammates may edit الناقل but not other fields
+      if (carrierOnly) {
+        const next = allowed.carrier(body.carrier);
+        const oldVal = v.ops.carrier == null ? '' : String(v.ops.carrier);
+        if (String(next) !== oldVal) {
+          applyManualCarrierChange(v, next, req.dtUser);
+          store.pushAudit({
+            vin: v.vin,
+            user: req.dtUser.name,
+            action: 'update_carrier',
+            oldValue: oldVal || '(empty)',
+            newValue: String(next) || '(empty)',
+          });
+          v.ops.updatedBy = req.dtUser.name;
+          v.ops.updatedAt = new Date().toISOString();
+          store.upsertVehicle(v.vin, v);
+          store.save();
+          const carrier = String(v.ops.carrier || '').trim();
+          const transferCity = String(v.ops.transferCity || '').trim();
+          let hubSync;
+          if (carrier || transferCity) {
+            hubSync = notifyCarrierAssigned([{
+              vin: v.vin,
+              carrier,
+              transferCity,
+              vehicle: v,
+              by: req.dtUser.name,
+            }]);
+          }
+          return res.json({
+            ok: true,
+            saved: true,
+            vehicle: publicVehicle(v, req.dtUser),
+            lastUpdated: v.ops.updatedAt,
+            hubSync: hubSync || undefined,
           });
         }
-        if (prevCarrier && !nextCarrier && req.dtUser.role !== 'admin') {
-          return res.status(403).json({
-            error: 'الناقل مقفل بعد التعيين — لا يمكن مسحه',
-            carrier: prevCarrier,
-            locked: true,
-          });
-        }
+        return res.json({
+          ok: true,
+          saved: true,
+          vehicle: publicVehicle(v, req.dtUser),
+          lastUpdated: v.ops.updatedAt || '',
+        });
       }
 
       Object.keys(allowed).forEach((field) => {
         if (!Object.prototype.hasOwnProperty.call(body, field)) return;
         const oldVal = v.ops[field] == null ? '' : String(v.ops[field]);
+        if (field === 'carrier') {
+          const newVal = allowed.carrier(body.carrier);
+          if (String(newVal) === oldVal) return;
+          applyManualCarrierChange(v, newVal, req.dtUser);
+          store.pushAudit({
+            vin: v.vin,
+            user: req.dtUser.name,
+            action: 'update_carrier',
+            oldValue: oldVal || '(empty)',
+            newValue: String(newVal) || '(empty)',
+          });
+          return;
+        }
         const newVal = allowed[field](body[field]);
         if (String(newVal) === oldVal) return;
         v.ops[field] = newVal;
@@ -1512,24 +1861,6 @@ function createDeliveryTeamRouter(opts) {
           newValue: String(newVal) || '(empty)',
         });
       });
-      // Clearing Guest Exp Yes also clears collection appointment
-      if (Object.prototype.hasOwnProperty.call(body, 'guestCenter')) {
-        const gc = String(v.ops.guestCenter || '');
-        if (gc !== 'Yes') {
-          if (v.ops.guestCollectAt) {
-            store.pushAudit({
-              vin: v.vin,
-              user: req.dtUser.name,
-              action: 'guest_cleared',
-              oldValue: v.ops.guestCollectAt,
-              newValue: '(cleared)',
-            });
-          }
-          v.ops.guestCollectAt = '';
-          v.ops.guestCollected = '';
-          v.ops.guestCollectNote = '';
-        }
-      }
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = new Date().toISOString();
       store.upsertVehicle(v.vin, v);
@@ -1540,14 +1871,15 @@ function createDeliveryTeamRouter(opts) {
       if (carrierChanged || cityChanged) {
         const carrier = String(v.ops.carrier || '').trim();
         const transferCity = String(v.ops.transferCity || '').trim();
-        // Always push — empty city clears hub branch; الناقل change moves company board live
-        hubSync = notifyCarrierAssigned([{
-          vin: v.vin,
-          carrier,
-          transferCity,
-          vehicle: v,
-          by: req.dtUser.name,
-        }]) || { pushed: true };
+        if (carrier || transferCity) {
+          hubSync = notifyCarrierAssigned([{
+            vin: v.vin,
+            carrier,
+            transferCity,
+            vehicle: v,
+            by: req.dtUser.name,
+          }]);
+        }
       }
       return res.json({
         ok: true,
@@ -1561,31 +1893,12 @@ function createDeliveryTeamRouter(opts) {
     }
   });
 
-  // ——— Guest Experience (Ruba operates · Admin/Hanouf watch) ———
-  function isRubaUser(user) {
-    if (!user) return false;
-    const id = String(user.userId || user.id || '').toLowerCase();
-    const name = String(user.name || '').toLowerCase();
-    return id === 'ruba' || name === 'ruba';
-  }
-
-  function canWatchGuest(req) {
-    return isRubaUser(req.dtUser) || canSeeAll(req.dtUser.role);
-  }
-
-  /** Only Ruba answers claimed / schedules; Admin watches */
-  function canManageGuest(req) {
-    return isRubaUser(req.dtUser);
-  }
-
-  function getGuestVehicle(req, res, vin) {
-    const key = normVin(vin);
-    const v = store.getVehicle(key);
-    if (!v) {
-      res.status(404).json({ error: 'VIN not found' });
-      return null;
-    }
-    return v;
+  // ——— Guest Experience (Ruba) ———
+  function canManageGuest(req, v) {
+    if (!v) return false;
+    if (canSeeAll(req.dtUser.role)) return true;
+    if (req.dtUser.userId === 'ruba' && v.ops.assignedEmployeeId === 'ruba') return true;
+    return false;
   }
 
   function parseGuestDateTime(dateStr, timeStr) {
@@ -1601,41 +1914,13 @@ function createDeliveryTeamRouter(opts) {
     return `${d}T${hh}:${mm}:00`;
   }
 
-  /** All Guest Exp = Yes VINs — Ruba works; Admin/Hanouf watch */
-  router.get('/guest-experience', auth, (req, res) => {
-    if (!canWatchGuest(req)) {
-      return res.status(403).json({ error: 'Guest Experience page is for Ruba (and Admin watchers)' });
-    }
-    let list = store.allVehicles().filter((v) => String(v.ops.guestCenter || '').toLowerCase() === 'yes');
-    list = list.slice().sort((a, b) => {
-      const ac = String(a.ops.guestCollected || '') === 'Yes' ? 1 : 0;
-      const bc = String(b.ops.guestCollected || '') === 'Yes' ? 1 : 0;
-      if (ac !== bc) return ac - bc;
-      const atA = a.ops.guestCollectAt ? new Date(a.ops.guestCollectAt).getTime() : Infinity;
-      const atB = b.ops.guestCollectAt ? new Date(b.ops.guestCollectAt).getTime() : Infinity;
-      if (atA !== atB) return atA - atB;
-      return String(a.vin || '').localeCompare(String(b.vin || ''));
-    });
-    const rows = list.map((v) => publicVehicle(v, req.dtUser));
-    const due = rows.filter((r) => r.guestDue).length;
-    const pending = rows.filter((r) => String(r.ops.guestCollected || '') !== 'Yes').length;
-    return res.json({
-      total: rows.length,
-      due,
-      pending,
-      canOperate: canManageGuest(req),
-      watcher: !canManageGuest(req),
-      rows,
-    });
-  });
-
-  /** Schedule / reschedule Guest Exp customer collection (Ruba only) */
+  /** Schedule / reschedule Guest Exp customer collection (Ruba) */
   router.post('/vehicles/:vin/guest-schedule', auth, (req, res) => {
-    if (!canManageGuest(req)) {
-      return res.status(403).json({ error: 'Only Ruba can schedule Guest Exp collection times' });
-    }
-    const v = getGuestVehicle(req, res, req.params.vin);
+    const v = assertVinAccess(req, res, req.params.vin, { write: true });
     if (!v) return undefined;
+    if (!canManageGuest(req, v)) {
+      return res.status(403).json({ error: 'Only Ruba (on her VINs) or Admin/Hanouf can schedule Guest Exp' });
+    }
     try {
       const at = parseGuestDateTime(req.body && req.body.date, req.body && req.body.time);
       const old = v.ops.guestCollectAt || '';
@@ -1660,13 +1945,13 @@ function createDeliveryTeamRouter(opts) {
     }
   });
 
-  /** After timer: mark collected (then optional status) or reschedule — Ruba only */
+  /** After timer: mark collected (then optional status) or reschedule */
   router.post('/vehicles/:vin/guest-collect', auth, (req, res) => {
-    if (!canManageGuest(req)) {
-      return res.status(403).json({ error: 'Only Ruba can confirm whether the customer claimed the car' });
-    }
-    const v = getGuestVehicle(req, res, req.params.vin);
+    const v = assertVinAccess(req, res, req.params.vin, { write: true });
     if (!v) return undefined;
+    if (!canManageGuest(req, v)) {
+      return res.status(403).json({ error: 'Only Ruba (on her VINs) or Admin/Hanouf can confirm Guest Exp collection' });
+    }
     const collected = req.body && (req.body.collected === true || req.body.collected === 'yes' || req.body.collected === 'Yes');
     try {
       if (collected) {
@@ -1739,11 +2024,13 @@ function createDeliveryTeamRouter(opts) {
     res.json({ total, page, limit, rows });
   });
 
-  router.get('/export', auth, (req, res) => {
-    const assignedOnly = String(req.query.assigned || '') !== '0' && String(req.query.assigned || '') !== 'no';
-    let list = canSeeAll(req.dtUser.role) ? store.allVehicles() : scopedVehicles(req.dtUser);
-    list = list.filter((v) => (assignedOnly ? (v.ops && v.ops.assignedEmployeeId) : true));
-    list = sortVehicles(list, 'status', 'asc');
+  router.get('/export', auth, requireRole('admin', 'hanouf'), (req, res) => {
+    const assignedOnly = String(req.query.assigned || '') === '1' || String(req.query.assigned || '') === 'yes';
+    const list = sortVehicles(
+      store.allVehicles().filter((v) => (assignedOnly ? (v.ops && v.ops.assignedEmployeeId) : true)),
+      'proformaDate',
+      'desc'
+    );
 
     const ynOut = (v) => {
       const s = String(v || '').trim();
@@ -1820,12 +2107,12 @@ function createDeliveryTeamRouter(opts) {
     if (session.role === 'admin' || session.role === 'hanouf') return true;
     const id = String(session.userId || session.id || '').toLowerCase();
     const name = String(session.name || '').toLowerCase();
-    return id === 'ruba' || name === 'ruba' || id === 'rasha' || name === 'rasha';
+    return id === 'ruba' || name === 'ruba';
   }
 
   /**
-   * Sales Raw upload — Hanouf, Ruba, Rasha, Admin.
-   * Writes the same hub inventory file the Coordinator / Delivery Hub uses.
+   * Sales Raw upload (hub inventory) — Hanouf, Ruba, Admin.
+   * Updates shared raw data once; everyone sees uploadedAt.
    */
   function salesRawUploadHandler(req, res) {
     const header = req.headers['x-delivery-team-token'] || req.headers.authorization || '';
@@ -1834,7 +2121,7 @@ function createDeliveryTeamRouter(opts) {
     const session = store.getSession(token);
     if (!session) return res.status(401).json({ error: 'Unauthorized — please sign in' });
     if (!canUploadSalesRawUser(session)) {
-      return res.status(403).json({ error: 'Only Hanouf, Ruba, Rasha, or Admin can upload Sales Raw' });
+      return res.status(403).json({ error: 'Only Hanouf, Ruba, or Admin can upload Sales Raw' });
     }
     req.dtUser = session;
 

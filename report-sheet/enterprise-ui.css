@@ -1,0 +1,1954 @@
+/**
+ * enterprise-ui.css
+ * Presentation-only redesign layer for report-sheet.
+ * Does NOT change JS, formulas, APIs, handlers, or data logic.
+ * Load LAST after dashboard.css / ops-redesign-skin.css / responsive-layout.css.
+ */
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Design tokens ÃÂ¢ÃÂÃÂ cool graphite canvas + Toyota red accent
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme,
+.live-app.admin-page.toyota-theme {
+  --eu-bg: #e9eef5;
+  --eu-bg-2: #dfe7f1;
+  --eu-surface: #ffffff;
+  --eu-surface-2: #f5f8fc;
+  --eu-ink: #0f172a;
+  --eu-ink-soft: #1e293b;
+  --eu-muted: #64748b;
+  --eu-line: #d5dee9;
+  --eu-line-soft: #e8eef5;
+  --eu-sidebar: #0a0f1a;
+  --eu-sidebar-2: #121a2b;
+  --eu-accent: #eb0a1e;
+  --eu-accent-dark: #c40718;
+  --eu-accent-soft: rgba(235, 10, 30, 0.1);
+  --eu-ok: #0f766e;
+  --eu-ok-bg: #ecfdf5;
+  --eu-warn: #b45309;
+  --eu-warn-bg: #fffbeb;
+  --eu-info: #1d4ed8;
+  --eu-info-bg: #eff6ff;
+  --eu-shadow: 0 1px 0 rgba(15, 23, 42, 0.04), 0 10px 28px rgba(15, 23, 42, 0.06);
+  --eu-shadow-lg: 0 18px 48px rgba(15, 23, 42, 0.1);
+  --eu-radius: 16px;
+  --eu-radius-sm: 10px;
+  --eu-radius-pill: 999px;
+  --eu-sidebar-w: 268px;
+  --eu-topbar-h: 72px;
+  --eu-ease: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Remap legacy tokens used across the app */
+  --ops-bg: var(--eu-bg);
+  --ops-fg: var(--eu-ink);
+  --ops-muted: var(--eu-muted);
+  --ops-border: var(--eu-line);
+  --ops-card: var(--eu-surface);
+  --ops-secondary: var(--eu-surface-2);
+  --ops-ink: var(--eu-ink);
+  --ops-sidebar: var(--eu-sidebar);
+  --ops-shadow: var(--eu-shadow);
+  --ops-shadow-hover: var(--eu-shadow-lg);
+  --ops-radius-panel: var(--eu-radius);
+  --ops-radius-control: var(--eu-radius-sm);
+  --crm-bg: var(--eu-bg);
+  --crm-sidebar: var(--eu-sidebar);
+  --crm-text: var(--eu-ink);
+  --crm-muted: var(--eu-muted);
+  --crm-accent: var(--eu-accent);
+  --crm-accent-2: var(--eu-accent-dark);
+  --crm-accent-soft: var(--eu-accent-soft);
+  --crm-shadow: var(--eu-shadow);
+  --sidebar-w: var(--eu-sidebar-w);
+  --sidebar-w-collapsed: 84px;
+  --topbar-h: var(--eu-topbar-h);
+  --font: "Manrope", "IBM Plex Sans Arabic", "Segoe UI", sans-serif;
+  --font-figure: "Space Grotesk", "Manrope", sans-serif;
+  --ar: "IBM Plex Sans Arabic", "Tajawal", sans-serif;
+  --ink: var(--eu-ink);
+  --muted: var(--eu-muted);
+  --line: var(--eu-line);
+  --bg: var(--eu-bg);
+  --surface: var(--eu-surface);
+  --surface-2: var(--eu-surface-2);
+  --radius: var(--eu-radius-sm);
+  --shadow: var(--eu-shadow);
+  --sky: var(--eu-accent);
+  --sky-soft: var(--eu-accent-soft);
+  --navy: var(--eu-ink);
+  --navy-2: var(--eu-ink-soft);
+  --ok: var(--eu-ok);
+  --ok-bg: var(--eu-ok-bg);
+  --warn: var(--eu-warn);
+  --warn-bg: var(--eu-warn-bg);
+  --bad: var(--eu-accent);
+  --bad-bg: #fff1f2;
+
+  color: var(--eu-ink);
+  background:
+    radial-gradient(1200px 600px at 0% -10%, rgba(235, 10, 30, 0.06), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(29, 78, 216, 0.05), transparent 50%),
+    linear-gradient(180deg, var(--eu-bg) 0%, var(--eu-bg-2) 100%) !important;
+  font-family: var(--font);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.live-app.toyota-theme ::selection {
+  background: rgba(235, 10, 30, 0.18);
+  color: var(--eu-ink);
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   App shell
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme .app-frame {
+  background: transparent;
+  min-height: 100vh;
+}
+
+.live-app.toyota-theme .app-sidebar {
+  width: var(--eu-sidebar-w) !important;
+  background:
+    linear-gradient(180deg, rgba(235, 10, 30, 0.12) 0%, transparent 28%),
+    linear-gradient(165deg, var(--eu-sidebar) 0%, var(--eu-sidebar-2) 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 16px 0 48px rgba(10, 15, 26, 0.22) !important;
+  backdrop-filter: none;
+}
+
+.live-app.toyota-theme .sidebar-brand {
+  min-height: var(--eu-topbar-h);
+  padding: 18px 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  gap: 12px !important;
+}
+
+.live-app.toyota-theme .sidebar-mark {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, var(--eu-accent) 0%, var(--eu-accent-dark) 100%) !important;
+  box-shadow: 0 10px 24px rgba(235, 10, 30, 0.35) !important;
+}
+
+.live-app.toyota-theme .sidebar-brand-text strong {
+  font-family: var(--font-figure) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.22em !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.live-app.toyota-theme .sidebar-brand-text span {
+  color: rgba(255, 255, 255, 0.48) !important;
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+}
+
+.live-app.toyota-theme .sidebar-section-label {
+  margin: 8px 14px 10px !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 0.2em !important;
+  color: rgba(255, 255, 255, 0.32) !important;
+}
+
+.live-app.toyota-theme .sidebar-nav {
+  padding: 12px 12px 8px !important;
+  gap: 4px;
+}
+
+.live-app.toyota-theme .side-nav-item,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item,
+.live-app.toyota-theme #panel-tabs .tab {
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 12px !important;
+  padding: 0 14px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.62) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  transition: background var(--eu-ease), color var(--eu-ease), box-shadow var(--eu-ease), transform var(--eu-ease) !important;
+}
+
+.live-app.toyota-theme .side-nav-item:hover,
+.live-app.toyota-theme #panel-tabs .tab:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.live-app.toyota-theme .side-nav-item.active,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item.active,
+.live-app.toyota-theme #panel-tabs .tab.active {
+  background: #fff !important;
+  color: var(--eu-ink) !important;
+  border-color: transparent !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.live-app.toyota-theme .side-nav-item.active::before,
+.live-app.toyota-theme #panel-tabs .tab.active::before {
+  background: var(--eu-accent) !important;
+  width: 3px !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+
+.live-app.toyota-theme .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 12px !important;
+  gap: 6px !important;
+}
+
+.live-app.toyota-theme .sidebar-user-card {
+  margin-top: 8px;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.live-app.toyota-theme .sidebar-user-avatar {
+  background: linear-gradient(145deg, var(--eu-accent), var(--eu-accent-dark)) !important;
+  box-shadow: 0 6px 16px rgba(235, 10, 30, 0.3) !important;
+}
+
+.live-app.toyota-theme .app-main {
+  background: transparent !important;
+}
+
+.live-app.toyota-theme .app-topbar {
+  min-height: var(--eu-topbar-h) !important;
+  height: auto !important;
+  padding: 12px clamp(16px, 2vw, 28px) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-bottom: 1px solid rgba(213, 222, 233, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+  gap: 14px !important;
+}
+
+.live-app.toyota-theme .app-topbar-eyebrow {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.16em !important;
+  font-weight: 700 !important;
+  color: var(--eu-muted) !important;
+  text-transform: uppercase !important;
+}
+
+.live-app.toyota-theme .app-page-title {
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1.15rem, 1.6vw, 1.45rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--eu-ink) !important;
+  margin: 0 !important;
+}
+
+.live-app.toyota-theme .app-topbar-search {
+  background: var(--eu-surface-2) !important;
+  border: 1px solid var(--eu-line) !important;
+  border-radius: var(--eu-radius-pill) !important;
+  box-shadow: none !important;
+  min-height: 42px !important;
+  transition: border-color var(--eu-ease), box-shadow var(--eu-ease), background var(--eu-ease);
+}
+
+.live-app.toyota-theme .app-topbar-search:focus-within {
+  background: #fff !important;
+  border-color: rgba(235, 10, 30, 0.35) !important;
+  box-shadow: 0 0 0 3px var(--eu-accent-soft) !important;
+}
+
+.live-app.toyota-theme .app-search-kbd {
+  border-radius: 8px !important;
+  background: #fff !important;
+  border: 1px solid var(--eu-line) !important;
+  color: var(--eu-muted) !important;
+  font-size: 0.65rem !important;
+}
+
+.live-app.toyota-theme .app-topbar-actions {
+  gap: 8px !important;
+  flex-wrap: wrap;
+}
+
+.live-app.toyota-theme .panel-section,
+.live-app.toyota-theme .app-content,
+.live-app.toyota-theme main,
+.live-app.toyota-theme .content-wrap {
+  padding-inline: clamp(14px, 2vw, 28px) !important;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Buttons & controls
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme .btn,
+.live-app.toyota-theme button.btn,
+.live-app.toyota-theme .sr-sched-btn,
+.live-app.toyota-theme .bo-btn-clear {
+  border-radius: var(--eu-radius-sm) !important;
+  border: 1px solid var(--eu-line) !important;
+  background: #fff !important;
+  color: var(--eu-ink-soft) !important;
+  font-weight: 650 !important;
+  font-size: 0.84rem !important;
+  padding: 0.55rem 0.95rem !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03) !important;
+  transition: transform var(--eu-ease), box-shadow var(--eu-ease), border-color var(--eu-ease), background var(--eu-ease) !important;
+}
+
+.live-app.toyota-theme .btn:hover:not(:disabled),
+.live-app.toyota-theme button.btn:hover:not(:disabled) {
+  border-color: #b8c4d4 !important;
+  background: var(--eu-surface-2) !important;
+  transform: translateY(-1px);
+}
+
+.live-app.toyota-theme .btn-primary,
+.live-app.toyota-theme #run-btn.btn-primary,
+.live-app.toyota-theme button.btn-primary {
+  background: linear-gradient(145deg, var(--eu-accent) 0%, var(--eu-accent-dark) 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(235, 10, 30, 0.28) !important;
+}
+
+.live-app.toyota-theme .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(235, 10, 30, 0.34) !important;
+}
+
+.live-app.toyota-theme select,
+.live-app.toyota-theme input[type="search"],
+.live-app.toyota-theme input[type="text"],
+.live-app.toyota-theme input[type="date"],
+.live-app.toyota-theme input:not([type]),
+.live-app.toyota-theme .rv-head-actions select,
+.live-app.toyota-theme .rv-head-actions input[type="search"],
+.live-app.toyota-theme .boe-employee-actions select {
+  border-radius: var(--eu-radius-sm) !important;
+  border: 1px solid var(--eu-line) !important;
+  background: #fff !important;
+  color: var(--eu-ink) !important;
+  font: inherit;
+  font-size: 0.84rem !important;
+  padding: 0.5rem 0.75rem !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  transition: border-color var(--eu-ease), box-shadow var(--eu-ease);
+}
+
+.live-app.toyota-theme select:focus,
+.live-app.toyota-theme input[type="search"]:focus,
+.live-app.toyota-theme input[type="text"]:focus,
+.live-app.toyota-theme input[type="date"]:focus {
+  outline: none !important;
+  border-color: rgba(235, 10, 30, 0.4) !important;
+  box-shadow: 0 0 0 3px var(--eu-accent-soft) !important;
+}
+
+.live-app.toyota-theme .status,
+.live-app.toyota-theme .badge {
+  border-radius: var(--eu-radius-pill) !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.65rem !important;
+  border: 1px solid transparent;
+}
+
+.live-app.toyota-theme .status.ok,
+.live-app.toyota-theme .badge.ok {
+  background: var(--eu-ok-bg) !important;
+  color: var(--eu-ok) !important;
+  border-color: #a7f3d0 !important;
+}
+
+.live-app.toyota-theme .status.warn,
+.live-app.toyota-theme .badge.warn {
+  background: var(--eu-warn-bg) !important;
+  color: var(--eu-warn) !important;
+  border-color: #fde68a !important;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Cards, KPIs, panels
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme .card,
+.live-app.toyota-theme .pbi-viz,
+.live-app.toyota-theme .pbi-slicer,
+.live-app.toyota-theme .boe-table-card,
+.live-app.toyota-theme .boe-employee-card,
+.live-app.toyota-theme .aa-summary-card,
+.live-app.toyota-theme .bo-empty.card,
+.live-app.toyota-theme article.card {
+  background: var(--eu-surface) !important;
+  border: 1px solid var(--eu-line) !important;
+  border-radius: var(--eu-radius) !important;
+  box-shadow: var(--eu-shadow) !important;
+  transition: box-shadow var(--eu-ease), transform var(--eu-ease), border-color var(--eu-ease);
+}
+
+.live-app.toyota-theme .card:hover,
+.live-app.toyota-theme .pbi-viz:hover {
+  box-shadow: var(--eu-shadow-lg);
+  border-color: #c5d0de !important;
+}
+
+.live-app.toyota-theme .pbi-viz-head,
+.live-app.toyota-theme .card > h2,
+.live-app.toyota-theme .boe-table-card .pbi-viz-head,
+.live-app.toyota-theme .boe-employee-card .pbi-viz-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.live-app.toyota-theme .pbi-viz-head h2,
+.live-app.toyota-theme .card h2,
+.live-app.toyota-theme .rv-title,
+.live-app.toyota-theme .boe-dash .rv-title {
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1rem, 1.3vw, 1.2rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--eu-ink) !important;
+  margin: 0 !important;
+}
+
+.live-app.toyota-theme .hint,
+.live-app.toyota-theme .rv-sub,
+.live-app.toyota-theme .pbi-slicer-hint,
+.live-app.toyota-theme .foot {
+  color: var(--eu-muted) !important;
+  font-size: 0.82rem !important;
+  line-height: 1.45 !important;
+}
+
+.live-app.toyota-theme .bo-kpis,
+.live-app.toyota-theme .kpi-row,
+.live-app.toyota-theme .pbi-kpi-row,
+.live-app.toyota-theme .dvp-totals,
+.live-app.toyota-theme #boe-kpis,
+.live-app.toyota-theme #rv-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px !important;
+}
+
+.live-app.toyota-theme .bo-kpi,
+.live-app.toyota-theme .kpi,
+.live-app.toyota-theme .pbi-kpi,
+.live-app.toyota-theme .dvp-total-card,
+.live-app.toyota-theme .sr-mock-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--eu-surface) !important;
+  border: 1px solid var(--eu-line) !important;
+  border-radius: var(--eu-radius) !important;
+  box-shadow: var(--eu-shadow) !important;
+  padding: 14px 16px !important;
+  transition: transform var(--eu-ease), box-shadow var(--eu-ease);
+}
+
+.live-app.toyota-theme .bo-kpi::before,
+.live-app.toyota-theme .kpi::before,
+.live-app.toyota-theme .dvp-total-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #94a3b8;
+}
+
+.live-app.toyota-theme .bo-kpi.ok::before,
+.live-app.toyota-theme .dvp-total-card.is-del::before { background: var(--eu-ok); }
+.live-app.toyota-theme .bo-kpi.warn::before,
+.live-app.toyota-theme .dvp-total-card.is-pro::before { background: var(--eu-warn); }
+.live-app.toyota-theme .bo-kpi.bad::before,
+.live-app.toyota-theme .dvp-total-card.is-ratio::before { background: var(--eu-accent); }
+
+.live-app.toyota-theme .bo-kpi:hover,
+.live-app.toyota-theme .dvp-total-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--eu-shadow-lg);
+}
+
+.live-app.toyota-theme .bo-kpi .lab,
+.live-app.toyota-theme .kpi .lab,
+.live-app.toyota-theme .dvp-total-card .k {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--eu-muted) !important;
+}
+
+.live-app.toyota-theme .bo-kpi .val,
+.live-app.toyota-theme .kpi .val,
+.live-app.toyota-theme .dvp-total-card .v {
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1.35rem, 2.2vw, 1.85rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--eu-ink) !important;
+  margin-top: 4px;
+}
+
+/* Charts */
+.live-app.toyota-theme .chart-box,
+.live-app.toyota-theme .sr-charts .card,
+.live-app.toyota-theme canvas {
+  max-width: 100%;
+}
+
+.live-app.toyota-theme .chart-box {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 40%);
+}
+
+.live-app.toyota-theme .sr-charts,
+.live-app.toyota-theme .pbi-grid,
+.live-app.toyota-theme .dvp-cards {
+  gap: 14px !important;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Tables
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme .table-wrap,
+.live-app.toyota-theme .aa-table-wrap,
+.live-app.toyota-theme .rv-table-wrap,
+.live-app.toyota-theme .icc-table-wrap,
+.live-app.toyota-theme .xl-table-wrap,
+.live-app.toyota-theme .bas-table-wrap,
+.live-app.toyota-theme .sr-sched-wrap {
+  border: 1px solid var(--eu-line) !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  overflow: auto !important;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.live-app.toyota-theme table,
+.live-app.toyota-theme .data-table,
+.live-app.toyota-theme .aa-table,
+.live-app.toyota-theme .rv-table,
+.live-app.toyota-theme .boe-table,
+.live-app.toyota-theme .bo-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100%;
+  font-size: 0.84rem !important;
+}
+
+.live-app.toyota-theme th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef6 100%) !important;
+  color: #475569 !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  padding: 0.7rem 0.75rem !important;
+  white-space: nowrap;
+}
+
+.live-app.toyota-theme td {
+  padding: 0.65rem 0.75rem !important;
+  border-bottom: 1px solid var(--eu-line-soft) !important;
+  color: var(--eu-ink-soft) !important;
+  vertical-align: middle !important;
+}
+
+.live-app.toyota-theme tbody tr:hover td {
+  background: rgba(235, 10, 30, 0.03) !important;
+}
+
+.live-app.toyota-theme tbody tr:nth-child(even) td {
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.live-app.toyota-theme tbody tr:nth-child(even):hover td {
+  background: rgba(235, 10, 30, 0.04) !important;
+}
+
+.live-app.toyota-theme .mono {
+  font-family: "Space Grotesk", ui-monospace, monospace !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Filters, chips, tabs
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme .rv-head,
+.live-app.toyota-theme .boe-dash .rv-head,
+.live-app.toyota-theme .aa-dash .rv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.live-app.toyota-theme .rv-head-actions,
+.live-app.toyota-theme .boe-employee-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--eu-line);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.live-app.toyota-theme .boe-type-chips,
+.live-app.toyota-theme .boe-employee-chips,
+.live-app.toyota-theme .rv-sheets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-app.toyota-theme .boe-chip,
+.live-app.toyota-theme .rv-sheet-chip,
+.live-app.toyota-theme .boe-tag,
+.live-app.toyota-theme .rv-pair-chip {
+  border-radius: var(--eu-radius-pill) !important;
+  border: 1px solid var(--eu-line) !important;
+  background: #fff !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  transition: transform var(--eu-ease), box-shadow var(--eu-ease), border-color var(--eu-ease);
+}
+
+.live-app.toyota-theme .boe-chip:hover,
+.live-app.toyota-theme .boe-emp-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.live-app.toyota-theme .boe-chip.is-active,
+.live-app.toyota-theme .boe-emp-chip.is-active,
+.live-app.toyota-theme .rv-sheet-chip.is-active {
+  outline: 2px solid var(--eu-accent) !important;
+  outline-offset: 1px;
+  background: #fff5f5 !important;
+  border-color: #fecaca !important;
+}
+
+.live-app.toyota-theme .boe-sev-critical,
+.live-app.toyota-theme .boe-tag.sev-critical {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.live-app.toyota-theme .boe-sev-warn,
+.live-app.toyota-theme .boe-tag.sev-warn {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+.live-app.toyota-theme .boe-ac-fix {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border-radius: 8px;
+  padding: 0.15rem 0.4rem;
+}
+
+.live-app.toyota-theme .boe-row.sev-critical {
+  background: rgba(235, 10, 30, 0.04) !important;
+}
+
+.live-app.toyota-theme .rv-row-inqueue {
+  background: rgba(29, 78, 216, 0.05) !important;
+}
+
+.live-app.toyota-theme .rv-vin-btn {
+  color: var(--eu-info) !important;
+  font-weight: 700 !important;
+}
+
+.live-app.toyota-theme .rv-status,
+.live-app.toyota-theme .aa-status {
+  border-radius: var(--eu-radius-pill);
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+}
+
+/* Power BI / sales layout polish */
+.live-app.toyota-theme .pbi-page {
+  gap: 14px !important;
+}
+
+.live-app.toyota-theme .pbi-slicer {
+  border-radius: var(--eu-radius) !important;
+  box-shadow: var(--eu-shadow) !important;
+  background: var(--eu-surface) !important;
+}
+
+.live-app.toyota-theme .pbi-name {
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  background: var(--eu-surface-2) !important;
+  transition: background var(--eu-ease), border-color var(--eu-ease), transform var(--eu-ease);
+}
+
+.live-app.toyota-theme .pbi-name:hover {
+  border-color: var(--eu-line) !important;
+  background: #fff !important;
+  transform: translateX(2px);
+}
+
+.live-app.toyota-theme .pbi-name.active {
+  background: var(--eu-accent-soft) !important;
+  border-color: rgba(235, 10, 30, 0.25) !important;
+  color: var(--eu-ink) !important;
+}
+
+/* Drawers */
+.live-app.toyota-theme #aa-drill-drawer,
+.live-app.toyota-theme .aa-drill-drawer,
+.live-app.toyota-theme .drawer {
+  border-radius: 20px 0 0 20px !important;
+  box-shadow: -20px 0 60px rgba(15, 23, 42, 0.18) !important;
+  border-left: 1px solid var(--eu-line) !important;
+  background: #fff !important;
+}
+
+.live-app.toyota-theme #aa-drill-backdrop.show,
+.live-app.toyota-theme .aa-drill-backdrop.show {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(3px);
+}
+
+/* Empty states */
+.live-app.toyota-theme .bo-empty {
+  padding: clamp(20px, 3vw, 36px) !important;
+}
+
+.live-app.toyota-theme .bo-empty h2 {
+  font-family: var(--font-figure) !important;
+  letter-spacing: -0.02em;
+}
+
+.live-app.toyota-theme .bo-empty ol {
+  background: var(--eu-surface-2);
+  border: 1px solid var(--eu-line);
+  border-radius: 14px;
+  padding: 14px 14px 14px 32px !important;
+}
+
+/* Admin page cards */
+.live-app.admin-page .admin-section-card,
+.live-app.admin-page .card {
+  border-radius: var(--eu-radius) !important;
+  border: 1px solid var(--eu-line) !important;
+  box-shadow: var(--eu-shadow) !important;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   Responsive ÃÂ¢ÃÂÃÂ flexible, no page-level horizontal scroll
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme,
+.live-app.toyota-theme .app-frame,
+.live-app.toyota-theme .app-main {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+.live-app.toyota-theme .panel-section {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .live-app.toyota-theme .pbi-page {
+    grid-template-columns: 1fr !important;
+  }
+  .live-app.toyota-theme .pbi-slicer {
+    position: relative !important;
+    max-height: none !important;
+  }
+  .live-app.toyota-theme .sr-charts {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .live-app.toyota-theme .app-topbar {
+    flex-wrap: wrap;
+    height: auto !important;
+  }
+  .live-app.toyota-theme .app-topbar-search {
+    order: 3;
+    width: 100%;
+    max-width: none;
+  }
+  .live-app.toyota-theme .bo-kpis,
+  .live-app.toyota-theme #boe-kpis,
+  .live-app.toyota-theme #rv-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .live-app.toyota-theme th,
+  .live-app.toyota-theme td {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .live-app.toyota-theme .bo-kpis,
+  .live-app.toyota-theme #boe-kpis,
+  .live-app.toyota-theme #rv-kpis,
+  .live-app.toyota-theme .dvp-totals {
+    grid-template-columns: 1fr !important;
+  }
+  .live-app.toyota-theme .rv-head-actions,
+  .live-app.toyota-theme .boe-employee-actions {
+    width: 100%;
+  }
+  .live-app.toyota-theme .rv-head-actions select,
+  .live-app.toyota-theme .rv-head-actions input,
+  .live-app.toyota-theme .boe-employee-actions select {
+    flex: 1 1 100%;
+    max-width: none !important;
+  }
+}
+
+/* Subtle motion for presence */
+@media (prefers-reduced-motion: no-preference) {
+  .live-app.toyota-theme .panel-section {
+    animation: euFadeUp 0.35s var(--eu-ease) both;
+  }
+  @keyframes euFadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Filter toolbars ÃÂ¢ÃÂÃÂ look integrated, not raw forms */
+.live-app.toyota-theme .bo-filters,
+.live-app.toyota-theme .stock-filters,
+.live-app.toyota-theme .sr-filters,
+.live-app.toyota-theme .filter-bar,
+.live-app.toyota-theme .icc-filters,
+.live-app.toyota-theme .bas-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid var(--eu-line) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--eu-shadow) !important;
+  backdrop-filter: blur(8px);
+}
+
+.live-app.toyota-theme .sidebar-toggle,
+.live-app.toyota-theme .sidebar-collapse-btn {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.live-app.toyota-theme .app-topbar .sidebar-toggle {
+  border-color: var(--eu-line) !important;
+  background: #fff !important;
+  color: var(--eu-ink) !important;
+}
+
+/* Delivered vs Proforma cards */
+.live-app.toyota-theme .dvp-card,
+.live-app.toyota-theme .dvp-channel-card {
+  border-radius: var(--eu-radius) !important;
+  border: 1px solid var(--eu-line) !important;
+  box-shadow: var(--eu-shadow) !important;
+  background: #fff !important;
+  overflow: hidden;
+}
+
+.live-app.toyota-theme .dvp-quote {
+  border-radius: var(--eu-radius) !important;
+  background: linear-gradient(135deg, #0a0f1a 0%, #1a2340 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* Scrollbars ÃÂ¢ÃÂÃÂ subtle */
+.live-app.toyota-theme .table-wrap::-webkit-scrollbar,
+.live-app.toyota-theme .aa-table-wrap::-webkit-scrollbar,
+.live-app.toyota-theme .sidebar-nav::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.live-app.toyota-theme .table-wrap::-webkit-scrollbar-thumb,
+.live-app.toyota-theme .aa-table-wrap::-webkit-scrollbar-thumb {
+  background: #c5d0de;
+  border-radius: 999px;
+}
+
+/* Data uploader standalone page */
+body.uploader-enterprise {
+  --bg: #e9eef5 !important;
+  --ink: #0f172a !important;
+  --muted: #64748b !important;
+  --line: #d5dee9 !important;
+  --card: #ffffff !important;
+  --toyota: #eb0a1e !important;
+  --ops-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+  --ops-radius: 16px !important;
+  font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif !important;
+  background:
+    radial-gradient(1000px 500px at 0% 0%, rgba(235, 10, 30, 0.06), transparent 50%),
+    linear-gradient(180deg, #e9eef5 0%, #dfe7f1 100%) !important;
+  color: var(--ink) !important;
+}
+body.uploader-enterprise .wrap {
+  max-width: 1480px;
+}
+body.uploader-enterprise .card,
+body.uploader-enterprise .panel,
+body.uploader-enterprise .top,
+body.uploader-enterprise .hero {
+  border-radius: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--ops-shadow) !important;
+  background: var(--card) !important;
+}
+body.uploader-enterprise button.primary,
+body.uploader-enterprise .btn-primary,
+body.uploader-enterprise button[type="submit"] {
+  background: linear-gradient(145deg, #eb0a1e, #c40718) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 20px rgba(235, 10, 30, 0.28) !important;
+}
+
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+   DARK MODE ÃÂ¢ÃÂÃÂ .theme-dark (Day/Dark toggle)
+   Harmonized with Toyota red accent (not generic blue)
+   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
+.live-app.toyota-theme.theme-dark,
+.live-app.admin-page.toyota-theme.theme-dark {
+  --eu-bg: #070b14;
+  --eu-bg-2: #0c1220;
+  --eu-surface: #121a2b;
+  --eu-surface-2: #1a2438;
+  --eu-ink: #e8eef8;
+  --eu-ink-soft: #d5deeb;
+  --eu-muted: #94a3b8;
+  --eu-line: #2a364a;
+  --eu-line-soft: #1e2a3d;
+  --eu-sidebar: #05080f;
+  --eu-sidebar-2: #0b1220;
+  --eu-accent: #eb0a1e;
+  --eu-accent-dark: #ff2d3f;
+  --eu-accent-soft: rgba(235, 10, 30, 0.18);
+  --eu-ok: #34d399;
+  --eu-ok-bg: rgba(16, 185, 129, 0.14);
+  --eu-warn: #fbbf24;
+  --eu-warn-bg: rgba(251, 191, 36, 0.12);
+  --eu-info: #60a5fa;
+  --eu-info-bg: rgba(59, 130, 246, 0.14);
+  --eu-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.35);
+  --eu-shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+
+  --ops-bg: var(--eu-bg);
+  --ops-fg: var(--eu-ink);
+  --ops-muted: var(--eu-muted);
+  --ops-border: var(--eu-line);
+  --ops-card: var(--eu-surface);
+  --ops-secondary: var(--eu-surface-2);
+  --ops-ink: var(--eu-ink);
+  --ops-sidebar: var(--eu-sidebar);
+  --ops-shadow: var(--eu-shadow);
+  --crm-bg: var(--eu-bg);
+  --crm-sidebar: var(--eu-sidebar);
+  --crm-text: var(--eu-ink);
+  --crm-muted: var(--eu-muted);
+  --crm-accent: var(--eu-accent);
+  --crm-accent-soft: var(--eu-accent-soft);
+  --bg: var(--eu-bg);
+  --surface: var(--eu-surface);
+  --surface-2: var(--eu-surface-2);
+  --ink: var(--eu-ink);
+  --muted: var(--eu-muted);
+  --line: var(--eu-line);
+  --navy: #93c5fd;
+  --navy-2: #60a5fa;
+  --sky: var(--eu-accent);
+  --sky-soft: var(--eu-accent-soft);
+  --ok: var(--eu-ok);
+  --ok-bg: var(--eu-ok-bg);
+  --warn: var(--eu-warn);
+  --warn-bg: var(--eu-warn-bg);
+  --bad: #f87171;
+  --bad-bg: rgba(248, 113, 113, 0.14);
+
+  color: var(--eu-ink) !important;
+  background:
+    radial-gradient(1000px 520px at 8% -8%, rgba(235, 10, 30, 0.14), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(56, 189, 248, 0.06), transparent 50%),
+    linear-gradient(180deg, var(--eu-bg) 0%, var(--eu-bg-2) 100%) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-frame {
+  background: transparent !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-sidebar {
+  background:
+    linear-gradient(180deg, rgba(235, 10, 30, 0.16) 0%, transparent 30%),
+    linear-gradient(165deg, var(--eu-sidebar) 0%, var(--eu-sidebar-2) 100%) !important;
+  border-right-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.live-app.toyota-theme.theme-dark .side-nav-item.active,
+.live-app.toyota-theme.theme-dark .sidebar-tabs .tab.side-nav-item.active,
+.live-app.toyota-theme.theme-dark #panel-tabs .tab.active {
+  background: #fff !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar {
+  background: rgba(12, 18, 32, 0.88) !important;
+  border-bottom-color: var(--eu-line) !important;
+  box-shadow: none !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-page-title,
+.live-app.toyota-theme.theme-dark .rv-title,
+.live-app.toyota-theme.theme-dark .pbi-viz-head h2,
+.live-app.toyota-theme.theme-dark .card h2,
+.live-app.toyota-theme.theme-dark .sr-hero-title {
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar-eyebrow,
+.live-app.toyota-theme.theme-dark .hint,
+.live-app.toyota-theme.theme-dark .rv-sub,
+.live-app.toyota-theme.theme-dark .foot,
+.live-app.toyota-theme.theme-dark .sr-hero-sub {
+  color: var(--eu-muted) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar-search {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar-search:focus-within {
+  background: var(--eu-surface) !important;
+  border-color: rgba(235, 10, 30, 0.45) !important;
+  box-shadow: 0 0 0 3px var(--eu-accent-soft) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-search-kbd {
+  background: var(--eu-surface) !important;
+  border-color: var(--eu-line) !important;
+  color: var(--eu-muted) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar .sidebar-toggle {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+  color: var(--eu-ink) !important;
+}
+
+/* Surfaces */
+.live-app.toyota-theme.theme-dark .card,
+.live-app.toyota-theme.theme-dark .pbi-viz,
+.live-app.toyota-theme.theme-dark .pbi-slicer,
+.live-app.toyota-theme.theme-dark .boe-table-card,
+.live-app.toyota-theme.theme-dark .boe-employee-card,
+.live-app.toyota-theme.theme-dark .bo-empty.card,
+.live-app.toyota-theme.theme-dark article.card,
+.live-app.toyota-theme.theme-dark .sr-panel .pbi-viz,
+.live-app.toyota-theme.theme-dark .sr-controls,
+.live-app.toyota-theme.theme-dark .dvp-card,
+.live-app.toyota-theme.theme-dark .dvp-channel-card,
+.live-app.toyota-theme.theme-dark .admin-section-card {
+  background: var(--eu-surface) !important;
+  border-color: var(--eu-line) !important;
+  box-shadow: var(--eu-shadow) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .bo-kpi,
+.live-app.toyota-theme.theme-dark .kpi,
+.live-app.toyota-theme.theme-dark .pbi-kpi,
+.live-app.toyota-theme.theme-dark .dvp-total-card,
+.live-app.toyota-theme.theme-dark .sr-kpi-card,
+.live-app.toyota-theme.theme-dark .sr-mock-card {
+  background: var(--eu-surface) !important;
+  border-color: var(--eu-line) !important;
+  box-shadow: var(--eu-shadow) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .bo-kpi .lab,
+.live-app.toyota-theme.theme-dark .dvp-total-card .k,
+.live-app.toyota-theme.theme-dark .sr-kpi-lab {
+  color: var(--eu-muted) !important;
+}
+
+.live-app.toyota-theme.theme-dark .bo-kpi .val,
+.live-app.toyota-theme.theme-dark .dvp-total-card .v,
+.live-app.toyota-theme.theme-dark .sr-kpi-val {
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-blue .sr-kpi-ico { background: rgba(59,130,246,.2); color: #93c5fd; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-violet .sr-kpi-ico { background: rgba(139,92,246,.2); color: #c4b5fd; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-green .sr-kpi-ico { background: rgba(16,185,129,.18); color: #6ee7b7; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-sky .sr-kpi-ico { background: rgba(14,165,233,.18); color: #7dd3fc; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-red .sr-kpi-ico { background: rgba(235,10,30,.2); color: #fb7185; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-teal .sr-kpi-ico { background: rgba(15,118,110,.22); color: #5eead4; }
+.live-app.toyota-theme.theme-dark .sr-kpi-card.tone-warn .sr-kpi-ico { background: rgba(220,38,38,.2); color: #fca5a5; }
+
+/* Buttons / inputs */
+.live-app.toyota-theme.theme-dark .btn,
+.live-app.toyota-theme.theme-dark button.btn,
+.live-app.toyota-theme.theme-dark .sr-sched-btn,
+.live-app.toyota-theme.theme-dark .bo-btn-clear {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+  color: var(--eu-ink) !important;
+  box-shadow: none !important;
+}
+
+.live-app.toyota-theme.theme-dark .btn:hover:not(:disabled),
+.live-app.toyota-theme.theme-dark button.btn:hover:not(:disabled) {
+  background: #243044 !important;
+  border-color: #3b4a63 !important;
+}
+
+.live-app.toyota-theme.theme-dark .btn-primary,
+.live-app.toyota-theme.theme-dark #run-btn.btn-primary,
+.live-app.toyota-theme.theme-dark button.btn-primary {
+  background: linear-gradient(145deg, var(--eu-accent) 0%, #c40718 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(235, 10, 30, 0.35) !important;
+}
+
+.live-app.toyota-theme.theme-dark select,
+.live-app.toyota-theme.theme-dark input[type="search"],
+.live-app.toyota-theme.theme-dark input[type="text"],
+.live-app.toyota-theme.theme-dark input[type="date"],
+.live-app.toyota-theme.theme-dark input:not([type]),
+.live-app.toyota-theme.theme-dark .rv-head-actions select,
+.live-app.toyota-theme.theme-dark .rv-head-actions input[type="search"],
+.live-app.toyota-theme.theme-dark .boe-employee-actions select,
+.live-app.toyota-theme.theme-dark .toolbar input,
+.live-app.toyota-theme.theme-dark .toolbar select {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .rv-head-actions,
+.live-app.toyota-theme.theme-dark .boe-employee-actions,
+.live-app.toyota-theme.theme-dark .bo-filters,
+.live-app.toyota-theme.theme-dark .stock-filters,
+.live-app.toyota-theme.theme-dark .sr-filters,
+.live-app.toyota-theme.theme-dark .filter-bar,
+.live-app.toyota-theme.theme-dark .icc-filters {
+  background: rgba(18, 26, 43, 0.9) !important;
+  border-color: var(--eu-line) !important;
+}
+
+/* Tables */
+.live-app.toyota-theme.theme-dark .table-wrap,
+.live-app.toyota-theme.theme-dark .aa-table-wrap,
+.live-app.toyota-theme.theme-dark .rv-table-wrap,
+.live-app.toyota-theme.theme-dark .icc-table-wrap,
+.live-app.toyota-theme.theme-dark .xl-table-wrap,
+.live-app.toyota-theme.theme-dark .bas-table-wrap,
+.live-app.toyota-theme.theme-dark .sr-sched-wrap {
+  background: var(--eu-surface) !important;
+  border-color: var(--eu-line) !important;
+}
+
+.live-app.toyota-theme.theme-dark th {
+  background: linear-gradient(180deg, #1a2438 0%, #152033 100%) !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+.live-app.toyota-theme.theme-dark td {
+  border-bottom-color: var(--eu-line-soft) !important;
+  color: var(--eu-ink-soft) !important;
+}
+
+.live-app.toyota-theme.theme-dark tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.live-app.toyota-theme.theme-dark tbody tr:hover td {
+  background: rgba(235, 10, 30, 0.08) !important;
+}
+
+/* Chips / status */
+.live-app.toyota-theme.theme-dark .boe-chip,
+.live-app.toyota-theme.theme-dark .rv-sheet-chip,
+.live-app.toyota-theme.theme-dark .boe-tag {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .boe-chip.is-active,
+.live-app.toyota-theme.theme-dark .boe-emp-chip.is-active,
+.live-app.toyota-theme.theme-dark .rv-sheet-chip.is-active {
+  background: rgba(235, 10, 30, 0.16) !important;
+  border-color: rgba(235, 10, 30, 0.4) !important;
+  outline-color: var(--eu-accent) !important;
+}
+
+.live-app.toyota-theme.theme-dark .status.ok,
+.live-app.toyota-theme.theme-dark .badge.ok {
+  background: var(--eu-ok-bg) !important;
+  color: var(--eu-ok) !important;
+  border-color: rgba(52, 211, 153, 0.35) !important;
+}
+
+.live-app.toyota-theme.theme-dark .status.warn,
+.live-app.toyota-theme.theme-dark .badge.warn {
+  background: var(--eu-warn-bg) !important;
+  color: var(--eu-warn) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+.live-app.toyota-theme.theme-dark .status {
+  background: var(--eu-surface-2) !important;
+  color: var(--eu-muted) !important;
+  border-color: var(--eu-line) !important;
+}
+
+.live-app.toyota-theme.theme-dark .pbi-name {
+  background: var(--eu-surface-2) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .pbi-name:hover {
+  background: #243044 !important;
+  border-color: var(--eu-line) !important;
+}
+
+.live-app.toyota-theme.theme-dark .pbi-name.active {
+  background: var(--eu-accent-soft) !important;
+  border-color: rgba(235, 10, 30, 0.4) !important;
+  color: #fff !important;
+}
+
+.live-app.toyota-theme.theme-dark .chart-box {
+  background: linear-gradient(180deg, #152033 0%, #121a2b 50%) !important;
+}
+
+.live-app.toyota-theme.theme-dark .bo-empty ol {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+}
+
+.live-app.toyota-theme.theme-dark .dvp-quote {
+  background: linear-gradient(135deg, #05080f 0%, #152033 100%) !important;
+}
+
+.live-app.toyota-theme.theme-dark #aa-drill-drawer,
+.live-app.toyota-theme.theme-dark .aa-drill-drawer,
+.live-app.toyota-theme.theme-dark .drawer {
+  background: var(--eu-surface) !important;
+  border-left-color: var(--eu-line) !important;
+  color: var(--eu-ink) !important;
+}
+
+.live-app.toyota-theme.theme-dark .table-wrap::-webkit-scrollbar-thumb,
+.live-app.toyota-theme.theme-dark .aa-table-wrap::-webkit-scrollbar-thumb {
+  background: #3b4a63;
+}
+
+/* Theme toggle chip */
+.live-app.toyota-theme .btn.theme-toggle {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+.live-app.toyota-theme.theme-dark .btn.theme-toggle {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Keep sidebar mark Toyota red in both modes */
+.live-app.toyota-theme.theme-dark .sidebar-mark {
+  background: linear-gradient(145deg, var(--eu-accent), #c40718) !important;
+}
+
+/* Accessories Performance ÃÂ¢ÃÂÃÂ solid black text on light surfaces (readable).
+   Metric tiles use light backgrounds + black text (no white-on-brown). */
+.live-app.toyota-theme .sr-mock-acc {
+  background: #ffffff !important;
+  border-color: var(--eu-line) !important;
+  color: #000000 !important;
+  box-shadow: var(--eu-shadow) !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .sr-mock-card-title,
+.live-app.toyota-theme .sr-mock-acc .sr-mock-card-sub,
+.live-app.toyota-theme .sr-mock-acc .acc-summary-pct-hero,
+.live-app.toyota-theme .sr-mock-acc .acc-summary-pct-text,
+.live-app.toyota-theme .sr-mock-acc .acc-summary-pct-text .v,
+.live-app.toyota-theme .sr-mock-acc .acc-sum-remain-inline .k,
+.live-app.toyota-theme .sr-mock-acc .acc-sum-remain-inline .v {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .sr-mock-card-title {
+  font-weight: 800 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .pbi-expand {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .acc-summary-pct-text .v.acc-sum-pct-combined,
+.live-app.toyota-theme .sr-mock-acc #acc-sum-pct {
+  color: #000000 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .acc-summary-cell,
+.live-app.toyota-theme .sr-mock-acc .acc-summary-cell--remain {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .acc-summary-cell .k,
+.live-app.toyota-theme .sr-mock-acc .acc-summary-cell .v {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .acc-summary-cell .k {
+  font-weight: 800 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .sr-acc-progress-track {
+  background: #94a3b8 !important; /* Remaining */
+  height: 14px !important;
+  border: 1px solid #64748b !important;
+}
+
+/* Layer: track=remaining ÃÂÃÂ· combined(red)=achieved+in-progress ÃÂÃÂ· fill(black)=achieved */
+.live-app.toyota-theme .sr-mock-acc .sr-acc-progress-fill {
+  background: #0f172a !important; /* Achieved ÃÂ¢ÃÂÃÂ solid black */
+  z-index: 2 !important;
+}
+
+.live-app.toyota-theme .sr-mock-acc .sr-acc-progress-fill-combined {
+  background: #eb0a1e !important; /* In Progress (visible past achieved) */
+  z-index: 1 !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .sr-acc-progress-track {
+  background: #475569 !important;
+  border-color: #64748b !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .sr-acc-progress-fill {
+  background: #f8fafc !important; /* Achieved ÃÂ¢ÃÂÃÂ bright on dark card */
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .sr-acc-progress-fill-combined {
+  background: #ff2d3f !important;
+}
+
+/* Dark mode: light text on dark card (inverse of day black-on-white) */
+.live-app.toyota-theme.theme-dark .sr-mock-acc {
+  background: var(--eu-surface) !important;
+  border-color: var(--eu-line) !important;
+  color: #f8fafc !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .sr-mock-card-title,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-pct-text .v,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-sum-remain-inline .v,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-pct-text .v.acc-sum-pct-combined,
+.live-app.toyota-theme.theme-dark .sr-mock-acc #acc-sum-pct {
+  color: #f8fafc !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .sr-mock-card-sub,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-sum-remain-inline .k {
+  color: #cbd5e1 !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .pbi-expand {
+  background: var(--eu-surface-2) !important;
+  border-color: var(--eu-line) !important;
+  color: #f8fafc !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-cell,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-cell--remain {
+  background: #1a2438 !important;
+  border-color: #334155 !important;
+}
+
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-cell .k,
+.live-app.toyota-theme.theme-dark .sr-mock-acc .acc-summary-cell .v {
+  color: #f8fafc !important;
+}
+
+/* Allocation Audit ÃÂ clickable RTL VIN rows */
+.live-app.toyota-theme tr.aa-rtl-prior-row,
+.live-app.toyota-theme tr.aa-rtl-sheet-row {
+  cursor: pointer;
+}
+.live-app.toyota-theme tr.aa-rtl-prior-row:hover,
+.live-app.toyota-theme tr.aa-rtl-sheet-row:hover {
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+.live-app.toyota-theme.theme-dark tr.aa-rtl-prior-row:hover,
+.live-app.toyota-theme.theme-dark tr.aa-rtl-sheet-row:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+}
+
+/* -- Allocation Audit Control Center ------------------------------- */
+.live-app.toyota-theme .aa-control-center {
+  gap: 18px !important;
+}
+
+.live-app.toyota-theme .aa-cc-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 18px 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98)),
+    radial-gradient(ellipse at 0% 0%, rgba(235, 0, 27, 0.06), transparent 55%);
+  border: 1px solid var(--eu-line);
+  border-radius: var(--eu-radius);
+  box-shadow: var(--eu-shadow);
+}
+
+.live-app.toyota-theme .aa-cc-eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a1b1f;
+}
+
+.live-app.toyota-theme .aa-cc-title {
+  margin: 0;
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1.45rem, 2.2vw, 1.85rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.03em;
+  color: var(--eu-ink) !important;
+  line-height: 1.15;
+}
+
+.live-app.toyota-theme .aa-cc-sub {
+  margin: 4px 0 0;
+  color: var(--eu-muted);
+  font-size: 0.92rem;
+}
+
+.live-app.toyota-theme .aa-cc-live {
+  margin: 10px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f4f7fb;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-app.toyota-theme .aa-cc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-width: 100%;
+}
+
+.live-app.toyota-theme .aa-cc-toolbar select,
+.live-app.toyota-theme .aa-cc-toolbar input[type="search"] {
+  min-height: 38px;
+  border: 1px solid #d5dee9;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--eu-ink);
+  padding: 0 12px;
+  font-size: 0.84rem;
+}
+
+.live-app.toyota-theme .aa-cc-toolbar input[type="search"] {
+  min-width: min(220px, 100%);
+  width: 220px;
+}
+
+.live-app.toyota-theme .aa-cc-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px !important;
+}
+
+.live-app.toyota-theme .aa-cc-kpis--mini {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 4px;
+}
+
+.live-app.toyota-theme .aa-cc-kpi {
+  position: relative;
+  overflow: hidden;
+  background: var(--eu-surface) !important;
+  border: 1px solid var(--eu-line) !important;
+  border-radius: var(--eu-radius) !important;
+  box-shadow: var(--eu-shadow) !important;
+  padding: 14px 16px !important;
+}
+
+.live-app.toyota-theme .aa-cc-kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #cbd5e1;
+}
+
+.live-app.toyota-theme .aa-cc-kpi.ok::before { background: #16a34a; }
+.live-app.toyota-theme .aa-cc-kpi.warn::before { background: #d97706; }
+.live-app.toyota-theme .aa-cc-kpi.bad::before { background: #dc2626; }
+
+.live-app.toyota-theme .aa-cc-kpi .lab {
+  color: var(--eu-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-app.toyota-theme .aa-cc-kpi .val {
+  margin-top: 6px;
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1.25rem, 1.8vw, 1.55rem) !important;
+  font-weight: 750 !important;
+  color: var(--eu-ink) !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.live-app.toyota-theme .aa-cc-kpi-hint {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--eu-muted);
+  line-height: 1.3;
+}
+
+.live-app.toyota-theme .aa-cc-kpi--mini .val {
+  font-size: 1.15rem !important;
+}
+
+.live-app.toyota-theme .aa-cc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.live-app.toyota-theme .aa-cc-section--carry,
+.live-app.toyota-theme .aa-cc-section--free {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+}
+
+.live-app.toyota-theme .aa-cc-section-kicker {
+  margin: 0 0 2px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9a1b1f;
+}
+
+.live-app.toyota-theme .aa-cc-section--carry .aa-cc-section-kicker,
+.live-app.toyota-theme .aa-cc-section--free .aa-cc-section-kicker {
+  color: #64748b;
+}
+
+.live-app.toyota-theme .aa-reconcile {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-app.toyota-theme .aa-reconcile--ok {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.live-app.toyota-theme .aa-reconcile--warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.live-app.toyota-theme .aa-hist-current {
+  color: #047857;
+  font-weight: 650;
+}
+
+.live-app.toyota-theme .aa-hist-moved {
+  color: #b45309;
+  font-weight: 650;
+}
+
+.live-app.toyota-theme .aa-free-stock-card {
+  border-style: dashed !important;
+}
+
+.live-app.toyota-theme .aa-cc-section-title {
+  margin: 0;
+  font-family: var(--font-figure) !important;
+  font-size: clamp(1.15rem, 1.6vw, 1.35rem) !important;
+  font-weight: 750 !important;
+  color: var(--eu-ink) !important;
+  letter-spacing: -0.02em;
+}
+
+.live-app.toyota-theme .aa-cc-section-sub {
+  margin: 4px 0 0;
+  color: var(--eu-muted);
+  font-size: 0.86rem;
+}
+
+.live-app.toyota-theme .aa-vin-board-wrap {
+  max-height: min(520px, 62vh);
+  overflow: auto;
+}
+
+.live-app.toyota-theme .aa-vin-board-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc !important;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
+.live-app.toyota-theme tr.aa-vin-board-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.live-app.toyota-theme tr.aa-vin-board-row:hover {
+  background: #f1f5f9 !important;
+}
+
+.live-app.toyota-theme .aa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.live-app.toyota-theme .aa-badge--ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.live-app.toyota-theme .aa-badge--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.live-app.toyota-theme .aa-badge--warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.live-app.toyota-theme .aa-badge--avail {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.live-app.toyota-theme .aa-badge--display {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.live-app.toyota-theme .aa-badge--bad {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.live-app.toyota-theme .aa-badge--na {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.live-app.toyota-theme .aa-yn {
+  display: inline-flex;
+  min-width: 2.4rem;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.live-app.toyota-theme .aa-yn--yes {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.live-app.toyota-theme .aa-yn--no {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.live-app.toyota-theme .aa-sr-found {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #047857;
+  letter-spacing: 0.04em;
+}
+
+.live-app.toyota-theme .aa-sr-miss {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #b91c1c;
+  letter-spacing: 0.04em;
+}
+
+.live-app.toyota-theme .aa-vin-hit {
+  border: 1px solid #dbe3ee;
+  border-radius: var(--eu-radius);
+  background: #fff;
+  box-shadow: var(--eu-shadow);
+  padding: 14px 16px;
+}
+
+.live-app.toyota-theme .aa-vin-hit-kicker {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a1b1f;
+}
+
+.live-app.toyota-theme .aa-vin-hit-vin {
+  margin-top: 2px;
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--eu-ink);
+}
+
+.live-app.toyota-theme .aa-vin-hit-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.live-app.toyota-theme .aa-vin-hit-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-top: 12px;
+}
+
+.live-app.toyota-theme .aa-vin-hit-grid .lab,
+.live-app.toyota-theme .aa-vin-detail-grid .lab {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--eu-muted);
+  margin-bottom: 2px;
+}
+
+.live-app.toyota-theme .aa-vin-hit--miss .aa-vin-hit-msg {
+  margin: 0;
+  color: var(--eu-muted);
+}
+
+.live-app.toyota-theme .aa-vin-detail-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.live-app.toyota-theme .aa-vin-detail-vin {
+  font-size: 1.05rem;
+  font-weight: 750;
+}
+
+.live-app.toyota-theme .aa-vin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.live-app.toyota-theme .aa-vin-detail-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.live-app.toyota-theme .aa-vin-detail-h {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.live-app.toyota-theme .aa-vin-detail-rule {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 14px 0;
+}
+
+.live-app.toyota-theme .aa-vin-detail-actions {
+  margin-top: 16px;
+}
+
+.live-app.toyota-theme.theme-dark .aa-cc-header {
+  background:
+    linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)),
+    radial-gradient(ellipse at 0% 0%, rgba(235, 0, 27, 0.12), transparent 55%);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.live-app.toyota-theme.theme-dark .aa-cc-live {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+
+.live-app.toyota-theme.theme-dark .aa-cc-toolbar select,
+.live-app.toyota-theme.theme-dark .aa-cc-toolbar input[type="search"] {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+}
+
+.live-app.toyota-theme.theme-dark .aa-vin-hit,
+.live-app.toyota-theme.theme-dark .aa-cc-kpi {
+  background: #111827 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+.live-app.toyota-theme.theme-dark .aa-vin-board-table thead th {
+  background: #0f172a !important;
+  box-shadow: 0 1px 0 rgba(148, 163, 184, 0.2);
+}
+
+.live-app.toyota-theme.theme-dark tr.aa-vin-board-row:hover {
+  background: rgba(148, 163, 184, 0.1) !important;
+}
+
+.live-app.toyota-theme.theme-dark .aa-cc-section--carry,
+.live-app.toyota-theme.theme-dark .aa-cc-section--free {
+  border-top-color: rgba(148, 163, 184, 0.22);
+}
+
+@media (max-width: 1440px) {
+  .live-app.toyota-theme .aa-cc-kpis--mini {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .live-app.toyota-theme .aa-vin-hit-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .live-app.toyota-theme .aa-cc-kpis,
+  .live-app.toyota-theme .aa-cc-kpis--mini {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .live-app.toyota-theme .aa-vin-hit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .live-app.toyota-theme .aa-cc-toolbar input[type="search"] {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .live-app.toyota-theme .aa-cc-kpis,
+  .live-app.toyota-theme .aa-cc-kpis--mini,
+  .live-app.toyota-theme .aa-vin-detail-grid,
+  .live-app.toyota-theme .aa-vin-detail-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}

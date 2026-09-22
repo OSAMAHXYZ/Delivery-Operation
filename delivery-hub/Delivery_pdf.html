@@ -1072,6 +1072,51 @@
             outline-offset: 4px;
             border-radius: 8px;
         }
+        .company-change-banner {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.12);
+            color: #92400e;
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+        .company-change-banner strong {
+            display: block;
+            margin-bottom: 2px;
+            color: #b45309;
+            font-size: 0.78rem;
+            letter-spacing: 0.02em;
+        }
+        .company-change-hint {
+            margin: 6px 0 0;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #92400e;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .company-change-hint.is-same {
+            color: #166534;
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.28);
+        }
+        .company-change-pill {
+            display: inline-block;
+            margin-inline-start: 6px;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #92400e;
+            background: rgba(245, 158, 11, 0.25);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            vertical-align: middle;
+        }
         body.agent-edit-lock input.field-locked,
         body.agent-edit-lock textarea.field-locked,
         body.agent-edit-lock select.field-locked {
@@ -1624,17 +1669,17 @@
     <div class="layout">
         <header class="hero no-print">
             <h1>مذكرة ترحيل السيارات</h1>
-            <p>مفتوح للتعديل: المندوب · الفرع · اللوحة · الملاحظات · المرفقات — الباقي مقفل</p>
+            <p>مفتوح للتعديل: الشركة · المندوب · الفرع · اللوحة · الملاحظات · المرفقات — الباقي مقفل</p>
         </header>
 
         <div class="form-col">
             <form id="deliveryForm">
                 <section class="card no-print quick-print-strip" id="quickPrintStrip" hidden>
                     <h2>خطوات سريعة للطباعة</h2>
-                    <p class="hint" id="quickPrintHint">مفتوح فقط: المندوب · الفرع · اللوحة · الملاحظات · المرفقات</p>
+                    <p class="hint" id="quickPrintHint">مفتوح: الشركة · المندوب · الفرع · اللوحة · الملاحظات · المرفقات</p>
                     <div class="quick-print-grid">
                         <div class="quick-print-meta">
-                            <span>الشركة</span>
+                            <span>الشركة المعيّنة</span>
                             <strong id="quickCompanyLabel">—</strong>
                         </div>
                         <div class="quick-print-meta">
@@ -1642,7 +1687,15 @@
                             <strong id="quickVinLabel" style="direction:ltr;font-family:ui-monospace,Consolas,monospace">—</strong>
                         </div>
                     </div>
+                    <div id="companyChangeBanner" class="company-change-banner" hidden>
+                        <strong>CHANGED · تم تغيير الشركة</strong>
+                        <span id="companyChangeBannerText"></span>
+                    </div>
                     <div class="grid grid-2" style="margin-top:12px">
+                        <div>
+                            <label>الشركة / Company</label>
+                            <button type="button" class="btn btn-secondary" id="btnFocusCompany" style="width:100%">تغيير الشركة ↓</button>
+                        </div>
                         <div>
                             <label>مندوب الشركة</label>
                             <button type="button" class="btn btn-secondary" id="btnFocusRep" style="width:100%">اسم المندوب ↓</button>
@@ -1696,7 +1749,8 @@
                                 <input id="company_rep" name="company_rep" type="text" required autocomplete="off" placeholder="اختر الشركة من القائمة…" spellcheck="false" data-list-only="1">
                                 <div class="searchable-select-menu" id="company_rep_menu" role="listbox"></div>
                             </div>
-                            <p class="searchable-select-hint">يجب الاختيار من القائمة فقط — لا يُسمح بالكتابة الحرة</p>
+                            <p class="searchable-select-hint">يمكن تغيير الشركة من القائمة — أي تغيير يُوسم في لوحة الإدارة كـ CHANGED</p>
+                            <p id="companyChangeHint" class="company-change-hint" hidden></p>
                         </div>
                         <div>
                             <label for="customer_name">مندوب الشركة / Company Rep</label>
@@ -2100,6 +2154,74 @@
         ]);
         /** Coordinator-assigned company when the note was opened (for change detection). */
         let assignedCompanyAtOpen = '';
+
+        function sameCompanyText(a, b) {
+            return String(a || '').trim().toLowerCase().replace(/\s+/g, ' ')
+                === String(b || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function currentCompanyRepValue() {
+            return String(document.getElementById('company_rep')?.value || '').trim();
+        }
+
+        function getCompanyChangeState() {
+            const from = String(assignedCompanyAtOpen || '').trim();
+            const to = currentCompanyRepValue();
+            if (!from || !to) return { changed: false, from, to };
+            if (sameCompanyText(from, to)) return { changed: false, from, to };
+            return { changed: true, from, to };
+        }
+
+        function refreshCompanyChangeUi() {
+            const state = getCompanyChangeState();
+            const hint = document.getElementById('companyChangeHint');
+            const banner = document.getElementById('companyChangeBanner');
+            const bannerText = document.getElementById('companyChangeBannerText');
+            const quickLabel = document.getElementById('quickCompanyLabel');
+            const to = state.to || '—';
+
+            if (quickLabel) {
+                if (state.changed) {
+                    quickLabel.innerHTML = `${escapeHtml(state.from)} <span style="color:#b45309">→</span> ${escapeHtml(to)} <span class="company-change-pill">CHANGED</span>`;
+                } else {
+                    quickLabel.textContent = to !== '—' ? to : (state.from || '—');
+                }
+            }
+
+            if (hint) {
+                if (!assignedCompanyAtOpen) {
+                    hint.hidden = true;
+                    hint.textContent = '';
+                    hint.classList.remove('is-same');
+                } else if (state.changed) {
+                    hint.hidden = false;
+                    hint.classList.remove('is-same');
+                    hint.textContent = `CHANGED · سيتم وسمها في الإدارة: من «${state.from}» → «${state.to}»`;
+                } else {
+                    hint.hidden = false;
+                    hint.classList.add('is-same');
+                    hint.textContent = `الشركة المعيّنة من المنسق: «${state.from}» — يمكنك تغييرها من القائمة`;
+                }
+            }
+
+            if (banner && bannerText) {
+                if (state.changed) {
+                    banner.hidden = false;
+                    bannerText.textContent = `من «${state.from}» → «${state.to}» · يُحفظ في لوحة الإدارة`;
+                } else {
+                    banner.hidden = true;
+                    bannerText.textContent = '';
+                }
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
         function isAgentUnlockedControl(el) {
             if (!el) return false;
@@ -2863,6 +2985,7 @@
             }));
             const filled = countFilledChassis();
             const companyRep = fd.get('company_rep')?.trim() || '';
+            const change = getCompanyChangeState();
             return {
                 doc_date: fd.get('doc_date'),
                 invoice_number: fd.get('invoice_number')?.trim(),
@@ -2871,6 +2994,9 @@
                 customer_name: fd.get('customer_name')?.trim(),
                 company_rep: companyRep,
                 assigned_company: assignedCompanyAtOpen || '',
+                company_changed: Boolean(change.changed),
+                company_changed_from: change.changed ? change.from : '',
+                company_changed_to: change.changed ? change.to : '',
                 transfer_date: fd.get('transfer_date') || fd.get('doc_date'),
                 corresponding_date: fd.get('corresponding_date') || fd.get('transfer_date') || fd.get('doc_date'),
                 day_name: fd.get('day_name')?.trim(),
@@ -3275,9 +3401,13 @@
                             setTimeout(() => {
                                 const statusEl = document.getElementById('queueStatus');
                                 if (statusEl) {
-                                    statusEl.textContent = isWarehouse
+                                    let msg = isWarehouse
                                         ? `تم التسليم في المستودع لـ ${n} سيارة`
                                         : (n > 1 ? `تم الترحيل لـ ${n} سيارة` : 'تم الطباعة — تم الترحيل');
+                                    if (data.companyChanged && data.companyChangedFrom && data.companyChangedTo) {
+                                        msg += ` · CHANGED: ${data.companyChangedFrom} → ${data.companyChangedTo}`;
+                                    }
+                                    statusEl.textContent = msg;
                                     statusEl.className = 'ws-toast ok';
                                 }
                             }, 400);
@@ -3423,8 +3553,10 @@
             setStatus('');
             const strip = document.getElementById('quickPrintStrip');
             if (strip) strip.hidden = true;
+            assignedCompanyAtOpen = '';
             clearAgentEditLock();
             applyAgentAutoBranch();
+            refreshCompanyChangeUi();
         }
 
         function setWarehousePrintMode(enabled) {
@@ -3801,14 +3933,17 @@
             }
             showQuickPrintStrip(item, { warehouse: false });
             setAgentEditLock(true);
+            refreshCompanyChangeUi();
             updatePreview();
-            // Focus company rep first (editable), then branch is available
+            // Focus company first so agent knows they can change it
             setTimeout(() => {
+                const companyEl = document.getElementById('company_rep');
                 const rep = document.getElementById('customer_name');
-                if (rep) {
-                    rep.focus();
-                    rep.classList.add('field-spotlight');
-                    setTimeout(() => rep.classList.remove('field-spotlight'), 2200);
+                const focusEl = assignedCompanyAtOpen ? companyEl : rep;
+                if (focusEl) {
+                    focusEl.focus();
+                    focusEl.classList.add('field-spotlight');
+                    setTimeout(() => focusEl.classList.remove('field-spotlight'), 2200);
                 }
             }, 180);
         }
@@ -3828,10 +3963,11 @@
                 hint.textContent = warehouse
                     ? 'نموذج المستودع — أكمل الحقول المطلوبة ثم اطبع'
                     : (city
-                        ? `الشركة والمدينة من Delivery Team (${city}) — راجعي ثم اطبعي`
-                        : 'مفتوح: الشركة · المندوب · الفرع / المدينة · اللوحة · الملاحظات · المرفقات');
+                        ? `يمكنك تغيير الشركة من القائمة · المدينة من Delivery Team (${city})`
+                        : 'مفتوح: الشركة · المندوب · الفرع / المدينة · اللوحة · الملاحظات · المرفقات — تغيير الشركة يُوسم CHANGED في الإدارة');
             }
             strip.hidden = false;
+            refreshCompanyChangeUi();
         }
 
         function hideQuickPrintStrip() {
@@ -3839,6 +3975,13 @@
             if (strip) strip.hidden = true;
             assignedCompanyAtOpen = '';
             clearAgentEditLock();
+            const banner = document.getElementById('companyChangeBanner');
+            const hint = document.getElementById('companyChangeHint');
+            if (banner) banner.hidden = true;
+            if (hint) {
+                hint.hidden = true;
+                hint.textContent = '';
+            }
         }
 
         /** Allow coordinator-assigned company even if not yet in local options list. */
@@ -4488,6 +4631,19 @@
         if (btnFocusRep) {
             btnFocusRep.addEventListener('click', () => spotlightField(document.getElementById('customer_name')));
         }
+        const btnFocusCompany = document.getElementById('btnFocusCompany');
+        if (btnFocusCompany) {
+            btnFocusCompany.addEventListener('click', () => {
+                const el = document.getElementById('company_rep');
+                spotlightField(el);
+                if (el) {
+                    el.readOnly = false;
+                    el.disabled = false;
+                    el.focus();
+                    el.dispatchEvent(new Event('focus', { bubbles: true }));
+                }
+            });
+        }
         const btnFocusCity = document.getElementById('btnFocusCity');
         if (btnFocusCity) {
             btnFocusCity.addEventListener('click', () => spotlightField(document.getElementById('branch_to')));
@@ -4740,6 +4896,10 @@
                 closeMenu();
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
+                if (fieldId === 'company_rep') {
+                    refreshCompanyChangeUi();
+                    updatePreview();
+                }
                 if (fieldId === 'branch_to') {
                     const vin = (typeof getClaimedVin === 'function' && getClaimedVin())
                         || (typeof getFormChassisList === 'function' && getFormChassisList()[0])
@@ -4858,6 +5018,11 @@
         initSearchableSelect('branch_to');
         initSearchableSelect('company_rep');
         initSearchableSelect('manual_branch');
+        const companyRepInput = document.getElementById('company_rep');
+        if (companyRepInput) {
+            companyRepInput.addEventListener('input', () => refreshCompanyChangeUi());
+            companyRepInput.addEventListener('change', () => refreshCompanyChangeUi());
+        }
         ensureWarehouseCompanyOption();
         loadDeliveryOptions().finally(() => initGate());
     </script>
@@ -4886,7 +5051,7 @@
                 return loadAutomallBoard();
             }
             return loadWorkspace();
-        }, { pollMs: 5000, debounceMs: 250 });
+        });
         setInterval(updateLivePill, 2000);
     </script>
 </body>

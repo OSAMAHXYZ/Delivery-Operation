@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Abdul Latif Jameel MOTORS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="dashboard.css?v=20260914eu2" />
+  <link rel="stylesheet" href="ops-redesign-skin.css?v=20260914eu2" />
+  <link rel="stylesheet" href="responsive-layout.css?v=20260914eu2" />
+  <link rel="stylesheet" href="enterprise-ui.css?v=20260915aa1" />
+  <script src="data-store.js"></script>
+  <script src="allocation-plan-data.js"></script>
+</head>
+<body class="live-app admin-page toyota-theme">
+  <div class="app-frame">
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Admin navigation">
+      <div class="sidebar-brand">
+        <div class="sidebar-mark" aria-hidden="true">
+          <img class="sidebar-toyota-logo" src="../images/logo/toyota.png" alt="" width="36" height="36" onerror="this.style.display='none';this.nextElementSibling.hidden=false" />
+          <span class="sidebar-mark-alj" hidden>T</span>
+        </div>
+        <div class="sidebar-brand-text">
+          <strong>TOYOTA</strong>
+          <span>ALJ · Admin</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <p class="sidebar-section-label">Admin</p>
+        <button type="button" class="tab side-nav-item active" data-admin-panel="uploads" id="tab-uploads">
+          <span class="side-nav-icon" aria-hidden="true">⬆</span>
+          <span class="side-nav-label">Excel Uploads</span>
+        </button>
+        <button type="button" class="tab side-nav-item" data-admin-panel="targets" id="tab-targets">
+          <span class="side-nav-icon" aria-hidden="true">♟</span>
+          <span class="side-nav-label">Employees &amp; Targets</span>
+        </button>
+        <button type="button" class="tab side-nav-item" data-admin-panel="allocation" id="tab-allocation">
+          <span class="side-nav-icon" aria-hidden="true">▦</span>
+          <span class="side-nav-label">Allocation Plan</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="side-nav-item side-nav-link" href="data-uploader.html">
+          <span class="side-nav-icon" aria-hidden="true">⇪</span>
+          <span class="side-nav-label">Data Uploader</span>
+        </a>
+        <a class="side-nav-item side-nav-link" href="index.html">
+          <span class="side-nav-icon" aria-hidden="true">◉</span>
+          <span class="side-nav-label">Live Dashboard</span>
+        </a>
+        <div class="sidebar-user-card">
+          <div class="sidebar-user-avatar" aria-hidden="true">O</div>
+          <div class="sidebar-user-meta">
+            <strong>Osama</strong>
+            <span>Digital Transformation</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="app-topbar-left">
+          <div class="app-topbar-titles">
+            <p class="app-topbar-eyebrow">TOYOTA · ALJ MOTORS</p>
+            <h1 class="app-page-title">Admin Push</h1>
+          </div>
+        </div>
+        <div class="top-actions app-topbar-actions">
+          <span class="status" id="status">Ready</span>
+          <span class="status ok" id="admin-mode-badge">ADMIN</span>
+          <a class="btn" href="index.html">Live report</a>
+          <button type="button" class="btn" id="clear-files-btn" disabled>Clear files</button>
+          <button type="button" class="btn-primary" id="push-btn">Push to live</button>
+        </div>
+      </header>
+
+      <div class="app-content">
+  <div class="shell">
+    <div class="pbi-kpis admin-kpis" id="admin-kpis"></div>
+
+    <section class="admin-panel" id="panel-uploads">
+      <div class="xl-toolbar admin-toolbar">
+        <span class="hint" id="files-foot">Upload Sales Raw for Sales Report · other files optional.</span>
+      </div>
+      <div class="banner load" id="load-banner">Reading…</div>
+      <div class="banner err" id="error-banner"></div>
+
+      <div class="card admin-section-card">
+        <div class="pbi-viz-head">
+          <h2>Excel uploads</h2>
+          <span class="admin-section-tag">Drop or click · .xlsx / .xls / .csv</span>
+        </div>
+        <p class="admin-lead">
+          Submit workbooks here, then click <b>Push to live</b>.
+          <b>Sales Raw Data</b> is required · <b>Cancelled BOs</b> optional (all rows when Col I has a VIN · duplicates included).
+        </p>
+        <section class="grid-5" id="slots"></section>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="panel-targets" hidden>
+      <div class="xl-toolbar admin-toolbar">
+        <input id="target-search" type="search" placeholder="Search employee…" />
+        <input id="bulk-target" type="number" min="0" step="1" placeholder="Bulk target" />
+        <button type="button" id="bulk-apply-btn" class="btn">Apply to all</button>
+        <button type="button" id="reset-targets-btn" class="btn">Reset names</button>
+        <button type="button" class="btn-primary" id="push-btn-2">Push to live</button>
+        <span class="hint">Names must match Sales Raw Col A</span>
+      </div>
+
+      <div class="admin-targets-layout">
+        <aside class="pbi-slicer card">
+          <h2>Target summary</h2>
+          <p class="pbi-slicer-hint">Monthly targets for live Ach%</p>
+          <div class="target-summary" id="target-summary"></div>
+          <p class="foot" id="target-foot"></p>
+        </aside>
+
+        <div class="card admin-section-card admin-targets-main">
+          <div class="pbi-viz-head">
+            <h2>Employees · monthly targets</h2>
+            <span class="admin-section-tag">Edit · then Push</span>
+          </div>
+          <div class="admin-accessories-settled">
+            <label for="accessories-settled">Accessories settled (SAR)</label>
+            <input id="accessories-settled" type="number" min="0" step="1" placeholder="e.g. 120000" title="Total accessories pool distributed by target share" />
+            <span class="hint">Optional pool · Acc target = (settled ÷ total target) × employee target · if blank, Acc target = employee monthly target · Ach% = Col L amount (via Col D VIN → Sales Raw employee) ÷ Acc target</span>
+          </div>
+          <div class="admin-accessories-settled">
+            <label for="working-days">Working days (month)</label>
+            <input id="working-days" type="number" min="1" step="1" placeholder="e.g. 22" title="Sales working days used for daily target pace" />
+            <span class="hint">Daily base = target ÷ working days · shortfall from yesterday adds to today’s required proforma</span>
+          </div>
+          <div class="target-grid" id="target-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="panel-allocation" hidden>
+      <div class="xl-toolbar admin-toolbar">
+        <button type="button" class="btn-primary" id="push-btn-3">Push to live</button>
+        <span class="hint">Edit E-Sales only · product &amp; segment totals calculate automatically</span>
+      </div>
+
+      <div class="card admin-section-card admin-allocation-card">
+        <div class="pbi-viz-head">
+          <h2>ESAL · Allocation Plan</h2>
+          <span class="admin-section-tag">Seg · Product · SFX · E-Sales</span>
+        </div>
+        <div class="allocation-plan-wrap" id="allocation-plan-wrap">
+          <p class="foot" style="margin:0;padding:12px 0">Loading allocation plan…</p>
+        </div>
+        <p class="foot" id="allocation-foot"></p>
+      </div>
+    </section>
+
+    <footer class="page-foot">Admin only · Push updates all live dashboards · <a href="index.html">Open live report</a></footer>
+  </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const Store = window.ReportSheetStore;
+  const TARGETS_KEY = Store.TARGETS_KEY;
+  const TARGETS_PUSH_KEY = Store.TARGETS_PUSH_KEY;
+  const ACCESSORIES_SETTLED_KEY = Store.ACCESSORIES_SETTLED_KEY;
+  const ACCESSORIES_SETTLED_PUSH_KEY = Store.ACCESSORIES_SETTLED_PUSH_KEY;
+  const WORKING_DAYS_KEY = Store.WORKING_DAYS_KEY;
+  const WORKING_DAYS_PUSH_KEY = Store.WORKING_DAYS_PUSH_KEY;
+  const ALLOCATION_PLAN_KEY = Store.ALLOCATION_PLAN_KEY;
+  const ALLOCATION_PLAN_PUSH_KEY = Store.ALLOCATION_PLAN_PUSH_KEY;
+  const ACCEPT = ".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
+
+  const ALLOCATION_ROWS = window.AllocationPlanData.buildAllocationPlanRows();
+  let allocationValues = loadAllocationValues();
+
+  const SLOT_DEFS = [
+    { id: "backorder", n: 1, title: "Back Order", ar: "أوامر الحجز", blurb: "First worksheet only · back orders 7022" },
+    { id: "rtl", n: 2, title: "RTL Stock", ar: "مخزون التجزئة", blurb: "Retail available stock" },
+    { id: "central", n: 3, title: "Stock E-Sales", ar: "مخزون المبيعات الإلكترونية", blurb: "E-Sales stock · used after RTL for matched & allocated" },
+    { id: "sales", n: 4, title: "Sales Raw Data", ar: "بيانات المبيعات", blurb: "Required for Sales Report · Col A / P / V" },
+    { id: "cancelled", n: 5, title: "Cancelled BOs", ar: "أوامر ملغاة", blurb: "Cancelled list · Col I = VIN required · count all rows by salesman (duplicates included)" },
+    { id: "accessories", n: 6, title: "Accessories", ar: "الإكسسوارات", blurb: "Sheet 1 · Col D VIN · Col L amount · Sheet VSND · Col I VIN · Col L employee · Col S in-progress" },
+  ];
+
+  const DEFAULT_EMPLOYEE_NAMES = [
+    "Samaher Abdulmoghni Al Amri",
+    "Haneen Talal Aqeel Al Madani",
+    "Not assigned",
+    "Wasim Kathem Awad",
+    "Ahmed Saleh Ahmed Binmahfoodh",
+    "Ghina Assad Alameer",
+    "Amjad Ahmed Alwafi",
+    "Ghadeer Abdulhadi Attia Altayyari",
+    "Maryam Salah Abdulrahman Tabakh",
+    "Muteb Abdullah Nasser Al Shehri",
+    "Mansuor Ali Al Qahtani",
+    "Ahmed Mahmoud Yousef Al Fitni",
+    "Mohammed Abkar Mohammed Abkar Negry",
+    "Mohammed Al Khateeb",
+    "Mohsen Zuhair Ali Al Attas",
+    "Fatmah Mohammed Alasseri",
+    "Essa Meraizeeq Almutairy",
+    "Moath Khalel Al Hjoouj",
+    "Khulood Abdulmajeed Albaloushi",
+    "Raoum Fahad Samkari",
+    "Alawiyyah Rafi Saad Al Shehri",
+    "Manal Moshref Almalki",
+    "Lujen Sami Saeed Bazhair",
+    "Muhannad Abdullah Makdour Minyawi",
+    "Maqbool Omar Ashour",
+    "Tawdod Al Sharef",
+    "Ali Muharraq A Alharbi",
+  ];
+  const EMPLOYEE_COUNT = DEFAULT_EMPLOYEE_NAMES.length;
+  const DEFAULT_EMPLOYEES = DEFAULT_EMPLOYEE_NAMES.map((name, i) => ({ id: i + 1, name, target: 0 }));
+
+  const slots = Object.fromEntries(SLOT_DEFS.map((s) => [s.id, { name: "", buffer: null, size: 0 }]));
+  let targetSearch = "";
+  let employeeTargets = loadEmployeeTargets();
+
+  const $ = (sel) => document.querySelector(sel);
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function formatNumber(n) {
+    if (!Number.isFinite(n)) return "—";
+    return new Intl.NumberFormat().format(n);
+  }
+  function formatBytes(n) {
+    if (!n) return "0 B";
+    if (n < 1024) return n + " B";
+    if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+    return (n / 1048576).toFixed(1) + " MB";
+  }
+  function setStatus(text, kind) {
+    const el = $("#status");
+    el.textContent = text;
+    el.className = "status" + (kind ? " " + kind : "");
+  }
+  function showError(msg) {
+    const el = $("#error-banner");
+    el.textContent = msg || "";
+    el.classList.toggle("show", !!msg);
+    if (msg) setStatus("Error", "err");
+  }
+  function isPlaceholderName(name) {
+    return /^Employee\s*\d+$/i.test(String(name || "").trim());
+  }
+  function detectFileType(file) {
+    const name = (file.name || "").toLowerCase();
+    if (name.endsWith(".csv") || name.endsWith(".xls") || name.endsWith(".xlsx")) return "ok";
+    return "unknown";
+  }
+
+  function loadAccessoriesSettled() {
+    try {
+      const raw = localStorage.getItem(ACCESSORIES_SETTLED_KEY);
+      if (!raw) return 0;
+      return Math.max(0, Number(JSON.parse(raw).amount) || 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  function loadWorkingDays() {
+    try {
+      const raw = localStorage.getItem(WORKING_DAYS_KEY);
+      if (!raw) return 22;
+      return Math.max(1, Number(JSON.parse(raw).days) || 22);
+    } catch {
+      return 22;
+    }
+  }
+
+  function defaultAllocationValues() {
+    const map = {};
+    ALLOCATION_ROWS.forEach((r) => {
+      if (r.kind === "leaf") map[r.id] = Math.max(0, Number(r.defaultVal) || 0);
+    });
+    return map;
+  }
+
+  function loadAllocationValues() {
+    const defaults = defaultAllocationValues();
+    try {
+      const raw = localStorage.getItem(ALLOCATION_PLAN_KEY);
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      const saved = parsed && parsed.values ? parsed.values : parsed;
+      if (!saved || typeof saved !== "object") return defaults;
+      ALLOCATION_ROWS.forEach((r) => {
+        if (r.kind !== "leaf") return;
+        if (saved[r.id] != null) defaults[r.id] = Math.max(0, Number(saved[r.id]) || 0);
+      });
+      return defaults;
+    } catch {
+      return defaults;
+    }
+  }
+
+  function sumLeaves(filterFn) {
+    return ALLOCATION_ROWS
+      .filter((r) => r.kind === "leaf" && filterFn(r))
+      .reduce((s, r) => s + (Number(allocationValues[r.id]) || 0), 0);
+  }
+
+  function allocationDisplayValue(row) {
+    if (row.kind === "leaf") return Number(allocationValues[row.id]) || 0;
+    if (row.kind === "product-total") return sumLeaves((r) => r.groupKey === row.groupKey);
+    if (row.kind === "seg-total") return sumLeaves((r) => r.segKey === row.segKey);
+    if (row.kind === "grand-total") return sumLeaves(() => true);
+    return 0;
+  }
+
+  function collectAllocationFromForm() {
+    const next = { ...allocationValues };
+    document.querySelectorAll("[data-alloc-id]").forEach((el) => {
+      const id = el.getAttribute("data-alloc-id");
+      if (!id) return;
+      next[id] = Math.max(0, Number(el.value) || 0);
+    });
+    return next;
+  }
+
+  function updateAllocationTotalsDom() {
+    document.querySelectorAll("[data-alloc-total]").forEach((el) => {
+      const id = el.getAttribute("data-alloc-total");
+      const row = ALLOCATION_ROWS.find((r) => r.id === id);
+      if (!row) return;
+      el.textContent = formatNumber(allocationDisplayValue(row));
+    });
+    const foot = $("#allocation-foot");
+    const grandRow = ALLOCATION_ROWS.find((r) => r.kind === "grand-total");
+    const grand = grandRow ? allocationDisplayValue(grandRow) : 0;
+    if (foot) {
+      foot.textContent = `Grand total E-Sales: ${formatNumber(grand)} · click Push to live when ready`;
+    }
+    const kpiEl = $("#admin-kpis");
+    if (kpiEl && !kpiEl.querySelector("[data-alloc-kpi]")) {
+      renderAdminKpis();
+    } else {
+      const allocKpi = document.querySelector("[data-alloc-kpi] .val");
+      if (allocKpi) allocKpi.textContent = formatNumber(grand);
+    }
+  }
+
+  function buildAllocationTableHtml() {
+    let html = `<table class="allocation-plan-table">
+      <thead>
+        <tr class="alloc-head-title"><th colspan="4">ESAL</th></tr>
+        <tr class="alloc-head-cols">
+          <th>Seg</th><th>PRODUCT</th><th>SFX</th><th>E-Sales</th>
+        </tr>
+      </thead><tbody>`;
+
+    let i = 0;
+    while (i < ALLOCATION_ROWS.length) {
+      const row = ALLOCATION_ROWS[i];
+      if (row.kind === "grand-total") {
+        html += `<tr class="alloc-row is-grand-total is-total">
+          <td class="alloc-seg"></td>
+          <td class="alloc-product alloc-total-label">${escapeHtml(row.product)}</td>
+          <td class="alloc-sfx"></td>
+          <td class="alloc-esales alloc-total-val" data-alloc-total="${escapeHtml(row.id)}">${formatNumber(allocationDisplayValue(row))}</td>
+        </tr>`;
+        i += 1;
+        continue;
+      }
+
+      if (row.segKey && row.kind === "leaf") {
+        const segKey = row.segKey;
+        const blockEnd = ALLOCATION_ROWS.findIndex((r, idx) => idx > i && r.kind === "seg-total" && r.segKey === segKey);
+        const end = blockEnd >= 0 ? blockEnd + 1 : i + 1;
+        const block = ALLOCATION_ROWS.slice(i, end);
+        const rowspan = block.length;
+        let currentProduct = "";
+        block.forEach((r, bi) => {
+          const isLeaf = r.kind === "leaf";
+          const cls = [
+            "alloc-row",
+            isLeaf ? "is-leaf" : "is-total",
+            r.kind === "product-total" ? "is-product-total" : "",
+            r.kind === "seg-total" ? "is-seg-total" : "",
+          ].filter(Boolean).join(" ");
+          const segTd = bi === 0 ? `<td class="alloc-seg" rowspan="${rowspan}">${escapeHtml(r.seg)}</td>` : "";
+          let productTd = "";
+          if (!isLeaf) {
+            productTd = `<td class="alloc-product alloc-total-label">${escapeHtml(r.product)}</td>`;
+            currentProduct = "";
+          } else if (r.product !== currentProduct) {
+            productTd = `<td class="alloc-product">${escapeHtml(r.product)}</td>`;
+            currentProduct = r.product;
+          } else {
+            productTd = `<td class="alloc-product alloc-cont"></td>`;
+          }
+          const sfxTd = isLeaf ? `<td class="alloc-sfx">${escapeHtml(r.sfx)}</td>` : `<td class="alloc-sfx"></td>`;
+          const esalesTd = isLeaf
+            ? `<td class="alloc-esales"><input type="number" min="0" step="1" data-alloc-id="${escapeHtml(r.id)}" value="${Number(allocationValues[r.id]) || 0}" /></td>`
+            : `<td class="alloc-esales alloc-total-val" data-alloc-total="${escapeHtml(r.id)}">${formatNumber(allocationDisplayValue(r))}</td>`;
+          html += `<tr class="${cls}">${segTd}${productTd}${sfxTd}${esalesTd}</tr>`;
+        });
+        i = end;
+        continue;
+      }
+      i += 1;
+    }
+
+    html += "</tbody></table>";
+    return html;
+  }
+
+  function renderAllocationPanel() {
+    const wrap = $("#allocation-plan-wrap");
+    if (!wrap) return;
+    wrap.innerHTML = buildAllocationTableHtml();
+    updateAllocationTotalsDom();
+  }
+
+  function loadEmployeeTargets() {
+    try {
+      const raw = localStorage.getItem(TARGETS_KEY);
+      if (!raw) return DEFAULT_EMPLOYEES.map((e) => ({ ...e, vacation: false, guestExpCenter: false }));
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) return DEFAULT_EMPLOYEES.map((e) => ({ ...e, vacation: false, guestExpCenter: false }));
+      return Array.from({ length: EMPLOYEE_COUNT }, (_, i) => {
+        const row = parsed[i] || {};
+        const savedName = String(row.name || "").trim();
+        const fallback = DEFAULT_EMPLOYEES[i]?.name || `Employee ${i + 1}`;
+        const name = !savedName || isPlaceholderName(savedName) ? fallback : savedName;
+        const metaNote = (() => {
+          const key = String(name).trim().toLowerCase().replace(/\s+/g, " ");
+          const meta = {
+            "samaher abdulmoghni al amri": "Vacation",
+            "haneen talal aqeel al madani": "Vacation",
+            "not assigned": "Vacation",
+          };
+          return meta[key] || "";
+        })();
+        const vacation = row.vacation != null
+          ? !!row.vacation
+          : /vacation/i.test(String(row.note || metaNote));
+        return {
+          id: i + 1,
+          name,
+          target: Math.max(0, Number(row.target) || 0),
+          vacation,
+          guestExpCenter: !!row.guestExpCenter,
+        };
+      });
+    } catch {
+      return DEFAULT_EMPLOYEES.map((e) => ({ ...e, vacation: false, guestExpCenter: false }));
+    }
+  }
+
+  function effectiveTarget(e) {
+    return e && e.vacation ? 0 : Math.max(0, Number(e.target) || 0);
+  }
+
+  function collectTargetsFromForm() {
+    return Array.from({ length: EMPLOYEE_COUNT }, (_, i) => {
+      const nameEl = document.querySelector(`[data-emp-name="${i}"]`);
+      const targetEl = document.querySelector(`[data-emp-target="${i}"]`);
+      const vacEl = document.querySelector(`[data-emp-vacation="${i}"]`);
+      const guestEl = document.querySelector(`[data-emp-guest="${i}"]`);
+      const onVacation = vacEl ? vacEl.checked : !!employeeTargets[i]?.vacation;
+      const prev = employeeTargets[i] || {};
+      const typedTarget = Math.max(0, Number(targetEl ? targetEl.value : prev.target) || 0);
+      return {
+        id: i + 1,
+        name: (nameEl ? nameEl.value : prev.name || DEFAULT_EMPLOYEES[i].name).trim()
+          || DEFAULT_EMPLOYEES[i]?.name
+          || `Employee ${i + 1}`,
+        vacation: onVacation,
+        guestExpCenter: guestEl ? guestEl.checked : !!prev.guestExpCenter,
+        target: onVacation
+          ? Math.max(0, Number(prev.target) || typedTarget)
+          : typedTarget,
+      };
+    });
+  }
+
+  function renderAdminKpis() {
+    const loaded = SLOT_DEFS.filter((d) => slots[d.id].buffer).length;
+    const hasSales = !!slots.sales.buffer;
+    const totalTarget = employeeTargets.reduce((s, e) => s + effectiveTarget(e), 0);
+    const filled = employeeTargets.filter((e) => effectiveTarget(e) > 0).length;
+    const named = employeeTargets.filter((e) => e.name && !isPlaceholderName(e.name) && e.name !== "Not assigned").length;
+    const allocGrand = ALLOCATION_ROWS.find((r) => r.kind === "grand-total");
+    const allocTotal = allocGrand ? allocationDisplayValue(allocGrand) : 0;
+    $("#admin-kpis").innerHTML = `
+      <div class="pbi-kpi"><div class="lab">Files loaded</div><div class="val">${loaded}<span style="font-size:.75rem;font-weight:600;color:var(--muted)"> / ${SLOT_DEFS.length}</span></div></div>
+      <div class="pbi-kpi"><div class="lab">Sales Raw</div><div class="val">${hasSales ? "Ready" : "Missing"}</div></div>
+      <div class="pbi-kpi"><div class="lab">Employees</div><div class="val">${EMPLOYEE_COUNT}</div></div>
+      <div class="pbi-kpi"><div class="lab">Named</div><div class="val">${named}</div></div>
+      <div class="pbi-kpi"><div class="lab">Targets set</div><div class="val">${filled}</div></div>
+      <div class="pbi-kpi"><div class="lab">Total target</div><div class="val">${formatNumber(totalTarget)}</div></div>
+      <div class="pbi-kpi" data-alloc-kpi><div class="lab">Allocation E-Sales</div><div class="val">${formatNumber(allocTotal)}</div></div>
+    `;
+  }
+
+  function renderTargetsPanel() {
+    const settledEl = $("#accessories-settled");
+    if (settledEl && document.activeElement !== settledEl) {
+      settledEl.value = String(loadAccessoriesSettled() || "");
+    }
+    const workingDaysEl = $("#working-days");
+    if (workingDaysEl && document.activeElement !== workingDaysEl) {
+      workingDaysEl.value = String(loadWorkingDays() || 22);
+    }
+    const q = targetSearch.trim().toLowerCase();
+    const totalTarget = employeeTargets.reduce((s, e) => s + effectiveTarget(e), 0);
+    const filled = employeeTargets.filter((e) => effectiveTarget(e) > 0).length;
+    const named = employeeTargets.filter((e) => e.name && !isPlaceholderName(e.name) && e.name !== "Not assigned").length;
+    $("#target-summary").innerHTML = `
+      <div class="admin-side-stat"><span>Employees</span><b>${EMPLOYEE_COUNT}</b></div>
+      <div class="admin-side-stat"><span>Named</span><b>${named}</b></div>
+      <div class="admin-side-stat"><span>Targets set</span><b>${filled}</b></div>
+      <div class="admin-side-stat"><span>Total target</span><b>${formatNumber(totalTarget)}</b></div>
+    `;
+    $("#target-grid").innerHTML = employeeTargets.map((e, i) => {
+      const hidden = q && !String(e.name).toLowerCase().includes(q) ? ' style="display:none"' : "";
+      const onVac = !!e.vacation;
+      const onGuest = !!e.guestExpCenter;
+      return `<div class="target-row${onVac ? " is-vacation" : ""}${onGuest ? " is-guest" : ""}"${hidden}>
+        <div class="idx">${e.id}</div>
+        <input data-emp-name="${i}" type="text" value="${escapeHtml(e.name || DEFAULT_EMPLOYEES[i].name)}" placeholder="Employee name" autocomplete="off" />
+        <div class="target-row-controls">
+          <label class="target-vacation" title="Target counts as 0 · shows VACATION on report">
+            <input data-emp-vacation="${i}" type="checkbox"${onVac ? " checked" : ""} />
+            <span>Vacation</span>
+          </label>
+          <label class="target-guest" title="Counts toward Summary · Guest Experience Automall">
+            <input data-emp-guest="${i}" type="checkbox"${onGuest ? " checked" : ""} />
+            <span>Guest Exp</span>
+          </label>
+          <input data-emp-target="${i}" type="number" min="0" step="1" value="${onVac ? 0 : (e.target || 0)}" title="Monthly target"${onVac ? " disabled" : ""} />
+        </div>
+      </div>`;
+    }).join("");
+    $("#target-foot").textContent = `${EMPLOYEE_COUNT} employees · Guest Exp → Summary Guest Experience · then Push to live`;
+    renderAdminKpis();
+  }
+
+  function renderSlots() {
+    $("#slots").innerHTML = SLOT_DEFS.map((d) => {
+      const s = slots[d.id];
+      const loaded = s.buffer ? " loaded" : "";
+      const required = d.id === "sales" ? ' <span class="pill slot-required">Required</span>' : "";
+      const meta = s.buffer
+        ? `<span class="meta"><b>${escapeHtml(s.name)}</b><br>${formatBytes(s.size)}</span>`
+        : `<span class="meta">Drop or click · .xlsx / .xls / .csv</span>`;
+      return `<label class="slot${loaded}">
+        <input type="file" accept="${ACCEPT}" data-slot="${d.id}" />
+        <div class="n">${d.n}</div>
+        <h3>${d.title}${required}</h3>
+        <p class="ar">${d.ar} · ${d.blurb}</p>
+        ${meta}
+      </label>`;
+    }).join("");
+
+    const any = SLOT_DEFS.some((d) => slots[d.id].buffer);
+    $("#clear-files-btn").disabled = !any;
+    const hasSales = !!slots.sales.buffer;
+    const hasCancelled = !!slots.cancelled.buffer;
+    let foot = "Optional: Back Order / RTL / Central for Stock & BO · Cancelled BOs (Col I = VIN).";
+    if (hasSales && hasCancelled) foot = "Sales Raw + Cancelled BOs ready · Push to live.";
+    else if (hasSales) foot = "Sales Raw ready · Push to live for Sales Report (Previous BO optional).";
+    else if (hasCancelled) foot = "Add Sales Raw Data to generate Sales Report.";
+    else foot = "Upload Sales Raw for Sales Report · other files optional.";
+    $("#files-foot").textContent = foot;
+    if (any) setStatus(hasSales ? "Ready to push" : "Files loaded · add Sales Raw for Sales Report", "ok");
+    renderAdminKpis();
+  }
+
+  function showAdminPanel(which) {
+    const uploads = $("#panel-uploads");
+    const targets = $("#panel-targets");
+    const allocation = $("#panel-allocation");
+    uploads.hidden = which !== "uploads";
+    targets.hidden = which !== "targets";
+    if (allocation) allocation.hidden = which !== "allocation";
+    document.querySelectorAll("[data-admin-panel]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.adminPanel === which);
+    });
+    if (which === "allocation") renderAllocationPanel();
+  }
+
+  async function onFileChosen(slotId, file) {
+    if (!file) return;
+    if (detectFileType(file) === "unknown") {
+      showError(`Unsupported file “${file.name}”. Use .xlsx, .xls, or .csv.`);
+      return;
+    }
+    showError("");
+    $("#load-banner").classList.add("show");
+    $("#load-banner").textContent = `Reading ${file.name}…`;
+    setStatus("Reading…", "busy");
+    try {
+      const buffer = await file.arrayBuffer();
+      slots[slotId] = { name: file.name, buffer, size: buffer.byteLength };
+      renderSlots();
+      setStatus("File ready — click Push to live", "busy");
+    } catch (err) {
+      showError(err.message || String(err));
+    } finally {
+      $("#load-banner").classList.remove("show");
+    }
+  }
+
+  async function hydrateFromStore() {
+    try {
+      await Store.syncFromServer();
+      employeeTargets = loadEmployeeTargets();
+      allocationValues = loadAllocationValues();
+      renderTargetsPanel();
+      renderAllocationPanel();
+    } catch {
+      /* use local cache */
+    }
+    try {
+      const payload = await Store.loadWorkbookFiles();
+      if (!payload || !payload.files) return;
+      Object.keys(payload.files).forEach((id) => {
+        const f = payload.files[id];
+        if (!f || !f.buffer) return;
+        slots[id] = { name: f.name, buffer: f.buffer, size: f.size || f.buffer.byteLength };
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function pushToLive() {
+    showError("");
+    setStatus("Pushing to all devices…", "busy");
+    try {
+      employeeTargets = collectTargetsFromForm();
+      localStorage.setItem(TARGETS_KEY, JSON.stringify(employeeTargets));
+      const targetStamp = {
+        at: Date.now(),
+        total: employeeTargets.reduce((s, e) => s + effectiveTarget(e), 0),
+      };
+      localStorage.setItem(TARGETS_PUSH_KEY, JSON.stringify(targetStamp));
+
+      const settledAmount = Math.max(0, Number($("#accessories-settled").value) || 0);
+      localStorage.setItem(ACCESSORIES_SETTLED_KEY, JSON.stringify({ amount: settledAmount, at: targetStamp.at }));
+      localStorage.setItem(ACCESSORIES_SETTLED_PUSH_KEY, JSON.stringify({ amount: settledAmount, at: targetStamp.at }));
+
+      const workingDays = Math.max(1, Number($("#working-days").value) || 22);
+      localStorage.setItem(WORKING_DAYS_KEY, JSON.stringify({ days: workingDays, at: targetStamp.at }));
+      localStorage.setItem(WORKING_DAYS_PUSH_KEY, JSON.stringify({ days: workingDays, at: targetStamp.at }));
+
+      allocationValues = collectAllocationFromForm();
+      localStorage.setItem(ALLOCATION_PLAN_KEY, JSON.stringify({ values: allocationValues, at: targetStamp.at }));
+      localStorage.setItem(ALLOCATION_PLAN_PUSH_KEY, JSON.stringify({ at: targetStamp.at }));
+
+      const filesBySlot = {};
+      SLOT_DEFS.forEach((d) => {
+        const s = slots[d.id];
+        if (s.buffer) filesBySlot[d.id] = { name: s.name, buffer: s.buffer };
+      });
+
+      let serverAt = Date.now();
+      let server = null;
+      try {
+        server = await Store.pushToServer({
+          targets: employeeTargets,
+          accessoriesSettled: settledAmount,
+          workingDays,
+          allocationValues,
+          filesBySlot,
+        });
+        serverAt = Number(server.at) || serverAt;
+      } catch (err) {
+        showError(`Server sync failed: ${err.message || err}. Saved on this browser only.`);
+      }
+
+      const dataStamp = await Store.saveWorkbookFiles(filesBySlot, { at: serverAt });
+
+      Store.broadcast({
+        type: "admin-pushed",
+        at: dataStamp.at,
+        hasSales: dataStamp.hasSales,
+        hasCancelled: dataStamp.hasCancelled,
+        targetsAt: targetStamp.at,
+        accessoriesSettled: settledAmount,
+        accessoriesSettledAt: targetStamp.at,
+        workingDays,
+        workingDaysAt: targetStamp.at,
+        allocationAt: targetStamp.at,
+      });
+
+      renderTargetsPanel();
+      renderAllocationPanel();
+      const slotCount = Object.keys(filesBySlot).length;
+      if (!slotCount) {
+        setStatus("Pushed settings only — upload at least one Excel file, then Push again.", "err");
+        return;
+      }
+      const srOk = dataStamp.hasSales;
+      const rtlNote = server && server.rtlDaily
+        ? ` · RTL archive ${server.rtlDaily.id || server.rtlDaily.date} (${server.rtlDaily.count} VINs${server.rtlDaily.excelSaved ? " +xlsx" : ""})`
+        : "";
+      const serverNote = server
+        ? ""
+        : " · server was offline (saved in this browser only)";
+      setStatus(
+        srOk
+          ? `Pushed ${slotCount} file(s) to live — open Live Dashboard and it will load${rtlNote}${serverNote}`
+          : `Pushed ${slotCount} file(s) to live — add Sales Raw for Sales Report${rtlNote}${serverNote}`,
+        server ? "ok" : "busy"
+      );
+      // Open / focus the live dashboard so Push visibly loads the panels
+      try {
+        const live = window.open("index.html", "alj-report-sheet-live");
+        if (live) live.focus();
+      } catch { /* popup blocked — user can open Live Dashboard manually */ }
+    } catch (err) {
+      showError(err.message || String(err));
+    }
+  }
+
+  async function clearFiles() {
+    SLOT_DEFS.forEach((d) => { slots[d.id] = { name: "", buffer: null, size: 0 }; });
+    try { await Store.clearWorkbookFiles(); } catch { /* ignore */ }
+    try { await Store.clearOnServer(); } catch { /* ignore */ }
+    Store.broadcast({ type: "admin-cleared", at: Date.now() });
+    renderSlots();
+    setStatus("Files cleared on server", "ok");
+  }
+
+  document.querySelectorAll("[data-admin-panel]").forEach((btn) => {
+    btn.addEventListener("click", () => showAdminPanel(btn.dataset.adminPanel));
+  });
+  $("#target-search").addEventListener("input", (e) => {
+    targetSearch = e.target.value;
+    renderTargetsPanel();
+  });
+  $("#bulk-apply-btn").addEventListener("click", () => {
+    const n = Math.max(0, Number($("#bulk-target").value) || 0);
+    document.querySelectorAll("[data-emp-target]").forEach((el) => {
+      const i = el.getAttribute("data-emp-target");
+      const vacEl = document.querySelector(`[data-emp-vacation="${i}"]`);
+      if (vacEl && vacEl.checked) return;
+      el.value = String(n);
+      el.disabled = false;
+    });
+    employeeTargets = collectTargetsFromForm();
+    renderAdminKpis();
+    setStatus("Bulk value applied — click Push to live", "busy");
+  });
+  $("#reset-targets-btn").addEventListener("click", () => {
+    if (!confirm("Reset all employee names to the official list and keep current target numbers?")) return;
+    document.querySelectorAll("[data-emp-name]").forEach((el, i) => {
+      el.value = DEFAULT_EMPLOYEES[i]?.name || `Employee ${i + 1}`;
+    });
+    employeeTargets = collectTargetsFromForm();
+    renderTargetsPanel();
+    setStatus("Names reset — click Push to live", "busy");
+  });
+  $("#push-btn").addEventListener("click", pushToLive);
+  $("#push-btn-2").addEventListener("click", pushToLive);
+  $("#push-btn-3").addEventListener("click", pushToLive);
+  $("#clear-files-btn").addEventListener("click", clearFiles);
+  $("#allocation-plan-wrap").addEventListener("input", (e) => {
+    const input = e.target.closest("[data-alloc-id]");
+    if (!input) return;
+    allocationValues = collectAllocationFromForm();
+    updateAllocationTotalsDom();
+    setStatus("Allocation updated — click Push to live", "busy");
+  });
+  $("#target-grid").addEventListener("change", (e) => {
+    const vac = e.target.closest("[data-emp-vacation]");
+    const guest = e.target.closest("[data-emp-guest]");
+    if (vac) {
+      const i = vac.getAttribute("data-emp-vacation");
+      const targetEl = document.querySelector(`[data-emp-target="${i}"]`);
+      const row = vac.closest(".target-row");
+      if (vac.checked) {
+        if (targetEl) {
+          targetEl.value = "0";
+          targetEl.disabled = true;
+        }
+        if (row) row.classList.add("is-vacation");
+      } else if (targetEl) {
+        targetEl.disabled = false;
+        const prev = employeeTargets[Number(i)];
+        if (prev && Number(prev.target) > 0) targetEl.value = String(prev.target);
+        if (row) row.classList.remove("is-vacation");
+      }
+    }
+    if (guest) {
+      const row = guest.closest(".target-row");
+      if (row) row.classList.toggle("is-guest", !!guest.checked);
+    }
+    employeeTargets = collectTargetsFromForm();
+    renderAdminKpis();
+    setStatus("Changes pending — click Push to live", "busy");
+  });
+  $("#slots").addEventListener("change", (e) => {
+    const input = e.target.closest("input[type=file]");
+    if (!input) return;
+    onFileChosen(input.dataset.slot, input.files[0]);
+  });
+
+  showAdminPanel("uploads");
+  renderTargetsPanel();
+  renderAllocationPanel();
+  hydrateFromStore().then(renderSlots);
+})();
+</script>
+</body>
+</html>

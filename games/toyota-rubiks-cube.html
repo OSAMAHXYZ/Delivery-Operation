@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOYOTA · 3D Rubik's Cube Challenge</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --toyota-red: #EB0A1E;
+      --toyota-red-dark: #c40819;
+      --ink: #111;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --bg: #f4f4f5;
+      --surface: #fff;
+      --shadow: 0 12px 32px rgba(0,0,0,.08);
+      --radius: 16px;
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: var(--font); color: var(--ink); background: var(--bg); }
+    button { font: inherit; cursor: pointer; }
+    .hidden { display: none !important; }
+    .app {
+      min-height: 100%; display: grid;
+      grid-template-rows: auto 1fr;
+      max-width: 1400px; margin: 0 auto;
+    }
+    .top {
+      display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center;
+      padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .brand { display: flex; gap: 10px; align-items: center; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 11px; background: var(--toyota-red); color: #fff;
+      display: grid; place-items: center; font-weight: 900;
+    }
+    .brand h1 { margin: 0; font-size: 1rem; }
+    .brand p { margin: 0; font-size: .72rem; color: var(--muted); font-weight: 600; }
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; align-items: center; }
+    .pill {
+      background: #fafafa; border: 1px solid var(--line); border-radius: 999px;
+      padding: 6px 11px; font-size: .78rem; font-weight: 700;
+    }
+    .pill.dark { background: #111; color: #fff; border-color: #111; }
+    .pill.red { background: #fff5f5; color: var(--toyota-red); border-color: #fecaca; font-variant-numeric: tabular-nums; }
+    .btn {
+      border: 1px solid var(--line); background: #fff; border-radius: 11px;
+      padding: 8px 12px; font-weight: 700; transition: .15s;
+    }
+    .btn:hover { background: #fafafa; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--toyota-red); border-color: var(--toyota-red); color: #fff; }
+    .btn-primary:hover { background: var(--toyota-red-dark); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn.move { min-width: 48px; font-family: ui-monospace, monospace; }
+    .btn.move.active-hint { outline: 2px solid var(--toyota-red); background: #fff5f5; }
+
+    .main {
+      display: grid; grid-template-columns: 1fr 300px; gap: 14px; padding: 14px 16px 24px;
+    }
+    @media (max-width: 980px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    .stage-banner {
+      grid-column: 1 / -1; background: #111; color: #fff; border-radius: 16px;
+      padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .stage-banner .eyebrow { font-size: .7rem; letter-spacing: .12em; color: #fda4af; font-weight: 800; }
+    .stage-banner h2 { margin: 2px 0 0; font-size: 1.15rem; }
+    .stage-banner .obj { margin-left: auto; font-size: .86rem; color: #d1d5db; max-width: 42ch; }
+
+    .viewport-wrap {
+      position: relative; background: linear-gradient(160deg, #1a1a1a, #2d2d2d 50%, #3a1014);
+      border-radius: 20px; min-height: 520px; overflow: hidden; box-shadow: var(--shadow);
+      border: 1px solid #333;
+    }
+    #cube-canvas { width: 100%; height: 100%; display: block; min-height: 520px; touch-action: none; }
+    .vp-hint {
+      position: absolute; left: 12px; bottom: 12px; color: rgba(255,255,255,.7);
+      font-size: .75rem; background: rgba(0,0,0,.35); padding: 6px 10px; border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .side { display: flex; flex-direction: column; gap: 12px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+      padding: 14px; box-shadow: var(--shadow);
+    }
+    .card h3 { margin: 0 0 10px; font-size: .9rem; }
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .stat {
+      background: #fafafa; border: 1px solid var(--line); border-radius: 12px; padding: 10px;
+    }
+    .stat .k { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .stat .v { font-size: 1.15rem; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    .target-box {
+      display: flex; gap: 12px; align-items: center;
+    }
+    #target-canvas { width: 120px; height: 120px; border-radius: 12px; background: #111; }
+
+    .face-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    }
+    .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+    .stages {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    }
+    .stage-btn {
+      text-align: left; padding: 10px; border-radius: 12px; border: 1px solid var(--line);
+      background: #fff; font-weight: 700; font-size: .8rem;
+    }
+    .stage-btn small { display: block; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    .stage-btn.current { border-color: var(--toyota-red); background: #fff5f5; }
+    .stage-btn.locked { opacity: .45; }
+
+    .toast {
+      position: fixed; left: 50%; top: 18%; transform: translateX(-50%);
+      background: #111; color: #fff; padding: 10px 16px; border-radius: 999px;
+      font-weight: 800; z-index: 50; animation: pop .9s ease forwards; pointer-events: none;
+    }
+    @keyframes pop {
+      0% { opacity: 0; transform: translate(-50%, 8px); }
+      20% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center;
+      z-index: 60; padding: 16px;
+    }
+    .modal-card {
+      width: min(440px, 100%); background: #fff; border-radius: 20px; padding: 24px;
+      text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.25);
+    }
+    .modal-card h2 { margin: 0 0 8px; }
+    .modal-card .score-xl { font-size: 2rem; font-weight: 900; color: var(--toyota-red); margin: 8px 0; }
+    .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+    .leader { text-align: left; list-style: none; padding: 0; margin: 10px 0 0; font-size: .88rem; }
+    .leader li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    input[type="text"] {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">T</div>
+        <div>
+          <h1>TOYOTA · RUBIK CUBE</h1>
+          <p>3D Break Challenge mini-game</p>
+        </div>
+      </div>
+      <div class="pills">
+        <div class="pill dark">★ <span id="score">1000</span></div>
+        <div class="pill">MOVES <span id="moves">0</span></div>
+        <div class="pill">STAGE <span id="stage-time">00:00</span></div>
+        <div class="pill red">GLOBAL <span id="global-time">10:00</span></div>
+        <button type="button" class="btn" id="sound-btn">🔇 Sound</button>
+        <a class="btn" id="back-link" href="toyota-break-challenge.html">← Game Center</a>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="stage-banner">
+        <div>
+          <div class="eyebrow" id="stage-eyebrow">STAGE 1</div>
+          <h2 id="stage-title">BEGINNER</h2>
+        </div>
+        <div class="obj" id="stage-objective">Match the 3-color target pattern on the mini cube.</div>
+      </div>
+
+      <div class="viewport-wrap">
+        <canvas id="cube-canvas"></canvas>
+        <div class="vp-hint">Drag empty space = orbit · Drag a face = turn · Scroll = zoom</div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <h3>Stats</h3>
+          <div class="stats-grid">
+            <div class="stat"><div class="k">Score</div><div class="v" id="score2">1000</div></div>
+            <div class="stat"><div class="k">Moves</div><div class="v" id="moves2">0</div></div>
+            <div class="stat"><div class="k">Hints</div><div class="v" id="hints">0</div></div>
+            <div class="stat"><div class="k">Size</div><div class="v" id="size-label">2×2</div></div>
+          </div>
+        </div>
+
+        <div class="card" id="target-card">
+          <h3>Target</h3>
+          <div class="target-box">
+            <canvas id="target-canvas" width="120" height="120"></canvas>
+            <div style="font-size:.8rem;color:var(--muted);line-height:1.4" id="target-text">
+              Top WHITE · Front RED · Right BLUE
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Face Controls</h3>
+          <div class="face-grid" id="face-controls"></div>
+          <div class="tools" style="margin-top:10px">
+            <button type="button" class="btn" id="btn-scramble">🔀 Scramble</button>
+            <button type="button" class="btn" id="btn-undo">↩ Undo</button>
+            <button type="button" class="btn" id="btn-redo">↪ Redo</button>
+            <button type="button" class="btn" id="btn-hint">💡 Hint</button>
+            <button type="button" class="btn" id="btn-reset">🔄 Reset</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Stages</h3>
+          <div class="stages" id="stage-list"></div>
+          <div class="tools" style="margin-top:10px">
+            <button type="button" class="btn btn-primary" id="btn-daily">🔥 Daily Challenge</button>
+            <button type="button" class="btn" id="btn-leader">🏆 Scores</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="solve-modal" class="modal hidden">
+    <div class="modal-card">
+      <div style="font-size:2rem">🎉</div>
+      <h2>CUBE SOLVED!</h2>
+      <div class="score-xl" id="solve-score">0</div>
+      <p id="solve-meta"></p>
+      <input type="text" id="nick-input" maxlength="16" placeholder="Nickname for leaderboard" />
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="btn-next">NEXT STAGE →</button>
+        <button type="button" class="btn" id="btn-save-score">Save Score</button>
+        <button type="button" class="btn" id="btn-close-solve">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="leader-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>🏆 TOP SCORES</h2>
+      <ul class="leader" id="leader-list"></ul>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btn-close-leader">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="timesup-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>TIME'S UP</h2>
+      <p id="timesup-meta"></p>
+      <div class="modal-actions">
+        <a class="btn btn-primary" href="toyota-break-challenge.html">Back to Game Center</a>
+        <button type="button" class="btn" id="btn-timesup-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+    if (typeof THREE === "undefined") {
+      document.body.innerHTML = "<p style='padding:24px;font-family:sans-serif'>Three.js failed to load. Check your network connection.</p>";
+      return;
+    }
+
+    const COLORS = {
+      U: 0xffffff, // white
+      D: 0xffd500, // yellow
+      F: 0xc41e3a, // red
+      B: 0xff5800, // orange
+      R: 0x0051ba, // blue
+      L: 0x009e60, // green
+      X: 0x1a1a1a, // plastic
+    };
+    const COLOR_HEX = {
+      U: "#ffffff", D: "#ffd500", F: "#c41e3a", B: "#ff5800", R: "#0051ba", L: "#009e60", X: "#222",
+    };
+
+    const STAGES = [
+      { id: 1, name: "BEGINNER", size: 2, colors: ["U", "F", "R"], scramble: [2, 4], hints: true, hintCost: 50, targetPattern: true, desc: "Match the 3-color target pattern." },
+      { id: 2, name: "EASY", size: 2, colors: ["U", "F", "R"], scramble: [3, 6], hints: true, hintCost: 75, targetPattern: false, desc: "Solve the 2×2 cube (3 colors)." },
+      { id: 3, name: "INTERMEDIATE", size: 3, colors: ["U", "D", "F", "R"], scramble: [8, 15], hints: true, hintCost: 100, targetPattern: false, desc: "Solve the 3×3 cube (4 colors)." },
+      { id: 4, name: "ADVANCED", size: 3, colors: ["U", "D", "F", "B", "R", "L"], scramble: [15, 25], hints: true, hintCost: 150, targetPattern: false, desc: "Full 6-color 3×3 scramble." },
+      { id: 5, name: "EXPERT", size: 3, colors: ["U", "D", "F", "B", "R", "L"], scramble: [25, 40], hints: false, hintCost: 0, targetPattern: false, desc: "Deep scramble · no auto hints." },
+    ];
+
+    const MOVES = ["U", "U'", "D", "D'", "L", "L'", "R", "R'", "F", "F'", "B", "B'"];
+    const MOVE_DEF = {
+      "U":  { axis: "y", layer: 1,  dir: -1 },
+      "U'": { axis: "y", layer: 1,  dir: 1 },
+      "D":  { axis: "y", layer: -1, dir: 1 },
+      "D'": { axis: "y", layer: -1, dir: -1 },
+      "R":  { axis: "x", layer: 1,  dir: -1 },
+      "R'": { axis: "x", layer: 1,  dir: 1 },
+      "L":  { axis: "x", layer: -1, dir: 1 },
+      "L'": { axis: "x", layer: -1, dir: -1 },
+      "F":  { axis: "z", layer: 1,  dir: -1 },
+      "F'": { axis: "z", layer: 1,  dir: 1 },
+      "B":  { axis: "z", layer: -1, dir: 1 },
+      "B'": { axis: "z", layer: -1, dir: -1 },
+    };
+
+    const LS = {
+      progress: "toyota_rubik_progress_v1",
+      scores: "toyota_rubik_scores_v1",
+      breakScore: "toyota_break_rubik_score",
+    };
+
+    const state = {
+      stage: 1,
+      unlocked: 1,
+      score: 1000,
+      moves: 0,
+      hints: 0,
+      hintStep: 0,
+      animating: false,
+      sound: false,
+      history: [],
+      redo: [],
+      scrambleSeq: [],
+      stageSec: 0,
+      globalSec: 600,
+      timers: { stage: null, global: null },
+      solved: false,
+      daily: false,
+      size: 2,
+      colorSet: ["U", "F", "R"],
+      targetPattern: true,
+      cubies: [],
+      pivot: null,
+    };
+
+    const $ = (s) => document.querySelector(s);
+
+    /* ── utils ── */
+    function toast(msg) {
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+    function beep(ok) {
+      if (!state.sound) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = ok ? 760 : 200; g.gain.value = 0.03;
+        o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+        o.stop(ctx.currentTime + 0.13);
+        setTimeout(() => ctx.close(), 200);
+      } catch (_) {}
+    }
+    function fmt(sec) {
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+    function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+    function shuffle(a) {
+      const x = a.slice();
+      for (let i = x.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [x[i], x[j]] = [x[j], x[i]];
+      }
+      return x;
+    }
+    function seededRandom(seed) {
+      let s = seed >>> 0;
+      return () => {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+    function dateSeed() {
+      const d = new Date();
+      return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    }
+    function loadProgress() {
+      try {
+        const p = JSON.parse(localStorage.getItem(LS.progress) || "{}");
+        if (p.unlocked) state.unlocked = Math.max(1, Math.min(5, p.unlocked));
+        if (p.stage) state.stage = Math.max(1, Math.min(5, p.stage));
+      } catch (_) {}
+    }
+    function saveProgress() {
+      localStorage.setItem(LS.progress, JSON.stringify({ unlocked: state.unlocked, stage: state.stage }));
+    }
+    function loadScores() {
+      try { return JSON.parse(localStorage.getItem(LS.scores) || "[]"); } catch (_) { return []; }
+    }
+    function saveScore(entry) {
+      const list = loadScores();
+      list.push(entry);
+      list.sort((a, b) => b.score - a.score);
+      localStorage.setItem(LS.scores, JSON.stringify(list.slice(0, 10)));
+    }
+
+    function updateHUD() {
+      $("#score").textContent = state.score.toLocaleString();
+      $("#score2").textContent = state.score.toLocaleString();
+      $("#moves").textContent = state.moves;
+      $("#moves2").textContent = state.moves;
+      $("#hints").textContent = state.hints;
+      $("#stage-time").textContent = fmt(state.stageSec);
+      $("#global-time").textContent = fmt(state.globalSec);
+      $("#size-label").textContent = `${state.size}×${state.size}`;
+    }
+
+    /* ── Three.js scene ── */
+    const canvas = $("#cube-canvas");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1f1f1f);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(4.2, 3.4, 5.2);
+    const camTarget = new THREE.Vector3(0, 0, 0);
+
+    const amb = new THREE.AmbientLight(0xffffff, 0.65);
+    scene.add(amb);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+    dir.position.set(5, 8, 4);
+    dir.castShadow = true;
+    scene.add(dir);
+    const fill = new THREE.DirectionalLight(0xffccd0, 0.25);
+    fill.position.set(-4, 2, -3);
+    scene.add(fill);
+
+    const cubeGroup = new THREE.Group();
+    scene.add(cubeGroup);
+    state.pivot = new THREE.Group();
+    scene.add(state.pivot);
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = Math.max(320, rect.width);
+      const h = Math.max(420, rect.height);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    /* ── Cube build ── */
+    function faceMaterials(faces, colorSet) {
+      // order: +x, -x, +y, -y, +z, -z  => R L U D F B
+      const map = {
+        R: faces.R, L: faces.L, U: faces.U, D: faces.D, F: faces.F, B: faces.B,
+      };
+      const order = ["R", "L", "U", "D", "F", "B"];
+      return order.map((face) => {
+        let key = map[face];
+        if (key && colorSet && !colorSet.includes(key)) key = "X";
+        const c = COLORS[key] != null ? COLORS[key] : COLORS.X;
+        return new THREE.MeshStandardMaterial({
+          color: c,
+          roughness: 0.35,
+          metalness: 0.08,
+        });
+      });
+    }
+
+    function clearCube() {
+      while (cubeGroup.children.length) {
+        const c = cubeGroup.children.pop();
+        c.geometry?.dispose?.();
+        if (Array.isArray(c.material)) c.material.forEach((m) => m.dispose());
+        else c.material?.dispose?.();
+      }
+      state.cubies = [];
+    }
+
+    function coordsForSize(n) {
+      if (n === 2) return [-0.5, 0.5];
+      return [-1, 0, 1];
+    }
+
+    function layerIndexForSize(n, axisVal) {
+      // normalize to -1,0,1 style for move defs
+      if (n === 2) return axisVal < 0 ? -1 : 1;
+      return Math.round(axisVal);
+    }
+
+    function buildCube(n, colorSet) {
+      clearCube();
+      state.size = n;
+      state.colorSet = colorSet.slice();
+      const coords = coordsForSize(n);
+      const gap = 0.04;
+      const size = n === 2 ? 0.92 : 0.9;
+      coords.forEach((x) => {
+        coords.forEach((y) => {
+          coords.forEach((z) => {
+            const faces = {
+              R: x === coords[coords.length - 1] ? "R" : "X",
+              L: x === coords[0] ? "L" : "X",
+              U: y === coords[coords.length - 1] ? "U" : "X",
+              D: y === coords[0] ? "D" : "X",
+              F: z === coords[coords.length - 1] ? "F" : "X",
+              B: z === coords[0] ? "B" : "X",
+            };
+            // For reduced color sets, unused face letters become plastic
+            ["R", "L", "U", "D", "F", "B"].forEach((f) => {
+              if (faces[f] !== "X" && !colorSet.includes(faces[f])) faces[f] = "X";
+            });
+            // For 3-color stages map missing opposites: use only U,F,R stickers on those axes
+            if (colorSet.length === 3) {
+              if (faces.D !== "X") faces.D = "X";
+              if (faces.B !== "X") faces.B = "X";
+              if (faces.L !== "X") faces.L = "X";
+            } else if (colorSet.length === 4) {
+              // U D F R — hide B L stickers
+              if (faces.B !== "X") faces.B = "X";
+              if (faces.L !== "X") faces.L = "X";
+            }
+            const geo = new THREE.BoxGeometry(size - gap, size - gap, size - gap);
+            const mesh = new THREE.Mesh(geo, faceMaterials(faces, null));
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { faces, home: { x, y, z } };
+            cubeGroup.add(mesh);
+            state.cubies.push(mesh);
+          });
+        });
+      });
+      drawTarget();
+    }
+
+    function roundPos(v) {
+      return Math.round(v * 2) / 2;
+    }
+
+    function snapCubie(mesh) {
+      mesh.position.set(roundPos(mesh.position.x), roundPos(mesh.position.y), roundPos(mesh.position.z));
+      // snap rotation to 90 deg
+      mesh.rotation.x = Math.round(mesh.rotation.x / (Math.PI / 2)) * (Math.PI / 2);
+      mesh.rotation.y = Math.round(mesh.rotation.y / (Math.PI / 2)) * (Math.PI / 2);
+      mesh.rotation.z = Math.round(mesh.rotation.z / (Math.PI / 2)) * (Math.PI / 2);
+    }
+
+    function getLayerCubies(axis, layer) {
+      const n = state.size;
+      return state.cubies.filter((c) => {
+        const v = axis === "x" ? c.position.x : axis === "y" ? c.position.y : c.position.z;
+        const idx = layerIndexForSize(n, v);
+        // MOVE_DEF uses -1/1 for outer; for 3x3 middle layer unused in standard face moves
+        if (n === 3 && layer === 0) return Math.round(v) === 0;
+        return idx === layer || (n === 2 && ((layer > 0 && v > 0) || (layer < 0 && v < 0)));
+      });
+    }
+
+    function mathRotate(def, notation, record, fromUndo) {
+      return new Promise((resolve) => {
+        if (state.animating) { resolve(false); return; }
+        state.animating = true;
+        clearHintHighlight();
+        const cubies = getLayerCubies(def.axis, def.layer);
+        if (!cubies.length) { state.animating = false; resolve(false); return; }
+        const startPos = cubies.map((c) => c.position.clone());
+        const startQuat = cubies.map((c) => c.quaternion.clone());
+        const axisVec = new THREE.Vector3(def.axis === "x" ? 1 : 0, def.axis === "y" ? 1 : 0, def.axis === "z" ? 1 : 0);
+        const targetAngle = (Math.PI / 2) * def.dir;
+        const start = performance.now();
+        const dur = 170;
+
+        function frame(now) {
+          const t = Math.min(1, (now - start) / dur);
+          const e = t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+          const ang = targetAngle * e;
+          const q = new THREE.Quaternion().setFromAxisAngle(axisVec, ang);
+          cubies.forEach((c, i) => {
+            c.position.copy(startPos[i]).applyQuaternion(q);
+            c.quaternion.copy(q).multiply(startQuat[i]);
+          });
+          if (t < 1) { requestAnimationFrame(frame); return; }
+
+          const qf = new THREE.Quaternion().setFromAxisAngle(axisVec, targetAngle);
+          cubies.forEach((c, i) => {
+            c.position.copy(startPos[i]).applyQuaternion(qf);
+            c.quaternion.copy(qf).multiply(startQuat[i]);
+            snapCubie(c);
+          });
+
+          if (record && !fromUndo) {
+            state.history.push(notation);
+            state.redo = [];
+            state.moves += 1;
+            state.hintStep = 0;
+            updateHUD();
+          }
+          state.animating = false;
+          beep(true);
+          checkSolved();
+          resolve(true);
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+
+    async function doMove(notation, opts = {}) {
+      if (state.animating || state.solved) return false;
+      const def = MOVE_DEF[notation];
+      if (!def) return false;
+      return mathRotate(def, notation, opts.record !== false, !!opts.fromUndo);
+    }
+
+    function inverseMove(m) {
+      return m.endsWith("'") ? m.slice(0, -1) : m + "'";
+    }
+
+    async function applySequence(seq, { record = false, delay = 0 } = {}) {
+      for (const m of seq) {
+        await doMove(m, { record });
+        if (delay) await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+
+    function generateScramble(minN, maxN, rng = Math.random) {
+      const n = minN + Math.floor(rng() * (maxN - minN + 1));
+      const faces = ["U", "D", "L", "R", "F", "B"];
+      const seq = [];
+      let lastFace = "";
+      for (let i = 0; i < n; i++) {
+        let face;
+        do { face = faces[Math.floor(rng() * faces.length)]; } while (face === lastFace);
+        lastFace = face;
+        const prime = rng() > 0.5 ? "'" : "";
+        seq.push(face + prime);
+      }
+      return seq;
+    }
+
+    /* ── Solved / target detection ── */
+    function faceColorAt(mesh, worldDir) {
+      // Sample which local face normal aligns with worldDir after rotation
+      const locals = [
+        { dir: new THREE.Vector3(1, 0, 0), face: "R", mat: 0 },
+        { dir: new THREE.Vector3(-1, 0, 0), face: "L", mat: 1 },
+        { dir: new THREE.Vector3(0, 1, 0), face: "U", mat: 2 },
+        { dir: new THREE.Vector3(0, -1, 0), face: "D", mat: 3 },
+        { dir: new THREE.Vector3(0, 0, 1), face: "F", mat: 4 },
+        { dir: new THREE.Vector3(0, 0, -1), face: "B", mat: 5 },
+      ];
+      let best = null, bestDot = -2;
+      locals.forEach((L) => {
+        const w = L.dir.clone().applyQuaternion(mesh.quaternion);
+        const d = w.dot(worldDir);
+        if (d > bestDot) { bestDot = d; best = L; }
+      });
+      if (!best || bestDot < 0.5) return null;
+      const mat = mesh.material[best.mat];
+      return mat.color.getHex();
+    }
+
+    function isFaceUniform(worldDir, expectedHex) {
+      const n = state.size;
+      const coords = coordsForSize(n);
+      // pick cubies on that face
+      const axis = Math.abs(worldDir.x) > .5 ? "x" : Math.abs(worldDir.y) > .5 ? "y" : "z";
+      const sign = worldDir[axis] > 0 ? 1 : -1;
+      const outer = sign > 0 ? coords[coords.length - 1] : coords[0];
+      const faceCubies = state.cubies.filter((c) => Math.abs(c.position[axis] - outer) < 0.1);
+      if (!faceCubies.length) return false;
+      const colors = faceCubies.map((c) => faceColorAt(c, worldDir));
+      if (colors.some((c) => c == null)) return false;
+      if (expectedHex != null) return colors.every((c) => c === expectedHex);
+      return colors.every((c) => c === colors[0] && c !== COLORS.X);
+    }
+
+    function isSolved() {
+      if (state.targetPattern) {
+        return (
+          isFaceUniform(new THREE.Vector3(0, 1, 0), COLORS.U) &&
+          isFaceUniform(new THREE.Vector3(0, 0, 1), COLORS.F) &&
+          isFaceUniform(new THREE.Vector3(1, 0, 0), COLORS.R)
+        );
+      }
+      const dirs = [
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(0, -1, 0),
+        new THREE.Vector3(0, 0, 1),
+        new THREE.Vector3(0, 0, -1),
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(-1, 0, 0),
+      ];
+      // Only check faces that have colored stickers in this stage
+      const needed = [];
+      if (state.colorSet.includes("U")) needed.push(dirs[0]);
+      if (state.colorSet.includes("D")) needed.push(dirs[1]);
+      if (state.colorSet.includes("F")) needed.push(dirs[2]);
+      if (state.colorSet.includes("B")) needed.push(dirs[3]);
+      if (state.colorSet.includes("R")) needed.push(dirs[4]);
+      if (state.colorSet.includes("L")) needed.push(dirs[5]);
+      return needed.every((d) => isFaceUniform(d, null));
+    }
+
+    function checkSolved() {
+      if (state.solved || state.animating) return;
+      if (!isSolved()) return;
+      state.solved = true;
+      stopStageTimer();
+      const timeBonus = Math.max(0, 400 - state.stageSec * 2);
+      const moveBonus = Math.max(0, 300 - state.moves * 4);
+      const hintPen = state.hints * (STAGES[state.stage - 1].hintCost || 100);
+      const finalScore = Math.max(0, 1000 + timeBonus + moveBonus - hintPen);
+      state.score = finalScore;
+      updateHUD();
+      localStorage.setItem(LS.breakScore, String(finalScore));
+      confetti();
+      $("#solve-score").textContent = finalScore.toLocaleString();
+      $("#solve-meta").textContent = `Time ${fmt(state.stageSec)} · Moves ${state.moves} · Hints ${state.hints} · Stage ${state.stage}`;
+      $("#solve-modal").classList.remove("hidden");
+      if (state.stage >= state.unlocked && state.stage < 5) {
+        state.unlocked = state.stage + 1;
+        saveProgress();
+        toast(`STAGE ${state.unlocked} UNLOCKED`);
+      }
+      beep(true);
+    }
+
+    function confetti() {
+      for (let i = 0; i < 36; i++) {
+        const p = document.createElement("div");
+        p.style.cssText = `position:fixed;top:-10px;left:${Math.random()*100}vw;width:8px;height:12px;background:${["#EB0A1E","#111","#fbbf24","#22c55e"][i%4]};z-index:80;animation:fall ${1+Math.random()}s linear forwards;pointer-events:none`;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 2000);
+      }
+    }
+    const style = document.createElement("style");
+    style.textContent = `@keyframes fall{to{transform:translateY(110vh) rotate(600deg);opacity:0}}`;
+    document.head.appendChild(style);
+
+    /* ── Target preview ── */
+    function drawTarget() {
+      const ctx = $("#target-canvas").getContext("2d");
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, 120, 120);
+      if (!state.targetPattern) {
+        ctx.fillStyle = "#fff";
+        ctx.font = "700 12px Segoe UI";
+        ctx.fillText("SOLVE", 40, 64);
+        $("#target-text").textContent = "Make every face a single solid color.";
+        $("#target-card").classList.remove("hidden");
+        return;
+      }
+      // isometric-ish facelets
+      function face(x, y, w, h, color, label) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = "#000";
+        ctx.strokeRect(x, y, w, h);
+      }
+      // U
+      face(40, 12, 18, 18, COLOR_HEX.U);
+      face(60, 12, 18, 18, COLOR_HEX.U);
+      face(40, 32, 18, 18, COLOR_HEX.U);
+      face(60, 32, 18, 18, COLOR_HEX.U);
+      // F
+      face(40, 54, 18, 18, COLOR_HEX.F);
+      face(60, 54, 18, 18, COLOR_HEX.F);
+      face(40, 74, 18, 18, COLOR_HEX.F);
+      face(60, 74, 18, 18, COLOR_HEX.F);
+      // R
+      face(82, 54, 18, 18, COLOR_HEX.R);
+      face(100, 54, 18, 18, COLOR_HEX.R);
+      face(82, 74, 18, 18, COLOR_HEX.R);
+      face(100, 74, 18, 18, COLOR_HEX.R);
+      $("#target-text").innerHTML = "Top <b>WHITE</b><br>Front <b>RED</b><br>Right <b>BLUE</b>";
+    }
+
+    /* ── Camera controls ── */
+    let draggingCam = false;
+    let draggingFace = false;
+    let lastX = 0, lastY = 0;
+    let spherical = { theta: Math.atan2(camera.position.x, camera.position.z), phi: Math.acos(camera.position.y / camera.position.length()), radius: camera.position.length() };
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let faceDrag = null;
+
+    function updateCamera() {
+      const { theta, phi, radius } = spherical;
+      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(camTarget);
+    }
+    updateCamera();
+
+    function setPointer(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      pointer.x = x * 2 - 1;
+      pointer.y = -(y * 2 - 1);
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      setPointer(e);
+      lastX = e.clientX; lastY = e.clientY;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(state.cubies, false);
+      if (hits.length && !state.animating) {
+        draggingFace = true;
+        faceDrag = { hit: hits[0], startX: e.clientX, startY: e.clientY, done: false };
+      } else {
+        draggingCam = true;
+      }
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (draggingCam) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX; lastY = e.clientY;
+        spherical.theta -= dx * 0.008;
+        spherical.phi = Math.min(Math.PI - 0.2, Math.max(0.2, spherical.phi - dy * 0.008));
+        updateCamera();
+      } else if (draggingFace && faceDrag && !faceDrag.done) {
+        const dx = e.clientX - faceDrag.startX;
+        const dy = e.clientY - faceDrag.startY;
+        if (Math.hypot(dx, dy) < 24) return;
+        faceDrag.done = true;
+        const move = inferMoveFromDrag(faceDrag.hit, dx, dy);
+        draggingFace = false;
+        if (move) doMove(move);
+      }
+    });
+    canvas.addEventListener("pointerup", () => { draggingCam = false; draggingFace = false; faceDrag = null; });
+    canvas.addEventListener("pointercancel", () => { draggingCam = false; draggingFace = false; faceDrag = null; });
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      spherical.radius = Math.min(10, Math.max(3.2, spherical.radius + e.deltaY * 0.01));
+      updateCamera();
+    }, { passive: false });
+
+    function inferMoveFromDrag(hit, dx, dy) {
+      const nrm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).round();
+      const absx = Math.abs(dx), absy = Math.abs(dy);
+      // Map screen drag to cube moves roughly by dominant normal
+      if (Math.abs(nrm.y) > 0.5) {
+        // U/D face — horizontal drag = U/D rotate around Y... actually turning U face
+        return dx > 0 ? (nrm.y > 0 ? "U" : "D'") : (nrm.y > 0 ? "U'" : "D");
+      }
+      if (Math.abs(nrm.z) > 0.5) {
+        if (absx > absy) return dx > 0 ? (nrm.z > 0 ? "F'" : "B") : (nrm.z > 0 ? "F" : "B'");
+        return dy > 0 ? (nrm.z > 0 ? "F" : "B'") : (nrm.z > 0 ? "F'" : "B");
+      }
+      if (Math.abs(nrm.x) > 0.5) {
+        if (absy >= absx) return dy > 0 ? (nrm.x > 0 ? "R" : "L'") : (nrm.x > 0 ? "R'" : "L");
+        return dx > 0 ? (nrm.x > 0 ? "R'" : "L") : (nrm.x > 0 ? "R" : "L'");
+      }
+      return absx > absy ? (dx > 0 ? "U" : "U'") : (dy > 0 ? "R" : "R'");
+    }
+
+    /* ── Hints ── */
+    let hintBtn = null;
+    function clearHintHighlight() {
+      $$(".btn.move").forEach((b) => b.classList.remove("active-hint"));
+      hintBtn = null;
+    }
+    function $$(s) { return [...document.querySelectorAll(s)]; }
+
+    function nextHintMove() {
+      // Recommend inverse of last scramble move not yet undone — or random legal toward solve using inverse scramble
+      if (!state.scrambleSeq.length) return "U";
+      // Simple teaching hint: suggest undoing scramble from the end
+      const applied = state.history.length;
+      const inv = state.scrambleSeq.slice().reverse().map(inverseMove);
+      if (applied < inv.length) return inv[applied];
+      return MOVES[randInt(0, MOVES.length - 1)];
+    }
+
+    async function useHint() {
+      const st = STAGES[state.stage - 1];
+      if (!st.hints) { toast("No hints on Expert"); return; }
+      if (state.animating || state.solved) return;
+      state.hintStep = (state.hintStep % 3) + 1;
+      state.hints += 1;
+      const cost = st.hintCost || 100;
+      state.score = Math.max(0, state.score - cost);
+      updateHUD();
+      toast(`Hint used: -${cost} points`);
+      const move = nextHintMove();
+      if (state.hintStep === 1) {
+        // highlight face family
+        const face = move.replace("'", "");
+        $$(`.btn.move[data-move^="${face}"]`).forEach((b) => b.classList.add("active-hint"));
+        toast(`Consider face ${face}`);
+      } else if (state.hintStep === 2) {
+        clearHintHighlight();
+        const btn = $(`.btn.move[data-move="${move}"]`);
+        if (btn) btn.classList.add("active-hint");
+        toast(`Try ${move}`);
+      } else {
+        clearHintHighlight();
+        await doMove(move);
+        state.hintStep = 0;
+      }
+    }
+
+    /* ── Stage lifecycle ── */
+    function stopStageTimer() {
+      if (state.timers.stage) clearInterval(state.timers.stage);
+      state.timers.stage = null;
+    }
+    function startStageTimer() {
+      stopStageTimer();
+      state.stageSec = 0;
+      state.timers.stage = setInterval(() => {
+        state.stageSec += 1;
+        updateHUD();
+      }, 1000);
+    }
+    function startGlobalTimer() {
+      if (state.timers.global) return;
+      const params = new URLSearchParams(location.search);
+      if (params.get("global")) {
+        const g = Number(params.get("global"));
+        if (!Number.isNaN(g) && g >= 0) state.globalSec = g;
+      }
+      state.timers.global = setInterval(() => {
+        if (state.globalSec <= 0) return onTimeUp();
+        state.globalSec -= 1;
+        updateHUD();
+        if (state.globalSec <= 0) onTimeUp();
+      }, 1000);
+    }
+    function onTimeUp() {
+      stopStageTimer();
+      if (state.timers.global) clearInterval(state.timers.global);
+      state.timers.global = null;
+      $("#timesup-meta").textContent = `Score ${state.score} · Stage ${state.stage} · Moves ${state.moves} · Stage time ${fmt(state.stageSec)}`;
+      $("#timesup-modal").classList.remove("hidden");
+    }
+
+    async function startStage(stageId, { daily = false } = {}) {
+      if (stageId > state.unlocked && !daily) { toast("Stage locked"); return; }
+      const st = STAGES[stageId - 1];
+      state.stage = stageId;
+      state.daily = daily;
+      state.score = 1000;
+      state.moves = 0;
+      state.hints = 0;
+      state.hintStep = 0;
+      state.history = [];
+      state.redo = [];
+      state.solved = false;
+      state.targetPattern = !!st.targetPattern;
+      saveProgress();
+      $("#stage-eyebrow").textContent = daily ? "DAILY CHALLENGE" : `STAGE ${st.id}`;
+      $("#stage-title").textContent = st.name;
+      $("#stage-objective").textContent = st.desc;
+      $("#solve-modal").classList.add("hidden");
+      renderStages();
+      buildCube(st.size, st.colors);
+      updateHUD();
+      startStageTimer();
+
+      let seq;
+      if (daily) {
+        const rng = seededRandom(dateSeed() * 17 + stageId * 91);
+        seq = generateScramble(12, 18, rng);
+      } else {
+        seq = generateScramble(st.scramble[0], st.scramble[1]);
+      }
+      state.scrambleSeq = seq.slice();
+      // apply scramble without recording moves
+      state.animating = false;
+      for (const m of seq) {
+        const def = MOVE_DEF[m];
+        const cubies = getLayerCubies(def.axis, def.layer);
+        const axisVec = new THREE.Vector3(def.axis === "x" ? 1 : 0, def.axis === "y" ? 1 : 0, def.axis === "z" ? 1 : 0);
+        const q = new THREE.Quaternion().setFromAxisAngle(axisVec, (Math.PI / 2) * def.dir);
+        cubies.forEach((c) => {
+          c.position.applyQuaternion(q);
+          c.quaternion.premultiply(q);
+          snapCubie(c);
+        });
+      }
+      state.moves = 0;
+      updateHUD();
+      if (daily) toast("TODAY'S CHALLENGE ready");
+    }
+
+    function renderStages() {
+      $("#stage-list").innerHTML = STAGES.map((s) => {
+        const locked = s.id > state.unlocked;
+        const current = s.id === state.stage;
+        return `<button type="button" class="stage-btn${current ? " current" : ""}${locked ? " locked" : ""}" data-stage="${s.id}">
+          Stage ${s.id} · ${s.name}
+          <small>${s.size}×${s.size} · ${s.colors.length} colors</small>
+        </button>`;
+      }).join("");
+      $$("[data-stage]").forEach((b) => b.addEventListener("click", () => startStage(Number(b.dataset.stage))));
+    }
+
+    function renderFaceControls() {
+      $("#face-controls").innerHTML = MOVES.map((m) =>
+        `<button type="button" class="btn move" data-move="${m}">${m}</button>`
+      ).join("");
+      $$("[data-move]").forEach((b) => b.addEventListener("click", () => doMove(b.dataset.move)));
+    }
+
+    /* ── UI actions ── */
+    $("#btn-scramble").onclick = () => startStage(state.stage, { daily: state.daily });
+    $("#btn-undo").onclick = async () => {
+      if (state.animating || !state.history.length) return;
+      const last = state.history.pop();
+      state.redo.push(last);
+      state.moves = Math.max(0, state.moves - 1);
+      updateHUD();
+      await doMove(inverseMove(last), { record: false, fromUndo: true });
+    };
+    $("#btn-redo").onclick = async () => {
+      if (state.animating || !state.redo.length) return;
+      const m = state.redo.pop();
+      await doMove(m);
+    };
+    $("#btn-hint").onclick = () => useHint();
+    $("#btn-reset").onclick = () => startStage(state.stage, { daily: false });
+    $("#btn-daily").onclick = () => startStage(Math.min(state.unlocked, 4), { daily: true });
+    $("#sound-btn").onclick = () => {
+      state.sound = !state.sound;
+      $("#sound-btn").textContent = state.sound ? "🔊 Sound" : "🔇 Sound";
+      if (state.sound) beep(true);
+    };
+    $("#btn-next").onclick = () => {
+      $("#solve-modal").classList.add("hidden");
+      startStage(Math.min(5, state.stage + 1));
+    };
+    $("#btn-close-solve").onclick = () => $("#solve-modal").classList.add("hidden");
+    $("#btn-save-score").onclick = () => {
+      const name = ($("#nick-input").value || "PLAYER").trim().slice(0, 16).toUpperCase();
+      saveScore({ name, score: state.score, stage: state.stage, time: state.stageSec, at: Date.now() });
+      toast("Score saved");
+    };
+    $("#btn-leader").onclick = () => {
+      const list = loadScores();
+      $("#leader-list").innerHTML = list.length
+        ? list.map((e, i) => `<li><span>${i + 1}. ${e.name} · Stage ${e.stage}</span><strong>${e.score}</strong></li>`).join("")
+        : "<li>No scores yet</li>";
+      $("#leader-modal").classList.remove("hidden");
+    };
+    $("#btn-close-leader").onclick = () => $("#leader-modal").classList.add("hidden");
+    $("#btn-timesup-ok").onclick = () => $("#timesup-modal").classList.add("hidden");
+
+    /* ── Render loop ── */
+    function loop() {
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+
+    /* ── Init ── */
+    loadProgress();
+    renderFaceControls();
+    renderStages();
+    resize();
+    startGlobalTimer();
+    startStage(state.stage);
+    loop();
+  })();
+  </script>
+</body>
+</html>

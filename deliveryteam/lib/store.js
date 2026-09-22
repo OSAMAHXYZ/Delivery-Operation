@@ -10,6 +10,8 @@ function emptyStore() {
     vehicles: {},
     uploads: [],
     audit: [],
+    /** Monthly delivery targets by employee: { "2026-09": { rasha: 40, ruba: 35, ... } } */
+    targets: {},
     meta: { createdAt: new Date().toISOString(), updatedAt: null },
   };
 }
@@ -30,6 +32,7 @@ function createStore(filePath) {
         vehicles: raw.vehicles && typeof raw.vehicles === 'object' ? raw.vehicles : {},
         uploads: Array.isArray(raw.uploads) ? raw.uploads : [],
         audit: Array.isArray(raw.audit) ? raw.audit : [],
+        targets: raw.targets && typeof raw.targets === 'object' ? raw.targets : {},
         meta: raw.meta && typeof raw.meta === 'object' ? raw.meta : emptyStore().meta,
       };
     } catch (err) {
@@ -116,6 +119,31 @@ function createStore(filePath) {
     if (data.uploads.length > 200) data.uploads.length = 200;
   }
 
+  function getMonthTargets(monthKey) {
+    const mk = String(monthKey || '').trim().slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(mk)) return {};
+    if (!data.targets || typeof data.targets !== 'object') data.targets = {};
+    const row = data.targets[mk];
+    return row && typeof row === 'object' ? { ...row } : {};
+  }
+
+  function setEmployeeTarget(monthKey, employeeId, target, byUser) {
+    const mk = String(monthKey || '').trim().slice(0, 7);
+    const id = String(employeeId || '').trim().toLowerCase();
+    if (!/^\d{4}-\d{2}$/.test(mk)) throw new Error('Invalid month');
+    if (!id) throw new Error('Employee required');
+    if (!data.targets || typeof data.targets !== 'object') data.targets = {};
+    if (!data.targets[mk] || typeof data.targets[mk] !== 'object') data.targets[mk] = {};
+    const n = Number(target);
+    if (!Number.isFinite(n) || n < 0) throw new Error('Target must be a number ≥ 0');
+    const val = Math.round(n);
+    if (val === 0) delete data.targets[mk][id];
+    else data.targets[mk][id] = val;
+    data.targets[mk]._updatedAt = new Date().toISOString();
+    data.targets[mk]._updatedBy = String((byUser && byUser.name) || '').trim();
+    return { month: mk, employeeId: id, target: val };
+  }
+
   load();
 
   return {
@@ -131,6 +159,8 @@ function createStore(filePath) {
     upsertVehicle,
     pushAudit,
     pushUpload,
+    getMonthTargets,
+    setEmployeeTarget,
     filePath,
   };
 }

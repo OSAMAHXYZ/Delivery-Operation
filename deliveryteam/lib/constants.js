@@ -17,13 +17,21 @@ const STATUSES = Object.freeze([
   'الغاء',
 ]);
 
-/** Rank for Excel / Live Sheet sort (lower = higher on the list). Blank = last. */
-function statusSortRank(status) {
-  const s = String(status || '').trim();
-  if (!s) return STATUSES.length + 10;
-  const idx = STATUSES.findIndex((st) => st === s || st.toLowerCase() === s.toLowerCase());
-  return idx >= 0 ? idx : STATUSES.length + 5;
-}
+/** Live Sheet / My VINs display order (top → bottom). Blank statuses go last. */
+const STATUS_SORT_ORDER = Object.freeze([
+  'Claimed',
+  'PSFU',
+  'تم التسليم',
+  'جاهز للتسليم',
+  'تسليم متقدم',
+  'صادرة',
+  'مرور',
+  'رجوع مرور',
+  'بطاقة',
+  'فسح',
+  'معلقة',
+  'الغاء',
+]);
 
 const COMPLETED_STATUS = 'Claimed';
 
@@ -166,13 +174,16 @@ const HEADER_MAP = Object.freeze({
   product: ['product', 'product name', 'model', 'المنتج'],
   damage: ['damage', 'ضرر'],
   pic: ['pic', 'p.i.c', 'assigned', 'assigned to', 'assignee', 'employee', 'المسؤول', 'مسؤول'],
-  salesType: ['sales type', 'sales type2', 'نوع البيع', 'طريقة البيع'],
-  invoiceOwner: ['invoice owner', 'owner', 'مالك الفاتورة'],
+  salesType: ['sales type', 'نوع البيع', 'طريقة البيع'],
+  invoiceOwner: ['invoice owner', 'مالك الفاتورة'],
   userName: [
     'customer name', 'customer', 'اسم العميل', 'اسم الزبون',
     'user name', 'username', 'اسم المستخدم',
   ],
-  salesAdvisor: ['s/a', 's a', 'sales advisor', 'مستشار المبيعات'],
+  salesAdvisor: [
+    's/a', 's a', 'sa', 'sales advisor', 'salesman name', 'salesman',
+    'sales employee', 'advisor', 'consultant', 'مستشار المبيعات',
+  ],
   proformaDate: ['proforma date', 'proforma invoice date', 'pro forma date', 'تاريخ البروفورما'],
   deliveryDate: ['delivery date', 'تاريخ التسليم'],
   gtLocation: ['gt location', 'gt', 'موقع gt'],
@@ -268,10 +279,19 @@ const E_SALES_EXPORT_HEADERS = Object.freeze([
   'PIAging',
 ]);
 
-/** Fixed Raw Data letter positions (legacy admin dump): A=S/A, D=Order, N/O/Y */
+/** Fixed Sales Raw Excel letters (0-based indexes):
+ *   A → S/A          B → Product      C → VIN
+ *   K → Sales Type   N → Owner
+ * Also used when present: D Order · F GT · G Veh Loc · O Customer · Y Phone
+ */
 const RAW_COL = Object.freeze({
   salesAdvisor: 0, // A
+  product: 1, // B
+  vin: 2, // C
   salesOrder: 3, // D
+  gtLocation: 5, // F
+  vehicleLocation: 6, // G
+  salesType: 10, // K
   invoiceOwner: 13, // N
   customerName: 14, // O
   phone: 24, // Y
@@ -279,13 +299,7 @@ const RAW_COL = Object.freeze({
 
 /** E sales / Delivery sheet fixed column indexes (0-based) */
 const E_SALES_COL = Object.freeze({
-  salesOrder: 1,
-  product: 3,
   pic: 5,
-  salesType: 6,
-  invoiceOwner: 7,
-  userName: 8,
-  salesAdvisor: 9,
   carrier: 24, // الناقل
   transferCity: 23, // مدينة الترحيل
   status: 17, // الحالة Status
@@ -305,6 +319,7 @@ const OPS_FIELDS = Object.freeze([
   'registrationIssueDate',
   'transferCity',
   'carrier',
+  'carrierChangeCount',
   'notes',
   'assignedEmployeeId',
   'assignedEmployeeName',
@@ -333,7 +348,7 @@ function isGuestCenterRaw(raw, ops) {
 
 module.exports = {
   STATUSES,
-  statusSortRank,
+  STATUS_SORT_ORDER,
   COMPLETED_STATUS,
   YES_NO,
   CARRIERS,

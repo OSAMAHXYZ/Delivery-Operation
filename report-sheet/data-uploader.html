@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Uploader — RTL Daily Archive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="enterprise-ui.css?v=20260915aa1" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --ink: #18191c;
+      --muted: #77736c;
+      --line: #e5e1da;
+      --card: #ffffff;
+      --toyota: #eb0a1e;
+      --ok: #047857;
+      --warn: #c2410c;
+      --info: #1d4ed8;
+      --ops-shadow: 0 12px 38px rgba(32, 31, 28, 0.045);
+      --ops-radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans Arabic", "Manrope", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      text-rendering: optimizeLegibility;
+    }
+    .wrap {
+      max-width: 1540px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .brand img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+    .brand strong {
+      display: block;
+      font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    .brand span { color: var(--muted); font-size: 0.88rem; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid rgba(0,0,0,.08);
+      background: #fff;
+      padding: 0.55rem 0.9rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .note {
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff7f7;
+      border: 1px solid rgba(235, 10, 30, 0.18);
+      color: #9a3412;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .date-banner {
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.065);
+      box-shadow: var(--ops-shadow);
+    }
+    .date-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .date-banner-label {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .date-banner-date {
+      font-family: "Manrope", sans-serif;
+      font-size: 1.25rem;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 16px;
+    }
+    @media (max-width: 920px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(0,0,0,.065);
+      border-radius: var(--ops-radius);
+      padding: 18px;
+      box-shadow: var(--ops-shadow);
+    }
+    .card h2 {
+      margin: 0 0 6px;
+      font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .card p.sub {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+    .field { margin-bottom: 12px; }
+    input[type="file"],
+    input[type="date"],
+    input[type="search"],
+    input[type="month"],
+    select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 12px;
+      font: inherit;
+      background: #fff;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(235, 10, 30, 0.35);
+      box-shadow: 0 0 0 4px rgba(235, 10, 30, 0.06);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    button {
+      font: inherit;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: #fff;
+      color: var(--ink);
+      padding: 0.6rem 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    button.primary {
+      background: var(--toyota);
+      border-color: var(--toyota);
+      color: #fff;
+      box-shadow: 0 10px 28px rgba(235, 10, 30, 0.22);
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 10px;
+      min-height: 1.25em;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--toyota); }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .row { grid-template-columns: 1fr; }
+    }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+    .kpi .lab { font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+    .kpi .val {
+      margin-top: 4px;
+      font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .table-wrap {
+      overflow: auto;
+      max-height: 480px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th, td {
+      padding: 0.5rem 0.65rem;
+      border-bottom: 1px solid #eef2f7;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td.wrap-cell {
+      white-space: normal;
+      max-width: 260px;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      z-index: 1;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .pill.ok { background: #ecfdf5; color: var(--ok); }
+    .pill.warn { background: #fff7ed; color: var(--warn); }
+    .pill.info { background: #eff6ff; color: var(--info); }
+    .pill.na { background: #f1f5f9; color: var(--muted); }
+    .snap-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+      max-height: 280px;
+      overflow: auto;
+    }
+    .snap-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fafbfc;
+    }
+    .snap-list strong { font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif; }
+    .snap-list .meta { color: var(--muted); font-size: 0.8rem; }
+    .snap-list li.snap-active {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+    .snap-list li.snap-day-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: baseline;
+      padding: 6px 4px 2px;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .snap-list li.snap-day-head strong {
+      font-size: 0.82rem;
+      color: #0f172a;
+    }
+    .badge-active {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #166534;
+      background: #dcfce7;
+      vertical-align: middle;
+    }
+    .btn-use-date:disabled {
+      opacity: 0.65;
+      cursor: default;
+    }
+    .full { margin-top: 16px; }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tabs button.active {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+    .muted { color: var(--muted); font-size: 0.85rem; }
+    .day-cal-card { margin-bottom: 16px; }
+    .day-cal-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px 18px;
+      margin-bottom: 14px;
+    }
+    .day-cal-toolbar .field {
+      margin: 0;
+      min-width: 180px;
+    }
+    .day-cal-toolbar .status {
+      flex: 1 1 220px;
+      margin: 0;
+      min-height: 1.2em;
+    }
+    .day-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 900px) {
+      .day-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .day-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    .day-box {
+      position: relative;
+      appearance: none;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 6px;
+      min-height: 104px;
+      padding: 10px 10px 12px;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 14px;
+      background: #f8fafc;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    .day-box:hover {
+      border-color: #94a3b8;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    }
+    .day-box.is-selected {
+      border-style: solid;
+      border-color: #3b82f6;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .day-box.is-filled {
+      border-style: solid;
+      border-color: #86efac;
+      background: linear-gradient(180deg, #f0fdf4, #fff);
+    }
+    .day-box.is-filled.is-selected {
+      border-color: #3b82f6;
+    }
+    .day-box.is-dragover {
+      border-color: var(--toyota);
+      border-style: solid;
+      background: #fff1f2;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(235, 10, 30, 0.12);
+    }
+    .day-box.is-busy {
+      opacity: 0.72;
+      pointer-events: none;
+    }
+    .day-box.is-today .day-box-num::after {
+      content: "Today";
+      margin-left: 6px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--toyota);
+      vertical-align: middle;
+    }
+    .day-box-num {
+      font-family: "Manrope", "IBM Plex Sans Arabic", sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: #0f172a;
+    }
+    .day-box-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .day-box-meta strong {
+      display: block;
+      color: #047857;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+    .day-box-hint {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .day-box.is-filled .day-box-hint { color: #15803d; }
+
+    /* Responsive polish (layout only) */
+    html, body { overflow-x: hidden; max-width: 100%; }
+    .wrap { width: 100%; max-width: min(1540px, 100%); box-sizing: border-box; }
+    .top, .row, .nav-links, .brand { min-width: 0; max-width: 100%; }
+    .top { flex-wrap: wrap; gap: 12px; }
+    .table-wrap { max-width: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { width: 100%; }
+    @media (max-width: 900px) {
+      .wrap { padding: 18px 12px 36px; }
+      .top { align-items: flex-start; }
+      .nav-links { width: 100%; flex-wrap: wrap; }
+    }
+    @media (max-width: 640px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+      button, .nav-links a { max-width: 100%; }
+    }
+  </style>
+</head>
+<body class="uploader-enterprise">
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <img src="../images/logo/toyota.png" alt="" onerror="this.style.display='none'" />
+        <div>
+          <strong>Data Uploader</strong>
+          <span>RTL daily VIN · product · suffix archive</span>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="admin.html">Admin Push</a>
+        <a href="index.html">Live Dashboard</a>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>Day boxes:</b> Each day is its <b>own RTL file</b>. Drop Day 10’s extract on box 10, Day 12 on box 12, etc.
+      Only <b>Col J age 0</b> (or blank) from that file counts for that day’s Allocation <b>Tot</b> / <b>RES</b>.
+      <br/><br/>
+      Saves go to the <b>same server archive as Admin Push</b> (<code>report-sheet-data/rtl-daily</code> + stable <code>by-day/YYYY-MM-DD.xlsx</code>).
+      This browser also keeps a backup (like Admin), so after a code deploy you can click <b>Restore browser backups</b> instead of re-dropping every day.
+      On Railway, mount a volume and set <code>PERSISTENT_DATA_DIR=/data</code> so day files survive redeploys.
+      <br/><br/>
+      <b>Admin Push to Live</b> only updates <b>today’s</b> RTL day (Riyadh) — past days stay on their day boxes.
+      If a green day shows <b>0 age 0</b>, that file has no age-0 rows — re-drop that day’s RTL extract.
+    </p>
+
+    <section class="card full day-cal-card">
+      <h2>Schedule month · drop RTL on each day</h2>
+      <p class="sub">Each box is one calendar day. Age 0 in that day’s file = Tot/RES for that day only. Green = active file saved.</p>
+      <div class="day-cal-toolbar">
+        <div class="field">
+          <label for="cal-month">Month</label>
+          <input id="cal-month" type="month" />
+        </div>
+        <div class="actions" style="margin:0;align-items:flex-end">
+          <button type="button" id="btn-restore-browser" title="Re-upload day Excels saved in this browser after a server redeploy">Restore browser backups</button>
+        </div>
+        <div class="status" id="day-cal-status">Drop an RTL file onto a day box.</div>
+      </div>
+      <div class="day-grid" id="day-grid" aria-label="RTL day drop boxes"></div>
+      <input id="day-file-input" type="file" hidden accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" />
+    </section>
+
+    <div class="date-banner" id="date-banner">
+      <div class="date-banner-content">
+        <span class="date-banner-label">Selected day · saves as:</span>
+        <strong class="date-banner-date" id="date-banner-display"></strong>
+      </div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Scan RTL sheet</h2>
+        <p class="sub">Optional preview before Append. Dropping on a day box above scans and saves automatically.</p>
+
+        <div class="field" style="margin-bottom: 16px;">
+          <label for="snap-date" style="font-size: 0.9rem;">Snapshot date (synced with selected day)</label>
+          <input id="snap-date" type="date" style="font-size: 1rem; font-weight: 600; padding: 0.75rem;" />
+        </div>
+
+        <div class="field">
+          <label for="rtl-file">RTL Excel / CSV</label>
+          <input id="rtl-file" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" />
+        </div>
+        <div class="field">
+          <label for="preview-search">Preview search</label>
+          <input id="preview-search" type="search" placeholder="VIN / product / suffix / location / search area…" />
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="btn-scan">Scan file</button>
+          <button type="button" class="primary" id="btn-save" disabled>Append snapshot</button>
+          <button type="button" id="btn-clear-preview" disabled>Clear preview</button>
+        </div>
+        <div class="status" id="scan-status">Choose an RTL file to begin.</div>
+        <div class="kpis" id="scan-kpis" hidden>
+          <div class="kpi"><div class="lab">VINs</div><div class="val" id="kpi-vins">0</div></div>
+          <div class="kpi"><div class="lab">Products</div><div class="val" id="kpi-products">0</div></div>
+          <div class="kpi"><div class="lab">Suffixes</div><div class="val" id="kpi-suffixes">0</div></div>
+          <div class="kpi"><div class="lab">Locations</div><div class="val" id="kpi-locations">0</div></div>
+          <div class="kpi"><div class="lab">Search areas</div><div class="val" id="kpi-areas">0</div></div>
+          <div class="kpi"><div class="lab">Columns</div><div class="val" id="kpi-cols">0</div></div>
+          <div class="kpi"><div class="lab">Rows read</div><div class="val" id="kpi-rows">0</div></div>
+        </div>
+        <div class="table-wrap" id="preview-wrap" hidden>
+          <table>
+            <thead id="preview-head">
+              <tr>
+                <th>VIN</th>
+                <th>Product</th>
+                <th>Suffix</th>
+                <th>Year</th>
+                <th>Ext</th>
+                <th>Int</th>
+                <th>Age</th>
+                <th>Usage</th>
+                <th>Status</th>
+                <th>Secondary status</th>
+                <th>Location</th>
+                <th>Vehicle search area</th>
+              </tr>
+            </thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Saved snapshots</h2>
+        <p class="sub">Append-only archive. Multiple uploads stay on disk; the schedule uses <b>one active file per calendar day</b> (last Push / Append that day, or the file you pick with <b>Use date</b>). Open <b>Allocation</b> and refresh to see Tot / RES for that day.</p>
+        <div class="field">
+          <label for="snap-filter">Filter by date / time / VIN count</label>
+          <input id="snap-filter" type="search" placeholder="Search snapshots…" />
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-refresh">Refresh list</button>
+        </div>
+        <div class="status" id="list-status">Loading…</div>
+        <ul class="snap-list" id="snap-list"></ul>
+      </section>
+    </div>
+
+    <section class="card full">
+      <h2>Day-by-day compare</h2>
+      <p class="sub">Compare two saved RTL days: added VINs, removed VINs, and product/suffix changes.</p>
+      <div class="row">
+        <div class="field">
+          <label for="cmp-from">From day</label>
+          <select id="cmp-from"></select>
+        </div>
+        <div class="field">
+          <label for="cmp-to">To day</label>
+          <select id="cmp-to"></select>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="btn-compare">Compare</button>
+        <button type="button" id="btn-export-cmp" disabled>Export compare Excel</button>
+      </div>
+      <div class="status" id="cmp-status"></div>
+      <div class="kpis" id="cmp-kpis" hidden>
+        <div class="kpi"><div class="lab">Added</div><div class="val" id="cmp-added">0</div></div>
+        <div class="kpi"><div class="lab">Removed</div><div class="val" id="cmp-removed">0</div></div>
+        <div class="kpi"><div class="lab">Changed</div><div class="val" id="cmp-changed">0</div></div>
+        <div class="kpi"><div class="lab">Same</div><div class="val" id="cmp-same">0</div></div>
+      </div>
+      <div class="tabs" id="cmp-tabs" hidden>
+        <button type="button" class="active" data-cmp-tab="added">Added</button>
+        <button type="button" data-cmp-tab="removed">Removed</button>
+        <button type="button" data-cmp-tab="changed">Changed</button>
+        <button type="button" data-cmp-tab="same">Same</button>
+      </div>
+      <div class="table-wrap" id="cmp-wrap" hidden>
+        <table>
+          <thead id="cmp-head"></thead>
+          <tbody id="cmp-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card full">
+      <h2>Retail Electronic Sales tracker</h2>
+      <p class="sub">Track all VINs in Retail Electronic Sales category. Shows VINs that left this category (moved to other search areas).</p>
+      <div class="row">
+        <div class="field">
+          <label for="res-from">From day</label>
+          <select id="res-from"></select>
+        </div>
+        <div class="field">
+          <label for="res-to">To day</label>
+          <select id="res-to"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="res-filter">Search area filter (leave empty for "retail electronic sales")</label>
+        <input id="res-filter" type="text" placeholder="retail electronic sales" />
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="btn-res-compare">Track category</button>
+        <button type="button" id="btn-export-res" disabled>Export Excel</button>
+      </div>
+      <div class="status" id="res-status"></div>
+      <div class="kpis" id="res-kpis" hidden>
+        <div class="kpi"><div class="lab">Total in category (from)</div><div class="val" id="res-total-from">0</div></div>
+        <div class="kpi"><div class="lab">Total in category (to)</div><div class="val" id="res-total-to">0</div></div>
+        <div class="kpi"><div class="lab">Removed from category</div><div class="val" id="res-removed">0</div></div>
+        <div class="kpi"><div class="lab">Still in category</div><div class="val" id="res-same">0</div></div>
+      </div>
+      <div class="tabs" id="res-tabs" hidden>
+        <button type="button" class="active" data-res-tab="all-from">All VINs (from day)</button>
+        <button type="button" data-res-tab="all-to">All VINs (to day)</button>
+        <button type="button" data-res-tab="removed">Removed from category</button>
+      </div>
+      <div class="table-wrap" id="res-wrap" hidden>
+        <table>
+          <thead id="res-head"></thead>
+          <tbody id="res-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+(function () {
+  const API_META = "/api/rtl-daily/meta";
+  const API_SAVE = "/api/rtl-daily/save";
+  const API_SAVE_FILE = "/api/rtl-daily/save-file";
+  const API_COMPARE = "/api/rtl-daily/compare";
+  const API_DELETE = "/api/rtl-daily";
+  const API_USE = "/api/rtl-daily/use";
+  const RTL_IDB_NAME = "toyota_rtl_daily_files_v1";
+  const RTL_IDB_STORE = "day_files";
+  const RTL_IDB_KEY = "by_date_v1";
+
+  let scanned = [];
+  let scannedFileName = "";
+  let scannedExcelBase64 = "";
+  let scannedFileBlob = null;
+  let scannedHeaders = [];
+  let scannedExtraHeaders = [];
+  let snapshots = [];
+  let activeByDay = {};
+  let lastCompare = null;
+  let cmpTab = "added";
+  let lastResCompare = null;
+  let resTab = "all-from";
+  let selectedDayKey = "";
+  let busyDayKey = "";
+  let pickDayKey = "";
+  let monthAge0ByDay = {};
+  let monthVinByDay = {};
+
+  const $ = (sel) => document.querySelector(sel);
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function openRtlIdb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(RTL_IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(RTL_IDB_STORE)) db.createObjectStore(RTL_IDB_STORE);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
+    });
+  }
+
+  function idbGetRtlDays() {
+    return openRtlIdb().then(
+      (db) =>
+        new Promise((resolve, reject) => {
+          const tx = db.transaction(RTL_IDB_STORE, "readonly");
+          const req = tx.objectStore(RTL_IDB_STORE).get(RTL_IDB_KEY);
+          req.onsuccess = () => resolve(req.result && typeof req.result === "object" ? req.result : {});
+          req.onerror = () => reject(req.error);
+        })
+    );
+  }
+
+  function idbSetRtlDays(map) {
+    return openRtlIdb().then(
+      (db) =>
+        new Promise((resolve, reject) => {
+          const tx = db.transaction(RTL_IDB_STORE, "readwrite");
+          tx.objectStore(RTL_IDB_STORE).put(map || {}, RTL_IDB_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        })
+    );
+  }
+
+  /** Merge day packs into IndexedDB in one read/write (much faster than per-day cache). */
+  async function idbMergeRtlDays(updates) {
+    if (!updates || !Object.keys(updates).length) return;
+    const all = await idbGetRtlDays();
+    Object.assign(all, updates);
+    await idbSetRtlDays(all);
+  }
+
+  /** Run async work over items with a concurrency limit. */
+  async function mapPool(items, concurrency, worker) {
+    const list = Array.isArray(items) ? items : [];
+    const limit = Math.max(1, Math.min(Number(concurrency) || 1, list.length || 1));
+    const results = new Array(list.length);
+    let next = 0;
+    async function run() {
+      while (next < list.length) {
+        const i = next;
+        next += 1;
+        results[i] = await worker(list[i], i);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, list.length) }, () => run()));
+    return results;
+  }
+
+  /** Browser backup (same idea as Admin IndexedDB workbooks) so redeploys can restore. */
+  async function cacheDayFileInBrowser(dateKey, { fileName, buffer, count, age0, source }) {
+    if (!dateKey || !buffer) return;
+    try {
+      await idbMergeRtlDays({
+        [dateKey]: {
+          fileName: fileName || `${dateKey}.xlsx`,
+          buffer,
+          count: Number(count) || 0,
+          age0: age0 != null ? Number(age0) : null,
+          source: source || "uploader",
+          at: Date.now(),
+        },
+      });
+    } catch (err) {
+      console.warn("[rtl-daily] browser cache failed", err);
+    }
+  }
+
+  /**
+   * Restore missing day Excels from this browser to the server.
+   * Parallel uploads (skip re-writing IndexedDB — data is already local).
+   */
+  async function restoreBrowserDayFilesToServer({ onProgress } = {}) {
+    const local = await idbGetRtlDays();
+    const dates = Object.keys(local || {}).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    if (!dates.length) return { restored: 0, skipped: 0, failed: 0 };
+    const toRestore = [];
+    let skipped = 0;
+    for (const dateKey of dates) {
+      if (activeByDay[dateKey]) {
+        skipped += 1;
+        continue;
+      }
+      const pack = local[dateKey];
+      if (!pack || !pack.buffer) continue;
+      toRestore.push({ dateKey, pack });
+    }
+    if (!toRestore.length) return { restored: 0, skipped, failed: 0 };
+
+    let restored = 0;
+    let failed = 0;
+    let done = 0;
+    const total = toRestore.length;
+    if (typeof onProgress === "function") onProgress({ done: 0, total, restored, failed });
+
+    await mapPool(toRestore, 4, async ({ dateKey, pack }) => {
+      try {
+        const blob = new Blob([pack.buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        await saveRtlToServer({
+          dateKey,
+          fileName: pack.fileName || `${dateKey}.xlsx`,
+          source: "uploader-browser-restore",
+          fileBlob: blob,
+          skipBrowserCache: true,
+        });
+        restored += 1;
+      } catch (err) {
+        failed += 1;
+        console.warn("[rtl-daily] restore day failed", dateKey, err);
+      } finally {
+        done += 1;
+        if (typeof onProgress === "function") onProgress({ done, total, restored, failed, dateKey });
+      }
+    });
+
+    return { restored, skipped, failed };
+  }
+
+  function snapLabel(s) {
+    const id = s.id || s.date || "";
+    const when = s.at
+      ? new Date(s.at).toLocaleString("en-GB", { timeZone: "Asia/Riyadh" })
+      : (s.date || "");
+    return `${when || id} · ${s.count || 0} VINs`;
+  }
+
+  function todayRiyadh() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(new Date());
+  }
+
+  function monthKeyFromDate(dateStr) {
+    const s = String(dateStr || "");
+    return /^\d{4}-\d{2}/.test(s) ? s.slice(0, 7) : "";
+  }
+
+  function daysInMonth(year, month1to12) {
+    return new Date(year, month1to12, 0).getDate();
+  }
+
+  function dateKeyForDay(monthKey, day) {
+    const mk = String(monthKey || "");
+    if (!/^\d{4}-\d{2}$/.test(mk)) return "";
+    const d = Math.max(1, Math.min(31, Number(day) || 0));
+    if (!d) return "";
+    return `${mk}-${String(d).padStart(2, "0")}`;
+  }
+
+  function countAge0(vehicles) {
+    return (vehicles || []).filter((v) => {
+      const a = String(v?.age ?? "").trim();
+      if (!a) return true;
+      const n = Number(a);
+      return Number.isFinite(n) ? n === 0 : a === "0";
+    }).length;
+  }
+
+  function activeSnapForDay(dateKey) {
+    if (!dateKey) return null;
+    const activeId = activeByDay[dateKey];
+    if (activeId) {
+      const hit = snapshots.find((s) => (s.id || s.date) === activeId);
+      if (hit) return hit;
+    }
+    const daySnaps = snapshots
+      .filter((s) => (s.date || "") === dateKey)
+      .sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+    return daySnaps[0] || null;
+  }
+
+  function selectScheduleDay(dateKey, { syncMonth = true } = {}) {
+    if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+    selectedDayKey = dateKey;
+    const snapDate = $("#snap-date");
+    if (snapDate) snapDate.value = dateKey;
+    if (syncMonth) {
+      const cal = $("#cal-month");
+      if (cal) cal.value = monthKeyFromDate(dateKey);
+    }
+    updateDateBanner();
+    renderDayGrid();
+  }
+
+  function renderDayGrid() {
+    const grid = $("#day-grid");
+    if (!grid) return;
+    const cal = $("#cal-month");
+    const mk = (cal && cal.value) || monthKeyFromDate(todayRiyadh());
+    const [ys, ms] = mk.split("-");
+    const y = Number(ys);
+    const m = Number(ms);
+    const dim = daysInMonth(y, m);
+    const today = todayRiyadh();
+
+    grid.innerHTML = Array.from({ length: dim }, (_, i) => {
+      const day = i + 1;
+      const dateKey = dateKeyForDay(mk, day);
+      const snap = activeSnapForDay(dateKey);
+      const filled = Boolean(snap);
+      const selected = selectedDayKey === dateKey;
+      const busy = busyDayKey === dateKey;
+      const isToday = dateKey === today;
+      const classes = [
+        "day-box",
+        filled ? "is-filled" : "",
+        selected ? "is-selected" : "",
+        busy ? "is-busy" : "",
+        isToday ? "is-today" : "",
+      ].filter(Boolean).join(" ");
+      const age0 =
+        monthAge0ByDay[dateKey] != null
+          ? Number(monthAge0ByDay[dateKey])
+          : (snap && snap.age0 != null ? Number(snap.age0) : null);
+      const vins =
+        monthVinByDay[dateKey] != null
+          ? Number(monthVinByDay[dateKey])
+          : (snap ? Number(snap.count) || 0 : 0);
+      const meta = filled
+        ? `<div class="day-box-meta"><strong>${age0 != null ? age0 : "—"} age 0</strong>${vins} VINs · ${escapeHtml(snap.fileName || "Active file")}</div>`
+        : `<div class="day-box-meta">No file yet</div>`;
+      const hint = busy ? "Saving…" : filled ? "Drop to replace" : "Drop RTL here";
+      return `
+        <button type="button" class="${classes}" data-day="${day}" data-date="${escapeHtml(dateKey)}" aria-label="Day ${day} ${dateKey}${filled ? ` · ${age0 != null ? age0 : 0} age 0` : ""}">
+          <div class="day-box-num">${day}</div>
+          ${meta}
+          <div class="day-box-hint">${hint}</div>
+        </button>`;
+    }).join("");
+  }
+
+  function setDayCalStatus(text, kind) {
+    setStatus($("#day-cal-status"), text, kind);
+  }
+
+  async function saveRtlToServer({ dateKey, fileName, source, fileBlob, excelBase64, vehicles, skipBrowserCache }) {
+    // Prefer binary upload (same durability as Admin Push Excel on disk).
+    let saved = null;
+    let bufferForCache = null;
+    if (fileBlob && (fileBlob instanceof Blob || fileBlob instanceof File) && fileBlob.size > 0) {
+      const buf = await fileBlob.arrayBuffer();
+      bufferForCache = buf;
+      const qs = new URLSearchParams({
+        date: dateKey,
+        fileName: fileName || "rtl.xlsx",
+        source: source || "uploader",
+      });
+      const res = await fetch(`${API_SAVE_FILE}?${qs.toString()}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-File-Name": encodeURIComponent(fileName || "rtl.xlsx"),
+        },
+        body: buf,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      saved = data;
+    } else {
+      if (!excelBase64) {
+        throw new Error("Excel file required — drop/select the RTL file again so it is stored on the server.");
+      }
+      const res = await fetch(API_SAVE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: dateKey,
+          fileName: fileName || "rtl.xlsx",
+          vehicles: vehicles || [],
+          excelBase64,
+          source: source || "uploader",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      saved = data;
+      try {
+        const bin = atob(excelBase64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+        bufferForCache = bytes.buffer;
+      } catch { /* ignore */ }
+    }
+    if (bufferForCache && !skipBrowserCache) {
+      await cacheDayFileInBrowser(dateKey, {
+        fileName: fileName || (saved && saved.fileName) || "rtl.xlsx",
+        buffer: bufferForCache,
+        count: saved && saved.count,
+        age0: saved && saved.age0,
+        source: source || "uploader",
+      });
+    }
+    return saved;
+  }
+
+  async function ingestRtlFileForDay(file, dateKey, { autoSave = true } = {}) {
+    if (!file) throw new Error("No file selected");
+    if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+      throw new Error("Invalid schedule day");
+    }
+    selectScheduleDay(dateKey);
+    busyDayKey = dateKey;
+    renderDayGrid();
+    setDayCalStatus(`Scanning Day ${Number(dateKey.slice(8, 10))} · ${file.name}…`);
+    setStatus($("#scan-status"), `Scanning for ${formatDateDisplay(dateKey)}…`);
+
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const result = scanRtlWorkbook(wb);
+      scanned = result.vehicles;
+      scannedHeaders = result.headers || [];
+      scannedExtraHeaders = result.extraHeaders || [];
+      scannedFileName = file.name;
+      scannedFileBlob = file;
+      scannedExcelBase64 = arrayBufferToBase64(buf);
+      $("#kpi-rows").textContent = String(result.rowsRead || 0);
+      renderPreview();
+
+      const age0 = countAge0(scanned);
+      const dayNum = Number(dateKey.slice(8, 10));
+      setStatus(
+        $("#scan-status"),
+        `✓ Scanned ${scanned.length} VIN(s) · ${age0} age 0 · Day ${dayNum} (${formatDateDisplay(dateKey)}).`,
+        "ok"
+      );
+
+      if (!autoSave) {
+        setDayCalStatus(`Day ${dayNum} scanned — click Append snapshot to save.`, "ok");
+        return { saved: false, count: scanned.length, age0 };
+      }
+
+      setDayCalStatus(`Saving Day ${dayNum} to server archive…`);
+      const data = await saveRtlToServer({
+        dateKey,
+        fileName: scannedFileName,
+        source: "uploader-day-box",
+        fileBlob: file,
+        excelBase64: scannedExcelBase64,
+        vehicles: scanned,
+      });
+      setStatus(
+        $("#scan-status"),
+        `✓ Saved ${data.count} VIN(s) · ${data.age0 != null ? data.age0 : age0} age 0 for Day ${dayNum} on server${data.excelSaved ? " (Excel stored)" : ""}. Refresh Allocation to update Tot/RES.`,
+        "ok"
+      );
+      setDayCalStatus(
+        `Day ${dayNum} saved on server · ${data.count} VINs · ${data.age0 != null ? data.age0 : age0} age 0.`,
+        "ok"
+      );
+      await loadMeta();
+      return { saved: true, count: data.count, age0 };
+    } finally {
+      busyDayKey = "";
+      renderDayGrid();
+    }
+  }
+
+  function formatDateDisplay(dateStr) {
+    if (!dateStr) return "No date selected";
+    try {
+      const date = new Date(dateStr + 'T12:00:00');
+      return new Intl.DateTimeFormat("en-US", { 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(date);
+    } catch {
+      return dateStr;
+    }
+  }
+
+  function updateDateBanner() {
+    const dateValue = $("#snap-date").value;
+    const banner = $("#date-banner-display");
+    if (banner) {
+      banner.textContent = formatDateDisplay(dateValue);
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function setStatus(el, text, kind) {
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "status" + (kind ? " " + kind : "");
+  }
+
+  function colLetterToIndex(letter) {
+    let n = 0;
+    const s = String(letter || "").toUpperCase();
+    for (let i = 0; i < s.length; i += 1) n = n * 26 + (s.charCodeAt(i) - 64);
+    return n - 1;
+  }
+
+  function cellToString(v) {
+    if (v == null) return "";
+    if (v instanceof Date && !Number.isNaN(v.getTime())) {
+      return v.toISOString().slice(0, 10);
+    }
+    return String(v).trim();
+  }
+
+  function normHeader(v) {
+    return cellToString(v).toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  function extractVin(raw) {
+    const cleaned = String(raw ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!cleaned) return "";
+    const m = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/) || cleaned.match(/[A-Z0-9]{17}/);
+    return m ? m[0] : (cleaned.length >= 11 ? cleaned : "");
+  }
+
+  function indexToColLetter(idx) {
+    let n = idx + 1;
+    let s = "";
+    while (n > 0) {
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function sheetMatrix(workbook) {
+    const names = workbook.SheetNames || [];
+    if (!names.length) return [];
+    const preferred =
+      names.find((n) => /rtl/i.test(n)) ||
+      names.find((n) => /stock|مخزون|retail/i.test(n)) ||
+      names[0];
+    return XLSX.utils.sheet_to_json(workbook.Sheets[preferred], {
+      header: 1,
+      defval: "",
+      blankrows: false,
+      raw: true,
+      cellDates: true,
+    });
+  }
+
+  function findHeaderRow(matrix) {
+    const markers = [
+      "vin", "product", "suffix", "sfx", "model", "chassis",
+      "year", "exterior", "interior", "age", "usage", "status",
+      "location", "search area", "allocated",
+    ];
+    let bestIdx = 0;
+    let bestHits = -1;
+    const limit = Math.min(matrix.length, 40);
+    for (let i = 0; i < limit; i += 1) {
+      const cells = (matrix[i] || []).map(normHeader);
+      if (!cells.some(Boolean)) continue;
+      const hits = markers.filter((m) => cells.some((c) => c === m || c.includes(m))).length;
+      if (hits > bestHits) {
+        bestHits = hits;
+        bestIdx = i;
+      }
+      if (hits >= 3) break;
+    }
+    return bestIdx;
+  }
+
+  function resolveCol(headers, tests, fallbackLetter) {
+    const idx = headers.findIndex((h) => tests.some((t) => t(normHeader(h))));
+    if (idx >= 0) return idx;
+    return colLetterToIndex(fallbackLetter);
+  }
+
+  function scanRtlWorkbook(workbook) {
+    const matrix = sheetMatrix(workbook);
+    if (!matrix.length) return { vehicles: [], rowsRead: 0, headers: [], extraHeaders: [] };
+
+    const headerIdx = findHeaderRow(matrix);
+    const headerRow = matrix[headerIdx] || [];
+    const width = Math.max(
+      headerRow.length,
+      colLetterToIndex("Q") + 1,
+      ...(matrix.slice(headerIdx, headerIdx + 30).map((r) => (r || []).length))
+    );
+    const headers = [];
+    for (let i = 0; i < width; i += 1) {
+      headers.push(cellToString(headerRow[i]) || `Column ${indexToColLetter(i)}`);
+    }
+
+    const idxProduct = resolveCol(headers, [
+      (n) => n === "product" || n === "model" || n === "vehicle model",
+      (n) => n.includes("product"),
+    ], "B");
+    const idxVin = resolveCol(headers, [
+      (n) => n === "vin" || n === "chassis" || n === "chassis no" || n === "chassis number",
+      (n) => n.includes("vin"),
+    ], "E");
+    const idxSuffix = resolveCol(headers, [
+      (n) => n === "suffix" || n === "sfx" || n === "alj suffix" || n === "grade",
+      (n) => n.includes("suffix") || n.includes("sfx"),
+    ], "G");
+    const idxYear = resolveCol(headers, [
+      (n) => n === "year" || n === "model year" || n === "my",
+      (n) => n.includes("year"),
+    ], "F");
+    const idxExt = resolveCol(headers, [
+      (n) => n === "ext" || n === "exterior" || n === "exterior color" || n === "ext color",
+      (n) => n.includes("exterior") || n === "ext",
+    ], "H");
+    const idxInt = resolveCol(headers, [
+      (n) => n === "int" || n === "interior" || n === "interior color" || n === "int color",
+      (n) => n.includes("interior") || n === "int",
+    ], "I");
+    const idxAge = resolveCol(headers, [
+      (n) => n === "age" || n === "ageing" || n === "aging" || n === "stock age",
+      (n) => n.includes("age"),
+    ], "J");
+    const idxUsage = resolveCol(headers, [
+      (n) => n === "usage" || n === "usage desc" || n === "usage description",
+      (n) => n.includes("usage"),
+    ], "K");
+    const idxStatus = resolveCol(headers, [
+      (n) => n === "status" || n === "primary status" || n === "vehicle status",
+      (n) => n === "status" || n.includes("primary status"),
+    ], "D");
+    const idxSecondary = resolveCol(headers, [
+      (n) => n === "secondary status" || n === "sec status",
+      (n) => n.includes("secondary status"),
+    ], "L");
+    const idxLocation = resolveCol(headers, [
+      (n) => n === "allocated location" || n === "location" || n === "loc",
+      (n) => n.includes("allocated location") || (n.includes("location") && !n.includes("search")),
+    ], "Q");
+    const idxSearch = resolveCol(headers, [
+      (n) => n === "vehicle search area" || n === "search area desc" || n === "search area",
+      (n) => n.includes("vehicle search") || n.includes("search area"),
+    ], "P");
+
+    const mappedIdx = new Set([
+      idxProduct, idxVin, idxSuffix, idxYear, idxExt, idxInt,
+      idxAge, idxUsage, idxStatus, idxSecondary, idxLocation, idxSearch,
+    ]);
+    const extraHeaders = headers
+      .map((h, i) => ({ h, i }))
+      .filter(({ h, i }) => h && !mappedIdx.has(i))
+      .map(({ h }) => h);
+
+    const seen = new Set();
+    const vehicles = [];
+    let rowsRead = 0;
+
+    for (let r = headerIdx + 1; r < matrix.length; r += 1) {
+      const line = matrix[r] || [];
+      rowsRead += 1;
+      const vin = extractVin(line[idxVin]);
+      if (!vin) continue;
+      if (seen.has(vin)) continue;
+      seen.add(vin);
+
+      const details = {};
+      headers.forEach((h, i) => {
+        const val = cellToString(line[i]);
+        if (!val) return;
+        details[h] = val;
+      });
+
+      vehicles.push({
+        vin,
+        product: cellToString(line[idxProduct]),
+        suffix: cellToString(line[idxSuffix]),
+        year: cellToString(line[idxYear]),
+        ext: cellToString(line[idxExt]),
+        int: cellToString(line[idxInt]),
+        age: cellToString(line[idxAge]),
+        usage: cellToString(line[idxUsage]),
+        status: cellToString(line[idxStatus]),
+        secondaryStatus: cellToString(line[idxSecondary]),
+        location: cellToString(line[idxLocation]),
+        vehicleSearchArea: cellToString(line[idxSearch]),
+        details,
+      });
+    }
+
+    return {
+      vehicles,
+      rowsRead,
+      headers,
+      extraHeaders,
+      sheetHint: workbook.SheetNames?.[0] || "",
+    };
+  }
+
+  function vehicleSearchBlob(v) {
+    const bits = [
+      v.vin, v.product, v.suffix, v.year, v.ext, v.int, v.age, v.usage,
+      v.status, v.secondaryStatus, v.location, v.vehicleSearchArea,
+    ];
+    if (v.details) bits.push(...Object.values(v.details));
+    return bits.map((x) => String(x || "").toLowerCase()).join(" ");
+  }
+
+  function renderPreview() {
+    const q = String($("#preview-search").value || "").trim().toLowerCase();
+    const rows = !q
+      ? scanned
+      : scanned.filter((v) => vehicleSearchBlob(v).includes(q));
+
+    const products = new Set(scanned.map((v) => v.product).filter(Boolean));
+    const suffixes = new Set(scanned.map((v) => v.suffix).filter(Boolean));
+    const locations = new Set(scanned.map((v) => v.location).filter(Boolean));
+    const areas = new Set(scanned.map((v) => v.vehicleSearchArea).filter(Boolean));
+
+    $("#kpi-vins").textContent = String(scanned.length);
+    $("#kpi-products").textContent = String(products.size);
+    $("#kpi-suffixes").textContent = String(suffixes.size);
+    const locEl = $("#kpi-locations");
+    if (locEl) locEl.textContent = String(locations.size);
+    const areaEl = $("#kpi-areas");
+    if (areaEl) areaEl.textContent = String(areas.size);
+    const colsEl = $("#kpi-cols");
+    if (colsEl) colsEl.textContent = String((scannedHeaders && scannedHeaders.length) || 0);
+
+    const extra = scannedExtraHeaders || [];
+    const head = $("#preview-head");
+    if (head) {
+      head.innerHTML = `<tr>
+        <th>VIN</th>
+        <th>Product</th>
+        <th>Suffix</th>
+        <th>Year</th>
+        <th>Ext</th>
+        <th>Int</th>
+        <th>Age</th>
+        <th>Usage</th>
+        <th>Status</th>
+        <th>Secondary status</th>
+        <th>Location</th>
+        <th>Vehicle search area</th>
+        ${extra.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
+      </tr>`;
+    }
+
+    const body = $("#preview-body");
+    body.innerHTML = rows.slice(0, 800).map((v) => `
+      <tr>
+        <td class="mono">${escapeHtml(v.vin)}</td>
+        <td>${escapeHtml(v.product || "—")}</td>
+        <td>${escapeHtml(v.suffix || "—")}</td>
+        <td>${escapeHtml(v.year || "—")}</td>
+        <td>${escapeHtml(v.ext || "—")}</td>
+        <td>${escapeHtml(v.int || "—")}</td>
+        <td>${escapeHtml(v.age || "—")}</td>
+        <td>${escapeHtml(v.usage || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(v.status || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(v.secondaryStatus || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(v.location || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(v.vehicleSearchArea || "—")}</td>
+        ${extra.map((h) => `<td class="wrap-cell">${escapeHtml((v.details && v.details[h]) || "—")}</td>`).join("")}
+      </tr>
+    `).join("");
+
+    $("#scan-kpis").hidden = !scanned.length;
+    $("#preview-wrap").hidden = !scanned.length;
+    $("#btn-save").disabled = !scanned.length;
+    $("#btn-clear-preview").disabled = !scanned.length;
+  }
+
+  async function loadMonthDayStats(monthKey) {
+    const mk = String(monthKey || "").trim() || monthKeyFromDate(todayRiyadh());
+    monthAge0ByDay = {};
+    monthVinByDay = {};
+    try {
+      const res = await fetch(`/api/rtl-daily/active-month?month=${encodeURIComponent(mk)}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const pack = await res.json();
+      Object.entries(pack.days || {}).forEach(([dateKey, snap]) => {
+        monthVinByDay[dateKey] = Number(snap.count) || ((snap.vehicles || []).length) || 0;
+        monthAge0ByDay[dateKey] = Number.isFinite(Number(snap.age0))
+          ? Number(snap.age0)
+          : countAge0(snap.vehicles || []);
+      });
+    } catch {
+      /* ignore — day boxes still show from meta */
+    }
+  }
+
+  async function loadMeta({ autoRestore = true } = {}) {
+    setStatus($("#list-status"), "Loading…");
+    try {
+      const res = await fetch(API_META, { cache: "no-store" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+      const data = await res.json();
+      snapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+      activeByDay = data.activeByDay && typeof data.activeByDay === "object" ? data.activeByDay : {};
+      let restoreNote = "";
+      if (Number(data.rehydratedDays) > 0) {
+        restoreNote = ` · reloaded ${data.rehydratedDays} day(s) from by-day Excel`;
+      }
+      if (autoRestore) {
+        try {
+          const r = await restoreBrowserDayFilesToServer({
+            onProgress: ({ done, total }) => {
+              if (total > 0) {
+                setStatus($("#list-status"), `Restoring browser backups… ${done}/${total}`);
+              }
+            },
+          });
+          if (r.restored > 0) {
+            restoreNote += ` · restored ${r.restored} from this browser`;
+            const res2 = await fetch(API_META, { cache: "no-store" });
+            if (res2.ok) {
+              const data2 = await res2.json();
+              snapshots = Array.isArray(data2.snapshots) ? data2.snapshots : snapshots;
+              activeByDay = data2.activeByDay && typeof data2.activeByDay === "object" ? data2.activeByDay : activeByDay;
+            }
+          }
+        } catch (restoreErr) {
+          console.warn("[rtl-daily] browser restore", restoreErr);
+        }
+      }
+      // Keep browser backups in sync with server by-day Excels (incl. Admin Push → today).
+      try {
+        const local = await idbGetRtlDays();
+        const missing = Object.keys(activeByDay || {}).filter((dateKey) => !(local[dateKey] && local[dateKey].buffer));
+        if (missing.length) {
+          const updates = {};
+          await mapPool(missing, 6, async (dateKey) => {
+            const excelRes = await fetch(`/api/rtl-daily/by-day/${encodeURIComponent(dateKey)}/excel`, { cache: "no-store" });
+            if (!excelRes.ok) return;
+            const buf = await excelRes.arrayBuffer();
+            const snap = snapshots.find((s) => (s.date || "") === dateKey && s.active)
+              || snapshots.find((s) => (s.date || "") === dateKey);
+            updates[dateKey] = {
+              fileName: (snap && snap.fileName) || `${dateKey}.xlsx`,
+              buffer: buf,
+              count: snap && snap.count,
+              age0: snap && snap.age0,
+              source: "server-sync",
+              at: Date.now(),
+            };
+          });
+          await idbMergeRtlDays(updates);
+        }
+      } catch (syncErr) {
+        console.warn("[rtl-daily] browser sync", syncErr);
+      }
+      const activeDays = Object.keys(activeByDay).length;
+      const cal = $("#cal-month");
+      const mk = (cal && cal.value) || monthKeyFromDate(todayRiyadh());
+      await loadMonthDayStats(mk);
+      renderSnapList();
+      renderDayGrid();
+      fillCompareSelects();
+      setStatus(
+        $("#list-status"),
+        snapshots.length
+          ? `${snapshots.length} snapshot(s) · ${activeDays} active day(s) for schedule${restoreNote}`
+          : `No snapshots yet${restoreNote}`
+      );
+    } catch (err) {
+      setStatus($("#list-status"), err.message || "Failed to load", "err");
+    }
+  }
+
+  function renderSnapList() {
+    const list = $("#snap-list");
+    if (!snapshots.length) {
+      list.innerHTML = `<li><span class="muted">Push RTL from Admin or save here to start the archive.</span></li>`;
+      return;
+    }
+    
+    const filterQuery = String($("#snap-filter")?.value || "").trim().toLowerCase();
+    const filtered = !filterQuery
+      ? snapshots
+      : snapshots.filter((s) => {
+          const label = snapLabel(s).toLowerCase();
+          const id = (s.id || s.date || "").toLowerCase();
+          const fileName = (s.fileName || "").toLowerCase();
+          return label.includes(filterQuery) || id.includes(filterQuery) || fileName.includes(filterQuery);
+        });
+    
+    if (filtered.length === 0) {
+      list.innerHTML = `<li><span class="muted">No snapshots match your filter.</span></li>`;
+      return;
+    }
+
+    const byDay = new Map();
+    filtered.forEach((s) => {
+      const id = s.id || s.date || "";
+      const dateKey = s.date || (id.includes("T") ? id.split("T")[0] : id);
+      if (!byDay.has(dateKey)) byDay.set(dateKey, []);
+      byDay.get(dateKey).push(s);
+    });
+    const dayKeys = [...byDay.keys()].sort((a, b) => String(b).localeCompare(String(a)));
+
+    list.innerHTML = dayKeys.map((dateKey) => {
+      const daySnaps = byDay.get(dateKey) || [];
+      const activeId = activeByDay[dateKey] || "";
+      const dayNum = dateKey && dateKey.length >= 10 ? Number(dateKey.slice(8, 10)) : null;
+      const header = `<li class="snap-day-head"><strong>Schedule day ${dayNum || "?"} · ${escapeHtml(formatDateDisplay(dateKey))}</strong><span class="muted">${daySnaps.length} file(s)${activeId ? " · 1 active" : ""}</span></li>`;
+      const items = daySnaps.map((s) => {
+        const id = s.id || s.date || "";
+        const canDelete = id.includes("T");
+        const isActive = Boolean(s.active || (dateKey && activeByDay[dateKey] === id));
+        return `
+      <li${isActive ? ' class="snap-active"' : ""}>
+        <div>
+          <strong>${escapeHtml(snapLabel(s))}${isActive ? ' <span class="badge-active">Active for day</span>' : ""}</strong>
+          <div class="meta">${escapeHtml(id)}${s.fileName ? " · " + escapeHtml(s.fileName) : ""}${s.source ? " · " + escapeHtml(s.source) : ""}${s.asOfDate && s.asOfDate !== dateKey ? ` · ages as-of ${escapeHtml(s.asOfDate)}` : ""}</div>
+        </div>
+        <div class="actions" style="margin:0">
+          ${canDelete
+            ? `<button type="button" data-del="${escapeHtml(id)}">Delete</button>`
+            : `<span class="muted">legacy</span>`}
+          <button type="button" class="btn-use-date" data-id="${escapeHtml(id)}" data-date="${escapeHtml(dateKey || "")}"${isActive ? " disabled" : ""}>${isActive ? "In use" : "Use date"}</button>
+        </div>
+      </li>`;
+      }).join("");
+      return header + items;
+    }).join("");
+  }
+
+  function fillCompareSelects() {
+    const opts = snapshots.map((s) => {
+      const id = s.id || s.date || "";
+      return `<option value="${escapeHtml(id)}">${escapeHtml(snapLabel(s))}</option>`;
+    }).join("");
+    
+    // Fill day-by-day compare selects
+    const from = $("#cmp-from");
+    const to = $("#cmp-to");
+    const prevFrom = from.value;
+    const prevTo = to.value;
+    from.innerHTML = opts || `<option value="">—</option>`;
+    to.innerHTML = opts || `<option value="">—</option>`;
+    const ids = snapshots.map((s) => s.id || s.date);
+    if (snapshots.length >= 2) {
+      from.value = prevFrom && ids.includes(prevFrom) ? prevFrom : ids[1];
+      to.value = prevTo && ids.includes(prevTo) ? prevTo : ids[0];
+    } else if (snapshots.length === 1) {
+      from.value = ids[0];
+      to.value = ids[0];
+    }
+    
+    // Fill Retail Electronic Sales selects
+    const resFrom = $("#res-from");
+    const resTo = $("#res-to");
+    const prevResFrom = resFrom.value;
+    const prevResTo = resTo.value;
+    resFrom.innerHTML = opts || `<option value="">—</option>`;
+    resTo.innerHTML = opts || `<option value="">—</option>`;
+    if (snapshots.length >= 2) {
+      resFrom.value = prevResFrom && ids.includes(prevResFrom) ? prevResFrom : ids[1];
+      resTo.value = prevResTo && ids.includes(prevResTo) ? prevResTo : ids[0];
+    } else if (snapshots.length === 1) {
+      resFrom.value = ids[0];
+      resTo.value = ids[0];
+    }
+  }
+
+  function renderCompareTab() {
+    if (!lastCompare) return;
+    const map = {
+      added: lastCompare.added || [],
+      removed: lastCompare.removed || [],
+      changed: lastCompare.changed || [],
+      same: lastCompare.same || [],
+    };
+    const rows = map[cmpTab] || [];
+    const head = $("#cmp-head");
+    const body = $("#cmp-body");
+
+    if (cmpTab === "changed") {
+      head.innerHTML = `<tr><th>VIN</th><th>From product / suffix</th><th>To product / suffix</th></tr>`;
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td class="mono">${escapeHtml(r.vin)}</td>
+          <td>${escapeHtml(r.fromProduct || "—")} / ${escapeHtml(r.fromSuffix || "—")}</td>
+          <td>${escapeHtml(r.toProduct || "—")} / ${escapeHtml(r.toSuffix || "—")}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="3" class="muted">None</td></tr>`;
+    } else {
+      head.innerHTML = `<tr><th>VIN</th><th>Product</th><th>Suffix</th></tr>`;
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td class="mono">${escapeHtml(r.vin)}</td>
+          <td>${escapeHtml(r.product || "—")}</td>
+          <td>${escapeHtml(r.suffix || "—")}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="3" class="muted">None</td></tr>`;
+    }
+
+    document.querySelectorAll("#cmp-tabs button").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.cmpTab === cmpTab);
+    });
+  }
+
+  $("#snap-date").value = todayRiyadh();
+  selectedDayKey = $("#snap-date").value;
+  {
+    const cal = $("#cal-month");
+    if (cal) cal.value = monthKeyFromDate(selectedDayKey);
+  }
+  updateDateBanner();
+  renderDayGrid();
+
+  $("#cal-month")?.addEventListener("change", async () => {
+    const mk = $("#cal-month").value;
+    const day = selectedDayKey ? Number(selectedDayKey.slice(8, 10)) : 1;
+    const dim = daysInMonth(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)));
+    const nextDay = Math.min(Math.max(1, day || 1), dim);
+    await loadMonthDayStats(mk);
+    selectScheduleDay(dateKeyForDay(mk, nextDay), { syncMonth: false });
+  });
+
+  $("#day-grid")?.addEventListener("click", (e) => {
+    const box = e.target.closest(".day-box");
+    if (!box) return;
+    const dateKey = box.getAttribute("data-date") || "";
+    selectScheduleDay(dateKey);
+    setDayCalStatus(`Day ${Number(dateKey.slice(8, 10))} selected · drop an RTL file here, or double-click to browse.`);
+  });
+
+  $("#day-grid")?.addEventListener("dblclick", (e) => {
+    const box = e.target.closest(".day-box");
+    if (!box) return;
+    const dateKey = box.getAttribute("data-date") || "";
+    selectScheduleDay(dateKey);
+    pickDayKey = dateKey;
+    const input = $("#day-file-input");
+    if (input) {
+      input.value = "";
+      input.click();
+    }
+  });
+
+  $("#day-file-input")?.addEventListener("change", async () => {
+    const file = $("#day-file-input").files && $("#day-file-input").files[0];
+    const dateKey = pickDayKey || selectedDayKey;
+    if (!file || !dateKey) return;
+    try {
+      await ingestRtlFileForDay(file, dateKey, { autoSave: true });
+    } catch (err) {
+      setDayCalStatus(err.message || "Upload failed", "err");
+      setStatus($("#scan-status"), err.message || "Upload failed", "err");
+    } finally {
+      $("#day-file-input").value = "";
+      pickDayKey = "";
+    }
+  });
+
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => {
+    $("#day-grid")?.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+
+  $("#day-grid")?.addEventListener("dragenter", (e) => {
+    const box = e.target.closest(".day-box");
+    if (box) box.classList.add("is-dragover");
+  });
+  $("#day-grid")?.addEventListener("dragover", (e) => {
+    const box = e.target.closest(".day-box");
+    document.querySelectorAll(".day-box.is-dragover").forEach((el) => {
+      if (el !== box) el.classList.remove("is-dragover");
+    });
+    if (box) box.classList.add("is-dragover");
+  });
+  $("#day-grid")?.addEventListener("dragleave", (e) => {
+    const box = e.target.closest(".day-box");
+    if (!box) return;
+    // Only clear when leaving the box entirely
+    if (!box.contains(e.relatedTarget)) box.classList.remove("is-dragover");
+  });
+  $("#day-grid")?.addEventListener("drop", async (e) => {
+    const box = e.target.closest(".day-box");
+    document.querySelectorAll(".day-box.is-dragover").forEach((el) => el.classList.remove("is-dragover"));
+    if (!box) return;
+    const dateKey = box.getAttribute("data-date") || "";
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) {
+      setDayCalStatus("Drop an RTL Excel/CSV file.", "err");
+      return;
+    }
+    try {
+      await ingestRtlFileForDay(file, dateKey, { autoSave: true });
+    } catch (err) {
+      setDayCalStatus(err.message || "Upload failed", "err");
+      setStatus($("#scan-status"), err.message || "Upload failed", "err");
+    }
+  });
+
+  $("#snap-date").addEventListener("change", () => {
+    const v = $("#snap-date").value;
+    if (v) selectScheduleDay(v);
+    else updateDateBanner();
+  });
+
+  $("#btn-scan").addEventListener("click", async () => {
+    const file = $("#rtl-file").files && $("#rtl-file").files[0];
+    if (!file) {
+      setStatus($("#scan-status"), "Choose an RTL Excel/CSV file first.", "err");
+      return;
+    }
+    const selectedDate = $("#snap-date").value;
+    if (!selectedDate) {
+      setStatus($("#scan-status"), "Please select a snapshot date first.", "err");
+      return;
+    }
+    try {
+      await ingestRtlFileForDay(file, selectedDate, { autoSave: false });
+    } catch (err) {
+      setStatus($("#scan-status"), err.message || "Scan failed", "err");
+    }
+  });
+
+  $("#preview-search").addEventListener("input", renderPreview);
+
+  $("#btn-clear-preview").addEventListener("click", () => {
+    scanned = [];
+    scannedFileName = "";
+    scannedExcelBase64 = "";
+    scannedFileBlob = null;
+    scannedHeaders = [];
+    scannedExtraHeaders = [];
+    $("#rtl-file").value = "";
+    renderPreview();
+    setStatus($("#scan-status"), "Preview cleared.");
+  });
+
+  $("#btn-save").addEventListener("click", async () => {
+    if (!scanned.length) return;
+    const date = $("#snap-date").value || todayRiyadh();
+    if (!date) {
+      setStatus($("#scan-status"), "Please select a snapshot date.", "err");
+      return;
+    }
+    if (!scannedFileBlob && !scannedExcelBase64) {
+      setStatus($("#scan-status"), "Excel file required — choose the RTL file again before saving.", "err");
+      return;
+    }
+    setStatus($("#scan-status"), `Saving snapshot for ${formatDateDisplay(date)} to server archive…`);
+    try {
+      const data = await saveRtlToServer({
+        dateKey: date,
+        fileName: scannedFileName,
+        source: "uploader",
+        fileBlob: scannedFileBlob,
+        excelBase64: scannedExcelBase64,
+        vehicles: scanned,
+      });
+      setStatus(
+        $("#scan-status"),
+        `✓ Saved ${data.count} VIN(s) for schedule day ${formatDateDisplay(date)} as snapshot ${data.id || data.date}${data.excelSaved ? " · Excel on server" : ""}. Refresh Allocation · Stock to update Tot/RES.`,
+        "ok"
+      );
+      await loadMeta();
+    } catch (err) {
+      setStatus($("#scan-status"), err.message || "Save failed", "err");
+    }
+  });
+
+  $("#snap-filter").addEventListener("input", renderSnapList);
+
+  $("#btn-refresh").addEventListener("click", () => loadMeta());
+
+  $("#btn-restore-browser")?.addEventListener("click", async () => {
+    const btn = $("#btn-restore-browser");
+    if (btn) btn.disabled = true;
+    setDayCalStatus("Restoring day files from this browser…");
+    try {
+      const r = await restoreBrowserDayFilesToServer({
+        onProgress: ({ done, total, restored, failed }) => {
+          setDayCalStatus(
+            `Restoring… ${done}/${total}`
+              + (restored ? ` · ${restored} ok` : "")
+              + (failed ? ` · ${failed} failed` : "")
+          );
+        },
+      });
+      await loadMeta({ autoRestore: false });
+      setDayCalStatus(
+        r.restored
+          ? `Restored ${r.restored} day file(s) to server`
+            + (r.skipped ? ` · ${r.skipped} already on server` : "")
+            + (r.failed ? ` · ${r.failed} failed` : "")
+            + "."
+          : r.skipped
+            ? `Nothing to restore · ${r.skipped} day(s) already on server.`
+            : "No browser backups found yet — drop RTL on day boxes once to create them.",
+        r.restored ? "ok" : r.failed ? "err" : ""
+      );
+    } catch (err) {
+      setDayCalStatus(err.message || "Restore failed", "err");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+
+  $("#snap-list").addEventListener("click", async (e) => {
+    const delBtn = e.target.closest("[data-del]");
+    if (delBtn) {
+      const id = delBtn.getAttribute("data-del");
+      if (!id || !confirm(`Delete RTL snapshot ${id}? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`${API_DELETE}/${encodeURIComponent(id)}`, { method: "DELETE" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        await loadMeta();
+      } catch (err) {
+        setStatus($("#list-status"), err.message || "Delete failed", "err");
+      }
+      return;
+    }
+    
+    const dateBtn = e.target.closest(".btn-use-date");
+    if (dateBtn) {
+      const id = dateBtn.getAttribute("data-id") || "";
+      const fileDate = dateBtn.getAttribute("data-date") || "";
+      // Prefer the date currently selected in the uploader — that is the schedule day
+      // the user wants this file to drive (e.g. day 3), not only the file's old date.
+      const selected = ($("#snap-date") && $("#snap-date").value) || "";
+      const scheduleDate = selected || fileDate;
+      if (!id) {
+        setStatus($("#list-status"), "Missing snapshot id.", "err");
+        return;
+      }
+      if (!scheduleDate) {
+        setStatus($("#list-status"), "Select a schedule date above, then click Use date.", "err");
+        return;
+      }
+      dateBtn.disabled = true;
+      setStatus($("#list-status"), `Setting active file for schedule day ${formatDateDisplay(scheduleDate)}…`);
+      try {
+        const res = await fetch(API_USE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            scheduleDate,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        $("#snap-date").value = data.date || scheduleDate;
+        updateDateBanner();
+        const dayNum = (data.date || scheduleDate) && String(data.date || scheduleDate).length >= 10
+          ? Number(String(data.date || scheduleDate).slice(8, 10))
+          : null;
+        setStatus(
+          $("#scan-status"),
+          `✓ Schedule day ${dayNum || "?"} (${data.date || scheduleDate}) now uses this file · ${data.count || 0} VINs · ages as-of ${data.asOfDate || "file extract"} · ${data.id || id}. Open Allocation (or Refresh) to update Tot/RES.`,
+          "ok"
+        );
+        await loadMeta();
+      } catch (err) {
+        dateBtn.disabled = false;
+        setStatus($("#list-status"), err.message || "Use date failed", "err");
+      }
+      return;
+    }
+  });
+
+  $("#btn-compare").addEventListener("click", async () => {
+    const from = $("#cmp-from").value;
+    const to = $("#cmp-to").value;
+    if (!from || !to) {
+      setStatus($("#cmp-status"), "Need two saved days to compare.", "err");
+      return;
+    }
+    setStatus($("#cmp-status"), "Comparing…");
+    try {
+      const res = await fetch(`${API_COMPARE}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+        cache: "no-store",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      lastCompare = data;
+      cmpTab = "added";
+      $("#cmp-added").textContent = String(data.summary?.added || 0);
+      $("#cmp-removed").textContent = String(data.summary?.removed || 0);
+      $("#cmp-changed").textContent = String(data.summary?.changed || 0);
+      $("#cmp-same").textContent = String(data.summary?.same || 0);
+      $("#cmp-kpis").hidden = false;
+      $("#cmp-tabs").hidden = false;
+      $("#cmp-wrap").hidden = false;
+      $("#btn-export-cmp").disabled = false;
+      renderCompareTab();
+      setStatus(
+        $("#cmp-status"),
+        `Compared ${from} → ${to} · ${data.fromCount} → ${data.toCount} VINs`,
+        "ok"
+      );
+    } catch (err) {
+      setStatus($("#cmp-status"), err.message || "Compare failed", "err");
+    }
+  });
+
+  $("#cmp-tabs").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-cmp-tab]");
+    if (!btn) return;
+    cmpTab = btn.dataset.cmpTab;
+    renderCompareTab();
+  });
+
+  $("#btn-export-cmp").addEventListener("click", () => {
+    if (!lastCompare || typeof XLSX === "undefined") return;
+    const wb = XLSX.utils.book_new();
+    const sheets = [
+      ["Added", lastCompare.added || []],
+      ["Removed", lastCompare.removed || []],
+      ["Changed", (lastCompare.changed || []).map((r) => ({
+        VIN: r.vin,
+        "From Product": r.fromProduct,
+        "From Suffix": r.fromSuffix,
+        "To Product": r.toProduct,
+        "To Suffix": r.toSuffix,
+      }))],
+      ["Same", lastCompare.same || []],
+    ];
+    sheets.forEach(([name, rows]) => {
+      const normalized = rows.map((r) => (
+        r.vin != null
+          ? { VIN: r.vin, Product: r.product || "", Suffix: r.suffix || "", ...r }
+          : r
+      ));
+      const ws = XLSX.utils.json_to_sheet(normalized.length ? normalized : [{ Note: "None" }]);
+      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+    });
+    XLSX.writeFile(wb, `RTL-compare-${lastCompare.fromDate}-to-${lastCompare.toDate}.xlsx`);
+  });
+
+  // Retail Electronic Sales tracker
+  function renderResTab() {
+    if (!lastResCompare) return;
+    const map = {
+      "all-from": lastResCompare.allFrom || [],
+      "all-to": lastResCompare.allTo || [],
+      "removed": lastResCompare.removed || [],
+    };
+    const rows = map[resTab] || [];
+    const head = $("#res-head");
+    const body = $("#res-body");
+
+    // Build header from first row with details
+    const firstRow = rows.find(r => r.details) || rows[0];
+    const detailKeys = firstRow && firstRow.details ? Object.keys(firstRow.details) : [];
+    
+    head.innerHTML = `<tr>
+      <th>VIN</th>
+      <th>Product</th>
+      <th>Suffix</th>
+      <th>Year</th>
+      <th>Ext</th>
+      <th>Int</th>
+      <th>Age</th>
+      <th>Usage</th>
+      <th>Status</th>
+      <th>Secondary Status</th>
+      <th>Location</th>
+      <th>Vehicle Search Area</th>
+      ${resTab === "removed" ? "<th>New Search Area</th>" : ""}
+      ${detailKeys.slice(0, 5).map(k => `<th>${escapeHtml(k)}</th>`).join("")}
+    </tr>`;
+
+    body.innerHTML = rows.map((r) => `
+      <tr>
+        <td class="mono">${escapeHtml(r.vin)}</td>
+        <td>${escapeHtml(r.product || "—")}</td>
+        <td>${escapeHtml(r.suffix || "—")}</td>
+        <td>${escapeHtml(r.year || "—")}</td>
+        <td>${escapeHtml(r.ext || "—")}</td>
+        <td>${escapeHtml(r.int || "—")}</td>
+        <td>${escapeHtml(r.age || "—")}</td>
+        <td>${escapeHtml(r.usage || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(r.status || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(r.secondaryStatus || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(r.location || "—")}</td>
+        <td class="wrap-cell">${escapeHtml(r.vehicleSearchArea || "—")}</td>
+        ${resTab === "removed" ? `<td class="wrap-cell">${escapeHtml(r.newSearchArea || "—")}</td>` : ""}
+        ${detailKeys.slice(0, 5).map(k => `<td class="wrap-cell">${escapeHtml((r.details && r.details[k]) || "—")}</td>`).join("")}
+      </tr>
+    `).join("") || `<tr><td colspan="15" class="muted">None</td></tr>`;
+
+    document.querySelectorAll("#res-tabs button").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.resTab === resTab);
+    });
+  }
+
+  $("#btn-res-compare").addEventListener("click", async () => {
+    const from = $("#res-from").value;
+    const to = $("#res-to").value;
+    const filter = ($("#res-filter").value || "retail electronic sales").trim().toLowerCase();
+    
+    if (!from || !to) {
+      setStatus($("#res-status"), "Need two saved days to compare.", "err");
+      return;
+    }
+    
+    setStatus($("#res-status"), "Loading snapshots and analyzing…");
+    try {
+      // Fetch both snapshots with full data
+      const [resFrom, resTo] = await Promise.all([
+        fetch(`/api/rtl-daily/${encodeURIComponent(from)}`, { cache: "no-store" }).then(r => r.json()),
+        fetch(`/api/rtl-daily/${encodeURIComponent(to)}`, { cache: "no-store" }).then(r => r.json())
+      ]);
+      
+      if (!resFrom.vehicles || !resTo.vehicles) {
+        throw new Error("Could not load vehicle data from snapshots");
+      }
+      
+      // Filter vehicles in the category
+      const fromFiltered = resFrom.vehicles.filter(v => 
+        (v.vehicleSearchArea || "").toLowerCase().includes(filter)
+      );
+      const toFiltered = resTo.vehicles.filter(v => 
+        (v.vehicleSearchArea || "").toLowerCase().includes(filter)
+      );
+      
+      // Find removed (VINs that were in category but are no longer)
+      const toVinMap = new Map(resTo.vehicles.map(v => [v.vin, v]));
+      const removed = fromFiltered
+        .filter(v => {
+          const newVin = toVinMap.get(v.vin);
+          return newVin && !(newVin.vehicleSearchArea || "").toLowerCase().includes(filter);
+        })
+        .map(v => ({
+          ...v,
+          newSearchArea: (toVinMap.get(v.vin)?.vehicleSearchArea || "Not found")
+        }));
+      
+      lastResCompare = {
+        allFrom: fromFiltered,
+        allTo: toFiltered,
+        removed: removed,
+        fromCount: fromFiltered.length,
+        toCount: toFiltered.length,
+        removedCount: removed.length,
+        fromDate: from,
+        toDate: to,
+        filter: filter
+      };
+      
+      resTab = "all-from";
+      $("#res-total-from").textContent = String(fromFiltered.length);
+      $("#res-total-to").textContent = String(toFiltered.length);
+      $("#res-removed").textContent = String(removed.length);
+      $("#res-same").textContent = String(fromFiltered.length - removed.length);
+      $("#res-kpis").hidden = false;
+      $("#res-tabs").hidden = false;
+      $("#res-wrap").hidden = false;
+      $("#btn-export-res").disabled = false;
+      renderResTab();
+      
+      setStatus(
+        $("#res-status"),
+        `Tracked "${filter}" · From: ${fromFiltered.length} VINs · To: ${toFiltered.length} VINs · Removed: ${removed.length}`,
+        "ok"
+      );
+    } catch (err) {
+      setStatus($("#res-status"), err.message || "Analysis failed", "err");
+    }
+  });
+
+  $("#res-tabs").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-res-tab]");
+    if (!btn) return;
+    resTab = btn.dataset.resTab;
+    renderResTab();
+  });
+
+  $("#btn-export-res").addEventListener("click", () => {
+    if (!lastResCompare || typeof XLSX === "undefined") return;
+    const wb = XLSX.utils.book_new();
+    
+    const sheets = [
+      ["All From Day", lastResCompare.allFrom || []],
+      ["All To Day", lastResCompare.allTo || []],
+      ["Removed From Category", lastResCompare.removed || []],
+    ];
+    
+    sheets.forEach(([name, rows]) => {
+      const normalized = rows.map((r) => {
+        const base = {
+          VIN: r.vin,
+          Product: r.product || "",
+          Suffix: r.suffix || "",
+          Year: r.year || "",
+          Exterior: r.ext || "",
+          Interior: r.int || "",
+          Age: r.age || "",
+          Usage: r.usage || "",
+          Status: r.status || "",
+          "Secondary Status": r.secondaryStatus || "",
+          Location: r.location || "",
+          "Vehicle Search Area": r.vehicleSearchArea || "",
+        };
+        if (r.newSearchArea) base["New Search Area"] = r.newSearchArea;
+        return { ...base, ...(r.details || {}) };
+      });
+      const ws = XLSX.utils.json_to_sheet(normalized.length ? normalized : [{ Note: "None" }]);
+      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+    });
+    
+    XLSX.writeFile(wb, `RTL-category-${lastResCompare.filter.replace(/\s+/g, "-")}-${lastResCompare.fromDate}-to-${lastResCompare.toDate}.xlsx`);
+  });
+
+  loadMeta();
+})();
+  </script>
+</body>
+</html>

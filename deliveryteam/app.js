@@ -9,7 +9,7 @@
     user: null,
     meta: null,
     view: 'dashboard',
-    filters: { q: '', status: '', employee: '', month: '', page: 1, limit: 2000 },
+    filters: { q: '', status: '', employee: '', month: '', page: 1, limit: 40 },
     selectedVins: new Set(),
     reassignVins: new Set(),
     reassignFrom: '',
@@ -19,9 +19,10 @@
     assignEmployee: '',
     editsTimer: null,
     liveTimer: null,
-    liveFilters: { q: '', employee: '', status: '', month: '', carrier: '', proforma: '' },
+    liveFilters: { q: '', employee: '', status: '', month: '', carrier: '' },
     liveFingerprint: '',
     monthFilter: '',
+    targetMonth: '',
     guestTickTimer: null,
     hubRaw: null,
     tzOffset: -new Date().getTimezoneOffset(),
@@ -43,17 +44,20 @@
     return s && s !== 'N/A' ? s : 'N/A';
   }
 
-  /** Customer / phone — visible to all Delivery Team users. */
+  /** Customer / phone / invoice owner — admin + Hanouf (assignment). */
   function canSeePii() {
-    return !!(state.user && state.user.role);
+    const role = state.user && state.user.role;
+    return role === 'admin' || role === 'hanouf';
   }
 
   function displayName(value) {
+    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
 
   function displayPhone(value) {
+    if (!canSeePii()) return '—';
     const s = String(value == null ? '' : value).trim();
     return s || '—';
   }
@@ -69,6 +73,7 @@
     const v = String(s || '').trim();
     if (v === 'Claimed') return 'row-status-claimed';
     if (v === 'PSFU') return 'row-status-psfu';
+    if (v === 'تم التسليم') return 'row-status-delivered';
     if (v === 'جاهز للتسليم') return 'row-status-ready';
     if (v === 'مرور') return 'row-status-traffic';
     if (v === 'رجوع مرور') return 'row-status-traffic-return';
@@ -81,8 +86,9 @@
     const v = String(s || '').trim();
     if (!v) return '<span class="badge">—</span>';
     if (v === 'Claimed') return `<span class="badge info">${esc(v)}</span>`;
-    if (v === 'PSFU' || v === 'تم التسليم') return `<span class="badge ok">${esc(v)}</span>`;
-    if (v === 'جاهز للتسليم') return `<span class="badge warn">${esc(v)}</span>`;
+    if (v === 'PSFU') return `<span class="badge ok">${esc(v)}</span>`;
+    if (v === 'تم التسليم') return `<span class="badge yellow">${esc(v)}</span>`;
+    if (v === 'جاهز للتسليم') return `<span class="badge orange">${esc(v)}</span>`;
     if (v === 'مرور') return `<span class="badge">${esc(v)}</span>`;
     if (v === 'رجوع مرور') return `<span class="badge purple">${esc(v)}</span>`;
     if (v === 'معلقة') return `<span class="badge navy">${esc(v)}</span>`;
@@ -116,56 +122,43 @@
     return state.user && (state.user.role === 'admin' || state.user.role === 'hanouf');
   }
 
-  function canEditVinOps(row) {
+  function canSetTargets() {
+    return !!(state.user && state.user.role === 'hanouf');
+  }
+
+  function achPctClass(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return '';
+    const n = Number(pct);
+    if (n >= 100) return 'ach-good';
+    if (n >= 70) return 'ach-mid';
+    return 'ach-low';
+  }
+
+  function formatAchPct(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return '—';
+    return `${Number(pct)}%`;
+  }
+
+  /** Ruba / Rasha / Hanouf / Admin — inline edit on Live Sheet */
+  function canEditLiveSheet() {
+    if (!state.user) return false;
     if (canManage()) return true;
-    if (!state.user || !row || !row.ops) return false;
-    return row.ops.assignedEmployeeId === state.user.id
-      || row.ops.assignedEmployeeName === state.user.name;
-  }
-
-  /** الناقل locked after first selection (Admin may still change). */
-  function isCarrierLocked(row) {
-    const has = !!(row && row.ops && String(row.ops.carrier || '').trim());
-    if (!has) return false;
-    return !(state.user && state.user.role === 'admin');
-  }
-
-  function carrierCellHtml(row, { allowEdit = false } = {}) {
-    const val = row && row.ops ? row.ops.carrier : '';
-    if (allowEdit && !isCarrierLocked(row)) {
-      return editableControl(row.vin, 'carrier', 'carrier', val);
-    }
-    const label = na(val);
-    if (String(val || '').trim()) {
-      return `<span class="badge" title="الناقل مقفل بعد التعيين">${esc(label)}</span>`;
-    }
-    return esc(label);
-  }
-
-  function hubSyncToast(hubSync) {
-    if (!hubSync || typeof hubSync !== 'object') return '';
-    const moved = Number(hubSync.added || 0) + Number(hubSync.reassigned || 0);
-    const city = Number(hubSync.cityUpdated || 0);
-    const parts = [];
-    if (moved) parts.push(`${moved} → لوحة الشركة`);
-    if (city) parts.push(`مدينة ${city}`);
-    return parts.length ? ` · ${parts.join(' · ')}` : '';
+    const id = String(state.user.id || '').trim().toLowerCase();
+    const name = String(state.user.name || '').trim().toLowerCase();
+    return id === 'ruba' || id === 'rasha' || name === 'ruba' || name === 'rasha';
   }
 
   function isRuba() {
     return state.user && (state.user.id === 'ruba' || state.user.name === 'Ruba');
   }
 
-  function isRasha() {
-    return state.user && (state.user.id === 'rasha' || state.user.name === 'Rasha');
-  }
-
-  function canUploadSalesRaw() {
-    return canManage() || isRuba() || isRasha();
-  }
-
   function canEditGuest(row) {
-    return canEditVinOps(row);
+    if (!state.user || !row) return false;
+    if (canManage()) return true;
+    if (!isRuba()) return false;
+    const id = (row.ops && row.ops.assignedEmployeeId) || '';
+    const name = (row.ops && row.ops.assignedEmployeeName) || '';
+    return id === 'ruba' || name === 'Ruba';
   }
 
   function formatGuestAt(iso) {
@@ -188,19 +181,25 @@
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
-  /** Guest Exp column = Yes / No only. Ruba schedules on Guest Exp page. */
-  function guestCellHtml(r) {
-    const ops = r.ops || {};
-    const val = String(ops.guestCenter || '') === 'Yes' ? 'Yes'
-      : String(ops.guestCenter || '') === 'No' ? 'No' : '';
-    if (canEditGuest(r)) {
-      return editableControl(r.vin, 'guestCenter', 'yn', val);
-    }
-    return ynBadge(val);
+  function guestCenterValue(r) {
+    const ops = (r && r.ops) || {};
+    const raw = String(ops.guestCenter || '').trim().toLowerCase();
+    if (raw === 'yes' || raw === 'y') return 'Yes';
+    if (raw === 'no' || raw === 'n') return 'No';
+    if (r && r.guestCenter) return 'Yes';
+    return '';
   }
 
-  function canSeeGuestPage() {
-    return isRuba() || canManage();
+  /** Guest Exp = simple Yes / No list (no modal button). */
+  function guestCellHtml(r, { editable = false } = {}) {
+    const val = guestCenterValue(r);
+    const canEdit = editable || canEditGuest(r) || canEditLiveSheet();
+    if (!canEdit) {
+      if (val === 'Yes') return '<span class="guest-badge">Yes</span>';
+      if (val === 'No') return '<span class="badge">No</span>';
+      return '<span class="hint">—</span>';
+    }
+    return editableControl(r.vin, 'guestCenter', 'yn', val);
   }
 
   function bindGuestButtons(root = document) {
@@ -220,9 +219,12 @@
       const ms = new Date(at).getTime() - Date.now();
       el.textContent = formatCountdown(ms);
       el.classList.toggle('is-due', ms <= 0);
-      if (ms <= 0 && state.view === 'guest' && !el.dataset.refreshed) {
-        el.dataset.refreshed = '1';
-        loadGuestExperience().catch(() => {});
+      if (ms <= 0 && state.view === 'my') {
+        // soft refresh once due so Collected? buttons appear
+        if (!el.dataset.refreshed) {
+          el.dataset.refreshed = '1';
+          loadMy().catch(() => {});
+        }
       }
     });
   }
@@ -246,10 +248,10 @@
     back.onclick = (e) => { if (e.target === back) close(); };
 
     if (action === 'collected-yes') {
-      title.textContent = 'Customer claimed?';
+      title.textContent = 'Guest collected?';
       sub.textContent = `${v.vin} · ${displayName(v.raw.userName)} · choose status after collection`;
       body.innerHTML = `
-        <p class="hint">Appointment was <b>${esc(formatGuestAt(existing))}</b>. Confirm the customer claimed the car, then set status.</p>
+        <p class="hint">Appointment was <b>${esc(formatGuestAt(existing))}</b>. Confirm the car was collected, then set status.</p>
         <div class="field">
           <label>New status</label>
           <select id="guest-status">
@@ -258,7 +260,7 @@
           </select>
         </div>
         <div class="guest-modal-actions">
-          <button type="button" class="btn-primary" id="guest-save-yes">Yes — claimed</button>
+          <button type="button" class="btn-primary" id="guest-save-yes">Yes — collected</button>
           <button type="button" class="btn" id="guest-cancel">Cancel</button>
         </div>`;
       $('#guest-cancel').onclick = close;
@@ -276,7 +278,7 @@
     }
 
     if (action === 'collected-no') {
-      title.textContent = 'Not claimed — new appointment';
+      title.textContent = 'Not collected — new time';
       sub.textContent = `${v.vin} · set another date & time for the customer`;
       body.innerHTML = `
         <div class="field"><label>New date</label><input type="date" id="guest-date" value="${esc(dateVal)}" /></div>
@@ -304,8 +306,8 @@
       return;
     }
 
-    // schedule / reschedule
-    title.textContent = action === 'reschedule' ? 'Reschedule collection' : 'Schedule collection';
+    // mark / schedule / reschedule
+    title.textContent = action === 'mark' ? 'Mark Guest Experience' : 'Guest Exp · Schedule pickup';
     sub.textContent = `${v.vin} · ${displayName(v.raw.userName)} · ${na(v.raw.product)}`;
     body.innerHTML = `
       <p class="hint">Set the date and time for the customer to collect this VIN at Guest Experience.</p>
@@ -332,84 +334,6 @@
     back.classList.add('open');
   }
 
-  function guestCardHtml(r, { canOperate = false } = {}) {
-    const ops = r.ops || {};
-    const collected = String(ops.guestCollected || '') === 'Yes';
-    const due = !!r.guestDue;
-    const ms = r.guestTimerMs != null
-      ? r.guestTimerMs
-      : (ops.guestCollectAt ? new Date(ops.guestCollectAt).getTime() - Date.now() : null);
-    let actions = '';
-    if (canOperate && !collected) {
-      if (!ops.guestCollectAt) {
-        actions = `<button type="button" class="btn-primary" data-guest-act="schedule" data-vin="${esc(r.vin)}">Set collection time</button>`;
-      } else if (due) {
-        actions = `<div class="guest-claim-ask">
-          <p class="guest-claim-q">Did the customer claim the car?</p>
-          <button type="button" class="btn-guest due" data-guest-act="collected-yes" data-vin="${esc(r.vin)}">Yes — claimed</button>
-          <button type="button" class="btn-guest" data-guest-act="collected-no" data-vin="${esc(r.vin)}">No — reschedule</button>
-        </div>`;
-      } else {
-        actions = `<button type="button" class="btn" data-guest-act="reschedule" data-vin="${esc(r.vin)}">Reschedule</button>`;
-      }
-    } else if (!canOperate && due && !collected) {
-      actions = `<p class="hint guest-watch-note">Waiting for Ruba to confirm claim…</p>`;
-    }
-
-    const timerBlock = collected
-      ? `<span class="guest-badge collected">Collected ✓</span>`
-      : (ops.guestCollectAt
-        ? `<span class="guest-timer ${due ? 'is-due' : ''}" data-guest-timer="${esc(ops.guestCollectAt)}">${esc(formatCountdown(ms))}</span>
-           <div class="hint">${esc(formatGuestAt(ops.guestCollectAt))}</div>`
-        : `<span class="hint">No appointment yet</span>`);
-
-    return `<article class="guest-card ${due && !collected ? 'is-due' : ''} ${collected ? 'is-done' : ''}" data-vin="${esc(r.vin)}">
-      <div class="guest-card-top">
-        <div>
-          <button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>
-          <div class="guest-card-product">${esc(na(r.raw.product))}</div>
-        </div>
-        ${statusBadge(ops.opsStatus)}
-      </div>
-      <div class="guest-card-meta">
-        <span>${esc(displayName(r.raw.userName))}</span>
-        <span>${esc(displayPhone(r.raw.phone))}</span>
-        <span>PIC · ${esc(na(ops.assignedEmployeeName))}</span>
-      </div>
-      <div class="guest-card-timer">${timerBlock}</div>
-      <div class="guest-card-actions">${actions}</div>
-    </article>`;
-  }
-
-  async function loadGuestExperience() {
-    const data = await api('/guest-experience');
-    const kpis = $('#guest-kpis');
-    if (kpis) {
-      kpis.innerHTML = [
-        ['Guest Exp Yes', data.total || 0, ''],
-        ['Awaiting claim', data.pending || 0, 'warn'],
-        ['Due now', data.due || 0, data.due ? 'warn' : 'ok'],
-      ].map(([l, v, c]) => `<article class="kpi ${c}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`).join('');
-    }
-    const banner = $('#guest-watch-banner');
-    if (banner) {
-      banner.hidden = !data.watcher;
-      banner.textContent = data.watcher
-        ? 'Watcher mode — you can see timers and appointments. Only Ruba confirms claim / reschedules.'
-        : '';
-    }
-    const grid = $('#guest-grid');
-    if (!grid) return;
-    const rows = data.rows || [];
-    if (!rows.length) {
-      grid.innerHTML = '<p class="hint">No Guest Exp = Yes vehicles yet. Mark Guest Exp Yes on My VINs / Live Sheet.</p>';
-      return;
-    }
-    grid.innerHTML = rows.map((r) => guestCardHtml(r, { canOperate: !!data.canOperate })).join('');
-    $$('.vin-link', grid).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
-    bindGuestButtons(grid);
-  }
-
   function assignableNames() {
     const fromMeta = state.meta && state.meta.assignable;
     if (Array.isArray(fromMeta) && fromMeta.length) return fromMeta.slice();
@@ -419,6 +343,10 @@
   function currentMonthValue() {
     const d = new Date(Date.now() + state.tzOffset * 60000);
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function canUploadSalesRaw() {
+    return canManage() || isRuba();
   }
 
   function formatRawUpdatedAt(iso) {
@@ -464,7 +392,7 @@
     const detail = $('#sales-raw-status-detail');
     if (detail) {
       if (!status || !status.uploadedAt) {
-        detail.textContent = 'Not uploaded yet — Hanouf, Ruba, or Rasha can upload Sales Raw here';
+        detail.textContent = 'Not uploaded yet — Hanouf or Ruba can upload Sales Raw here';
       } else {
         const parts = [
           formatRawUpdatedAt(status.uploadedAt),
@@ -481,7 +409,6 @@
     const items = [
       { id: 'dashboard', label: 'Dashboard', roles: ['admin', 'hanouf', 'employee'] },
       { id: 'live', label: 'Live Sheet', roles: ['admin', 'hanouf', 'employee'] },
-      { id: 'guest', label: 'Guest Experience', roles: ['admin', 'hanouf', 'employee'], guestOnly: true },
       { id: 'today', label: "Today's Vehicles", roles: ['admin', 'hanouf'] },
       { id: 'my', label: 'My VINs', roles: ['employee', 'admin', 'hanouf'] },
       { id: 'assign', label: 'Assignment', roles: ['admin', 'hanouf'] },
@@ -493,7 +420,6 @@
     return items.filter((i) => {
       if (!i.roles.includes(state.user.role)) return false;
       if (i.salesRawOnly) return canUploadSalesRaw();
-      if (i.guestOnly) return canSeeGuestPage();
       return true;
     });
   }
@@ -506,7 +432,7 @@
     $$('#side-nav button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
     $('#side-name').textContent = state.user.name;
     $('#side-role').textContent = state.user.role;
-    $('#export-btn').hidden = false;
+    $('#export-btn').hidden = !canManage();
   }
 
   function setView(view) {
@@ -524,15 +450,12 @@
     const titles = {
       dashboard: ['Dashboard', 'Delivery Control Tower'],
       live: ['Live Sheet', 'All teammates’ schedules · Sales Type (cash / bank)'],
-      guest: ['Guest Experience', isRuba()
-        ? 'Your Guest Exp = Yes cars · set collect time · timer · claim'
-        : 'Watcher · Guest Exp = Yes cars · Ruba confirms claim'],
       today: ["Today's Vehicles", 'Proforma Date = today'],
       my: ['My VINs', 'Your schedule · edit your work · الناقل'],
       assign: ['Assignment', 'Upload → assign employee (incl. Hanouf) → الناقل'],
       all: ['All Vehicles', 'Full fleet · filters · export'],
       upload: ['Upload Delivery sheet', 'E sales layout · status · الناقل · مدينة الترحيل'],
-      'sales-raw': ['Sales Raw', 'Hanouf / Ruba / Rasha · shared with Delivery Hub & Coordinator'],
+      'sales-raw': ['Sales Raw', 'Hanouf / Ruba · shared inventory · everyone sees the update time'],
       audit: ['Audit Log', 'Full history of every edit'],
     };
     const t = titles[view] || ['Delivery Team', ''];
@@ -547,12 +470,7 @@
     if (view === 'live') {
       state.liveTimer = setInterval(() => {
         loadLiveSheet({ silent: true }).catch(() => {});
-      }, 15000);
-    }
-    if (view === 'guest') {
-      state.liveTimer = setInterval(() => {
-        loadGuestExperience().catch(() => {});
-      }, 15000);
+      }, 5000);
     }
     if (!state.guestTickTimer) {
       state.guestTickTimer = setInterval(() => tickGuestTimers(), 1000);
@@ -563,7 +481,6 @@
     try {
       if (state.view === 'dashboard') await loadDashboard();
       if (state.view === 'live') await loadLiveSheet();
-      if (state.view === 'guest') await loadGuestExperience();
       if (state.view === 'today') await loadToday();
       if (state.view === 'my') await loadMy();
       if (state.view === 'assign') await loadAssign();
@@ -587,7 +504,6 @@
     if (f.status) params.set('status', f.status);
     if (f.carrier) params.set('carrier', f.carrier);
     if (f.month) params.set('month', f.month);
-    if (f.proforma) params.set('proforma', f.proforma);
     const data = await api(`/live-sheet?${params}`);
     if (data.hubRaw) renderRawStatus(data.hubRaw);
     const rows = data.rows || [];
@@ -632,15 +548,11 @@
     const statusSel = $('#live-status');
     if (statusSel && !statusSel.dataset.filled) {
       const statuses = (state.meta && state.meta.statuses) || [];
-      statusSel.innerHTML = `<option value="">All statuses</option>
-        <option value="__empty__">Non selected (فارغ)</option>
-        ${statuses.map((s) =>
-          `<option value="${esc(s)}">${esc(s)}</option>`
-        ).join('')}`;
+      statusSel.innerHTML = `<option value="">All statuses</option>${statuses.map((s) =>
+        `<option value="${esc(s)}">${esc(s)}</option>`
+      ).join('')}`;
       statusSel.value = f.status || '';
       statusSel.dataset.filled = '1';
-    } else if (statusSel) {
-      statusSel.value = f.status || '';
     }
 
     const carrierSel = $('#live-carrier');
@@ -676,9 +588,6 @@
         ...Object.keys(bySt).filter((k) => k !== '(blank)').slice(0, 8).map((k) =>
           `<button type="button" class="live-chip status-filter ${f.status === k ? 'active' : ''}" data-status="${esc(k)}">${esc(k)} <b>${bySt[k]}</b></button>`
         ),
-        (bySt['(blank)']
-          ? `<button type="button" class="live-chip status-filter ${f.status === '__empty__' ? 'active' : ''}" data-status="__empty__">Non selected <b>${bySt['(blank)']}</b></button>`
-          : ''),
       ].join('');
       $$('.live-chip.status-filter', chips).forEach((b) => b.addEventListener('click', () => {
         state.liveFilters.status = state.liveFilters.status === b.dataset.status ? '' : b.dataset.status;
@@ -702,7 +611,8 @@
     if (meta) {
       const t = new Date(data.at || Date.now()).toLocaleTimeString();
       const monthNote = f.month ? ` · ${f.month}` : ' · all months';
-      meta.textContent = `${data.total || 0} assigned VINs${monthNote} · live · last sync ${t}${changed && silent ? ' · updated' : ''}`;
+      const editNote = canEditLiveSheet() ? ' · editable' : '';
+      meta.textContent = `${data.total || 0} assigned VINs${monthNote}${editNote} · live · last sync ${t}${changed && silent ? ' · updated' : ''}`;
     }
     if (dot) {
       dot.classList.toggle('pulse', !!changed || !silent);
@@ -711,13 +621,44 @@
 
     if (!changed && silent) return;
 
-    fillCarrierLists();
-    fillCityLists();
+    const table = $('#live-table');
+    const active = document.activeElement;
+    const editingLive = !!(
+      silent
+      && active
+      && table
+      && active.classList
+      && active.classList.contains('cell-edit')
+      && table.contains(active)
+    );
+    if (editingLive) return;
+
+    const liveEditable = canEditLiveSheet();
+    const editHint = $('#live-edit-hint');
+    if (editHint) editHint.hidden = !liveEditable;
+    if (liveEditable) {
+      fillCarrierLists();
+      const cities = (state.meta && state.meta.transferCities) || [];
+      const cityList = $('#edit-city-list');
+      if (cityList) cityList.innerHTML = cities.map((c) => `<option value="${esc(c)}"></option>`).join('');
+    }
+
+    const opsCell = (r, field, type, value) => (
+      liveEditable
+        ? editableControl(r.vin, field, type, value)
+        : (type === 'status'
+          ? statusBadge(value)
+          : (type === 'yn' ? ynBadge(value) : na(value)))
+    );
 
     const cols = [
       { key: 'num', label: '#', html: (_r, i) => i + 1 },
       { key: 'employee', label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` },
-      { key: 'status', label: 'Status', html: (r) => `<span class="cell-status">${statusBadge(r.ops.opsStatus)}</span>` },
+      { key: 'status', label: 'Status', html: (r) => (
+        liveEditable
+          ? editableControl(r.vin, 'opsStatus', 'status', r.ops.opsStatus)
+          : `<span class="cell-status">${statusBadge(r.ops.opsStatus)}</span>`
+      ) },
       { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>` },
       { key: 'proforma', label: 'Proforma', html: (r) => na(r.raw.proformaDate) },
       { key: 'order', label: 'Order', html: (r) => na(r.raw.salesOrder) },
@@ -731,52 +672,325 @@
       ...(canSeePii() ? [
         { key: 'phone', label: 'Phone', html: (r) => displayPhone(r.raw.phone) },
       ] : []),
-      { key: 'guest', label: 'Guest Exp', html: (r) => guestCellHtml(r) },
+      { key: 'guest', label: 'Guest Exp', html: (r) => guestCellHtml(r, { editable: liveEditable }) },
       { key: 'gt', label: 'GT Loc', html: (r) => na(r.raw.gtLocation) },
       { key: 'veh', label: 'Veh Loc', html: (r) => na(r.raw.vehicleLocation) },
-      { key: 'guestsent', label: 'إرسال الضيف', html: (r) => na(r.ops.guestSentDate) },
-      { key: 'sig', label: 'استلام التواقيع', html: (r) => na(r.ops.signatureReceivedDate) },
-      { key: 'accsent', label: 'إرسال للحسابات', html: (r) => na(r.ops.accountsSentDate) },
-      { key: 'accok', label: 'موافقة الحسابات', html: (r) => na(r.ops.accountsApprovalDate) },
-      { key: 'vin1502', label: 'VIN 1502', html: (r) => ynBadge(r.ops.vin1502) },
-      { key: 'traffic', label: 'ملف المرور', html: (r) => ynBadge(r.ops.trafficFile) },
-      { key: 'fees', label: 'Traffic Fees', html: (r) => ynBadge(r.ops.trafficFeesOps) },
-      { key: 'ins', label: 'Insurance', html: (r) => ynBadge(r.ops.insuranceOps) },
-      { key: 'reg', label: 'إصدار الاستمارة', html: (r) => na(r.ops.registrationIssueDate) },
-      {
-        key: 'city',
-        label: 'مدينة الترحيل',
-        html: (r) => (canEditVinOps(r)
-          ? editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity)
-          : na(r.ops.transferCity)),
-      },
-      {
-        key: 'carrier',
-        label: 'الناقل',
-        html: (r) => carrierCellHtml(r, { allowEdit: canEditVinOps(r) }),
-      },
-      { key: 'notes', label: 'ملاحظات', html: (r) => esc(r.ops.notes || '') },
+      { key: 'guestsent', label: 'إرسال الضيف', html: (r) => opsCell(r, 'guestSentDate', 'date', r.ops.guestSentDate) },
+      { key: 'sig', label: 'استلام التواقيع', html: (r) => opsCell(r, 'signatureReceivedDate', 'date', r.ops.signatureReceivedDate) },
+      { key: 'accsent', label: 'إرسال للحسابات', html: (r) => opsCell(r, 'accountsSentDate', 'date', r.ops.accountsSentDate) },
+      { key: 'accok', label: 'موافقة الحسابات', html: (r) => opsCell(r, 'accountsApprovalDate', 'date', r.ops.accountsApprovalDate) },
+      { key: 'vin1502', label: 'VIN 1502', html: (r) => opsCell(r, 'vin1502', 'yn', r.ops.vin1502) },
+      { key: 'traffic', label: 'ملف المرور', html: (r) => opsCell(r, 'trafficFile', 'yn', r.ops.trafficFile) },
+      { key: 'fees', label: 'Traffic Fees', html: (r) => opsCell(r, 'trafficFeesOps', 'yn', r.ops.trafficFeesOps) },
+      { key: 'ins', label: 'Insurance', html: (r) => opsCell(r, 'insuranceOps', 'yn', r.ops.insuranceOps) },
+      { key: 'reg', label: 'إصدار الاستمارة', html: (r) => opsCell(r, 'registrationIssueDate', 'date', r.ops.registrationIssueDate) },
+      { key: 'city', label: 'مدينة الترحيل', html: (r) => opsCell(r, 'transferCity', 'city', r.ops.transferCity) },
+      { key: 'carrier', label: 'الناقل', html: (r) => opsCell(r, 'carrier', 'carrier', r.ops.carrier) },
+      { key: 'notes', label: 'ملاحظات', html: (r) => (
+        liveEditable
+          ? editableControl(r.vin, 'notes', 'notes', r.ops.notes)
+          : esc(r.ops.notes || '')
+      ) },
       { key: 'updated', label: 'Updated', html: (r) => esc((r.ops.updatedAt || '').replace('T', ' ').slice(0, 19) || '—') },
       { key: 'by', label: 'By', html: (r) => na(r.ops.updatedBy) },
     ];
 
-    const table = $('#live-table');
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th class="col-${c.key}">${esc(c.label)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((r, i) => {
         const statusCls = statusRowClass(r.ops.opsStatus);
-        const guestCls = String(r.ops.guestCenter || '') === 'Yes' ? 'row-guest-exp' : '';
+        const guestCls = guestCenterValue(r) === 'Yes' ? 'row-guest-exp' : '';
         return `<tr class="${statusCls} ${guestCls}" data-vin="${esc(r.vin)}">${cols.map((c) =>
           `<td class="col-${c.key}">${c.html(r, i)}</td>`
         ).join('')}</tr>`;
       }).join('') || `<tr><td colspan="${cols.length}">No assigned VINs yet. Use Assignment to assign vehicles.</td></tr>`}</tbody>`;
     $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
-    bindEditableCells(table);
+    bindGuestButtons(table);
+    if (liveEditable) bindEditableCells(table);
+  }
+
+  function openXferVinsModal(title, subtitle, vins) {
+    const back = $('#xfer-vins-back');
+    const list = Array.isArray(vins) ? vins.filter(Boolean) : [];
+    $('#xfer-vins-title').textContent = title || 'VIN list';
+    $('#xfer-vins-sub').textContent = subtitle || `${list.length} VIN(s)`;
+    $('#xfer-vins-list').textContent = list.length ? list.join('\n') : '— لا توجد شاسيه —';
+    back.classList.add('open');
+    const close = () => back.classList.remove('open');
+    $('#xfer-vins-close').onclick = close;
+    back.onclick = (e) => { if (e.target === back) close(); };
+  }
+
+  function formatChangeAt(iso) {
+    const s = String(iso || '').trim();
+    if (!s) return '—';
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s.slice(0, 16).replace('T', ' ');
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day} ${hh}:${mm}`;
+  }
+
+  function renderCarrierMoves(d) {
+    const left = Array.isArray(d.carrierLeft) ? d.carrierLeft : [];
+    const feed = Array.isArray(d.carrierChanges) ? d.carrierChanges : [];
+    const leftChart = $('#dash-carrier-left-chart');
+    const feedHost = $('#dash-carrier-change-feed');
+
+    if (leftChart) {
+      renderNamedBarChart(leftChart, left, {
+        fillClass: 'is-carrier-left',
+        empty: 'لا توجد نقلات ناقل بعد — عند تغيير الناقل تظهر هنا',
+        onClick: (name) => {
+          const row = left.find((r) => r.name === name);
+          const vins = (row && row.vins) || [];
+          const lines = vins.map((v) =>
+            `${v.vin}  ·  ${name} → ${v.to || '—'}  ·  ${formatChangeAt(v.at)}${v.user ? `  ·  ${v.user}` : ''}`
+          );
+          openXferVinsModal(
+            `غادرت من: ${name}`,
+            `${vins.length} VIN(s) نُقلت إلى ناقل آخر`,
+            lines.length ? lines : [`${(row && row.count) || 0} تغيير`]
+          );
+        },
+      });
+    }
+
+    if (feedHost) {
+      const moves = feed.filter((c) => c && c.from);
+      if (!moves.length) {
+        feedHost.innerHTML = '<p class="hint">لا سجل تغييرات ناقل بعد</p>';
+      } else {
+        feedHost.innerHTML = `<ul class="carrier-change-list">${moves.map((c) => `
+          <li class="carrier-change-item">
+            <button type="button" class="vin-link carrier-change-vin" data-vin="${esc(c.vin)}">${esc(c.vin)}</button>
+            <span class="carrier-change-path">
+              <span class="carrier-from">${esc(c.from)}</span>
+              <span class="carrier-arrow" aria-hidden="true">→</span>
+              <span class="carrier-to">${esc(c.to || '(empty)')}</span>
+            </span>
+            <span class="carrier-change-meta">${esc(formatChangeAt(c.at))}${c.user ? ` · ${esc(c.user)}` : ''}</span>
+          </li>`).join('')}</ul>`;
+        $$('.carrier-change-vin', feedHost).forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const vin = btn.dataset.vin;
+            if (vin) openVin(vin);
+          });
+        });
+      }
+    }
+  }
+
+  function renderXferDashboard(d) {
+    const card = $('#dash-xfer-card');
+    if (!card) return;
+    if (!canManage()) {
+      card.hidden = true;
+      return;
+    }
+    card.hidden = false;
+    const ht = d.hubTransfer || {};
+    const carriers = (ht.byCarrier && ht.byCarrier.length)
+      ? ht.byCarrier
+      : (d.byCarrier || []);
+    const cities = ht.byCity || [];
+    const changes = ht.companyChanges || [];
+    const carrierLeft = Array.isArray(d.carrierLeft) ? d.carrierLeft : [];
+    const carrierLeftTotal = Number(d.totals && d.totals.carrierMoveTotal) ||
+      carrierLeft.reduce((s, r) => s + (Number(r.count) || 0), 0);
+    const t = d.totals || {};
+
+    $('#dash-xfer-kpis').innerHTML = [
+      ['الناقل معيّن', t.carriersAssigned || carriers.reduce((s, r) => s + (r.count || 0), 0), 'ok', 'carriers'],
+      ['أنواع الناقل', t.carrierKinds || carriers.length, 'info', 'carriers'],
+      ['عدد المدن', t.cityCount || cities.length, 'info', 'cities'],
+      ['تحويلات المدن', t.cityTotal || cities.reduce((s, r) => s + (r.count || 0), 0), '', 'cities'],
+      ['تغيير الشركة', t.companyChangeTotal || changes.length, changes.length ? 'warn' : 'ok', 'company-changes'],
+      ['تغيير الناقل', carrierLeftTotal, carrierLeftTotal ? 'warn' : 'ok', 'carrier-moves'],
+      ['شركة→مدينة', (ht.companyByCity || []).length, 'info', 'company-city'],
+    ].map(([l, v, cls, kind]) =>
+      `<button type="button" class="kpi kpi-btn ${cls}" data-xfer-kind="${kind}">
+        <div class="lbl">${esc(l)}</div>
+        <div class="val">${esc(v)}</div>
+      </button>`
+    ).join('');
+
+    $$('#dash-xfer-kpis .kpi-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.xferKind;
+        if (kind === 'company-changes') {
+          const lines = changes.map((c) =>
+            `${c.vin}  ·  ${c.from || '—'} → ${c.to || '—'}`
+          );
+          openXferVinsModal(
+            'تغيير الشركة · Company changed',
+            `${changes.length} VIN(s) أُعيد تعيينها من شركة إلى أخرى`,
+            lines.length ? lines : changes.map((c) => c.vin)
+          );
+          return;
+        }
+        if (kind === 'carrier-moves') {
+          const host = $('#dash-carrier-moves-wrap');
+          if (host) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const feed = Array.isArray(d.carrierChanges) ? d.carrierChanges.filter((c) => c.from) : [];
+          const lines = feed.map((c) =>
+            `${c.vin}  ·  ${c.from} → ${c.to || '—'}  ·  ${formatChangeAt(c.at)}`
+          );
+          openXferVinsModal(
+            'تغيير الناقل · من → إلى',
+            `${carrierLeftTotal} نقلات من ناقل إلى آخر`,
+            lines.length ? lines : ['لا تغييرات بعد']
+          );
+          return;
+        }
+        if (kind === 'carriers') {
+          const all = [];
+          const vinMap = ht.carrierVins || {};
+          carriers.forEach((r) => {
+            const vins = vinMap[r.name] || [];
+            vins.forEach((vin) => all.push(`${vin}  ·  ${r.name}`));
+          });
+          openXferVinsModal('الناقل · جميع الشاسيه', `${all.length} VIN(s)`, all);
+          return;
+        }
+        if (kind === 'cities') {
+          const all = [];
+          const vinMap = ht.cityVins || {};
+          cities.forEach((r) => {
+            const vins = vinMap[r.name] || [];
+            vins.forEach((vin) => all.push(`${vin}  ·  ${r.name}`));
+          });
+          openXferVinsModal('المدن / الفروع · جميع الشاسيه', `${all.length} VIN(s)`, all);
+          return;
+        }
+        if (kind === 'company-city') {
+          const host = $('#dash-company-city-wrap');
+          if (host) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    const carrierGrid = $('#dash-carrier-grid');
+    if (carrierGrid) {
+      const vinMap = ht.carrierVins || {};
+      renderNamedBarChart(carrierGrid, carriers, {
+        fillClass: 'is-carrier',
+        empty: 'لا يوجد ناقل معيّن بعد',
+        onClick: (name, count) => {
+          const vins = vinMap[name] || [];
+          openXferVinsModal(`الناقل: ${name}`, `${vins.length || count} VIN(s)`, vins);
+          if (!vins.length) {
+            state.liveFilters.carrier = name;
+            state.liveFilters.month = state.monthFilter || '';
+            if ($('#live-carrier')) {
+              $('#live-carrier').value = name;
+              $('#live-carrier').dataset.filled = '1';
+            }
+            setView('live');
+          }
+        },
+      });
+    }
+
+    const cityGrid = $('#dash-city-grid');
+    if (cityGrid) {
+      const vinMap = ht.cityVins || {};
+      renderNamedBarChart(cityGrid, cities, {
+        fillClass: 'is-city',
+        empty: 'لا توجد مدن من المسودات بعد — اطبع مذكرة أولاً',
+        onClick: (name, count) => {
+          const vins = vinMap[name] || [];
+          openXferVinsModal(`المدينة: ${name}`, `${vins.length || count} VIN(s)`, vins);
+        },
+      });
+    }
+
+    renderCompanyCityChart(ht.companyByCity || []);
+    renderCarrierMoves(d);
+  }
+
+  /** Horizontal bar chart for { name, count } rows (الناقل / المدن). */
+  function renderNamedBarChart(host, rows, { fillClass = '', empty = '—', onClick } = {}) {
+    if (!host) return;
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      host.innerHTML = `<p class="hint">${esc(empty)}</p>`;
+      return;
+    }
+    const max = Math.max(1, ...list.map((r) => Number(r.count) || 0));
+    host.innerHTML = list.map((r, i) => {
+      const count = Number(r.count) || 0;
+      const pct = Math.max(4, Math.round((count / max) * 100));
+      return `<button type="button" class="bar-chart-row" data-i="${i}" title="${esc(r.name)} · ${count}">
+        <span class="bar-chart-label">${esc(r.name)}</span>
+        <span class="bar-chart-track"><span class="bar-chart-fill ${esc(fillClass)}" style="width:${pct}%"></span></span>
+        <span class="bar-chart-count">${esc(count)}</span>
+      </button>`;
+    }).join('');
+    $$('.bar-chart-row', host).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const row = list[Number(btn.dataset.i)];
+        if (!row || typeof onClick !== 'function') return;
+        onClick(row.name, Number(row.count) || 0);
+      });
+    });
+  }
+
+  function renderCompanyCityChart(rows) {
+    const host = $('#dash-company-city');
+    if (!host) return;
+    if (!rows.length) {
+      host.innerHTML = '<p class="hint">لا توجد بيانات شركة→مدينة بعد — اطبع مذكرة ترحيل أولاً</p>';
+      return;
+    }
+    const maxCity = Math.max(
+      1,
+      ...rows.flatMap((r) => (r.cities || []).map((c) => c.count || 0))
+    );
+    host.innerHTML = rows.map((row, ri) => {
+      const cities = row.cities || [];
+      const bars = cities.map((c, ci) => {
+        const pct = Math.max(4, Math.round(((c.count || 0) / maxCity) * 100));
+        return `<button type="button" class="company-city-bar" data-ci="${ri}" data-city-i="${ci}">
+          <span class="company-city-label" title="${esc(c.city)}">${esc(c.city)}</span>
+          <span class="company-city-track"><span class="company-city-fill" style="width:${pct}%"></span></span>
+          <span class="company-city-count">${esc(c.count)}</span>
+        </button>`;
+      }).join('');
+      return `<article class="company-city-row" data-ci="${ri}">
+        <div class="company-city-head">
+          <div class="company-city-name">${esc(row.company)}</div>
+          <div class="company-city-total">${esc(row.total)} سيارة</div>
+        </div>
+        <div class="company-city-bars">${bars || '<p class="hint">لا مدن</p>'}</div>
+      </article>`;
+    }).join('');
+
+    $$('#dash-company-city .company-city-bar').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ri = Number(btn.dataset.ci);
+        const ci = Number(btn.dataset.cityI);
+        const row = rows[ri];
+        if (!row) return;
+        const cityRow = (row.cities || [])[ci];
+        if (!cityRow) return;
+        const vins = (row.cityVins && row.cityVins[cityRow.city]) || [];
+        openXferVinsModal(
+          `${row.company} → ${cityRow.city}`,
+          `${vins.length || cityRow.count} VIN(s)`,
+          vins.length ? vins : [`${cityRow.count} سيارة (لا قائمة شاسيه)`]
+        );
+      });
+    });
   }
 
   async function loadDashboard() {
     const month = state.monthFilter || '';
     const d = await api(`/dashboard?tzOffset=${state.tzOffset}${month ? `&month=${encodeURIComponent(month)}` : ''}`);
     if (d.hubRaw) renderRawStatus(d.hubRaw);
+    if (d.targetMonth) state.targetMonth = d.targetMonth;
     const monthInp = $('#dash-month');
     if (monthInp && monthInp.value !== month) monthInp.value = month;
     const hint = $('#dash-month-hint');
@@ -804,6 +1018,8 @@
       `<article class="kpi ${cls}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`
     ).join('');
 
+    renderXferDashboard(d);
+
     const p = d.pipeline || {};
     $('#dash-pipeline').innerHTML = [
       ["Today's Proformas", p.todaysProformas],
@@ -818,38 +1034,166 @@
     if (empCard) {
       empCard.hidden = false;
       const rows = d.employees || [];
-      // Everyone sees the full team schedule (assigned / claimed / cash·bank sales types)
-      const showRows = rows.filter((e) => e.assigned > 0 || canManage());
-      const typeKeys = [...new Set(showRows.flatMap((e) => Object.keys(e.bySalesType || {})))].sort();
+      const targetMonth = d.targetMonth || state.monthFilter || '';
+      const canEditTarget = canSetTargets();
+      const hint = $('#dash-emp-hint');
+      if (hint) {
+        hint.textContent = canEditTarget
+          ? `By sales type · Target month ${targetMonth || '—'} · Hanouf sets Target · Ach% = Claimed ÷ Target — click a name for Live Sheet`
+          : `By sales type · Target month ${targetMonth || '—'} · click a name for Live Sheet`;
+      }
+      const showRows = rows.slice();
       const meId = state.user && state.user.id;
       const meName = state.user && state.user.name;
+
+      // —— Schedule grouped by sales type ——
+      const typeTotals = new Map();
+      showRows.forEach((e) => {
+        Object.entries(e.bySalesType || {}).forEach(([stype, n]) => {
+          const key = stype || '(blank)';
+          const count = Number(n) || 0;
+          if (!count) return;
+          if (!typeTotals.has(key)) typeTotals.set(key, { total: 0, employees: [] });
+          const bucket = typeTotals.get(key);
+          bucket.total += count;
+          bucket.employees.push({
+            id: e.id,
+            name: e.name,
+            count,
+            isMe: e.id === meId || e.name === meName,
+          });
+        });
+      });
+      const typeBlocks = [...typeTotals.entries()]
+        .sort((a, b) => b[1].total - a[1].total || String(a[0]).localeCompare(String(b[0])))
+        .map(([stype, bucket]) => {
+          const emps = bucket.employees.slice().sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+          const chips = emps.map((e) =>
+            `<button type="button" class="emp-type-chip${e.isMe ? ' is-me' : ''}" data-emp="${esc(e.name)}" data-stype="${esc(stype)}" title="${esc(e.name)} · ${esc(stype)} · ${e.count}">
+              <span class="emp-type-name">${esc(e.name)}${e.isMe ? ' · you' : ''}</span>
+              <span class="emp-type-count">${e.count}</span>
+            </button>`
+          ).join('');
+          return `<article class="emp-type-block">
+            <div class="emp-type-head">
+              <h3 class="emp-type-title">${esc(stype)}</h3>
+              <span class="emp-type-total">${bucket.total} VIN(s)</span>
+            </div>
+            <div class="emp-type-chips">${chips || '<p class="hint">No employees</p>'}</div>
+          </article>`;
+        });
+      const byTypeHost = $('#dash-emp-by-type');
+      if (byTypeHost) {
+        byTypeHost.innerHTML = typeBlocks.length
+          ? typeBlocks.join('')
+          : '<p class="hint">No sales types in this period — assign VINs with Sales Type from Sales Raw</p>';
+        $$('.emp-type-chip', byTypeHost).forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const emp = btn.dataset.emp;
+            const stype = btn.dataset.stype || '';
+            state.liveFilters.employee = emp || '';
+            state.liveFilters.month = state.monthFilter || state.liveFilters.month || '';
+            state.liveFilters.status = '';
+            state.liveFilters.q = stype && stype !== '(blank)' ? stype : '';
+            if ($('#live-employee')) {
+              $('#live-employee').value = emp || '';
+              $('#live-employee').dataset.filled = '1';
+            }
+            if ($('#live-month')) $('#live-month').value = state.liveFilters.month || '';
+            if ($('#live-status')) $('#live-status').value = '';
+            if ($('#live-q')) $('#live-q').value = state.liveFilters.q || '';
+            setView('live');
+          });
+        });
+      }
+
+      // —— Compact targets / Ach% table ——
       $('#dash-emp-table').innerHTML = `<thead><tr>
           <th>Employee</th>
           <th class="num">Assigned</th>
           <th class="num">Claimed</th>
           <th class="num">Remaining</th>
           <th class="num">Progress %</th>
-          ${typeKeys.map((k) => `<th class="num">${esc(k)}</th>`).join('')}
+          <th class="num">Target</th>
+          <th class="num">Ach%</th>
         </tr></thead>
         <tbody>${showRows.map((e) => {
           const isMe = e.id === meId || e.name === meName;
-          return `<tr data-emp="${esc(e.name)}" class="${isMe ? 'is-me' : ''}" style="cursor:pointer" title="Open ${esc(e.name)} schedule on Live Sheet">
+          const targetCell = canEditTarget
+            ? `<input type="number" min="0" step="1" class="target-input" data-emp-id="${esc(e.id)}" data-emp-name="${esc(e.name)}" value="${e.target > 0 ? e.target : ''}" placeholder="—" title="Set monthly target (Hanouf)" />`
+            : (e.target > 0 ? e.target : '—');
+          const ach = formatAchPct(e.achPct);
+          const achCls = achPctClass(e.achPct);
+          return `<tr data-emp="${esc(e.name)}" class="${isMe ? 'is-me' : ''}" title="Open ${esc(e.name)} on Live Sheet">
           <td><b>${esc(e.name)}</b>${isMe ? ' <span class="badge info">you</span>' : ''}</td>
           <td class="num">${e.assigned}</td>
           <td class="num">${e.claimed}</td>
           <td class="num">${e.remaining}</td>
           <td class="num">${e.progress}%</td>
-          ${typeKeys.map((k) => `<td class="num">${(e.bySalesType && e.bySalesType[k]) || 0}</td>`).join('')}
+          <td class="num target-cell" data-stop-nav="1">${targetCell}</td>
+          <td class="num ach-cell ${achCls}" data-emp-ach="${esc(e.id)}">${esc(ach)}</td>
         </tr>`;
-        }).join('') || '<tr><td colspan="5">No assigned VINs in this month</td></tr>'}</tbody>`;
+        }).join('') || '<tr><td colspan="7">No employees</td></tr>'}</tbody>`;
+
+      $$('#dash-emp-table .target-input').forEach((inp) => {
+        inp.addEventListener('click', (ev) => ev.stopPropagation());
+        inp.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            inp.blur();
+          }
+        });
+        inp.addEventListener('change', async () => {
+          const empId = inp.dataset.empId;
+          const empName = inp.dataset.empName;
+          const month = state.monthFilter || targetMonth || state.targetMonth;
+          if (!month) {
+            alert('Select a month first (top of dashboard), then set the target');
+            return;
+          }
+          const raw = String(inp.value || '').trim();
+          const target = raw === '' ? 0 : Number(raw);
+          if (!Number.isFinite(target) || target < 0) {
+            alert('Enter a valid target (≥ 0)');
+            return;
+          }
+          try {
+            inp.classList.add('is-saving');
+            const res = await api('/targets', {
+              method: 'POST',
+              json: {
+                month,
+                employee: empId || empName,
+                target,
+                tzOffset: state.tzOffset,
+              },
+            });
+            inp.classList.remove('is-saving');
+            inp.classList.add('is-saved');
+            const achEl = $(`#dash-emp-table [data-emp-ach="${empId}"]`);
+            if (achEl) {
+              achEl.textContent = formatAchPct(res.achPct);
+              achEl.className = `num ach-cell ${achPctClass(res.achPct)}`;
+            }
+            setTimeout(() => inp.classList.remove('is-saved'), 1000);
+          } catch (err) {
+            inp.classList.remove('is-saving');
+            alert(err.message || 'Failed to save target');
+          }
+        });
+      });
+
       $$('#dash-emp-table tr[data-emp]').forEach((tr) => {
-        tr.addEventListener('click', () => {
-          state.liveFilters.employee = tr.dataset.emp || '';
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', (ev) => {
+          if (ev.target.closest('[data-stop-nav]')) return;
+          const emp = tr.dataset.emp;
+          state.liveFilters.employee = emp || '';
           state.liveFilters.month = state.monthFilter || state.liveFilters.month || '';
           state.liveFilters.status = '';
           state.liveFilters.q = '';
           if ($('#live-employee')) {
-            $('#live-employee').value = state.liveFilters.employee;
+            $('#live-employee').value = emp || '';
             $('#live-employee').dataset.filled = '1';
           }
           if ($('#live-month')) $('#live-month').value = state.liveFilters.month || '';
@@ -925,7 +1269,6 @@
       transferCity: 'مدينة الترحيل',
       carrier: 'الناقل',
       notes: 'ملاحظات',
-      guestCenter: 'Guest Exp',
       assign: 'Assigned',
       reassign: 'Reassigned',
     };
@@ -946,8 +1289,8 @@
     if (type === 'yn') {
       return `<select ${common}>
         <option value="">—</option>
-        <option value="Yes" ${v === 'Yes' ? 'selected' : ''}>🟢 Yes</option>
-        <option value="No" ${v === 'No' ? 'selected' : ''}>🔴 No</option>
+        <option value="Yes" ${v === 'Yes' ? 'selected' : ''}>Yes</option>
+        <option value="No" ${v === 'No' ? 'selected' : ''}>No</option>
       </select>`;
     }
     if (type === 'date') {
@@ -958,6 +1301,7 @@
     }
     if (type === 'carrier') {
       const carriers = (state.meta && state.meta.carriers) || [];
+      // Hanouf 2-change lock is enforced on save; keep select available and show count in title
       return `<select ${common}><option value="">— الناقل —</option>${carriers.map((c) =>
         `<option value="${esc(c)}" ${v === c ? 'selected' : ''}>${esc(c)}</option>`
       ).join('')}</select>`;
@@ -968,12 +1312,11 @@
     return esc(v || '—');
   }
 
-  function scheduleColumns({ editable = false, carrierEditable = false, hideCarrier = false } = {}) {
+  function scheduleColumns({ editable = false, carrierEditable = false } = {}) {
     const cols = [
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Order', (r) => na(r.raw.salesOrder)],
       ['VIN', (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>`],
-      ['S/A name', (r) => na(r.raw.salesAdvisor)],
       ['Sales Type', (r) => na(r.raw.salesType)],
       ['Product', (r) => na(r.raw.product)],
     ];
@@ -984,13 +1327,14 @@
       );
     }
     cols.push(
+      ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['GT Loc', (r) => na(r.raw.gtLocation)],
       ['Veh Loc', (r) => na(r.raw.vehicleLocation)],
     );
     if (canSeePii()) {
       cols.push(['Phone', (r) => displayPhone(r.raw.phone)]);
     }
-    cols.push(['Guest Exp', (r) => guestCellHtml(r)]);
+    cols.push(['Guest Exp', (r) => guestCellHtml(r, { editable })]);
     if (editable) {
       cols.push(
         ['Status', (r) => editableControl(r.vin, 'opsStatus', 'status', r.ops.opsStatus)],
@@ -1004,11 +1348,7 @@
         ['Insurance', (r) => editableControl(r.vin, 'insuranceOps', 'yn', r.ops.insuranceOps)],
         ['إصدار الاستمارة', (r) => editableControl(r.vin, 'registrationIssueDate', 'date', r.ops.registrationIssueDate)],
         ['مدينة الترحيل', (r) => editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity)],
-      );
-      if (!hideCarrier) {
-        cols.push(['الناقل', (r) => carrierCellHtml(r, { allowEdit: true })]);
-      }
-      cols.push(
+        ['الناقل', (r) => editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)],
         ['ملاحظات', (r) => editableControl(r.vin, 'notes', 'notes', r.ops.notes)],
         ['Open', (r) => `<button type="button" class="btn vin-link" data-vin="${esc(r.vin)}">Full edit</button>`],
       );
@@ -1025,13 +1365,9 @@
         ['Insurance', (r) => ynBadge(r.ops.insuranceOps)],
         ['إصدار الاستمارة', (r) => na(r.ops.registrationIssueDate)],
         ['مدينة الترحيل', (r) => na(r.ops.transferCity)],
-      );
-      if (!hideCarrier) {
-        cols.push(['الناقل', (r) => (carrierEditable
-          ? carrierCellHtml(r, { allowEdit: true })
-          : carrierCellHtml(r, { allowEdit: false }))]);
-      }
-      cols.push(
+        ['الناقل', (r) => (carrierEditable
+          ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier)
+          : na(r.ops.carrier))],
         ['ملاحظات', (r) => esc((r.ops.notes || '').slice(0, 40))],
         ['Employee', (r) => na(r.ops.assignedEmployeeName)],
       );
@@ -1046,14 +1382,14 @@
     if (!vin || !field) return;
     el.classList.add('is-saving');
     try {
-      const res = await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: { [field]: value } });
+      await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: { [field]: value } });
       el.classList.remove('is-saving');
       el.classList.add('is-saved');
       if (field === 'opsStatus') {
         const tr = el.closest('tr');
         if (tr) {
           tr.classList.remove(
-            'row-status-claimed', 'row-status-psfu', 'row-status-ready',
+            'row-status-claimed', 'row-status-psfu', 'row-status-ready', 'row-status-delivered',
             'row-status-traffic', 'row-status-traffic-return', 'row-status-pending', 'row-status-cancel'
           );
           const cls = statusRowClass(value);
@@ -1065,19 +1401,11 @@
         const tr = el.closest('tr');
         if (tr) tr.classList.toggle('row-guest-exp', value === 'Yes');
       }
-      const toast = $('#my-save-toast');
+      const toast = $('#live-save-toast') || $('#my-save-toast');
       if (toast) {
         toast.hidden = false;
-        toast.textContent = `Saved ✓ ${fieldLabel(field)}${hubSyncToast(res.hubSync)} · ${new Date().toLocaleTimeString()}`;
-        setTimeout(() => { toast.hidden = true; }, 2800);
-      } else if (field === 'carrier' || field === 'transferCity') {
-        const note = hubSyncToast(res.hubSync);
-        if (note) {
-          // Live Sheet has no toast strip — brief title flash
-          const prev = document.title;
-          document.title = `Saved${note}`;
-          setTimeout(() => { document.title = prev; }, 2000);
-        }
+        toast.textContent = `Saved ✓ ${fieldLabel(field)} · ${new Date().toLocaleTimeString()}`;
+        setTimeout(() => { toast.hidden = true; }, 2200);
       }
       setTimeout(() => el.classList.remove('is-saved'), 1200);
     } catch (err) {
@@ -1103,32 +1431,31 @@
   function fillCarrierLists() {
     const carriers = (state.meta && state.meta.carriers) || [];
     const html = carriers.map((c) => `<option value="${esc(c)}"></option>`).join('');
-    ['#edit-carrier-list', '#all-carrier-list'].forEach((sel) => {
+    ['#edit-carrier-list', '#all-carrier-list', '#assign-carrier-list'].forEach((sel) => {
       const el = $(sel);
       if (el) el.innerHTML = html;
     });
-  }
-
-  function fillCityLists() {
-    const cities = (state.meta && state.meta.transferCities) || [];
-    const html = cities.map((c) => `<option value="${esc(c)}"></option>`).join('');
-    const el = $('#edit-city-list');
-    if (el) el.innerHTML = html;
+    const bulk = $('#assign-bulk-carrier');
+    if (bulk && bulk.tagName === 'SELECT' && !bulk.dataset.filled) {
+      bulk.innerHTML = `<option value="">— اختر الناقل —</option>${carriers.map((c) =>
+        `<option value="${esc(c)}">${esc(c)}</option>`
+      ).join('')}`;
+      bulk.dataset.filled = '1';
+    }
   }
 
   function renderScheduleTable(tableEl, rows, {
     selectable = false,
     editable = false,
     carrierEditable = false,
-    hideCarrier = false,
     selectionSet = null,
   } = {}) {
     const selected = selectionSet || state.selectedVins;
-    const cols = scheduleColumns({ editable, carrierEditable, hideCarrier });
+    const cols = scheduleColumns({ editable, carrierEditable });
     const head = `<thead><tr>${selectable ? '<th></th>' : ''}${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
     const body = `<tbody>${rows.map((r) => {
       const statusCls = statusRowClass(r.ops.opsStatus);
-      const guestCls = String(r.ops.guestCenter || '') === 'Yes' ? 'row-guest-exp' : '';
+      const guestCls = guestCenterValue(r) === 'Yes' ? 'row-guest-exp' : '';
       const checked = selected.has(r.vin) ? 'checked' : '';
       return `<tr class="${statusCls} ${guestCls} ${checked ? 'selected' : ''}" data-vin="${esc(r.vin)}" data-status="${esc(r.ops.opsStatus || '')}">
         ${selectable ? `<td><input class="checkbox vin-select-check" type="checkbox" data-vin="${esc(r.vin)}" ${checked} /></td>` : ''}
@@ -1137,6 +1464,7 @@
     }).join('')}</tbody>`;
     tableEl.innerHTML = head + body;
     $$('.vin-link', tableEl).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
+    bindGuestButtons(tableEl);
     if (editable || carrierEditable) bindEditableCells(tableEl);
     if (selectable) {
       $$('.vin-select-check', tableEl).forEach((cb) => cb.addEventListener('change', () => {
@@ -1225,9 +1553,7 @@
     const p = new URLSearchParams();
     p.set('tzOffset', String(state.tzOffset));
     p.set('page', String(state.filters.page || 1));
-    p.set('limit', String(state.filters.limit || 2000));
-    p.set('sort', 'status');
-    p.set('dir', 'asc');
+    p.set('limit', String(state.filters.limit || 40));
     if (state.filters.q) p.set('q', state.filters.q);
     if (state.filters.status) p.set('status', state.filters.status);
     if (state.filters.employee) p.set('employee', state.filters.employee);
@@ -1239,14 +1565,9 @@
 
   function renderPager(el, pack, onPage) {
     if (!el) return;
-    const pages = Math.max(1, Number(pack.pages) || 1);
-    if (pages <= 1) {
-      el.innerHTML = `<span>${pack.total || 0} VIN(s)</span>`;
-      return;
-    }
-    el.innerHTML = `<span>${pack.total} rows · page ${pack.page}/${pages}</span>
+    el.innerHTML = `<span>${pack.total} rows · page ${pack.page}/${pack.pages}</span>
       <button type="button" class="btn" ${pack.page <= 1 ? 'disabled' : ''} data-p="${pack.page - 1}">Prev</button>
-      <button type="button" class="btn" ${pack.page >= pages ? 'disabled' : ''} data-p="${pack.page + 1}">Next</button>`;
+      <button type="button" class="btn" ${pack.page >= pack.pages ? 'disabled' : ''} data-p="${pack.page + 1}">Next</button>`;
     $$('button[data-p]', el).forEach((b) => b.addEventListener('click', () => onPage(Number(b.dataset.p))));
   }
 
@@ -1256,9 +1577,7 @@
     el.innerHTML = `
       <label class="month-filter-label">Month <input type="month" data-f="month" value="${esc(month)}" /></label>
       <input type="search" data-f="q" placeholder="Search…" value="${esc(state.filters.q)}" />
-      <select data-f="status"><option value="">All statuses</option>
-        <option value="__empty__" ${state.filters.status === '__empty__' ? 'selected' : ''}>Non selected (فارغ)</option>
-        ${statuses.map((s) => `<option value="${esc(s)}" ${state.filters.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <select data-f="status"><option value="">All statuses</option>${statuses.map((s) => `<option ${state.filters.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       ${showEmployee && canManage() ? `<select data-f="employee"><option value="">All employees</option>${assignableNames().map((s) => `<option ${state.filters.employee === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>` : ''}
       <button type="button" class="btn" data-clear>Clear filters</button>
     `;
@@ -1273,7 +1592,7 @@
       });
     });
     $('[data-clear]', el)?.addEventListener('click', () => {
-      state.filters = { q: '', status: '', employee: '', month: '', page: 1, limit: 2000 };
+      state.filters = { q: '', status: '', employee: '', month: '', page: 1, limit: 40 };
       state.monthFilter = '';
       refreshView();
     });
@@ -1286,13 +1605,9 @@
   }
 
   async function loadMy() {
-    // Hanouf My VINs = all VINs assigned to her (same as other employees)
+    // Hanouf "My VINs" = rows assigned to herself (she can receive assignments)
     if (state.user.role === 'hanouf') {
       state.filters.employee = 'Hanouf';
-    }
-    const myHint = $('#my-vins-hint');
-    if (myHint) {
-      myHint.textContent = 'Edit your work below · select VINs to hand over to another employee';
     }
     buildToolbar($('#my-toolbar'), { showEmployee: false });
     const cities = (state.meta && state.meta.transferCities) || [];
@@ -1302,11 +1617,9 @@
     if (cityList) cityList.innerHTML = cities.map((c) => `<option value="${esc(c)}"></option>`).join('');
     if (carrierList) carrierList.innerHTML = carriers.map((c) => `<option value="${esc(c)}"></option>`).join('');
     fillCarrierLists();
-    fillCityLists();
 
-    const pack = await api(`/vehicles?${filterQuery(
-      state.user.role === 'hanouf' ? { employee: 'Hanouf' } : {}
-    )}`);
+    // All of this user's VINs on one page · sorted by status pipeline
+    const pack = await api(`/vehicles?${filterQuery({ all: '1', page: 1, sort: 'status', dir: 'asc' })}`);
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     const w = state.user.role === 'employee'
       ? (dash.myWorkload || {})
@@ -1326,7 +1639,10 @@
       selectable: true,
       selectionSet: state.reassignVins,
     });
-    renderPager($('#my-pager'), pack, (p) => { state.filters.page = p; loadMy(); });
+    const pager = $('#my-pager');
+    if (pager) {
+      pager.innerHTML = `<span>${pack.total || 0} VIN(s) · all on this page</span>`;
+    }
     const except = state.user.name;
     renderReassignTargets($('#my-reassign-targets'), except, (emp) => {
       reassignSelected(emp).catch((e) => alert(e.message));
@@ -1346,7 +1662,7 @@
     state.selectedVins.clear();
     fillCarrierLists();
     renderAssignEmpGrid();
-    await loadAssignPool();
+    await loadAssignPool(true);
     renderAssignDisplay();
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     $('#assign-lanes').innerHTML = (dash.employees || []).map((e) => {
@@ -1420,13 +1736,13 @@
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  async function loadAssignPool() {
-    const data = await api(`/unassigned?tzOffset=${state.tzOffset}`);
+  async function loadAssignPool(todayOnly) {
+    const data = await api(`/unassigned?tzOffset=${state.tzOffset}${todayOnly ? '&today=1' : ''}`);
     state.assignPool = data.rows || [];
     renderAssignPool();
-    const today = data.today || '';
-    const yesterday = data.yesterday || '';
-    $('#assign-pool-hint').textContent = `${state.assignPool.length} unassigned · proforma ${today || 'today'} / ${yesterday || 'yesterday'} · check VINs then Submit & display`;
+    $('#assign-pool-hint').textContent = todayOnly
+      ? `${state.assignPool.length} today’s unassigned · check VINs then Submit & display`
+      : `${state.assignPool.length} unassigned · check VINs then Submit & display`;
   }
 
   function renderAssignPool() {
@@ -1434,17 +1750,19 @@
     let rows = state.assignPool || [];
     if (q) {
       rows = rows.filter((r) =>
-        `${r.vin} ${r.raw.product} ${r.raw.salesOrder} ${r.raw.salesType} ${r.raw.salesAdvisor}`.toLowerCase().includes(q)
+        `${r.vin} ${r.raw.product} ${r.raw.salesOrder} ${r.raw.salesType}`.toLowerCase().includes(q)
       );
     }
     const cols = [
       ['VIN', (r) => esc(r.vin)],
-      ['S/A name', (r) => na(r.raw.salesAdvisor)],
       ['Order', (r) => na(r.raw.salesOrder)],
       ['Product', (r) => na(r.raw.product)],
       ['Sales Type', (r) => na(r.raw.salesType)],
+      ['Invoice Owner', (r) => na(r.raw.invoiceOwner)],
+      ['S/A', (r) => na(r.raw.salesAdvisor)],
       ['Proforma', (r) => na(r.raw.proformaDate)],
       ['Status', (r) => statusBadge(r.ops.opsStatus)],
+      ['Currently', (r) => na(r.ops.assignedEmployeeName)],
     ];
     const head = `<thead><tr><th></th>${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>`;
     const body = `<tbody>${rows.map((r) => {
@@ -1453,7 +1771,7 @@
         <td><input class="checkbox assign-pool-check" type="checkbox" data-vin="${esc(r.vin)}" ${checked} /></td>
         ${cols.map((c) => `<td>${c[1](r)}</td>`).join('')}
       </tr>`;
-    }).join('') || '<tr><td colspan="8">No unassigned VINs with today’s or yesterday’s proforma.</td></tr>'}</tbody>`;
+    }).join('') || `<tr><td colspan="${cols.length + 1}">No unassigned VINs in this pool.</td></tr>`}</tbody>`;
     $('#assign-pool-table').innerHTML = head + body;
     $$('.assign-pool-check').forEach((cb) => cb.addEventListener('change', () => {
       if (cb.checked) state.selectedVins.add(cb.dataset.vin);
@@ -1477,30 +1795,13 @@
       alert('Select VINs from the pool and/or paste VINs, then Submit & display.');
       return;
     }
-    const data = await api('/resolve-vins', {
-      method: 'POST',
-      json: { vins, tzOffset: state.tzOffset },
-    });
+    const data = await api('/resolve-vins', { method: 'POST', json: { vins } });
     state.assignDisplay = data.rows || [];
-    const notes = [];
     if (data.missing && data.missing.length) {
-      notes.push(`${data.missing.length} not found in Raw Data:\n${data.missing.slice(0, 12).join('\n')}`);
+      alert(`${data.missing.length} VIN(s) not found in Raw Data:\n${data.missing.slice(0, 12).join('\n')}`);
     }
-    if (data.alreadyAssigned && data.alreadyAssigned.length) {
-      notes.push(
-        `${data.alreadyAssigned.length} already assigned (skipped):\n`
-        + data.alreadyAssigned.slice(0, 12).map((x) => `${x.vin} → ${x.employee || '—'}`).join('\n')
-      );
-    }
-    if (data.outOfWindow && data.outOfWindow.length) {
-      notes.push(
-        `${data.outOfWindow.length} skipped (proforma must be today ${data.today || ''} or yesterday ${data.yesterday || ''}):\n`
-        + data.outOfWindow.slice(0, 12).map((x) => `${x.vin} · ${x.proformaDate}`).join('\n')
-      );
-    }
-    if (notes.length) alert(notes.join('\n\n'));
     if (!state.assignDisplay.length) {
-      alert('No assignable VINs left. Already assigned / out of date / missing from Raw Data.');
+      alert('None of the submitted VINs were found. Upload Raw Data first.');
       return;
     }
     state.selectedVins.clear();
@@ -1523,7 +1824,8 @@
     empty.hidden = true;
     body.hidden = false;
     $('#assign-display-count').textContent = String(rows.length);
-    renderScheduleTable($('#assign-display-table'), rows, { selectable: false, hideCarrier: true });
+    fillCarrierLists();
+    renderScheduleTable($('#assign-display-table'), rows, { selectable: false, carrierEditable: true });
     updateAssignConfirmState();
   }
 
@@ -1531,31 +1833,42 @@
     const emp = state.assignEmployee;
     const has = (state.assignDisplay || []).length > 0;
     $('#assign-confirm-btn').disabled = !(emp && has);
+    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
     $('#assign-picked-label').textContent = emp
-      ? `Selected: ${emp} · ${state.assignDisplay.length} VIN(s)`
+      ? `Selected: ${emp}${carrier ? ` · الناقل: ${carrier}` : ''} · ${state.assignDisplay.length} VIN(s)`
       : 'No employee selected';
     $$('.assign-emp-btn').forEach((b) => b.classList.toggle('active', b.dataset.emp === emp));
+    const carrierBtn = $('#assign-carrier-btn');
+    if (carrierBtn) carrierBtn.disabled = !(has && carrier);
   }
 
   async function doAssign() {
     const employee = state.assignEmployee;
     const vins = (state.assignDisplay || []).map((r) => r.vin);
+    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
     if (!employee) return alert('Choose an employee first');
     if (!vins.length) return alert('Submit & display VINs first');
-    const res = await api('/assign', {
-      method: 'POST',
-      json: { vins, employee, tzOffset: state.tzOffset },
-    });
+    const res = await api('/assign', { method: 'POST', json: { vins, employee, carrier: carrier || undefined } });
     const ok = (res.results || []).filter((r) => r.ok).length;
-    const failed = (res.results || []).filter((r) => !r.ok);
-    let msg = `Assigned ${ok} VIN(s) to ${employee}`;
-    if (failed.length) {
-      msg += `\n${failed.length} failed:\n${failed.slice(0, 8).map((r) => `${r.vin}: ${r.error}`).join('\n')}`;
-    }
-    alert(msg);
+    alert(`Assigned ${ok} VIN(s) to ${employee}${carrier ? ` · الناقل: ${carrier}` : ''}`);
     state.assignDisplay = [];
     state.assignEmployee = '';
+    if ($('#assign-bulk-carrier')) $('#assign-bulk-carrier').value = '';
     await loadAssign();
+  }
+
+  async function doAssignCarrier() {
+    const vins = (state.assignDisplay || []).map((r) => r.vin);
+    const carrier = String($('#assign-bulk-carrier')?.value || '').trim();
+    if (!vins.length) return alert('Submit & display VINs first');
+    if (!carrier) return alert('اختر الناقل أولاً');
+    const res = await api('/assign-carrier', { method: 'POST', json: { vins, carrier } });
+    const ok = (res.results || []).filter((r) => r.ok).length;
+    alert(`تم تعيين الناقل «${carrier}» لـ ${ok} VIN(s)`);
+    // refresh displayed rows with updated carrier
+    const data = await api('/resolve-vins', { method: 'POST', json: { vins } });
+    state.assignDisplay = data.rows || [];
+    renderAssignDisplay();
   }
 
   async function loadAudit() {
@@ -1589,42 +1902,72 @@
       (v.ops && v.ops.assignedEmployeeId === state.user.id)
       || (v.ops && v.ops.assignedEmployeeName === state.user.name)
     ));
-    const canEdit = canManage() || isMine;
+    const canEdit = canManage() || canEditLiveSheet() || isMine;
+    // Any user who can open an assigned VIN may change الناقل from this drawer
+    const canEditCarrier = !!(v.ops && v.ops.assignedEmployeeId) || canEdit;
+    const carrierLocked = !!v.carrierLocked;
 
-    drawer.innerHTML = buildDrawerHtml(v, statuses, cities, carriers, { readOnly: !canEdit });
+    drawer.innerHTML = buildDrawerHtml(v, statuses, cities, carriers, {
+      readOnly: !canEdit,
+      carrierEditable: canEditCarrier && !carrierLocked,
+      carrierLocked,
+    });
     back.classList.add('open');
     $('#drawer-close', drawer).onclick = () => back.classList.remove('open');
     back.onclick = (e) => { if (e.target === back) back.classList.remove('open'); };
-
-    if (!canEdit) return;
 
     async function savePatch(patch) {
       try {
         const res = await api(`/vehicles/${encodeURIComponent(vin)}`, { method: 'PATCH', json: patch });
         const line = $('#save-line', drawer);
-        line.hidden = false;
-        line.textContent = `Saved ✓${hubSyncToast(res.hubSync)} · ${new Date(res.lastUpdated).toLocaleTimeString()}`;
-        $('#last-updated', drawer).textContent = `Last updated: ${res.lastUpdated}`;
-        setTimeout(() => { line.hidden = true; }, 2800);
+        if (line) {
+          line.hidden = false;
+          line.textContent = `Saved ✓ · ${new Date(res.lastUpdated || Date.now()).toLocaleTimeString()}`;
+          setTimeout(() => { line.hidden = true; }, 2500);
+        }
+        const last = $('#last-updated', drawer);
+        if (last && res.lastUpdated) last.textContent = `Last updated: ${res.lastUpdated}`;
+        // Refresh drawer when carrier limit / value updates (Hanouf)
+        if (patch.carrier != null && res.vehicle) {
+          openVin(vin).catch(() => {});
+          return;
+        }
       } catch (err) {
         alert(err.message || 'Save failed');
       }
     }
 
-    $$('[data-ops]', drawer).forEach((el) => {
-      el.addEventListener('change', () => savePatch({ [el.dataset.ops]: el.value }));
-    });
-    $$('[data-yn]', drawer).forEach((group) => {
-      $$('button', group).forEach((b) => b.addEventListener('click', () => {
-        $$('button', group).forEach((x) => x.classList.remove('active'));
-        b.classList.add('active');
-        savePatch({ [group.dataset.yn]: b.dataset.v });
-      }));
-    });
+    if (canEdit) {
+      $$('[data-ops]', drawer).forEach((el) => {
+        if (el.dataset.ops === 'carrier') return; // handled below
+        el.addEventListener('change', () => savePatch({ [el.dataset.ops]: el.value }));
+      });
+      $$('[data-yn]', drawer).forEach((group) => {
+        $$('button', group).forEach((b) => b.addEventListener('click', () => {
+          $$('button', group).forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+          savePatch({ [group.dataset.yn]: b.dataset.v });
+        }));
+      });
+    }
+
+    // الناقل editable from drawer for any user (even if other fields are view-only)
+    const carrierEl = $('[data-ops="carrier"]', drawer);
+    if (carrierEl && !carrierEl.disabled) {
+      carrierEl.addEventListener('change', () => savePatch({ carrier: carrierEl.value }));
+    }
   }
 
   function buildDrawerHtml(v, statuses, cities, carriers, opts = {}) {
     const readOnly = !!opts.readOnly;
+    const carrierEditable = opts.carrierEditable !== false && !opts.carrierLocked;
+    const carrierLocked = !!opts.carrierLocked;
+    const used = Number(v.carrierChangeCount || 0) || 0;
+    const limit = v.carrierChangeLimit;
+    const remaining = v.carrierChangeRemaining;
+    const hanoufHint = limit != null
+      ? `<p class="hint">الناقل · Hanouf: ${used}/${limit} تغييرات${remaining === 0 ? ' · وصلت للحد' : ` · متبقي ${remaining}`}</p>`
+      : '';
     const yn = (key, label, val) => readOnly
       ? `<div class="field"><label>${esc(label)}</label><input value="${esc(na(val))}" readonly /></div>`
       : `<div class="field"><label>${esc(label)}</label>
@@ -1635,6 +1978,17 @@
     const dt = (key, label, val) => readOnly
       ? `<div class="field"><label>${esc(label)}</label><input type="text" value="${esc(na(val))}" readonly /></div>`
       : `<div class="field"><label>${esc(label)}</label><input type="date" data-ops="${key}" value="${esc(val || '')}" /></div>`;
+    const carrierField = carrierEditable
+      ? `<div class="field"><label>الناقل</label>
+            <select data-ops="carrier">
+              <option value="">— الناقل —</option>
+              ${carriers.map((c) => `<option value="${esc(c)}" ${v.ops.carrier === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+            </select>
+            ${hanoufHint}
+          </div>`
+      : `<div class="field"><label>الناقل</label><input value="${esc(na(v.ops.carrier))}" readonly />
+            ${carrierLocked ? '<p class="hint">Hanouf وصلت لحد تغييرين للناقل على هذا الـ VIN</p>' : hanoufHint}
+          </div>`;
     return `
       <div class="drawer-head">
         <div>
@@ -1668,13 +2022,21 @@
         </div>
         <div class="card">
           <h2>Delivery information${readOnly ? ' (teammate — view only)' : ''}</h2>
-          <p class="hint">${readOnly ? 'Read-only · teammate schedule' : 'Employee updates · saves immediately'}</p>
+          <p class="hint">${readOnly ? 'Read-only except الناقل · saves immediately' : 'Employee updates · saves immediately'}</p>
           <div id="save-line" class="save-toast" hidden>Saved ✓</div>
           ${dt('guestSentDate', 'تاريخ إرسال الضيف', v.ops.guestSentDate)}
+          ${readOnly
+            ? `<div class="field"><label>Guest Exp</label><input value="${esc(guestCenterValue(v) || '—')}" readonly /></div>`
+            : `<div class="field"><label>Guest Exp</label>
+            <select data-ops="guestCenter">
+              <option value="">—</option>
+              <option value="Yes" ${guestCenterValue(v) === 'Yes' ? 'selected' : ''}>Yes</option>
+              <option value="No" ${guestCenterValue(v) === 'No' ? 'selected' : ''}>No</option>
+            </select>
+          </div>`}
           ${dt('signatureReceivedDate', 'تاريخ استلام التواقيع من الضيف', v.ops.signatureReceivedDate)}
           ${dt('accountsSentDate', 'تاريخ إرسال الملف للحسابات', v.ops.accountsSentDate)}
           ${dt('accountsApprovalDate', 'تاريخ موافقة الحسابات', v.ops.accountsApprovalDate)}
-          ${yn('guestCenter', 'Guest Exp', v.ops.guestCenter)}
           ${readOnly
             ? `<div class="field"><label>Status</label><input value="${esc(na(v.ops.opsStatus))}" readonly /></div>`
             : `<div class="field"><label>Status</label>
@@ -1687,24 +2049,20 @@
           ${dt('registrationIssueDate', 'تاريخ إصدار الاستمارة', v.ops.registrationIssueDate)}
           ${readOnly
             ? `<div class="field"><label>مدينة الترحيل</label><input value="${esc(na(v.ops.transferCity))}" readonly /></div>
-               <div class="field"><label>الناقل</label><input value="${esc(na(v.ops.carrier))}" readonly /></div>
+               ${carrierField}
                <div class="field"><label>ملاحظات</label><textarea readonly>${esc(v.ops.notes || '')}</textarea></div>`
             : `<div class="field"><label>مدينة الترحيل</label>
             <input list="city-list" data-ops="transferCity" value="${esc(v.ops.transferCity || '')}" placeholder="Search city…" />
             <datalist id="city-list">${cities.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>
           </div>
-          <div class="field"><label>الناقل${String(v.ops.carrier || '').trim() && state.user.role !== 'admin' ? ' (مقفل)' : ''}</label>
-            ${String(v.ops.carrier || '').trim() && state.user.role !== 'admin'
-              ? `<input value="${esc(na(v.ops.carrier))}" readonly title="الناقل مقفل بعد التعيين" />`
-              : `<input list="carrier-list" data-ops="carrier" value="${esc(v.ops.carrier || '')}" placeholder="Search carrier…" />
-            <datalist id="carrier-list">${carriers.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>`}
-          </div>
+          ${carrierField}
           <div class="field"><label>ملاحظات</label>
-            <textarea data-ops="notes">${esc(v.ops.notes || '')}</textarea>
+            <textarea data-ops="notes" rows="3">${esc(v.ops.notes || '')}</textarea>
           </div>`}
           <p class="hint" id="last-updated">Last updated: ${esc(v.ops.updatedAt || '—')}</p>
         </div>
-      </div>`;
+      </div>
+    `;
   }
 
   async function loadSalesRawPanel() {
@@ -1719,7 +2077,7 @@
   async function doSalesRawUpload(file) {
     if (!file) return;
     if (!canUploadSalesRaw()) {
-      alert('Only Hanouf, Ruba, Rasha, or Admin can upload Sales Raw');
+      alert('Only Hanouf, Ruba, or Admin can upload Sales Raw');
       return;
     }
     const summary = $('#sales-raw-summary');
@@ -1740,18 +2098,21 @@
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       if (data.rawStatus) renderRawStatus(data.rawStatus);
       else await loadSalesRawPanel();
+      state.liveFingerprint = '';
       summary.innerHTML = `
         <p><b>Sales Raw updated</b> · ${esc(data.sheetName || '')} · ${esc(data.filename || file.name)}</p>
         <div class="summary-grid">
           <div><strong>${data.imported || 0}</strong><span>Vehicles imported</span></div>
-          <div><strong>${data.queueRefreshed || 0}</strong><span>Coordinator queue</span></div>
+          <div><strong>${data.queueRefreshed || 0}</strong><span>Queue rows</span></div>
           <div><strong>${data.matchedUpdated || 0}</strong><span>Matched</span></div>
           <div><strong>${(data.deliveryTeamSync && data.deliveryTeamSync.upserted) || 0}</strong><span>Synced to team</span></div>
+          <div><strong>${(data.deliveryTeamSync && data.deliveryTeamSync.updated) || 0}</strong><span>Rows refreshed</span></div>
+          <div><strong>${(data.deliveryTeamSync && data.deliveryTeamSync.created) || 0}</strong><span>New on Live Sheet</span></div>
         </div>
-        <p class="hint" style="margin-top:10px">Same file for Delivery Hub + Coordinator · last update:
-          <b>${esc(formatRawUpdatedAt(data.rawStatus && data.rawStatus.uploadedAt))}</b>
+        <p class="hint" style="margin-top:10px">Last update: <b>${esc(formatRawUpdatedAt(data.rawStatus && data.rawStatus.uploadedAt))}</b>
           ${data.rawStatus && data.rawStatus.uploadedByName ? ` · by ${esc(data.rawStatus.uploadedByName)}` : ''}
-          ${data.hubUpdated ? ' · hub inventory updated ✓' : ''}</p>`;
+          — Live Sheet, Dashboard, Assignment &amp; All Vehicles refresh with this file</p>`;
+      await refreshView();
     } catch (err) {
       summary.innerHTML = `<p style="color:var(--red)">${esc(err.message)}</p>`;
     }
@@ -1792,6 +2153,8 @@
         </div>
         ${s.picUnresolved ? `<p class="hint" style="color:var(--orange);margin-top:8px">${s.picUnresolved} PIC name(s) not matched (use Hanouf / Rasha / Ruba / Ibrahim·Ebrahim / Abdullah)</p>` : ''}
         ${s.errors && s.errors.length ? `<p class="hint" style="color:var(--red);margin-top:10px">${s.errors.slice(0, 8).map((e) => `Row ${e.row}: ${esc(e.error)}`).join(' · ')}</p>` : ''}`;
+      state.liveFingerprint = '';
+      await refreshView();
     } catch (err) {
       summary.innerHTML = `<p style="color:var(--red)">${esc(err.message)}</p>`;
     }
@@ -1876,7 +2239,10 @@
   $('#export-btn').addEventListener('click', () => doExport().catch((e) => alert(e.message)));
   $('#assign-submit-btn')?.addEventListener('click', () => submitVinsForDisplay().catch((e) => alert(e.message)));
   $('#assign-confirm-btn')?.addEventListener('click', () => doAssign().catch((e) => alert(e.message)));
-  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool().catch((e) => alert(e.message)));
+  $('#assign-carrier-btn')?.addEventListener('click', () => doAssignCarrier().catch((e) => alert(e.message)));
+  $('#assign-bulk-carrier')?.addEventListener('change', () => updateAssignConfirmState());
+  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool(true).catch((e) => alert(e.message)));
+  $('#assign-load-all-unassigned')?.addEventListener('click', () => loadAssignPool(false).catch((e) => alert(e.message)));
   $('#assign-clear-display')?.addEventListener('click', () => {
     state.assignDisplay = [];
     state.assignEmployee = '';

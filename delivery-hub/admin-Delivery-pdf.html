@@ -899,7 +899,7 @@
         .pct-status-pill--pending b { color: #fbbf24; }
         .pct-status-kpis {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
             margin: 0 0 14px;
         }
@@ -940,7 +940,11 @@
             border-color: rgba(235, 10, 30, 0.4);
         }
         .pct-status-kpi--notes b { color: #fb7185; }
-        @media (max-width: 700px) {
+        .pct-status-kpi--cities {
+            border-color: rgba(34, 197, 94, 0.4);
+        }
+        .pct-status-kpi--cities b { color: #4ade80; }
+        @media (max-width: 900px) {
             .pct-status-kpis { grid-template-columns: 1fr; }
         }
 
@@ -2280,6 +2284,16 @@
             line-height: 1.35;
             white-space: normal;
         }
+        .company-change-badge b {
+            display: inline-block;
+            margin-inline-end: 4px;
+            padding: 0 5px;
+            border-radius: 5px;
+            background: rgba(245, 158, 11, 0.35);
+            color: #fff7ed;
+            font-size: 0.62rem;
+            letter-spacing: 0.04em;
+        }
         @media (max-width: 980px) {
             .ops-board__charts { grid-template-columns: 1fr; }
             .ops-board__chart--wide { grid-column: auto; }
@@ -2991,6 +3005,11 @@
                                     <span>مذكرات التسليم المنشأة · Delivery notes</span>
                                     <b id="statusNotesGenerated">0</b>
                                     <small id="statusNotesGeneratedHint">عدد المذكرات ضمن الفترة</small>
+                                </div>
+                                <div class="pct-status-kpi pct-status-kpi--cities">
+                                    <span>عدد المدن / الفروع · Cities</span>
+                                    <b id="statusCitiesTotal">0</b>
+                                    <small id="statusCitiesTotalHint">فروع فريدة في المذكرات</small>
                                 </div>
                             </div>
                             <div class="pct-chart-layout">
@@ -6641,7 +6660,7 @@
                 } else {
                     schedBody.innerHTML = schedule.map((r) => {
                         const changeBit = r.companyChangeFrom && r.companyChangeTo
-                            ? `<div><span class="company-change-badge">من «${escapeHtml(r.companyChangeFrom)}» → «${escapeHtml(r.companyChangeTo)}»</span></div>`
+                            ? `<div><span class="company-change-badge"><b>CHANGED</b> من «${escapeHtml(r.companyChangeFrom)}» → «${escapeHtml(r.companyChangeTo)}»</span></div>`
                             : '';
                         return `<tr>
                         <td>${escapeHtml(r.date || '—')}</td>
@@ -6978,14 +6997,14 @@
             const from = String(d.companyChangedFrom || p.company_changed_from || '').trim();
             const to = String(d.companyChangedTo || p.company_changed_to || draftCompanyName(d) || '').trim();
             if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
-            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة">من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
+            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة"><b>CHANGED</b> من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
         }
 
         function queueCompanyChangeHtml(item) {
             const from = String(item?.companyChangedFrom || '').trim();
             const to = String(item?.companyChangedTo || item?.deliveryCompany || item?.company || '').trim();
             if (!from || !to || from.toLowerCase() === to.toLowerCase()) return '';
-            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة">من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
+            return `<span class="company-change-badge" title="غيّر الموظف الشركة عند الطباعة"><b>CHANGED</b> من «${escapeHtml(from)}» → «${escapeHtml(to)}»</span>`;
         }
 
         function isWarehouseAccountKey(key) {
@@ -8221,7 +8240,16 @@
             if (notesEl) notesEl.textContent = String(notesGenerated);
             const notesHint = document.getElementById('statusNotesGeneratedHint');
             if (notesHint) notesHint.textContent = `${carsSubmitted} سيارة على هذه المذكرات`;
-
+            const citiesEl = document.getElementById('statusCitiesTotal');
+            const citiesHint = document.getElementById('statusCitiesTotalHint');
+            const uniqueCityCount = cities.length;
+            const cityAssignTotal = cities.reduce((s, r) => s + (r.count || 0), 0);
+            if (citiesEl) citiesEl.textContent = String(uniqueCityCount);
+            if (citiesHint) {
+                citiesHint.textContent = uniqueCityCount
+                    ? `${uniqueCityCount} مدينة · ${cityAssignTotal} تحويل`
+                    : 'لا فروع في هذه الفترة';
+            }
             const statusSub = document.querySelector('.pct-chart-card--status .pct-chart-sub');
             if (statusSub) {
                 const base = selectedCompany

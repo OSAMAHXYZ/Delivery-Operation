@@ -1,16 +1,15 @@
 'use strict';
 
 /**
- * Delivery Team privacy — customer name and phone are visible to the whole team.
- * Invoice owner stays available to the team as well (internal ops).
+ * Delivery Team privacy — customer name, invoice owner, and phone
+ * are visible to admin and Hanouf (assignment).
  */
 
 const PII_KEYS = Object.freeze(['invoiceOwner', 'userName', 'phone']);
 
-/** All signed-in Delivery Team roles may see customer name / phone. */
 function canSeeCustomerPii(role) {
   const r = String(role || '').trim().toLowerCase();
-  return r === 'admin' || r === 'hanouf' || r === 'employee';
+  return r === 'admin' || r === 'hanouf';
 }
 
 function maskPersonName(value) {
@@ -27,7 +26,7 @@ function phoneDisplay(value) {
   return s || '—';
 }
 
-/** Pass through customer fields for team viewers; redact only for unknown roles. */
+/** Redact PII for API responses unless viewer is admin. */
 function redactRawPii(raw, viewerRole) {
   if (!raw || typeof raw !== 'object') return raw;
   if (canSeeCustomerPii(viewerRole)) return { ...raw };

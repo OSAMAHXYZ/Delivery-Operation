@@ -1,0 +1,659 @@
+/**
+ * ops-redesign-skin.css
+ * UI skin only — maps toyota-operations-redesign visuals onto demo .live-app shell.
+ *
+ * REFERENCE → DEMO
+ * DashboardLayout sidebar     → .app-sidebar / .side-nav-item
+ * AppHeader                   → .app-topbar / .app-page-title
+ * MetricCard / Panel          → .card / .bo-kpi / .kpi / .pbi-kpi / .pbi-viz
+ * Tables                      → .table-wrap table
+ * Primary / secondary buttons → .btn-primary / .btn
+ * Status pills                → .status / .badge
+ * Warm canvas #f3f1ec         → --crm-bg
+ * Charcoal sidebar #151619    → --crm-sidebar
+ * Toyota red #eb0a1e          → --crm-accent
+ *
+ * Does NOT change JS, APIs, calculations, or event handlers.
+ */
+
+.live-app.toyota-theme {
+  /* Redesign tokens */
+  --ops-bg: #f3f1ec;
+  --ops-fg: #18191c;
+  --ops-muted: #77736c;
+  --ops-border: #e5e1da;
+  --ops-input: #dedad2;
+  --ops-card: #ffffff;
+  --ops-secondary: #efede8;
+  --ops-ink: #17181b;
+  --ops-sidebar: #151619;
+  --ops-shadow: 0 12px 38px rgba(32, 31, 28, 0.045);
+  --ops-shadow-hover: 0 18px 48px rgba(32, 31, 28, 0.09);
+  --ops-radius-panel: 22px;
+  --ops-radius-control: 12px;
+
+  --crm-bg: var(--ops-bg);
+  --crm-sidebar: var(--ops-sidebar);
+  --crm-sidebar-border: rgba(255, 255, 255, 0.08);
+  --crm-text: var(--ops-fg);
+  --crm-muted: var(--ops-muted);
+  --crm-accent: #eb0a1e;
+  --crm-accent-2: #c40718;
+  --crm-accent-soft: rgba(235, 10, 30, 0.1);
+  --crm-radius: 0.8rem;
+  --crm-shadow: var(--ops-shadow);
+  --sidebar-w: 272px;
+  --sidebar-w-collapsed: 84px;
+  --topbar-h: 76px;
+
+  --font: "IBM Plex Sans Arabic", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-figure: "Manrope", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --ar: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --ink: var(--ops-fg);
+  --muted: var(--ops-muted);
+  --line: var(--ops-border);
+  --bg: var(--ops-bg);
+  --surface: var(--ops-card);
+  --radius: 0.8rem;
+  --shadow: var(--ops-shadow);
+
+  font-family: var(--font);
+  color: var(--ops-fg);
+  background: var(--ops-bg) !important;
+  text-rendering: optimizeLegibility;
+}
+
+.live-app.toyota-theme ::selection {
+  background: rgba(235, 10, 30, 0.16);
+  color: #17181b;
+}
+
+.live-app.toyota-theme .app-frame {
+  background: var(--ops-bg);
+}
+
+/* ─── Sidebar (DashboardLayout) ─── */
+.live-app.toyota-theme .app-sidebar {
+  background: var(--ops-sidebar) !important;
+  border-right: 0 !important;
+  box-shadow: 20px 0 60px rgba(18, 19, 22, 0.1) !important;
+}
+
+.live-app.toyota-theme .sidebar-brand {
+  min-height: 76px;
+  padding: 18px 16px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  gap: 12px !important;
+}
+
+.live-app.toyota-theme .sidebar-mark {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 14px !important;
+  background: #eb0a1e !important;
+  box-shadow: 0 8px 22px rgba(235, 10, 30, 0.28) !important;
+}
+
+.live-app.toyota-theme .sidebar-toyota-logo {
+  filter: brightness(0) invert(1);
+}
+
+.live-app.toyota-theme .sidebar-mark-alj {
+  color: #fff !important;
+  font-family: var(--font-figure) !important;
+}
+
+.live-app.toyota-theme .sidebar-brand-text strong {
+  font-family: var(--font-figure) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+  color: #fff !important;
+}
+
+.live-app.toyota-theme .sidebar-brand-text span {
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 0.7rem !important;
+}
+
+.live-app.toyota-theme .sidebar-section-label {
+  margin: 4px 10px 12px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.live-app.toyota-theme .sidebar-nav {
+  padding: 14px 12px !important;
+}
+
+.live-app.toyota-theme .side-nav-item,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item,
+.live-app.toyota-theme #panel-tabs .tab {
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.58) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative;
+  gap: 10px !important;
+}
+
+.live-app.toyota-theme .side-nav-item:hover,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item:hover,
+.live-app.toyota-theme #panel-tabs .tab:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Active nav = inverted white pill (redesign), not solid red fill */
+.live-app.toyota-theme .side-nav-item.active,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item.active,
+.live-app.toyota-theme #panel-tabs .tab.active {
+  background: #fff !important;
+  color: #17181b !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
+}
+
+.live-app.toyota-theme .side-nav-item.active::before,
+.live-app.toyota-theme .sidebar-tabs .tab.side-nav-item.active::before,
+.live-app.toyota-theme #panel-tabs .tab.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #eb0a1e;
+}
+
+.live-app.toyota-theme .side-nav-item.active .side-nav-icon,
+.live-app.toyota-theme #panel-tabs .tab.active .side-nav-icon {
+  color: #eb0a1e !important;
+}
+
+.live-app.toyota-theme .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 12px !important;
+}
+
+.live-app.toyota-theme .sidebar-user-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+}
+
+.live-app.toyota-theme .sidebar-user-avatar {
+  background: #34363b !important;
+  border-radius: 12px !important;
+}
+
+.live-app.toyota-theme .sidebar-collapse-btn {
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: #17181b !important;
+  border: 0 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* ─── Topbar (AppHeader) ─── */
+.live-app.toyota-theme .app-topbar {
+  background: rgba(243, 241, 236, 0.9) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  min-height: var(--topbar-h);
+  box-shadow: none !important;
+}
+
+.live-app.toyota-theme .app-topbar::after {
+  display: none !important; /* remove red underline bar — redesign uses clean header */
+}
+
+.live-app.toyota-theme .app-topbar-eyebrow {
+  color: var(--ops-muted) !important;
+  font-family: var(--font-figure) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+}
+
+.live-app.toyota-theme .app-page-title {
+  color: var(--ops-ink) !important;
+  font-family: var(--font) !important;
+  font-size: clamp(1.35rem, 2vw, 1.875rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.live-app.toyota-theme .app-topbar-search {
+  background: #fff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.live-app.toyota-theme .app-topbar-search:focus-within {
+  border-color: rgba(235, 10, 30, 0.35) !important;
+  box-shadow: 0 0 0 4px rgba(235, 10, 30, 0.06) !important;
+}
+
+.live-app.toyota-theme .app-content {
+  max-width: 1540px;
+  margin-inline: auto;
+  width: 100%;
+  padding: 20px 16px 40px !important;
+}
+
+@media (min-width: 640px) {
+  .live-app.toyota-theme .app-content {
+    padding: 24px 24px 48px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .live-app.toyota-theme .app-content {
+    padding: 28px 32px 56px !important;
+  }
+}
+
+/* ─── Buttons ─── */
+.live-app.toyota-theme .btn,
+.live-app.toyota-theme button.btn {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: #fff !important;
+  color: var(--ops-fg) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  font-weight: 700 !important;
+  padding: 0.65rem 1rem !important;
+}
+
+.live-app.toyota-theme .btn:hover:not(:disabled),
+.live-app.toyota-theme button.btn:hover:not(:disabled) {
+  background: #faf9f7 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.live-app.toyota-theme .btn-primary,
+.live-app.toyota-theme #run-btn.btn-primary,
+.live-app.toyota-theme #push-btn.btn-primary {
+  background: #eb0a1e !important;
+  border-color: #eb0a1e !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 28px rgba(235, 10, 30, 0.22) !important;
+}
+
+.live-app.toyota-theme .btn-primary:hover:not(:disabled),
+.live-app.toyota-theme #run-btn.btn-primary:hover:not(:disabled) {
+  background: #ff5361 !important;
+  border-color: #ff5361 !important;
+  transform: translateY(-1px);
+}
+
+.live-app.toyota-theme .btn.theme-toggle,
+.live-app.toyota-theme button.theme-toggle {
+  background: var(--ops-ink) !important;
+  border-color: var(--ops-ink) !important;
+  color: #f9fafb !important;
+}
+
+.live-app.toyota-theme.theme-dark .btn.theme-toggle,
+.live-app.toyota-theme.theme-dark button.theme-toggle {
+  background: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  color: #111 !important;
+}
+
+.live-app.toyota-theme .sidebar-toggle {
+  background: var(--ops-ink) !important;
+  border: 0 !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(23, 24, 27, 0.18) !important;
+}
+
+/* ─── Status / badges ─── */
+.live-app.toyota-theme .status {
+  border-radius: 999px !important;
+  background: var(--ops-secondary) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  color: var(--ops-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+}
+
+.live-app.toyota-theme .status.ok {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+.live-app.toyota-theme .badge {
+  border-radius: 999px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 0.25rem 0.65rem !important;
+  ring: 1px;
+}
+
+/* ─── Cards / panels / KPIs ─── */
+.live-app.toyota-theme .card,
+.live-app.toyota-theme .pbi-viz,
+.live-app.toyota-theme .pbi-slicer,
+.live-app.toyota-theme .bo-kpi,
+.live-app.toyota-theme .kpi,
+.live-app.toyota-theme .pbi-kpi,
+.live-app.toyota-theme .icc-hero,
+.live-app.toyota-theme .bas-hero,
+.live-app.toyota-theme .sr-card,
+.live-app.toyota-theme .bas-section-card,
+.live-app.toyota-theme .admin-section-card,
+.live-app.toyota-theme .wait-card,
+.live-app.toyota-theme .sr-mock-card:not(.sr-mock-acc),
+.live-app.toyota-theme .sr-emp-rail,
+.live-app.toyota-theme .sr-kpi-card,
+.live-app.toyota-theme .sr-fold {
+  background: var(--ops-card) !important;
+  border: 1px solid rgba(0, 0, 0, 0.065) !important;
+  border-radius: var(--ops-radius-panel) !important;
+  box-shadow: var(--ops-shadow) !important;
+}
+
+.live-app.toyota-theme .bo-kpi,
+.live-app.toyota-theme .kpi,
+.live-app.toyota-theme .pbi-kpi,
+.live-app.toyota-theme .icc-kpi {
+  border-radius: 22px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.live-app.toyota-theme .bo-kpi:hover,
+.live-app.toyota-theme .kpi:hover,
+.live-app.toyota-theme .pbi-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ops-shadow-hover) !important;
+}
+
+.live-app.toyota-theme .bo-kpi .val,
+.live-app.toyota-theme .kpi .value,
+.live-app.toyota-theme .pbi-kpi .val,
+.live-app.toyota-theme .icc-kpi .val {
+  font-family: var(--font-figure) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.045em !important;
+  color: var(--ops-ink) !important;
+}
+
+.live-app.toyota-theme .bo-kpi .lab,
+.live-app.toyota-theme .kpi .label,
+.live-app.toyota-theme .pbi-kpi .lab {
+  color: var(--ops-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-app.toyota-theme .card h2,
+.live-app.toyota-theme .pbi-viz-head h2,
+.live-app.toyota-theme .pbi-viz-head h3,
+.live-app.toyota-theme .icc-title {
+  color: var(--ops-ink) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+.live-app.toyota-theme .hint,
+.live-app.toyota-theme .foot,
+.live-app.toyota-theme .sub {
+  color: var(--ops-muted) !important;
+}
+
+/* ─── Tables ─── */
+.live-app.toyota-theme .table-wrap,
+.live-app.toyota-theme .bas-table-wrap,
+.live-app.toyota-theme .icc-table-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.065) !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  overflow: auto; /* keep scroll — hidden was clipping Schedule / data tables */
+  box-shadow: var(--ops-shadow) !important;
+}
+
+.live-app.toyota-theme table th {
+  background: #faf9f7 !important;
+  color: #938e86 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.live-app.toyota-theme table td {
+  border-color: rgba(0, 0, 0, 0.05) !important;
+  color: var(--ops-fg) !important;
+  font-size: 0.75rem !important;
+}
+
+.live-app.toyota-theme table tbody tr:hover {
+  background: #faf9f7 !important;
+}
+
+/* ─── Forms / filters ─── */
+.live-app.toyota-theme select,
+.live-app.toyota-theme input:not([type="checkbox"]):not([type="radio"]),
+.live-app.toyota-theme .toolbar input,
+.live-app.toyota-theme .toolbar select,
+.live-app.toyota-theme .sr-filter-select,
+.live-app.toyota-theme .sr-filter-chip,
+.live-app.toyota-theme .dvp-filter-chip {
+  border-radius: 12px !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  background: #fff !important;
+}
+
+.live-app.toyota-theme select:focus,
+.live-app.toyota-theme input:focus {
+  outline: none;
+  border-color: rgba(235, 10, 30, 0.35) !important;
+  box-shadow: 0 0 0 4px rgba(235, 10, 30, 0.06) !important;
+}
+
+.live-app.toyota-theme .tabs:not(.sidebar-tabs),
+.live-app.toyota-theme .icc-mode-btn,
+.live-app.toyota-theme .sr-filter-chip--mode {
+  background: var(--ops-bg) !important;
+  border-radius: 12px !important;
+}
+
+/* ─── Admin slots / upload zones ─── */
+.live-app.toyota-theme .slot {
+  border-radius: 18px !important;
+  border: 1px dashed rgba(0, 0, 0, 0.1) !important;
+  background: #faf9f7 !important;
+}
+
+.live-app.toyota-theme .slot:hover,
+.live-app.toyota-theme .slot.has-file {
+  border-color: rgba(235, 10, 30, 0.45) !important;
+  background: #fff7f7 !important;
+}
+
+/* ─── Charts containers ─── */
+.live-app.toyota-theme .chart-box,
+.live-app.toyota-theme .chart-scroll.is-scroll {
+  border-radius: 18px !important;
+}
+
+/* ─── Page foot ─── */
+.live-app.toyota-theme .page-foot {
+  color: #98938b !important;
+  font-size: 0.75rem !important;
+}
+
+/* ─── Dark mode (redesign .dark tokens) ─── */
+.live-app.toyota-theme.theme-dark {
+  --ops-bg: #111214;
+  --ops-fg: #f6f4ef;
+  --ops-muted: #aaa69f;
+  --ops-border: rgba(255, 255, 255, 0.09);
+  --ops-card: #1b1c20;
+  --ops-ink: #f6f4ef;
+  --ops-sidebar: #0e0f11;
+  --ops-shadow: 0 12px 38px rgba(0, 0, 0, 0.35);
+  --crm-bg: #111214;
+  --crm-text: #f6f4ef;
+  --crm-muted: #aaa69f;
+  background: #111214 !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-topbar {
+  background: rgba(17, 18, 20, 0.92) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.live-app.toyota-theme.theme-dark .app-page-title,
+.live-app.toyota-theme.theme-dark .card h2,
+.live-app.toyota-theme.theme-dark .bo-kpi .val,
+.live-app.toyota-theme.theme-dark .kpi .value {
+  color: #f6f4ef !important;
+}
+
+.live-app.toyota-theme.theme-dark .card,
+.live-app.toyota-theme.theme-dark .pbi-viz,
+.live-app.toyota-theme.theme-dark .bo-kpi,
+.live-app.toyota-theme.theme-dark .kpi,
+.live-app.toyota-theme.theme-dark .table-wrap {
+  background: #1b1c20 !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.live-app.toyota-theme.theme-dark table th {
+  background: #202226 !important;
+  color: #aaa69f !important;
+}
+
+.live-app.toyota-theme.theme-dark table td {
+  color: #f6f4ef !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.live-app.toyota-theme.theme-dark .btn:not(.btn-primary):not(.theme-toggle) {
+  background: #24262a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f6f4ef !important;
+}
+
+/* ─── Scrollbars (redesign-like) ─── */
+.live-app.toyota-theme ::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.live-app.toyota-theme ::-webkit-scrollbar-thumb {
+  background: rgba(63, 61, 56, 0.22);
+  border-radius: 999px;
+}
+.live-app.toyota-theme.theme-dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ─── Flexible scroll — data, Schedule, charts ─── */
+html:has(body.live-app),
+body.live-app {
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: auto;
+  min-height: 100%;
+}
+
+.live-app.toyota-theme .app-frame {
+  min-height: 100vh;
+  height: auto;
+  overflow: visible;
+}
+
+.live-app.toyota-theme .app-main,
+.live-app.toyota-theme .app-content,
+.live-app.toyota-theme #dashboard.show {
+  overflow: visible;
+  min-height: 0;
+}
+
+.live-app.toyota-theme .table-wrap,
+.live-app.toyota-theme .bas-table-wrap,
+.live-app.toyota-theme .icc-table-wrap,
+.live-app.toyota-theme .xl-table-wrap,
+.live-app.toyota-theme .sr-table-scroll,
+.live-app.toyota-theme .sr-sched-wrap,
+.live-app.toyota-theme .bas-month-table-wrap,
+.live-app.toyota-theme .bo-product-table-wrap,
+.live-app.toyota-theme .act-alert-table,
+.live-app.toyota-theme .pbi-wide-table-wrap,
+.live-app.toyota-theme .acc-remain-table-wrap {
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: auto;
+}
+
+.live-app.toyota-theme .sr-schedule .xl-table-wrap.sr-sched-wrap {
+  max-height: min(78vh, 880px) !important;
+}
+
+.live-app.toyota-theme .table-wrap,
+.live-app.toyota-theme .bas-table-wrap,
+.live-app.toyota-theme .icc-table-wrap {
+  max-height: min(72vh, 820px);
+}
+
+/* Allocation “All / Confirmed / Matched” tables — full height, page scrolls */
+.live-app.toyota-theme .bas-section-all .bas-table-wrap,
+.live-app.toyota-theme .bas-section-conf .bas-table-wrap,
+.live-app.toyota-theme #bas-table.bas-table-wrap,
+.live-app.toyota-theme #bas-conf-table.bas-table-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+}
+.live-app.toyota-theme .bas-section-alloc .bas-table-wrap,
+.live-app.toyota-theme #bas-alloc-table.bas-table-wrap {
+  max-height: none !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+.live-app.toyota-theme .bas-section-card {
+  overflow: visible !important;
+}
+
+.live-app.toyota-theme .act-details-block {
+  overflow: visible !important;
+}
+
+.live-app.toyota-theme .sr-fold {
+  overflow: visible !important;
+}
+
+.live-app.toyota-theme .sr-sched-table-card {
+  overflow: visible !important;
+}
+
+.live-app.toyota-theme .chart-scroll.is-scroll,
+.live-app.toyota-theme #bo-dash.bo-dash--fit .chart-scroll.is-scroll,
+.live-app.toyota-theme .sr-panel .chart-scroll.is-scroll {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  max-height: min(70vh, 720px) !important;
+  -webkit-overflow-scrolling: touch;
+}

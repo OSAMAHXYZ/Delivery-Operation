@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TOYOTA BREAK CHALLENGE — 10 Minutes · 7 Games</title>
+  <style>
+    :root {
+      --toyota-red: #EB0A1E;
+      --toyota-red-dark: #c40819;
+      --ink: #1a1a1a;
+      --ink-soft: #333;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --ok: #15803d;
+      --ok-bg: #dcfce7;
+      --bad: #b91c1c;
+      --bad-bg: #fee2e2;
+      --shadow: 0 10px 30px rgba(0,0,0,.06);
+      --radius: 16px;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 100% -10%, rgba(235,10,30,.06), transparent 55%),
+        radial-gradient(700px 360px at -5% 40%, rgba(0,0,0,.03), transparent 50%),
+        var(--bg);
+      line-height: 1.45;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 18px 16px 40px; }
+
+    /* Header */
+    .top {
+      display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 14px 18px; box-shadow: var(--shadow); margin-bottom: 18px;
+      position: sticky; top: 10px; z-index: 40;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; min-width: 220px; }
+    .logo {
+      width: 44px; height: 44px; border-radius: 12px; background: var(--toyota-red);
+      color: #fff; display: grid; place-items: center; font-weight: 800; letter-spacing: .04em;
+      box-shadow: 0 8px 18px rgba(235,10,30,.28);
+    }
+    .brand h1 { margin: 0; font-size: clamp(1rem, 2.2vw, 1.2rem); letter-spacing: -.02em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: .78rem; font-weight: 600; }
+    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; align-items: center; }
+    .pill {
+      background: #fafafa; border: 1px solid var(--line); border-radius: 999px;
+      padding: 7px 12px; font-size: .82rem; font-weight: 700; color: var(--ink-soft);
+      display: inline-flex; gap: 6px; align-items: center;
+    }
+    .pill.timer { background: #fff5f5; border-color: #fecaca; color: var(--toyota-red); font-variant-numeric: tabular-nums; min-width: 86px; justify-content: center; }
+    .pill.timer.warn { animation: pulse 1s infinite; }
+    .pill.score { background: #111; color: #fff; border-color: #111; }
+    .icon-btn, .btn {
+      border: 1px solid var(--line); background: var(--surface); border-radius: 12px;
+      padding: 9px 14px; font-weight: 700; color: var(--ink); transition: .15s transform, .15s background, .15s border-color;
+    }
+    .icon-btn:hover, .btn:hover { background: #fafafa; }
+    .icon-btn:active, .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--toyota-red); border-color: var(--toyota-red); color: #fff; }
+    .btn-primary:hover { background: var(--toyota-red-dark); }
+    .btn-ghost { background: transparent; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Screens */
+    .screen { animation: fadeIn .28s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .65; } }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    @keyframes pop { 0%{transform:scale(.6);opacity:0} 40%{transform:scale(1.15);opacity:1} 100%{transform:scale(1);opacity:0;transform:translateY(-28px)} }
+    @keyframes flipY { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
+
+    .hero {
+      background: linear-gradient(135deg, #111 0%, #2a2a2a 55%, #3b0a10 100%);
+      color: #fff; border-radius: 22px; padding: clamp(22px, 4vw, 36px);
+      margin-bottom: 18px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ""; position: absolute; inset: auto -40px -60px auto; width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(235,10,30,.45), transparent 70%);
+    }
+    .hero .eyebrow { margin: 0 0 8px; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #fda4af; }
+    .hero h2 { margin: 0 0 8px; font-size: clamp(1.5rem, 3.5vw, 2.2rem); letter-spacing: -.03em; max-width: 18ch; }
+    .hero p { margin: 0; color: #d1d5db; max-width: 52ch; }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    }
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } .stats { width: 100%; } }
+
+    .game-card {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+      padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
+      transition: .2s transform, .2s box-shadow, .2s border-color;
+    }
+    .game-card:hover { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(0,0,0,.08); border-color: #fecaca; }
+    .game-num { font-size: .72rem; font-weight: 800; letter-spacing: .1em; color: var(--toyota-red); }
+    .game-icon {
+      width: 56px; height: 56px; border-radius: 14px; background: #fff5f5; color: var(--toyota-red);
+      display: grid; place-items: center; border: 1px solid #fecaca;
+    }
+    .game-card h3 { margin: 0; font-size: 1.05rem; }
+    .game-card .desc { margin: 0; color: var(--muted); font-size: .9rem; flex: 1; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      font-size: .72rem; font-weight: 700; padding: 4px 8px; border-radius: 999px;
+      background: #f3f4f6; color: #374151;
+    }
+    .chip.hard { background: #fee2e2; color: #991b1b; }
+    .chip.med { background: #ffedd5; color: #9a3412; }
+    .chip.easy { background: #dcfce7; color: #166534; }
+
+    /* Game shell */
+    .game-shell {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+      padding: 18px; box-shadow: var(--shadow); min-height: 520px;
+    }
+    .game-bar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--line);
+    }
+    .game-bar h2 { margin: 0; font-size: 1.15rem; flex: 1; min-width: 160px; }
+    .progress {
+      height: 8px; background: #eee; border-radius: 999px; overflow: hidden; margin: 10px 0 16px;
+    }
+    .progress > span { display: block; height: 100%; background: var(--toyota-red); width: 0%; transition: width .25s; }
+
+    .panel {
+      background: #fafafa; border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+    }
+    .clue, .question {
+      font-size: 1.05rem; font-weight: 600; margin: 0 0 14px;
+    }
+    .answers {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    @media (max-width: 560px) { .answers { grid-template-columns: 1fr; } }
+    .answer-btn {
+      text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line);
+      background: #fff; font-weight: 700; transition: .15s;
+    }
+    .answer-btn:hover:not(:disabled) { border-color: var(--toyota-red); color: var(--toyota-red); }
+    .answer-btn.correct { background: var(--ok-bg); border-color: #86efac; color: var(--ok); }
+    .answer-btn.wrong { background: var(--bad-bg); border-color: #fecaca; color: var(--bad); animation: shake .35s; }
+    .answer-btn:disabled { cursor: default; }
+
+    .vin-board {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0 18px;
+      min-height: 58px; padding: 12px; background: #111; border-radius: 14px;
+    }
+    .vin-slot, .vin-tile {
+      width: 42px; height: 48px; border-radius: 10px; display: grid; place-items: center;
+      font-family: var(--mono); font-weight: 800; font-size: 1rem;
+    }
+    .vin-slot {
+      border: 2px dashed #444; color: #fff; background: #1f1f1f;
+    }
+    .vin-slot.filled { border-style: solid; border-color: var(--toyota-red); background: #2a1013; }
+    .vin-pool {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    }
+    .vin-tile {
+      border: 1px solid var(--line); background: #fff; cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,.04);
+    }
+    .vin-tile:hover { border-color: var(--toyota-red); }
+    .vin-tile.used { opacity: .25; pointer-events: none; }
+
+    .part-visual {
+      height: 160px; border-radius: 16px; background: linear-gradient(160deg, #fff, #f3f4f6);
+      border: 1px solid var(--line); display: grid; place-items: center; margin-bottom: 14px;
+    }
+    .part-visual svg { width: 110px; height: 110px; }
+
+    .memory-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .memory-grid.hard { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 560px) {
+      .memory-grid, .memory-grid.hard { grid-template-columns: repeat(3, 1fr); }
+    }
+    .mem-card {
+      aspect-ratio: 1; perspective: 800px; border: 0; padding: 0; background: transparent;
+    }
+    .mem-inner {
+      width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+      transition: transform .35s; border-radius: 14px;
+    }
+    .mem-card.flipped .mem-inner, .mem-card.matched .mem-inner { transform: rotateY(180deg); }
+    .mem-face {
+      position: absolute; inset: 0; backface-visibility: hidden; border-radius: 14px;
+      display: grid; place-items: center; border: 1px solid var(--line); padding: 8px; text-align: center;
+      font-weight: 800; font-size: clamp(.7rem, 1.8vw, .85rem);
+    }
+    .mem-back { background: linear-gradient(145deg, #111, #333); color: #fff; }
+    .mem-front { background: #fff; transform: rotateY(180deg); color: var(--ink); }
+    .mem-card.matched .mem-front { background: var(--ok-bg); border-color: #86efac; }
+
+    .sort-vehicle {
+      text-align: center; padding: 28px 16px; margin-bottom: 14px;
+      background: #111; color: #fff; border-radius: 16px;
+    }
+    .sort-vehicle .label { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: #fda4af; font-weight: 800; }
+    .sort-vehicle h3 { margin: 8px 0 0; font-size: clamp(1.4rem, 3vw, 2rem); }
+    .sort-timer { height: 8px; background: #333; border-radius: 999px; overflow: hidden; margin-top: 14px; }
+    .sort-timer > span { display: block; height: 100%; background: var(--toyota-red); width: 100%; transition: width .1s linear; }
+    .cats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    @media (max-width: 720px) { .cats { grid-template-columns: 1fr 1fr; } }
+    .cat-btn {
+      padding: 14px 10px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-weight: 800;
+    }
+    .cat-btn:hover:not(:disabled) { border-color: var(--toyota-red); color: var(--toyota-red); }
+
+    .diff-wrap {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
+    @media (max-width: 720px) { .diff-wrap { grid-template-columns: 1fr; } }
+    .car-stage {
+      position: relative; background: #f3f4f6; border: 1px solid var(--line); border-radius: 16px;
+      min-height: 260px; overflow: hidden; user-select: none;
+    }
+    .car-stage svg { width: 100%; height: 260px; display: block; }
+    .hotspot {
+      position: absolute; width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid transparent; transform: translate(-50%, -50%); cursor: pointer; background: transparent;
+    }
+    .hotspot:hover { border-color: rgba(235,10,30,.35); }
+    .hotspot.found {
+      border-color: var(--ok); background: rgba(21,128,61,.18);
+      box-shadow: 0 0 0 4px rgba(21,128,61,.12);
+    }
+    .hotspot.found::after { content: "✓"; color: var(--ok); font-weight: 900; font-size: .85rem; display: grid; place-items: center; height: 100%; }
+
+    .toast-score {
+      position: fixed; left: 50%; top: 30%; transform: translateX(-50%);
+      font-weight: 900; font-size: 1.4rem; color: var(--toyota-red); pointer-events: none;
+      animation: pop .9s ease forwards; z-index: 80;
+    }
+    .streak-fire { color: #ea580c; font-weight: 800; }
+
+    .modal {
+      position: fixed; inset: 0; background: rgba(15,15,15,.55); display: grid; place-items: center;
+      padding: 16px; z-index: 100;
+    }
+    .results-card {
+      width: min(560px, 100%); background: #fff; border-radius: 22px; padding: 28px 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.2); text-align: center; animation: fadeIn .3s ease;
+    }
+    .results-card h2 { margin: 0 0 6px; font-size: 1.6rem; }
+    .rating {
+      display: inline-block; margin: 10px 0 18px; padding: 8px 14px; border-radius: 999px;
+      background: #111; color: #fff; font-weight: 800; letter-spacing: .04em;
+    }
+    .result-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-bottom: 16px;
+    }
+    .result-grid div {
+      background: #fafafa; border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+    }
+    .result-grid .k { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .result-grid .v { font-size: 1.2rem; font-weight: 800; margin-top: 4px; }
+    .played-list { text-align: left; margin: 0 0 16px; padding: 0; list-style: none; }
+    .played-list li {
+      display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line);
+      font-size: .9rem;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+    .confetti-piece {
+      position: fixed; width: 8px; height: 12px; top: -12px; z-index: 90; pointer-events: none;
+      animation: fall linear forwards;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+    }
+
+    .toolbar-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .hint { color: var(--muted); font-size: .86rem; margin: 8px 0 0; }
+    .feedback { min-height: 1.4em; font-weight: 700; margin-top: 10px; }
+    .feedback.ok { color: var(--ok); }
+    .feedback.bad { color: var(--bad); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">T</div>
+        <div>
+          <h1>TOYOTA BREAK CHALLENGE</h1>
+          <p>10-minute employee game</p>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="pill score" title="Live score">★ <span id="live-score">0</span></div>
+        <div class="pill" title="Best streak">🔥 <span id="live-streak">0</span></div>
+        <div class="pill timer" id="timer-pill"><span id="live-timer">10:00</span></div>
+        <button type="button" class="icon-btn" id="sound-btn" aria-pressed="false" title="Toggle sound">🔊 Sound</button>
+        <button type="button" class="icon-btn" id="reset-btn" title="Restart session">↺ Reset</button>
+      </div>
+    </header>
+
+    <!-- HOME -->
+    <section id="screen-home" class="screen">
+      <div class="hero">
+        <p class="eyebrow">Internal · Employee Break</p>
+        <h2>10 Minutes. 7 Games. How Good Are You With Cars?</h2>
+        <p>Pick a challenge, earn points, build your streak. The global clock starts when you press PLAY on your first game.</p>
+      </div>
+      <div class="grid" id="game-grid"></div>
+    </section>
+
+    <!-- GAME -->
+    <section id="screen-game" class="screen hidden">
+      <div class="game-shell">
+        <div class="game-bar">
+          <button type="button" class="btn btn-ghost" id="back-btn">← Game Center</button>
+          <h2 id="game-title">Game</h2>
+          <button type="button" class="btn" id="restart-game-btn">Restart Game</button>
+        </div>
+        <div class="progress" aria-hidden="true"><span id="game-progress"></span></div>
+        <div id="game-root"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="results-title">
+    <div class="results-card">
+      <div style="font-size:2rem;margin-bottom:6px">🏆</div>
+      <h2 id="results-title">BREAK COMPLETE 🚗</h2>
+      <div class="rating" id="results-rating">CAR ENTHUSIAST</div>
+      <div class="result-grid">
+        <div><div class="k">Score</div><div class="v" id="res-score">0</div></div>
+        <div><div class="k">Accuracy</div><div class="v" id="res-acc">0%</div></div>
+        <div><div class="k">Games</div><div class="v" id="res-games">0 / 6</div></div>
+        <div><div class="k">Best Streak</div><div class="v" id="res-streak">0</div></div>
+        <div><div class="k">Time</div><div class="v">10:00</div></div>
+        <div><div class="k">Fastest Answer</div><div class="v" id="res-fast">—</div></div>
+      </div>
+      <ul class="played-list" id="res-played"></ul>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="play-again-btn">PLAY AGAIN</button>
+        <button type="button" class="btn" id="back-center-btn">BACK TO GAME CENTER</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    /* ───────────── DATA ───────────── */
+    const GAME_META = [
+      { id: "vin", num: "01", name: "VIN MASTER", desc: "Unscramble the vehicle code.", difficulty: "Medium", time: "2 min", icon: "🔐", hardClass: "med" },
+      { id: "guess", num: "02", name: "GUESS THE TOYOTA", desc: "Identify the Toyota from the clues.", difficulty: "Easy–Hard", time: "2 min", icon: "🚗", hardClass: "easy" },
+      { id: "parts", num: "03", name: "PARTS CHALLENGE", desc: "Can you identify the car part?", difficulty: "Medium", time: "2 min", icon: "🔧", hardClass: "med" },
+      { id: "memory", num: "04", name: "TOYOTA MEMORY", desc: "Match the cars and parts.", difficulty: "Easy / Hard", time: "3 min", icon: "🧠", hardClass: "med" },
+      { id: "sort", num: "05", name: "SPEED SORT", desc: "Sort the vehicles before time runs out.", difficulty: "Hard", time: "2 min", icon: "⚡", hardClass: "hard" },
+      { id: "diff", num: "06", name: "WHAT'S DIFFERENT?", desc: "Find the differences between two cars.", difficulty: "Medium", time: "3 min", icon: "🔍", hardClass: "med" },
+      { id: "rubik", num: "07", name: "3D RUBIK CUBE", desc: "Real interactive cube — stages 1 to 5.", difficulty: "Beginner–Expert", time: "3–8 min", icon: "🧊", hardClass: "hard" },
+    ];
+
+    const VIN_POOL = [
+      "JTDBR32E123456789", "JTNBE46K800123456", "JTEBU5JR1A5123456", "JTNB11HK0J0123456",
+      "2T1BURHE0JC123456", "4T1B11HK5JU123456", "5TDZZRFH0LS123456", "JTEBU11F170123456",
+      "CAMRY-HV-2024-XLE", "RAV4-AWD-2025-LIMITED", "HILUX-DC-2026-ADV", "LC300-VX-2025-GR",
+      "COROLLA-SED-2024-SE", "FORTUNER-4WD-2025", "PRADO-TXL-2026", "YARIS-SD-2024-E",
+    ];
+
+    const MODELS = [
+      { name: "Camry", category: "SEDAN", clues: ["Midsize sedan", "Popular family sedan", "Often chosen for comfort and quiet ride", "Four-door passenger car"] },
+      { name: "Corolla", category: "SEDAN", clues: ["Compact sedan", "Known for reliability", "Common daily commuter", "Smaller than Camry"] },
+      { name: "Corolla Cross", category: "SUV", clues: ["Compact crossover SUV", "Higher seating than Corolla sedan", "Urban-friendly SUV size", "Corolla family crossover"] },
+      { name: "Yaris", category: "SEDAN", clues: ["Small entry-level Toyota", "Compact city car", "Often the most affordable Toyota option", "Short overall length"] },
+      { name: "Yaris Sedan", category: "SEDAN", clues: ["Small sedan body style", "Entry sedan offering", "Popular in many markets as a starter car", "Compact four-door"] },
+      { name: "Fortuner", category: "SUV", clues: ["Body-on-frame SUV", "Often linked with Hilux underpinnings", "Popular seven-seat SUV in many regions", "Rugged family SUV"] },
+      { name: "Highlander", category: "SUV", clues: ["Midsize family SUV", "Typically offers three rows", "Larger than RAV4", "Family road-trip SUV"] },
+      { name: "Land Cruiser", category: "SUV", clues: ["Flagship off-road SUV", "Known for durability", "Full-size adventure SUV", "Iconic Toyota nameplate"] },
+      { name: "Land Cruiser Prado", category: "SUV", clues: ["Midsize Land Cruiser family SUV", "Often positioned under full-size Land Cruiser", "Capable off-road SUV", "Prado badge"] },
+      { name: "Hilux", category: "PICKUP", clues: ["Legendary pickup truck", "Work and adventure pickup", "Open cargo bed", "Tough commercial favorite"] },
+      { name: "RAV4", category: "SUV", clues: ["Compact crossover SUV", "One of Toyota’s best-selling SUVs", "Higher driving position than sedans", "Urban and weekend SUV"] },
+      { name: "Crown", category: "SEDAN", clues: ["Premium Toyota sedan nameplate", "More upscale than Camry", "Executive-leaning passenger car", "Heritage luxury Toyota"] },
+      { name: "Innova", category: "MPV", clues: ["People mover / MPV", "Family multi-purpose vehicle", "Often used for passenger shuttle duty", "Cabin-focused layout"] },
+      { name: "Veloz", category: "MPV", clues: ["Compact MPV", "Family-oriented multi-seat vehicle", "More practical than a sporty coupe", "Urban family hauler"] },
+      { name: "Raize", category: "SUV", clues: ["Small crossover SUV", "Compact urban SUV styling", "Entry-level SUV footprint", "City-friendly crossover"] },
+      { name: "GR86", category: "SPORTS", clues: ["Sporty coupe", "Driver-focused GR model", "Two-door performance car", "Lightweight sports car character"] },
+      { name: "GR Supra", category: "SPORTS", clues: ["Flagship sports coupe", "GR performance halo car", "Two-seat sports car vibe", "Supra nameplate"] },
+      { name: "Land Cruiser 70", category: "SUV", clues: ["Work-focused Land Cruiser series", "Rugged utility SUV", "Often associated with tough duty cycles", "70 Series family"] },
+    ];
+
+    const PARTS = [
+      { name: "Brake disc", aliases: ["Rotor"], tip: "Round metal disc the pads clamp onto", shape: "disc" },
+      { name: "Brake pad", aliases: [], tip: "Friction material that presses on the disc", shape: "pad" },
+      { name: "Alternator", aliases: [], tip: "Charges the battery while the engine runs", shape: "alt" },
+      { name: "Battery", aliases: [], tip: "Stores electrical energy for starting", shape: "batt" },
+      { name: "Radiator", aliases: [], tip: "Helps cool engine coolant", shape: "rad" },
+      { name: "Air filter", aliases: [], tip: "Cleans air entering the engine", shape: "air" },
+      { name: "Oil filter", aliases: [], tip: "Cleans engine oil", shape: "oil" },
+      { name: "Spark plug", aliases: [], tip: "Ignites the air-fuel mix in petrol engines", shape: "spark" },
+      { name: "Shock absorber", aliases: ["Damper"], tip: "Controls suspension bounce", shape: "shock" },
+      { name: "Wheel hub", aliases: [], tip: "Center assembly the wheel mounts to", shape: "hub" },
+      { name: "Headlight", aliases: [], tip: "Front lighting assembly", shape: "light" },
+      { name: "Drive shaft", aliases: [], tip: "Transfers torque toward the wheels", shape: "shaft" },
+      { name: "Differential", aliases: [], tip: "Lets driven wheels rotate at different speeds", shape: "diff" },
+      { name: "Exhaust", aliases: [], tip: "Routes combustion gases out", shape: "exh" },
+      { name: "Turbocharger", aliases: ["Turbo"], tip: "Uses exhaust flow to boost intake air", shape: "turbo" },
+    ];
+
+    const MEMORY_ITEMS = [
+      { id: "camry", label: "Camry", emoji: "🚗" },
+      { id: "lc", label: "Land Cruiser", emoji: "🚙" },
+      { id: "hilux", label: "Hilux", emoji: "🛻" },
+      { id: "supra", label: "GR Supra", emoji: "🏎" },
+      { id: "rav4", label: "RAV4", emoji: "🚙" },
+      { id: "brake", label: "Brake Disc", emoji: "🔧" },
+      { id: "batt", label: "Battery", emoji: "🔋" },
+      { id: "wheel", label: "Wheel", emoji: "⚙️" },
+    ];
+
+    const DIFF_SPOTS = [
+      { id: "headlight", label: "Headlight", x: 18, y: 48 },
+      { id: "wheel", label: "Wheel", x: 28, y: 78 },
+      { id: "mirror", label: "Mirror", x: 42, y: 40 },
+      { id: "handle", label: "Door handle", x: 55, y: 55 },
+      { id: "window", label: "Window", x: 58, y: 38 },
+      { id: "roof", label: "Roof", x: 50, y: 22 },
+      { id: "grille", label: "Grille", x: 22, y: 58 },
+      { id: "bumper", label: "Bumper", x: 20, y: 72 },
+      { id: "tail", label: "Tail light", x: 82, y: 48 },
+    ];
+
+    /* ───────────── STATE ───────────── */
+    const state = {
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      correct: 0,
+      attempts: 0,
+      sound: false,
+      timerStarted: false,
+      timeLeft: 600,
+      timerId: null,
+      sessionOver: false,
+      currentGame: null,
+      fastestMs: null,
+      gameScores: {},
+      gamesPlayed: new Set(),
+      _gameLocal: null,
+    };
+
+    const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+    /* ───────────── UTILS ───────────── */
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+    function pick(arr, n) {
+      return shuffle(arr).slice(0, n);
+    }
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function fmtTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+    function beep(ok) {
+      if (!state.sound) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = "sine";
+        o.frequency.value = ok ? 880 : 220;
+        g.gain.value = 0.04;
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+        o.stop(ctx.currentTime + 0.16);
+        setTimeout(() => ctx.close(), 250);
+      } catch (_) {}
+    }
+    function toastScore(n) {
+      const el = document.createElement("div");
+      el.className = "toast-score";
+      el.textContent = n >= 0 ? `+${n}` : `${n}`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }
+    function confetti() {
+      const colors = ["#EB0A1E", "#111", "#fbbf24", "#22c55e", "#3b82f6"];
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement("div");
+        p.className = "confetti-piece";
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.background = colors[i % colors.length];
+        p.style.animationDuration = 1.2 + Math.random() * 1.4 + "s";
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 2800);
+      }
+    }
+    function updateHUD() {
+      $("#live-score").textContent = state.score.toLocaleString();
+      $("#live-streak").textContent = state.streak;
+      const pill = $("#timer-pill");
+      $("#live-timer").textContent = fmtTime(state.timeLeft);
+      pill.classList.toggle("warn", state.timeLeft <= 60 && state.timerStarted);
+    }
+    function addScore(base, { fast = false, fromMs = null } = {}) {
+      let gain = base;
+      if (fast) gain += 25;
+      if (state.streak === 3) gain += 50;
+      if (state.streak === 5) gain += 100;
+      if (state.streak === 10) gain += 250;
+      state.score += gain;
+      if (fromMs != null && (state.fastestMs == null || fromMs < state.fastestMs)) state.fastestMs = fromMs;
+      toastScore(gain);
+      updateHUD();
+      return gain;
+    }
+    function registerAnswer(correct, elapsedMs) {
+      state.attempts += 1;
+      if (correct) {
+        state.correct += 1;
+        state.streak += 1;
+        state.bestStreak = Math.max(state.bestStreak, state.streak);
+        const fast = elapsedMs != null && elapsedMs < 2500;
+        addScore(100, { fast, fromMs: elapsedMs });
+        beep(true);
+      } else {
+        state.streak = 0;
+        state.score = Math.max(0, state.score - 25);
+        toastScore(-25);
+        updateHUD();
+        beep(false);
+      }
+    }
+    function markGamePlayed(id, pointsEarned) {
+      state.gamesPlayed.add(id);
+      state.gameScores[id] = (state.gameScores[id] || 0) + pointsEarned;
+    }
+    function ensureTimer() {
+      if (state.timerStarted || state.sessionOver) return;
+      state.timerStarted = true;
+      state.timerId = setInterval(() => {
+        if (state.timeLeft <= 0) return endSession();
+        state.timeLeft -= 1;
+        updateHUD();
+        if (state.timeLeft <= 0) endSession();
+      }, 1000);
+    }
+    function stopTimer() {
+      if (state.timerId) clearInterval(state.timerId);
+      state.timerId = null;
+    }
+    function endSession() {
+      if (state.sessionOver) return;
+      state.sessionOver = true;
+      state.timeLeft = 0;
+      stopTimer();
+      updateHUD();
+      showResults();
+    }
+    function accuracy() {
+      if (!state.attempts) return 0;
+      return Math.round((state.correct / state.attempts) * 100);
+    }
+    function ratingFor(acc) {
+      if (acc >= 90) return "CAR MASTER";
+      if (acc >= 75) return "TOYOTA PRO";
+      if (acc >= 50) return "CAR ENTHUSIAST";
+      return "KEEP DRIVING 🚗";
+    }
+    function showResults() {
+      const acc = accuracy();
+      $("#res-score").textContent = state.score.toLocaleString();
+      $("#res-acc").textContent = acc + "%";
+      $("#res-games").textContent = `${state.gamesPlayed.size} / 7`;
+      $("#res-streak").textContent = state.bestStreak;
+      $("#res-fast").textContent = state.fastestMs != null ? (state.fastestMs / 1000).toFixed(2) + " sec" : "—";
+      $("#results-rating").textContent = ratingFor(acc);
+      $("#res-played").innerHTML = GAME_META.map((g) => {
+        const played = state.gamesScores[g.id] != null;
+        return `<li><span>${g.num} · ${g.name}</span><strong>${played ? state.gameScores[g.id].toLocaleString() + " pts" : "Not played"}</strong></li>`;
+      }).join("");
+      $("#results-modal").classList.remove("hidden");
+      confetti();
+    }
+    function resetSession() {
+      stopTimer();
+      Object.assign(state, {
+        score: 0, streak: 0, bestStreak: 0, correct: 0, attempts: 0,
+        timerStarted: false, timeLeft: 600, sessionOver: false, currentGame: null,
+        fastestMs: null, gameScores: {}, gamesPlayed: new Set(), _gameLocal: null,
+      });
+      $("#results-modal").classList.add("hidden");
+      showHome();
+      updateHUD();
+    }
+
+    /* ───────────── NAV ───────────── */
+    function showHome() {
+      state.currentGame = null;
+      $("#screen-home").classList.remove("hidden");
+      $("#screen-game").classList.add("hidden");
+      $("#game-root").innerHTML = "";
+    }
+    function openGame(id) {
+      if (state.sessionOver) return showResults();
+      ensureTimer();
+      if (id === "rubik") {
+        state.gamesPlayed.add("rubik");
+        const pts = Number(localStorage.getItem("toyota_break_rubik_score") || 0);
+        if (pts) state.gameScores.rubik = pts;
+        location.href = `toyota-rubiks-cube.html?from=break&global=${state.timeLeft}`;
+        return;
+      }
+      state.currentGame = id;
+      const meta = GAME_META.find((g) => g.id === id);
+      $("#screen-home").classList.add("hidden");
+      $("#screen-game").classList.remove("hidden");
+      $("#game-title").textContent = `${meta.num} — ${meta.name}`;
+      $("#game-progress").style.width = "0%";
+      const before = state.score;
+      const api = {
+        setProgress(p) { $("#game-progress").style.width = Math.max(0, Math.min(100, p)) + "%"; },
+        onRoundScore(pts) { markGamePlayed(id, pts); },
+        finishBonus(pts) {
+          if (pts > 0) { state.score += pts; toastScore(pts); updateHUD(); }
+          markGamePlayed(id, Math.max(0, state.score - before));
+          confetti();
+        },
+      };
+      const starters = { vin: startVin, guess: startGuess, parts: startParts, memory: startMemory, sort: startSort, diff: startDiff };
+      starters[id]($("#game-root"), api);
+    }
+
+    function renderHome() {
+      $("#game-grid").innerHTML = GAME_META.map((g) => `
+        <article class="game-card">
+          <div class="game-num">GAME ${g.num}</div>
+          <div class="game-icon" aria-hidden="true">${g.icon}</div>
+          <h3>${g.name}</h3>
+          <p class="desc">${g.desc}</p>
+          <div class="meta">
+            <span class="chip ${g.hardClass}">${g.difficulty}</span>
+            <span class="chip">⏱ ${g.time}</span>
+          </div>
+          <button type="button" class="btn btn-primary" data-play="${g.id}">PLAY</button>
+        </article>
+      `).join("");
+      $$("[data-play]").forEach((b) => b.addEventListener("click", () => openGame(b.dataset.play)));
+    }
+
+    /* ───────────── PART SVG ───────────── */
+    function partSvg(shape) {
+      const common = 'fill="none" stroke="#EB0A1E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"';
+      const map = {
+        disc: `<circle cx="55" cy="55" r="34" ${common}/><circle cx="55" cy="55" r="10" ${common}/>`,
+        pad: `<path d="M28 70 L40 30 H70 L82 70 Z" ${common}/><path d="M40 48 H70" ${common}/>`,
+        alt: `<rect x="28" y="34" width="54" height="42" rx="10" ${common}/><circle cx="55" cy="55" r="12" ${common}/>`,
+        batt: `<rect x="26" y="40" width="58" height="36" rx="6" ${common}/><path d="M38 40 V30 M72 40 V30 M42 55 H52 M68 50 V60" ${common}/>`,
+        rad: `<rect x="24" y="30" width="62" height="50" rx="6" ${common}/><path d="M32 40 H78 M32 50 H78 M32 60 H78" ${common}/>`,
+        air: `<rect x="30" y="28" width="50" height="54" rx="8" ${common}/><path d="M40 40 H70 M40 52 H70 M40 64 H70" ${common}/>`,
+        oil: `<path d="M40 28 H70 V48 L55 82 L40 48 Z" ${common}/>`,
+        spark: `<path d="M50 22 V48 L40 70 H70 L60 48 V22" ${common}/><path d="M55 70 V88" ${common}/>`,
+        shock: `<path d="M55 20 V88 M42 36 H68 M42 70 H68" ${common}/><circle cx="55" cy="28" r="6" ${common}/>`,
+        hub: `<circle cx="55" cy="55" r="30" ${common}/><circle cx="55" cy="55" r="8" ${common}/><path d="M55 25 V40 M55 70 V85 M25 55 H40 M70 55 H85" ${common}/>`,
+        light: `<path d="M30 40 H55 L78 55 L55 70 H30 Z" ${common}/><circle cx="48" cy="55" r="8" ${common}/>`,
+        shaft: `<path d="M20 55 H90 M30 45 V65 M80 45 V65" ${common}/>`,
+        diff: `<circle cx="55" cy="55" r="28" ${common}/><path d="M55 27 V83 M27 55 H83" ${common}/>`,
+        exh: `<path d="M20 60 H70 C82 60 88 48 88 40" ${common}/><circle cx="88" cy="36" r="8" ${common}/>`,
+        turbo: `<circle cx="42" cy="55" r="20" ${common}/><circle cx="72" cy="48" r="14" ${common}/><path d="M58 48 H62" ${common}/>`,
+      };
+      return `<svg viewBox="0 0 110 110" aria-hidden="true">${map[shape] || map.disc}</svg>`;
+    }
+
+    function carSvg(variantMods = {}) {
+      // variantMods: map of spotId -> true means altered look on B
+      const mods = variantMods || {};
+      const head = mods.headlight ? "M18 52 C28 40, 34 40, 40 52 C34 58, 28 58, 18 52" : "M18 50 C28 42, 34 42, 40 50 C34 56, 28 56, 18 50";
+      const wheelR = mods.wheel ? 16 : 14;
+      const mirror = mods.mirror ? "M58 40 H70 V46 H58 Z" : "M60 42 H68 V46 H60 Z";
+      const handle = mods.handle ? "M78 58 H90" : "M80 58 H88";
+      const windowPath = mods.window ? "M62 34 H96 L100 52 H66 Z" : "M64 36 H94 L98 50 H68 Z";
+      const roof = mods.roof ? "M48 28 H92" : "M50 30 H90";
+      const grille = mods.grille ? "M22 58 H42 M22 62 H42 M22 66 H42" : "M24 60 H40 M24 64 H40";
+      const bumper = mods.bumper ? "M14 78 H48" : "M16 76 H46";
+      const tail = mods.tail ? "M108 46 H120 V58 H108 Z" : "M110 48 H118 V56 H110 Z";
+      return `
+        <svg viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="140" height="100" fill="#eceff3"/>
+          <path d="M20 70 L34 42 H88 L108 70 Z" fill="#fff" stroke="#111" stroke-width="2"/>
+          <path d="${windowPath}" fill="#dbeafe" stroke="#111" stroke-width="1.5"/>
+          <path d="${roof}" stroke="#111" stroke-width="2"/>
+          <path d="${head}" fill="#fef3c7" stroke="#111" stroke-width="1.5"/>
+          <path d="${grille}" stroke="#111" stroke-width="1.5"/>
+          <path d="${bumper}" stroke="#111" stroke-width="3" stroke-linecap="round"/>
+          <path d="${mirror}" fill="#e5e7eb" stroke="#111" stroke-width="1.2"/>
+          <path d="${handle}" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+          <path d="${tail}" fill="#fecaca" stroke="#111" stroke-width="1.2"/>
+          <circle cx="40" cy="78" r="${wheelR}" fill="#111"/>
+          <circle cx="40" cy="78" r="5" fill="#9ca3af"/>
+          <circle cx="96" cy="78" r="14" fill="#111"/>
+          <circle cx="96" cy="78" r="5" fill="#9ca3af"/>
+        </svg>`;
+    }
+
+    /* ───────────── GAME 1 VIN ───────────── */
+    function startVin(root, api) {
+      let level = 1;
+      let attempts = 0;
+      let started = Date.now();
+      let target = "";
+      let pool = [];
+      let built = [];
+
+      function newPuzzle() {
+        attempts = 0;
+        started = Date.now();
+        const src = VIN_POOL[randInt(0, VIN_POOL.length - 1)];
+        const len = Math.min(src.length, 8 + level * 2);
+        target = src.slice(0, len).toUpperCase();
+        pool = shuffle(target.split(""));
+        built = [];
+        render();
+        api.setProgress(((level - 1) / 5) * 100);
+      }
+
+      function render() {
+        root.innerHTML = `
+          <div class="panel">
+            <p class="question">Rebuild the code · Level ${level}</p>
+            <div class="vin-board" id="vin-board">
+              ${Array.from({ length: target.length }, (_, i) => {
+                const ch = built[i];
+                return `<div class="vin-slot${ch ? " filled" : ""}">${ch || ""}</div>`;
+              }).join("")}
+            </div>
+            <div class="vin-pool" id="vin-pool">
+              ${pool.map((ch, i) => `<button type="button" class="vin-tile" data-i="${i}">${ch}</button>`).join("")}
+            </div>
+            <p class="hint">Tap characters in order. Attempts: ${attempts}</p>
+            <div class="feedback" id="vin-fb"></div>
+            <div class="toolbar-row">
+              <button type="button" class="btn" id="vin-undo">Undo</button>
+              <button type="button" class="btn" id="vin-hint">Hint</button>
+              <button type="button" class="btn" id="vin-shuffle">Shuffle</button>
+              <button type="button" class="btn" id="vin-clear">Clear</button>
+            </div>
+          </div>`;
+
+        const usedIdx = new Set();
+        const need = {};
+        built.forEach((c) => { need[c] = (need[c] || 0) + 1; });
+        pool.forEach((ch, i) => {
+          if (need[ch] > 0) {
+            usedIdx.add(i);
+            need[ch] -= 1;
+          }
+        });
+
+        $$("#vin-pool .vin-tile").forEach((btn) => {
+          const i = Number(btn.dataset.i);
+          if (usedIdx.has(i)) btn.classList.add("used");
+          btn.addEventListener("click", () => {
+            if (btn.classList.contains("used") || built.length >= target.length) return;
+            built.push(pool[i]);
+            if (built.length === target.length) check();
+            else render();
+          });
+        });
+        $("#vin-undo").onclick = () => { built.pop(); render(); };
+        $("#vin-clear").onclick = () => { built = []; render(); };
+        $("#vin-shuffle").onclick = () => { pool = shuffle(pool); render(); };
+        $("#vin-hint").onclick = () => {
+          const nextCh = target[built.length];
+          if (!nextCh) return;
+          built.push(nextCh);
+          attempts += 1;
+          if (built.length === target.length) check();
+          else render();
+        };
+      }
+
+      function check() {
+        attempts += 1;
+        const ok = built.join("") === target;
+        const fb = $("#vin-fb");
+        if (ok) {
+          const elapsed = Date.now() - started;
+          const timeBonus = Math.max(0, 150 - Math.floor(elapsed / 200));
+          const attemptPenalty = Math.max(0, (attempts - 1) * 10);
+          const gain = Math.max(50, 100 + timeBonus - attemptPenalty);
+          state.streak += 1;
+          state.bestStreak = Math.max(state.bestStreak, state.streak);
+          state.correct += 1; state.attempts += 1;
+          state.score += gain; toastScore(gain); updateHUD(); beep(true);
+          api.onRoundScore(gain);
+          fb.className = "feedback ok";
+          fb.textContent = `Correct! +${gain}`;
+          if (level >= 5) {
+            api.setProgress(100);
+            api.finishBonus(100);
+            fb.textContent += " · VIN Master complete!";
+            return;
+          }
+          level += 1;
+          setTimeout(newPuzzle, 700);
+        } else {
+          state.streak = 0; state.attempts += 1;
+          state.score = Math.max(0, state.score - 25); toastScore(-25); updateHUD(); beep(false);
+          fb.className = "feedback bad";
+          fb.textContent = "Not quite — try again.";
+          built = [];
+          setTimeout(render, 450);
+        }
+      }
+
+      newPuzzle();
+    }
+
+    /* ───────────── GAME 2 GUESS ───────────── */
+    function startGuess(root, api) {
+      let round = 0;
+      const total = 6;
+      let roundStart = 0;
+
+      function next() {
+        if (round >= total) {
+          api.setProgress(100);
+          api.finishBonus(75);
+          root.innerHTML = `<div class="panel"><p class="question">Guess the Toyota complete.</p><p class="hint">Return to Game Center or restart for new clues.</p></div>`;
+          return;
+        }
+        round += 1;
+        roundStart = Date.now();
+        api.setProgress(((round - 1) / total) * 100);
+        const difficulty = round <= 2 ? "easy" : round <= 4 ? "medium" : "hard";
+        const model = MODELS[randInt(0, MODELS.length - 1)];
+        const clueCount = difficulty === "easy" ? 3 : difficulty === "medium" ? 2 : 1;
+        const clues = shuffle(model.clues).slice(0, clueCount);
+        const wrong = pick(MODELS.filter((m) => m.name !== model.name), 3).map((m) => m.name);
+        const options = shuffle([model.name, ...wrong]);
+
+        root.innerHTML = `
+          <div class="panel">
+            <p class="question">Round ${round}/${total} · ${difficulty.toUpperCase()}</p>
+            ${clues.map((c, i) => `<p class="clue">Clue ${i + 1}: ${c}</p>`).join("")}
+            <div class="answers">
+              ${options.map((o) => `<button type="button" class="answer-btn" data-a="${o}">${o}</button>`).join("")}
+            </div>
+            <div class="feedback" id="g-fb"></div>
+          </div>`;
+
+        $$(".answer-btn", root).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const ok = btn.dataset.a === model.name;
+            $$(".answer-btn", root).forEach((b) => {
+              b.disabled = true;
+              if (b.dataset.a === model.name) b.classList.add("correct");
+            });
+            if (!ok) btn.classList.add("wrong");
+            const elapsed = Date.now() - roundStart;
+            const before = state.score;
+            registerAnswer(ok, elapsed);
+            api.onRoundScore(Math.max(0, state.score - before));
+            $("#g-fb").className = "feedback " + (ok ? "ok" : "bad");
+            $("#g-fb").textContent = ok ? "Correct!" : `It was ${model.name}`;
+            setTimeout(next, 850);
+          });
+        });
+      }
+      next();
+    }
+
+    /* ───────────── GAME 3 PARTS ───────────── */
+    function startParts(root, api) {
+      let round = 0;
+      const total = 8;
+      let roundStart = 0;
+
+      function next() {
+        if (round >= total) {
+          api.setProgress(100);
+          api.finishBonus(80);
+          root.innerHTML = `<div class="panel"><p class="question">Parts Challenge complete.</p></div>`;
+          return;
+        }
+        round += 1;
+        roundStart = Date.now();
+        api.setProgress(((round - 1) / total) * 100);
+        const part = PARTS[randInt(0, PARTS.length - 1)];
+        const wrong = pick(PARTS.filter((p) => p.name !== part.name), 3).map((p) => p.name);
+        const options = shuffle([part.name, ...wrong]);
+
+        root.innerHTML = `
+          <div class="panel">
+            <p class="question">Round ${round}/${total} · Identify the part</p>
+            <div class="part-visual">${partSvg(part.shape)}</div>
+            <p class="hint">${part.tip}</p>
+            <div class="answers">
+              ${options.map((o) => `<button type="button" class="answer-btn" data-a="${o}">${o}</button>`).join("")}
+            </div>
+            <div class="feedback" id="p-fb"></div>
+          </div>`;
+
+        $$(".answer-btn", root).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const ok = btn.dataset.a === part.name;
+            $$(".answer-btn", root).forEach((b) => {
+              b.disabled = true;
+              if (b.dataset.a === part.name) b.classList.add("correct");
+            });
+            if (!ok) btn.classList.add("wrong");
+            const before = state.score;
+            registerAnswer(ok, Date.now() - roundStart);
+            api.onRoundScore(Math.max(0, state.score - before));
+            $("#p-fb").className = "feedback " + (ok ? "ok" : "bad");
+            $("#p-fb").textContent = ok ? (state.streak >= 3 ? `Correct! Streak ${state.streak} 🔥` : "Correct!") : `Answer: ${part.name}`;
+            setTimeout(next, 800);
+          });
+        });
+      }
+      next();
+    }
+
+    /* ───────────── GAME 4 MEMORY ───────────── */
+    function startMemory(root, api) {
+      let hard = false;
+      let lock = false;
+      let first = null;
+      let moves = 0;
+      let matched = 0;
+      let started = 0;
+      let cards = [];
+
+      function setup(isHard) {
+        hard = isHard;
+        lock = false; first = null; moves = 0; matched = 0;
+        started = Date.now();
+        const count = hard ? 8 : 6;
+        const chosen = pick(MEMORY_ITEMS, count);
+        cards = shuffle([...chosen, ...chosen].map((c, idx) => ({
+          id: c.id,
+          label: c.label,
+          emoji: c.emoji,
+          uid: `${c.id}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+        })));
+        renderBoard();
+      }
+
+      function renderBoard() {
+        root.innerHTML = `
+          <div class="panel">
+            <div class="toolbar-row" style="margin-top:0">
+              <button type="button" class="btn ${!hard ? "btn-primary" : ""}" id="mem-easy">Easy · 12</button>
+              <button type="button" class="btn ${hard ? "btn-primary" : ""}" id="mem-hard">Hard · 16</button>
+            </div>
+            <p class="hint">Moves: <strong id="mem-moves">${moves}</strong> · Matched: <strong id="mem-matched">${matched}</strong>/${hard ? 8 : 6}</p>
+            <div class="memory-grid ${hard ? "hard" : ""}" id="mem-grid">
+              ${cards.map((c, i) => `
+                <button type="button" class="mem-card" data-i="${i}" aria-label="Memory card">
+                  <div class="mem-inner">
+                    <div class="mem-face mem-back">T</div>
+                    <div class="mem-face mem-front">${c.emoji}<br>${c.label}</div>
+                  </div>
+                </button>
+              `).join("")}
+            </div>
+          </div>`;
+        $("#mem-easy").onclick = () => setup(false);
+        $("#mem-hard").onclick = () => setup(true);
+        $$(".mem-card", root).forEach((btn) => {
+          btn.addEventListener("click", () => flip(Number(btn.dataset.i), btn));
+        });
+      }
+
+      function flip(i, btn) {
+        if (lock || btn.classList.contains("flipped") || btn.classList.contains("matched")) return;
+        btn.classList.add("flipped");
+        if (first == null) { first = i; return; }
+        moves += 1;
+        $("#mem-moves").textContent = moves;
+        const a = cards[first];
+        const b = cards[i];
+        if (a.id === b.id) {
+          matched += 1;
+          $$(".mem-card", root)[first].classList.add("matched");
+          btn.classList.add("matched");
+          first = null;
+          $("#mem-matched").textContent = matched;
+          beep(true);
+          const need = hard ? 8 : 6;
+          api.setProgress((matched / need) * 100);
+          if (matched === need) {
+            const elapsed = Date.now() - started;
+            const moveScore = Math.max(50, 400 - moves * 12);
+            const timeScore = Math.max(0, 200 - Math.floor(elapsed / 500));
+            const gain = moveScore + timeScore;
+            state.score += gain; toastScore(gain); updateHUD();
+            state.correct += 1; state.attempts += 1;
+            api.finishBonus(0);
+            api.onRoundScore(gain);
+            setTimeout(() => {
+              root.insertAdjacentHTML("afterbegin", `<div class="panel" style="margin-bottom:10px"><p class="feedback ok">Board cleared in ${moves} moves!</p></div>`);
+            }, 200);
+          }
+        } else {
+          lock = true;
+          state.attempts += 1;
+          beep(false);
+          setTimeout(() => {
+            $$(".mem-card", root)[first].classList.remove("flipped");
+            btn.classList.remove("flipped");
+            first = null;
+            lock = false;
+          }, 650);
+        }
+      }
+
+      root.innerHTML = `
+        <div class="panel">
+          <p class="question">Choose difficulty — cards reshuffle every run</p>
+          <div class="toolbar-row">
+            <button type="button" class="btn btn-primary" id="go-easy">Easy · 12 cards</button>
+            <button type="button" class="btn" id="go-hard">Hard · 16 cards</button>
+          </div>
+        </div>`;
+      $("#go-easy").onclick = () => setup(false);
+      $("#go-hard").onclick = () => setup(true);
+    }
+
+    /* ───────────── GAME 5 SPEED SORT ───────────── */
+    function startSort(root, api) {
+      let round = 0;
+      const total = 12;
+      let roundStart = 0;
+      let tick = null;
+      let leftMs = 0;
+      const LIMIT = 6000;
+
+      function clearTick() { if (tick) clearInterval(tick); tick = null; }
+
+      function next() {
+        clearTick();
+        if (round >= total) {
+          api.setProgress(100);
+          api.finishBonus(90);
+          root.innerHTML = `<div class="panel"><p class="question">Speed Sort complete.</p><p class="streak-fire">Best streak this session: ${state.bestStreak}</p></div>`;
+          return;
+        }
+        round += 1;
+        roundStart = Date.now();
+        leftMs = LIMIT;
+        api.setProgress(((round - 1) / total) * 100);
+        const model = MODELS[randInt(0, MODELS.length - 1)];
+        const cats = ["SEDAN", "SUV", "PICKUP", "SPORTS", "MPV"];
+
+        root.innerHTML = `
+          <div class="panel">
+            <p class="hint">Round ${round}/${total} · Combo: ${"🔥".repeat(Math.min(3, Math.floor(state.streak / 3))) || "—"}</p>
+            <div class="sort-vehicle">
+              <div class="label">Sort this Toyota</div>
+              <h3>${model.name}</h3>
+              <div class="sort-timer"><span id="sort-bar"></span></div>
+            </div>
+            <div class="cats">
+              ${shuffle(cats).map((c) => `<button type="button" class="cat-btn" data-c="${c}">${c}</button>`).join("")}
+            </div>
+            <div class="feedback" id="s-fb"></div>
+          </div>`;
+
+        const bar = $("#sort-bar");
+        tick = setInterval(() => {
+          leftMs -= 100;
+          bar.style.width = Math.max(0, (leftMs / LIMIT) * 100) + "%";
+          if (leftMs <= 0) {
+            clearTick();
+            $$(".cat-btn", root).forEach((b) => (b.disabled = true));
+            registerAnswer(false, LIMIT);
+            $("#s-fb").className = "feedback bad";
+            $("#s-fb").textContent = `Time! It was ${model.category}`;
+            setTimeout(next, 700);
+          }
+        }, 100);
+
+        $$(".cat-btn", root).forEach((btn) => {
+          btn.addEventListener("click", () => {
+            clearTick();
+            const ok = btn.dataset.c === model.category;
+            $$(".cat-btn", root).forEach((b) => {
+              b.disabled = true;
+              if (b.dataset.c === model.category) b.style.outline = "2px solid #15803d";
+            });
+            if (!ok) btn.style.outline = "2px solid #b91c1c";
+            const elapsed = Date.now() - roundStart;
+            const before = state.score;
+            registerAnswer(ok, elapsed);
+            if (ok && elapsed < 2000) {
+              state.score += 25; toastScore(25); updateHUD();
+            }
+            api.onRoundScore(Math.max(0, state.score - before));
+            $("#s-fb").className = "feedback " + (ok ? "ok" : "bad");
+            let fire = "";
+            if (state.streak >= 10) fire = " 🔥🔥🔥";
+            else if (state.streak >= 5) fire = " 🔥🔥";
+            else if (state.streak >= 3) fire = " 🔥";
+            $("#s-fb").textContent = ok ? `Correct${fire}` : `Wrong — ${model.category}`;
+            setTimeout(next, 650);
+          });
+        });
+      }
+      next();
+    }
+
+    /* ───────────── GAME 6 DIFF ───────────── */
+    function startDiff(root, api) {
+      let round = 0;
+      const total = 3;
+
+      function nextRound() {
+        if (round >= total) {
+          api.setProgress(100);
+          api.finishBonus(100);
+          root.innerHTML = `<div class="panel"><p class="question">All difference challenges complete.</p></div>`;
+          return;
+        }
+        round += 1;
+        api.setProgress(((round - 1) / total) * 100);
+        const started = Date.now();
+        const diffs = pick(DIFF_SPOTS, randInt(3, 5));
+        const modMap = {};
+        diffs.forEach((d) => { modMap[d.id] = true; });
+        let found = 0;
+        let clicks = 0;
+
+        root.innerHTML = `
+          <div class="panel">
+            <p class="question">Challenge ${round}/${total} · Find ${diffs.length} differences</p>
+            <p class="hint">Found: <strong id="diff-found">0</strong>/${diffs.length} · Clicks: <strong id="diff-clicks">0</strong></p>
+            <div class="diff-wrap">
+              <div>
+                <p class="hint" style="margin:0 0 6px;font-weight:700">Car A</p>
+                <div class="car-stage" id="stage-a">${carSvg({})}</div>
+              </div>
+              <div>
+                <p class="hint" style="margin:0 0 6px;font-weight:700">Car B — tap the differences</p>
+                <div class="car-stage" id="stage-b">
+                  ${carSvg(modMap)}
+                  ${diffs.map((d) => `<button type="button" class="hotspot" data-id="${d.id}" style="left:${d.x}%;top:${d.y}%" aria-label="${d.label}"></button>`).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="feedback" id="d-fb"></div>
+            <div class="toolbar-row"><button type="button" class="btn" id="diff-hint">Hint</button></div>
+          </div>`;
+
+        const stage = $("#stage-b");
+        stage.addEventListener("click", (e) => {
+          if (!e.target.classList.contains("hotspot")) {
+            clicks += 1;
+            $("#diff-clicks").textContent = clicks;
+            // miss penalty light
+            if (clicks % 4 === 0) {
+              state.score = Math.max(0, state.score - 10);
+              toastScore(-10); updateHUD();
+            }
+          }
+        });
+
+        $$(".hotspot", root).forEach((hs) => {
+          hs.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (hs.classList.contains("found")) return;
+            clicks += 1;
+            $("#diff-clicks").textContent = clicks;
+            hs.classList.add("found");
+            found += 1;
+            $("#diff-found").textContent = found;
+            const before = state.score;
+            registerAnswer(true, 1500);
+            api.onRoundScore(Math.max(0, state.score - before));
+            $("#d-fb").className = "feedback ok";
+            $("#d-fb").textContent = `Found: ${hs.getAttribute("aria-label")}`;
+            if (found >= diffs.length) {
+              const elapsed = Date.now() - started;
+              const bonus = Math.max(0, 120 - Math.floor(elapsed / 400) - Math.max(0, clicks - diffs.length) * 5);
+              state.score += bonus; toastScore(bonus); updateHUD();
+              api.onRoundScore(bonus);
+              $("#d-fb").textContent = `All differences found · +${bonus} time/click bonus`;
+              setTimeout(nextRound, 900);
+            }
+          });
+        });
+
+        $("#diff-hint").onclick = () => {
+          const pending = $$(".hotspot:not(.found)", root);
+          if (!pending.length) return;
+          const t = pending[0];
+          t.style.borderColor = "rgba(235,10,30,.55)";
+          setTimeout(() => { if (!t.classList.contains("found")) t.style.borderColor = "transparent"; }, 900);
+        };
+      }
+
+      nextRound();
+    }
+
+    /* ───────────── WIRE UI ───────────── */
+    function init() {
+      renderHome();
+      updateHUD();
+      $("#sound-btn").addEventListener("click", () => {
+        state.sound = !state.sound;
+        $("#sound-btn").setAttribute("aria-pressed", state.sound ? "true" : "false");
+        $("#sound-btn").textContent = state.sound ? "🔊 Sound" : "🔇 Muted";
+        if (state.sound) beep(true);
+      });
+      $("#reset-btn").addEventListener("click", () => {
+        if (confirm("Reset the 10-minute session and all scores?")) resetSession();
+      });
+      $("#back-btn").addEventListener("click", showHome);
+      $("#restart-game-btn").addEventListener("click", () => {
+        if (state.currentGame) openGame(state.currentGame);
+      });
+      $("#play-again-btn").addEventListener("click", resetSession);
+      $("#back-center-btn").addEventListener("click", () => {
+        $("#results-modal").classList.add("hidden");
+        showHome();
+      });
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

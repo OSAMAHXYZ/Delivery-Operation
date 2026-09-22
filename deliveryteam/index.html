@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260922perf1" />
+  <link rel="stylesheet" href="styles.css?v=20260922targets1" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -83,6 +83,44 @@
             <span class="hint" id="dash-month-hint"></span>
           </div>
           <div class="kpi-row" id="dash-kpis"></div>
+          <div class="card" id="dash-xfer-card" hidden>
+            <h2>النقل · الناقل · المدن · تغيير الشركة</h2>
+            <p class="hint">من Delivery Team + Print Drafts (نفس مصدر لوحة النقل في Admin PDF) — اضغط الرقم لعرض الشاسيه</p>
+            <div class="kpi-row kpi-row--xfer" id="dash-xfer-kpis"></div>
+            <div class="xfer-split">
+              <div>
+                <h3 class="xfer-subhead">الناقل</h3>
+                <p class="hint">عدد السيارات لكل ناقل — اضغط الشريط لعرض الشاسيه</p>
+                <div id="dash-carrier-grid" class="bar-chart"></div>
+              </div>
+              <div>
+                <h3 class="xfer-subhead">المدن / الفروع</h3>
+                <p class="hint">عدد التحويلات لكل مدينة — اضغط الشريط لعرض الشاسيه</p>
+                <div id="dash-city-grid" class="bar-chart"></div>
+              </div>
+            </div>
+            <div class="xfer-company-city" id="dash-company-city-wrap">
+              <h3 class="xfer-subhead">كل شركة → المدن</h3>
+              <p class="hint">إجمالي ما أرسلته كل شركة نقل إلى كل مدينة (من المذكرات)</p>
+              <div id="dash-company-city" class="company-city-chart"></div>
+            </div>
+            <div class="xfer-carrier-moves" id="dash-carrier-moves-wrap">
+              <h3 class="xfer-subhead">تغيير الناقل · من شركة إلى أخرى</h3>
+              <p class="hint">كل مرة يتغيّر الناقل على VIN — من → إلى · التاريخ. الرسم يوضح كم VIN غادر كل شركة</p>
+              <div class="xfer-split">
+                <div>
+                  <h3 class="xfer-subhead">غادرت من كل ناقل</h3>
+                  <p class="hint">عدد الشاسيه التي نُقلت من هذه الشركة إلى ناقل آخر — اضغط لعرض التفاصيل</p>
+                  <div id="dash-carrier-left-chart" class="bar-chart"></div>
+                </div>
+                <div>
+                  <h3 class="xfer-subhead">سجل التغييرات</h3>
+                  <p class="hint">VIN تغيّر من … إلى … في هذا التاريخ</p>
+                  <div id="dash-carrier-change-feed" class="carrier-change-feed"></div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="card">
             <h2>Delivery pipeline</h2>
             <p class="hint">Today’s Proformas → Assigned → PSFU → Ready → Delivered / Claimed</p>
@@ -92,7 +130,9 @@
             <div class="dash-stack">
               <div class="card" id="dash-emp-card">
                 <h2>Employee schedule</h2>
-                <p class="hint">Full team · Assigned · Claimed · Cash/Bank (sales type) per person — click a name to open their VINs</p>
+                <p class="hint" id="dash-emp-hint">By sales type · click an employee to open their VINs on Live Sheet</p>
+                <div id="dash-emp-by-type" class="emp-by-type"></div>
+                <h3 class="xfer-subhead" style="margin-top:14px">Targets · Ach%</h3>
                 <div class="table-wrap compact">
                   <table class="data" id="dash-emp-table"></table>
                 </div>
@@ -150,20 +190,11 @@
               </div>
             </div>
             <div class="live-chip-row" id="live-chips"></div>
+            <p class="hint" id="live-edit-hint" hidden>Hanouf · Ruba · Rasha can edit status, dates, الناقل, city, and notes directly on this sheet.</p>
+            <p class="hint live-save-toast" id="live-save-toast" hidden></p>
             <div class="table-wrap live-sheet-wrap">
               <table class="data live-sheet" id="live-table"></table>
             </div>
-          </div>
-        </section>
-
-        <!-- GUEST EXPERIENCE (Ruba + Admin watcher) -->
-        <section class="panel" id="panel-guest">
-          <div class="guest-watch-banner" id="guest-watch-banner" hidden></div>
-          <div class="kpi-row" id="guest-kpis"></div>
-          <div class="card">
-            <h2>Guest Experience cars</h2>
-            <p class="hint" id="guest-page-hint">VINs marked Guest Exp = Yes · Ruba sets collection time and confirms claim when the timer is due</p>
-            <div class="guest-grid" id="guest-grid"></div>
           </div>
         </section>
 
@@ -181,7 +212,7 @@
           <div class="kpi-row" id="my-kpis"></div>
           <div class="card">
             <h2>My delivery schedule</h2>
-            <p class="hint" id="my-vins-hint">Edit your work below · select VINs to hand over to another employee</p>
+            <p class="hint">All your assigned VINs on one page · edit below · select VINs to hand over to another employee</p>
             <div id="my-save-toast" class="save-toast" hidden>Saved ✓</div>
             <div class="toolbar" id="my-toolbar"></div>
             <div class="reassign-bar" id="my-reassign-bar">
@@ -204,9 +235,10 @@
             <div class="card assign-step" id="assign-step-1">
               <div class="assign-step-badge">1</div>
               <h2>Submit VINs</h2>
-              <p class="hint">Only VINs with Proforma Date = today or yesterday can be assigned. Load the pool or paste VINs, then submit to display them.</p>
+              <p class="hint">Paste VINs (one per line or comma-separated), or load today’s unassigned proformas, then submit to display them for assignment.</p>
               <div class="toolbar">
-                <button type="button" class="btn-primary" id="assign-load-today">Load today + yesterday</button>
+                <button type="button" class="btn" id="assign-load-today">Load today’s unassigned</button>
+                <button type="button" class="btn" id="assign-load-all-unassigned">Load all unassigned</button>
                 <input type="search" id="assign-pool-search" placeholder="Filter pool…" style="min-width:160px" />
               </div>
               <div class="table-wrap assign-pool-wrap"><table class="data" id="assign-pool-table"></table></div>
@@ -222,8 +254,8 @@
 
             <div class="card assign-step" id="assign-step-2">
               <div class="assign-step-badge">2</div>
-              <h2>Displayed VINs · choose employee</h2>
-              <p class="hint">Review Raw Data details, then assign to an employee (including Hanouf).</p>
+              <h2>Displayed VINs · employee &amp; الناقل</h2>
+              <p class="hint">Set الناقل per VIN in the table, or apply one الناقل to all displayed VINs. Then choose the employee.</p>
               <div id="assign-display-empty" class="assign-empty">
                 No VINs displayed yet. Submit VINs in step 1 first.
               </div>
@@ -232,7 +264,17 @@
                   <strong id="assign-display-count">0</strong> VIN(s) ready to assign
                   <button type="button" class="btn" id="assign-clear-display">Clear list</button>
                 </div>
+                <datalist id="assign-carrier-list"></datalist>
                 <div class="table-wrap"><table class="data" id="assign-display-table"></table></div>
+                <div class="assign-carrier-pick">
+                  <p class="assign-emp-label">تعيين الناقل للـ VINs المعروضة</p>
+                  <div class="toolbar">
+                    <select id="assign-bulk-carrier" aria-label="الناقل">
+                      <option value="">— اختر الناقل —</option>
+                    </select>
+                    <button type="button" class="btn" id="assign-carrier-btn" disabled>Apply الناقل to displayed VINs</button>
+                  </div>
+                </div>
                 <div class="assign-emp-pick">
                   <p class="assign-emp-label">Assign displayed VINs to (including Hanouf)</p>
                   <div class="assign-emp-grid" id="assign-emp-grid"></div>
@@ -305,8 +347,7 @@
           <div class="card">
             <h2>Upload Sales Raw</h2>
             <p class="hint">
-              Upload <b>Sales Raw Data</b> here — Hanouf, Ruba, or Rasha.
-              Updates the <b>same shared inventory</b> for Delivery Team, the Coordinator, and Delivery Hub (one file for everyone).
+              Upload <b>Sales Raw Data</b> here once — Hanouf or Ruba. Updates shared inventory for the whole team and the Coordinator.
               Everyone sees the last update time in the top bar.
             </p>
             <div class="raw-status-card" id="sales-raw-status-card">
@@ -356,6 +397,21 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260922perf1"></script>
+  <div class="modal-back" id="xfer-vins-back">
+    <div class="guest-modal xfer-vins-modal" id="xfer-vins-modal" role="dialog" aria-modal="true">
+      <div class="guest-modal-head">
+        <div>
+          <h2 id="xfer-vins-title">VIN list</h2>
+          <p class="hint" id="xfer-vins-sub"></p>
+        </div>
+        <button type="button" class="btn" id="xfer-vins-close">Close</button>
+      </div>
+      <div class="guest-modal-body">
+        <pre class="xfer-vins-list" id="xfer-vins-list"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20260922rawsync1"></script>
 </body>
 </html>
