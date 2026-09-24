@@ -52,6 +52,7 @@ const deliveryTeamHooks = {
   getHubRawStatus: null,
   getHubTransferStats: null,
   getHubVehicle: null,
+  getSalesRawQuality: null,
 };
 const { createDeliveryTeamRouter } = require('./deliveryteam/lib/routes');
 const deliveryTeam = createDeliveryTeamRouter({
@@ -96,6 +97,11 @@ const deliveryTeam = createDeliveryTeamRouter({
     typeof deliveryTeamHooks.getHubVehicle === 'function'
       ? deliveryTeamHooks.getHubVehicle(vin)
       : null
+  ),
+  getSalesRawQuality: () => (
+    typeof deliveryTeamHooks.getSalesRawQuality === 'function'
+      ? deliveryTeamHooks.getSalesRawQuality()
+      : { duplicateVins: [], vinSheetVins: [] }
   ),
 });
 const deliveryTeamRouter = deliveryTeam.router;
@@ -2103,6 +2109,7 @@ deliveryTeamHooks.getHubVehicle = (vin) => {
   if (!key) return null;
   return vehicleIndex().get(key) || null;
 };
+deliveryTeamHooks.getSalesRawQuality = () => getSalesRawQuality();
 
 /** Resolve VIN from Sales Raw or Delivery Team store for coordinator submit. */
 function resolveVehicleForSubmit(vin) {
@@ -3596,6 +3603,113 @@ function backfillProformaColumnP(wb, sheetName, vehicles) {
   }
 }
 
+/**
+ * Sales Raw / archive quality for Hanouf assign pool:
+ * - duplicateVins: appear more than once on the primary Raw Data sheet
+ * - vinSheetVins: also present on another VIN-bearing sheet (Vehicle Inventory, etc.)
+ */
+function analyzeWorkbookVinQuality(wb, primarySheetName) {
+  const primaryKey = normalizeHeader(primarySheetName || '');
+  const primaryCounts = new Map();
+  const vinSheetVins = new Set();
+  const sheetHits = [];
+
+  for (const name of wb.SheetNames || []) {
+    const norm = normalizeHeader(name);
+    if (!norm) continue;
+    if (
+      norm.includes('print draft')
+      || norm.includes('coordinator queue')
+      || norm.includes('مسودات')
+      || norm === 'products'
+      || norm === 'summary'
+    ) {
+      continue;
+    }
+    const sheet = wb.Sheets[name];
+    if (!sheet) continue;
+    const rowsArr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+    if (!rowsArr || rowsArr.length < 2) continue;
+    const headerRow = rowsArr[0] || [];
+    const isPrimary = primaryKey && norm === primaryKey;
+    const looksVinSheet = !isPrimary && (
+      norm.includes('vehicle inventory')
+      || norm.includes('inventory')
+      || (norm.includes('vehicle') && !norm.includes('raw'))
+      || norm.includes('سجل')
+      || (norm.includes('شاسي') && !norm.includes('raw'))
+      || /^vins?$/i.test(String(name || '').trim())
+    );
+
+    let found = 0;
+    for (let i = 1; i < rowsArr.length; i++) {
+      const vin = extractVinFromArrayLine(headerRow, rowsArr[i]);
+      if (!vin) continue;
+      found += 1;
+      if (isPrimary) {
+        primaryCounts.set(vin, (primaryCounts.get(vin) || 0) + 1);
+      } else if (looksVinSheet) {
+        vinSheetVins.add(vin);
+      }
+    }
+    if (found) sheetHits.push({ name, count: found, primary: Boolean(isPrimary), vinSheet: Boolean(looksVinSheet) });
+  }
+
+  // If primary wasn't identified, treat the densest sheet as primary for duplicate counts
+  if (!primaryCounts.size && sheetHits.length) {
+    const densest = sheetHits.slice().sort((a, b) => b.count - a.count)[0];
+    const sheet = wb.Sheets[densest.name];
+    const rowsArr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+    const headerRow = (rowsArr && rowsArr[0]) || [];
+    for (let i = 1; i < (rowsArr || []).length; i++) {
+      const vin = extractVinFromArrayLine(headerRow, rowsArr[i]);
+      if (!vin) continue;
+      primaryCounts.set(vin, (primaryCounts.get(vin) || 0) + 1);
+    }
+  }
+
+  const duplicateVins = [];
+  for (const [vin, count] of primaryCounts.entries()) {
+    if (count > 1) duplicateVins.push(vin);
+  }
+
+  return {
+    primarySheet: primarySheetName || '',
+    scannedAt: new Date().toISOString(),
+    duplicateVins,
+    vinSheetVins: [...vinSheetVins],
+    sheets: sheetHits,
+  };
+}
+
+function saveSalesRawQuality(quality) {
+  if (!store.meta || typeof store.meta !== 'object') store.meta = {};
+  store.meta.salesRawQuality = quality && typeof quality === 'object'
+    ? {
+      primarySheet: String(quality.primarySheet || ''),
+      scannedAt: quality.scannedAt || new Date().toISOString(),
+      duplicateVins: Array.isArray(quality.duplicateVins) ? quality.duplicateVins.map(normVin).filter(Boolean) : [],
+      vinSheetVins: Array.isArray(quality.vinSheetVins) ? quality.vinSheetVins.map(normVin).filter(Boolean) : [],
+      sheets: Array.isArray(quality.sheets) ? quality.sheets : [],
+    }
+    : null;
+  return store.meta.salesRawQuality;
+}
+
+function getSalesRawQuality() {
+  const q = store.meta && store.meta.salesRawQuality;
+  if (!q || typeof q !== 'object') {
+    return { primarySheet: '', scannedAt: null, duplicateVins: [], vinSheetVins: [], sheets: [] };
+  }
+  return {
+    primarySheet: String(q.primarySheet || ''),
+    scannedAt: q.scannedAt || null,
+    duplicateVins: Array.isArray(q.duplicateVins) ? q.duplicateVins : [],
+    vinSheetVins: Array.isArray(q.vinSheetVins) ? q.vinSheetVins : [],
+    sheets: Array.isArray(q.sheets) ? q.sheets : [],
+  };
+}
+
 /** True when sheet is classic Sales Raw / Rowdata (Col A = S/A), not Vehicle Inventory. */
 function sheetLooksLikeSalesRaw(headerRow, sheetName) {
   const name = String(sheetName || '');
@@ -4007,7 +4121,8 @@ function parseSalesFromWorkbook(wb, filename, opts = {}) {
     rawRows: rows.slice(0, 5000),
     drafts: [],
     queue: [],
-    isExport: isDeliveryExportWorkbook(wb, filename)
+    isExport: isDeliveryExportWorkbook(wb, filename),
+    quality: analyzeWorkbookVinQuality(wb, preferred),
   };
 
   if (result.isExport) {
@@ -4195,8 +4310,10 @@ function applyParsedInventory(parsed, {
     uploadedAt: new Date().toISOString(),
     uploadedBy: String(uploadedBy || '').trim() || store.meta?.uploadedBy || '',
     uploadedByName: String(uploadedByName || '').trim() || store.meta?.uploadedByName || '',
-    nextDeliveryNoteSeq: Number(store.meta?.nextDeliveryNoteSeq) || 1
+    nextDeliveryNoteSeq: Number(store.meta?.nextDeliveryNoteSeq) || 1,
+    salesRawQuality: store.meta?.salesRawQuality || null,
   };
+  if (parsed.quality) saveSalesRawQuality(parsed.quality);
 
   let draftsApplied = null;
   if (replaceDrafts || (Array.isArray(parsed.drafts) && parsed.drafts.length)) {

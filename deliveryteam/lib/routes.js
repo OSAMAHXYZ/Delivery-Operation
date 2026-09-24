@@ -313,7 +313,7 @@ function mapRawRow(row, line, { useLegacyCols = false, applySalesRawLetters = fa
   // Drop header-matched Sales Type when it is clearly a date (wrong column)
   if (raw.salesType && looksLikeDateValue(raw.salesType)) raw.salesType = '';
 
-  // Fixed Sales Raw letters — A/B/C/K/N always win on Sales Raw layout
+  // Fixed Sales Raw letters — A/B/C/K/N/P always win on Sales Raw layout
   if (applySalesRawLetters && Array.isArray(line) && line.length >= 11) {
     const scrub = (s) => (s === '#' ? '' : s);
     const sa = scrub(cellText(line, RAW_COL.salesAdvisor));
@@ -325,6 +325,7 @@ function mapRawRow(row, line, { useLegacyCols = false, applySalesRawLetters = fa
     const stype = scrub(cellText(line, RAW_COL.salesType));
     const inv = scrub(cellText(line, RAW_COL.invoiceOwner));
     const cust = scrub(cellText(line, RAW_COL.customerName));
+    const pf = scrub(cellText(line, RAW_COL.proformaDate));
     const ph = scrub(cellText(line, RAW_COL.phone));
     const vinKey = normVin(vinFixed || raw.vin);
 
@@ -344,6 +345,8 @@ function mapRawRow(row, line, { useLegacyCols = false, applySalesRawLetters = fa
       raw.invoiceOwner = inv;
     }
     if (cust) raw.userName = cust;
+    // P → Proforma Date
+    if (pf) raw.proformaDate = pf;
     if (ph) raw.phone = ph;
   } else if (useLegacyCols && Array.isArray(line) && line.length) {
     const so = cellText(line, RAW_COL.salesOrder);
@@ -1117,6 +1120,38 @@ function createDeliveryTeamRouter(opts) {
     res.json({ today, total: rows.length, rows });
   });
 
+  /**
+   * Archive / Sales Raw VINs whose Col-P proforma falls in the selected month.
+   * Visible to every Delivery Team role (not limited to assigned-only).
+   */
+  router.get('/month-proformas', auth, (req, res) => {
+    if (typeof opts.onEnsureHubRawOnLiveSheet === 'function') {
+      try { opts.onEnsureHubRawOnLiveSheet(); } catch (err) {
+        console.error('[delivery-team] hub raw enrich before month-proformas:', err.message || err);
+      }
+    }
+    const tz = Number(req.query.tzOffset);
+    const month = String(req.query.month || currentMonthKey(tz)).trim().slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'Invalid month — use YYYY-MM' });
+    }
+    let saved = false;
+    const rows = store.allVehicles()
+      .filter((v) => monthKeyFromIso(v.raw && v.raw.proformaDate) === month)
+      .sort((a, b) => String(b.raw.proformaDate || '').localeCompare(String(a.raw.proformaDate || '')))
+      .map((v) => {
+        const before = JSON.stringify(v.raw || {});
+        const enriched = withHubRawEnrichment(v) || v;
+        if (JSON.stringify(enriched.raw || {}) !== before) saved = true;
+        // Re-check after enrich in case hub filled proforma
+        if (monthKeyFromIso(enriched.raw && enriched.raw.proformaDate) !== month) return null;
+        return publicVehicle(enriched, req.dtUser);
+      })
+      .filter(Boolean);
+    if (saved) store.save();
+    res.json({ month, total: rows.length, rows });
+  });
+
   router.get('/unassigned', auth, requireRole('admin', 'hanouf'), (req, res) => {
     if (typeof opts.onEnsureHubRawOnLiveSheet === 'function') {
       try { opts.onEnsureHubRawOnLiveSheet(); } catch (err) {
@@ -1124,9 +1159,28 @@ function createDeliveryTeamRouter(opts) {
       }
     }
     const todayOnly = String(req.query.today || '') === '1';
-    const today = todayIso(Number(req.query.tzOffset));
+    const monthUnique = String(req.query.monthUnique || '') === '1';
+    const tz = Number(req.query.tzOffset);
+    const today = todayIso(tz);
+    const month = String(req.query.month || currentMonthKey(tz)).trim().slice(0, 7);
+    const quality = typeof opts.getSalesRawQuality === 'function'
+      ? (opts.getSalesRawQuality() || {})
+      : {};
+    const dupSet = new Set((quality.duplicateVins || []).map(normVin).filter(Boolean));
+    const sheetSet = new Set((quality.vinSheetVins || []).map(normVin).filter(Boolean));
+
     let list = store.allVehicles().filter((v) => !v.ops.assignedEmployeeId);
     if (todayOnly) list = list.filter((v) => v.raw.proformaDate === today);
+    if (monthUnique) {
+      list = list.filter((v) => {
+        const vin = normVin(v.vin);
+        if (!vin) return false;
+        if (monthKeyFromIso(v.raw && v.raw.proformaDate) !== month) return false;
+        if (dupSet.has(vin)) return false;
+        if (sheetSet.has(vin)) return false;
+        return true;
+      });
+    }
     list = sortVehicles(list, 'proformaDate', 'desc');
     let saved = false;
     const rows = list.map((v) => {
@@ -1134,9 +1188,23 @@ function createDeliveryTeamRouter(opts) {
       const enriched = withHubRawEnrichment(v) || v;
       if (JSON.stringify(enriched.raw || {}) !== before) saved = true;
       return publicVehicle(enriched, req.dtUser);
+    }).filter((row) => {
+      if (!monthUnique) return true;
+      const vin = normVin(row.vin);
+      const pf = row.raw && row.raw.proformaDate;
+      if (monthKeyFromIso(pf) !== month) return false;
+      if (dupSet.has(vin) || sheetSet.has(vin)) return false;
+      return true;
     });
     if (saved) store.save();
-    res.json({ total: rows.length, rows });
+    res.json({
+      total: rows.length,
+      rows,
+      month: monthUnique ? month : undefined,
+      excludedDuplicates: monthUnique ? dupSet.size : undefined,
+      excludedVinSheets: monthUnique ? sheetSet.size : undefined,
+      qualityScannedAt: quality.scannedAt || null,
+    });
   });
 
   /** Resolve a submitted VIN list for Hanouf display-before-assign. */

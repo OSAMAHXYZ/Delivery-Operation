@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260922targets1" />
+  <link rel="stylesheet" href="styles.css?v=20260924status2" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -198,11 +198,19 @@
           </div>
         </section>
 
-        <!-- TODAY -->
+        <!-- THIS MONTH PROFORMAS (archive / Sales Raw Col P) -->
         <section class="panel" id="panel-today">
           <div class="card">
-            <h2>Today’s delivery requests</h2>
-            <p class="hint">Proforma Date = today · first worksheet Raw Data</p>
+            <h2>This month’s proformas</h2>
+            <p class="hint">Archive / Sales Raw · Proforma Date (column P) = selected month · visible to all users</p>
+            <div class="toolbar month-toolbar">
+              <label class="month-filter-label">
+                Month
+                <input type="month" id="month-pf-month" />
+              </label>
+              <button type="button" class="btn" id="month-pf-refresh">Refresh</button>
+              <span class="hint" id="month-pf-hint"></span>
+            </div>
             <div class="table-wrap"><table class="data" id="today-table"></table></div>
           </div>
         </section>
@@ -235,8 +243,9 @@
             <div class="card assign-step" id="assign-step-1">
               <div class="assign-step-badge">1</div>
               <h2>Submit VINs</h2>
-              <p class="hint">Paste VINs (one per line or comma-separated), or load today’s unassigned proformas, then submit to display them for assignment.</p>
+              <p class="hint">Default pool: this month Col P · unique in Raw Excel · not on any VIN sheet (Vehicle Inventory). Or paste VINs / load other pools.</p>
               <div class="toolbar">
+                <button type="button" class="btn-primary" id="assign-load-month-unique">Load this month (unique)</button>
                 <button type="button" class="btn" id="assign-load-today">Load today’s unassigned</button>
                 <button type="button" class="btn" id="assign-load-all-unassigned">Load all unassigned</button>
                 <input type="search" id="assign-pool-search" placeholder="Filter pool…" style="min-width:160px" />
@@ -412,6 +421,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260922rawsync1"></script>
+  <script src="app.js?v=20260924status2"></script>
 </body>
 </html>

@@ -281,7 +281,7 @@ const E_SALES_EXPORT_HEADERS = Object.freeze([
 
 /** Fixed Sales Raw Excel letters (0-based indexes):
  *   A → S/A          B → Product      C → VIN
- *   K → Sales Type   N → Owner
+ *   K → Sales Type   N → Owner       P → Proforma Date
  * Also used when present: D Order · F GT · G Veh Loc · O Customer · Y Phone
  */
 const RAW_COL = Object.freeze({
@@ -294,6 +294,7 @@ const RAW_COL = Object.freeze({
   salesType: 10, // K
   invoiceOwner: 13, // N
   customerName: 14, // O
+  proformaDate: 15, // P
   phone: 24, // Y
 });
 

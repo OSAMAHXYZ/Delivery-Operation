@@ -68,6 +68,7 @@
     if (v === 'PSFU') return 'row-status-psfu';
     if (v === 'تم التسليم') return 'row-status-delivered';
     if (v === 'جاهز للتسليم') return 'row-status-ready';
+    if (v === 'صادرة' || v === 'صادر') return 'row-status-issued';
     if (v === 'مرور') return 'row-status-traffic';
     if (v === 'رجوع مرور') return 'row-status-traffic-return';
     if (v === 'معلقة') return 'row-status-pending';
@@ -82,7 +83,8 @@
     if (v === 'PSFU') return `<span class="badge ok">${esc(v)}</span>`;
     if (v === 'تم التسليم') return `<span class="badge yellow">${esc(v)}</span>`;
     if (v === 'جاهز للتسليم') return `<span class="badge orange">${esc(v)}</span>`;
-    if (v === 'مرور') return `<span class="badge">${esc(v)}</span>`;
+    if (v === 'صادرة' || v === 'صادر') return `<span class="badge ok">${esc(v)}</span>`;
+    if (v === 'مرور') return `<span class="badge gray">${esc(v)}</span>`;
     if (v === 'رجوع مرور') return `<span class="badge purple">${esc(v)}</span>`;
     if (v === 'معلقة') return `<span class="badge navy">${esc(v)}</span>`;
     if (v === 'الغاء') return `<span class="badge bad">${esc(v)}</span>`;
@@ -402,7 +404,7 @@
     const items = [
       { id: 'dashboard', label: 'Dashboard', roles: ['admin', 'hanouf', 'employee'] },
       { id: 'live', label: 'Live Sheet', roles: ['admin', 'hanouf', 'employee'] },
-      { id: 'today', label: "Today's Vehicles", roles: ['admin', 'hanouf'] },
+      { id: 'today', label: "This month's VINs", roles: ['admin', 'hanouf', 'employee'] },
       { id: 'my', label: 'My VINs', roles: ['employee', 'admin', 'hanouf'] },
       { id: 'assign', label: 'Assignment', roles: ['admin', 'hanouf'] },
       { id: 'all', label: 'All Vehicles', roles: ['admin', 'hanouf'] },
@@ -443,9 +445,9 @@
     const titles = {
       dashboard: ['Dashboard', 'Delivery Control Tower'],
       live: ['Live Sheet', 'All teammates’ schedules · Sales Type (cash / bank)'],
-      today: ["Today's Vehicles", 'Proforma Date = today'],
+      today: ["This month's VINs", 'Archive proformas (Col P) · this month'],
       my: ['My VINs', 'Your schedule · edit your work · الناقل'],
-      assign: ['Assignment', 'Upload → assign employee (incl. Hanouf) → الناقل'],
+      assign: ['Assignment', 'This month unique Col P · assign employee · الناقل'],
       all: ['All Vehicles', 'Full fleet · filters · export'],
       upload: ['Upload Delivery sheet', 'E sales layout · status · الناقل · مدينة الترحيل'],
       'sales-raw': ['Sales Raw', 'Hanouf / Ruba · shared inventory · everyone sees the update time'],
@@ -1373,7 +1375,8 @@
         if (tr) {
           tr.classList.remove(
             'row-status-claimed', 'row-status-psfu', 'row-status-ready', 'row-status-delivered',
-            'row-status-traffic', 'row-status-traffic-return', 'row-status-pending', 'row-status-cancel'
+            'row-status-issued', 'row-status-traffic', 'row-status-traffic-return',
+            'row-status-pending', 'row-status-cancel'
           );
           const cls = statusRowClass(value);
           if (cls) tr.classList.add(cls);
@@ -1583,8 +1586,35 @@
 
   async function loadToday() {
     fillCarrierLists();
-    const data = await api(`/todays-proformas?tzOffset=${state.tzOffset}`);
+    const monthInput = $('#month-pf-month');
+    if (monthInput && !monthInput.value) {
+      monthInput.value = currentMonthValue();
+    }
+    const month = (monthInput && monthInput.value) || currentMonthValue();
+    const data = await api(`/month-proformas?tzOffset=${state.tzOffset}&month=${encodeURIComponent(month)}`);
     renderScheduleTable($('#today-table'), data.rows || [], { carrierEditable: canManage() });
+    const hint = $('#month-pf-hint');
+    if (hint) hint.textContent = `${data.total || 0} VIN(s) · proforma ${month}`;
+  }
+
+  async function loadAssignPool(mode) {
+    let qs = `tzOffset=${state.tzOffset}`;
+    let label = 'unassigned';
+    if (mode === 'monthUnique' || mode === true) {
+      const month = currentMonthValue();
+      qs += `&monthUnique=1&month=${encodeURIComponent(month)}`;
+      label = `this month ${month} · unique Col P · not on VIN sheets`;
+    } else if (mode === 'today') {
+      qs += '&today=1';
+      label = "today’s unassigned";
+    }
+    const data = await api(`/unassigned?${qs}`);
+    state.assignPool = data.rows || [];
+    renderAssignPool();
+    const extra = mode === 'monthUnique' || mode === true
+      ? ` · skipped ${data.excludedDuplicates || 0} Excel dupes / ${data.excludedVinSheets || 0} VIN-sheet hits`
+      : '';
+    $('#assign-pool-hint').textContent = `${state.assignPool.length} ${label}${extra} · check VINs then Submit & display`;
   }
 
   async function loadMy() {
@@ -1645,7 +1675,7 @@
     state.selectedVins.clear();
     fillCarrierLists();
     renderAssignEmpGrid();
-    await loadAssignPool(true);
+    await loadAssignPool('monthUnique');
     renderAssignDisplay();
     const dash = await api(`/dashboard?tzOffset=${state.tzOffset}${state.monthFilter ? `&month=${encodeURIComponent(state.monthFilter)}` : ''}`);
     $('#assign-lanes').innerHTML = (dash.employees || []).map((e) => {
@@ -1717,15 +1747,6 @@
     });
     updateLaneReassignCount();
     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  async function loadAssignPool(todayOnly) {
-    const data = await api(`/unassigned?tzOffset=${state.tzOffset}${todayOnly ? '&today=1' : ''}`);
-    state.assignPool = data.rows || [];
-    renderAssignPool();
-    $('#assign-pool-hint').textContent = todayOnly
-      ? `${state.assignPool.length} today’s unassigned · check VINs then Submit & display`
-      : `${state.assignPool.length} unassigned · check VINs then Submit & display`;
   }
 
   function renderAssignPool() {
@@ -2223,8 +2244,11 @@
   $('#assign-confirm-btn')?.addEventListener('click', () => doAssign().catch((e) => alert(e.message)));
   $('#assign-carrier-btn')?.addEventListener('click', () => doAssignCarrier().catch((e) => alert(e.message)));
   $('#assign-bulk-carrier')?.addEventListener('change', () => updateAssignConfirmState());
-  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool(true).catch((e) => alert(e.message)));
+  $('#assign-load-month-unique')?.addEventListener('click', () => loadAssignPool('monthUnique').catch((e) => alert(e.message)));
+  $('#assign-load-today')?.addEventListener('click', () => loadAssignPool('today').catch((e) => alert(e.message)));
   $('#assign-load-all-unassigned')?.addEventListener('click', () => loadAssignPool(false).catch((e) => alert(e.message)));
+  $('#month-pf-month')?.addEventListener('change', () => loadToday().catch((e) => alert(e.message)));
+  $('#month-pf-refresh')?.addEventListener('click', () => loadToday().catch((e) => alert(e.message)));
   $('#assign-clear-display')?.addEventListener('click', () => {
     state.assignDisplay = [];
     state.assignEmployee = '';
