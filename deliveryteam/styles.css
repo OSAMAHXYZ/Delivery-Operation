@@ -774,7 +774,7 @@ table.data tr.row-status-psfu td { background: #dcfce7 !important; box-shadow: i
 table.data tr.row-status-delivered td { background: #fef9c3 !important; box-shadow: inset 3px 0 0 #fde047; color: #713f12; }
 table.data tr.row-status-ready td { background: #ffedd5 !important; box-shadow: inset 3px 0 0 #fdba74; color: #9a3412; }
 table.data tr.row-status-issued td { background: #dcfce7 !important; box-shadow: inset 3px 0 0 #22c55e; color: #14532d; }
-table.data tr.row-status-traffic td { background: #4b5563 !important; box-shadow: inset 3px 0 0 #1f2937; color: #f9fafb; }
+table.data tr.row-status-traffic td { background: #c5cad3 !important; box-shadow: inset 3px 0 0 #6b7280; color: #1f2937; }
 table.data tr.row-status-traffic-return td {
   background: #f3e8ff !important;
   box-shadow: inset 3px 0 0 #d8b4fe;
@@ -787,7 +787,7 @@ table.data tr.row-status-psfu:hover td { background: #bbf7d0 !important; }
 table.data tr.row-status-delivered:hover td { background: #fef08a !important; }
 table.data tr.row-status-ready:hover td { background: #fed7aa !important; }
 table.data tr.row-status-issued:hover td { background: #bbf7d0 !important; }
-table.data tr.row-status-traffic:hover td { background: #374151 !important; color: #ffffff; }
+table.data tr.row-status-traffic:hover td { background: #b0b6c1 !important; color: #111827; }
 table.data tr.row-status-traffic-return:hover td { background: #e9d5ff !important; color: #581c87; }
 table.data tr.row-status-pending:hover td { background: #bae6fd !important; }
 table.data tr.row-status-cancel:hover td { background: #fecaca !important; }
@@ -862,9 +862,9 @@ table.data .vin-link:hover { text-decoration: underline; }
   border-color: #cbd5e1;
 }
 .badge.gray {
-  background: #4b5563;
-  color: #f9fafb;
-  border-color: #1f2937;
+  background: #c5cad3;
+  color: #1f2937;
+  border-color: #6b7280;
 }
 
 /* ——— Pipeline / status ——— */
@@ -1752,7 +1752,7 @@ table.live-sheet tr.row-status-psfu td { background: #dcfce7; }
 table.live-sheet tr.row-status-delivered td { background: #fef9c3; }
 table.live-sheet tr.row-status-ready td { background: #ffedd5; }
 table.live-sheet tr.row-status-issued td { background: #dcfce7; }
-table.live-sheet tr.row-status-traffic td { background: #4b5563; color: #f9fafb; }
+table.live-sheet tr.row-status-traffic td { background: #c5cad3; color: #1f2937; }
 table.live-sheet tr.row-status-traffic-return td { background: #f3e8ff; }
 table.live-sheet tr.row-status-pending td { background: #e0f2fe; }
 table.live-sheet tr.row-status-cancel td { background: #fee2e2; }
@@ -1802,9 +1802,9 @@ table.live-sheet tr.row-status-traffic td.col-num,
 table.live-sheet tr.row-status-traffic td.col-employee,
 table.live-sheet tr.row-status-traffic td.col-status,
 table.live-sheet tr.row-status-traffic td.col-vin {
-  background: #4b5563 !important;
-  color: #f9fafb;
-  box-shadow: inset 3px 0 0 #1f2937;
+  background: #b8bec8 !important;
+  color: #1f2937;
+  box-shadow: inset 3px 0 0 #6b7280;
 }
 table.live-sheet tr.row-status-traffic-return td.col-num,
 table.live-sheet tr.row-status-traffic-return td.col-employee,
@@ -1876,10 +1876,10 @@ table.live-sheet tr.row-status-issued td.col-status .cell-edit {
   color: #14532d;
 }
 table.live-sheet tr.row-status-traffic td.col-status .cell-edit {
-  border-color: #1f2937;
-  background: #374151;
+  border-color: #6b7280;
+  background: #e5e7eb;
   font-weight: 800;
-  color: #f9fafb;
+  color: #1f2937;
 }
 table.live-sheet tr.row-status-traffic-return td.col-status .cell-edit {
   border-color: #d8b4fe;
