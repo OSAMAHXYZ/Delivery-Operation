@@ -1691,11 +1691,7 @@ function buildCompanyByVinFromDrafts(drafts) {
       company = 'مستودع الهاتفية';
     }
     if (!company || isUnassignedDeliveryCompany({ company, deliveryCompany: company })) {
-      // Explicitly mark as empty so Live Sheet clears الناقل
-      const vins = collectDraftVins(payload, [d.vin, ...(Array.isArray(d.vins) ? d.vins : [])]);
-      vins.forEach((vin) => {
-        if (vin && !map.has(vin)) map.set(vin, '');
-      });
+      // Do not map empty — leave Live Sheet الناقل alone (Hanouf/manual values stay)
       continue;
     }
     const vins = collectDraftVins(payload, [d.vin, ...(Array.isArray(d.vins) ? d.vins : [])]);
@@ -1708,8 +1704,8 @@ function buildCompanyByVinFromDrafts(drafts) {
 }
 
 /**
- * Stamp Delivery Team Live Sheet الناقل from Print Drafts for every dashboard VIN.
- * Matched company → الناقل (short carrier name when known). Unmatched / unassigned → empty.
+ * Stamp Delivery Team Live Sheet الناقل from Print Drafts when a real company is known.
+ * Never clears an existing الناقل (Hanouf / employee / sheet values must stay visible).
  */
 function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   if (!deliveryTeamStore || typeof deliveryTeamStore.allVehicles !== 'function') {
@@ -1729,31 +1725,29 @@ function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
     const vin = normVin(v && v.vin);
     if (!vin) continue;
     scanned += 1;
-    const hasDraft = byVin.has(vin);
-    const company = hasDraft ? byVin.get(vin) : '';
-    // Only rewrite when drafts are present for this run; for full dashboard pass
-    // every VIN is looked up — no draft ⇒ empty الناقل
-    const carrier = company ? mapCoordinatorCompanyToCarrier(company) : '';
+    // No Print Draft company for this VIN → keep current الناقل
+    if (!byVin.has(vin)) continue;
+    const company = String(byVin.get(vin) || '').trim();
+    if (!company) continue;
+    const carrier = mapCoordinatorCompanyToCarrier(company);
+    const next = String(carrier || '').trim();
+    // Still no usable الناقل mapping → do not wipe manual value
+    if (!next) continue;
     if (!v.ops) v.ops = {};
     const prev = String(v.ops.carrier || '').trim();
-    const next = String(carrier || '').trim();
     if (prev === next) {
-      if (next) matched += 1;
+      matched += 1;
       continue;
     }
     v.ops.carrier = next;
     v.ops.updatedAt = now;
     v.ops.updatedBy = 'print-drafts';
     deliveryTeamStore.upsertVehicle(vin, v);
-    if (next) {
-      updated += 1;
-      matched += 1;
-    } else {
-      cleared += 1;
-    }
+    updated += 1;
+    matched += 1;
   }
 
-  if (updated || cleared) deliveryTeamStore.save();
+  if (updated) deliveryTeamStore.save();
   return {
     updated,
     cleared,
