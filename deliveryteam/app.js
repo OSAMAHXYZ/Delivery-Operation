@@ -490,6 +490,7 @@
 
   async function loadLiveSheet({ silent = false } = {}) {
     const f = state.liveFilters;
+    if (!f.month) f.month = currentMonthValue();
     const params = new URLSearchParams();
     params.set('tzOffset', String(state.tzOffset));
     params.set('sort', 'status');
@@ -498,7 +499,7 @@
     if (f.employee) params.set('employee', f.employee);
     if (f.status) params.set('status', f.status);
     if (f.carrier) params.set('carrier', f.carrier);
-    if (f.month) params.set('month', f.month);
+    params.set('month', f.month);
     const data = await api(`/live-sheet?${params}`);
     if (data.hubRaw) renderRawStatus(data.hubRaw);
     const rows = data.rows || [];
@@ -978,14 +979,16 @@
   }
 
   async function loadDashboard() {
-    const month = state.monthFilter || '';
-    const d = await api(`/dashboard?tzOffset=${state.tzOffset}${month ? `&month=${encodeURIComponent(month)}` : ''}`);
+    if (!state.monthFilter) state.monthFilter = currentMonthValue();
+    const month = state.monthFilter;
+    state.filters.month = month;
+    const d = await api(`/dashboard?tzOffset=${state.tzOffset}&month=${encodeURIComponent(month)}`);
     if (d.hubRaw) renderRawStatus(d.hubRaw);
     if (d.targetMonth) state.targetMonth = d.targetMonth;
     const monthInp = $('#dash-month');
     if (monthInp && monthInp.value !== month) monthInp.value = month;
     const hint = $('#dash-month-hint');
-    if (hint) hint.textContent = month ? `Showing ${month}` : 'Showing all months';
+    if (hint) hint.textContent = `Proforma month ${month} · other months ignored`;
 
     const t = d.totals || {};
     const kpis = canManage()
@@ -2151,9 +2154,11 @@
           <div><strong>${s.carriersSynced || 0}</strong><span>الناقل → company boards</span></div>
           <div><strong>${s.opsImported || 0}</strong><span>Ops / status imported</span></div>
           <div><strong>${s.todaysProformas}</strong><span>Today's dates</span></div>
+          <div><strong>${s.skippedOtherMonth || 0}</strong><span>Skipped other months</span></div>
           <div><strong>${s.duplicateVins}</strong><span>Duplicate VINs</span></div>
           <div><strong>${s.errorCount}</strong><span>Errors</span></div>
         </div>
+        ${s.skippedOtherMonth ? `<p class="hint" style="margin-top:8px">Ignored ${s.skippedOtherMonth} row(s) whose proforma is outside ${esc(s.currentMonth || 'this month')} — they do not appear on Live Sheet.</p>` : ''}
         ${s.picUnresolved ? `<p class="hint" style="color:var(--orange);margin-top:8px">${s.picUnresolved} PIC name(s) not matched (use Hanouf / Rasha / Ruba / Ibrahim·Ebrahim / Abdullah)</p>` : ''}
         ${s.errors && s.errors.length ? `<p class="hint" style="color:var(--red);margin-top:10px">${s.errors.slice(0, 8).map((e) => `Row ${e.row}: ${esc(e.error)}`).join(' · ')}</p>` : ''}`;
       state.liveFingerprint = '';
@@ -2288,9 +2293,10 @@
     loadDashboard().catch((err) => alert(err.message));
   });
   $('#dash-month-all')?.addEventListener('click', () => {
-    state.monthFilter = '';
-    state.filters.month = '';
-    if ($('#dash-month')) $('#dash-month').value = '';
+    // Counts stay on current proforma month (other months are ignored)
+    state.monthFilter = currentMonthValue();
+    state.filters.month = state.monthFilter;
+    if ($('#dash-month')) $('#dash-month').value = state.monthFilter;
     loadDashboard().catch((err) => alert(err.message));
   });
   $('#live-refresh')?.addEventListener('click', () => loadLiveSheet().catch((e) => alert(e.message)));
@@ -2312,7 +2318,8 @@
     loadLiveSheet().catch((err) => alert(err.message));
   });
   $('#live-month')?.addEventListener('change', (e) => {
-    state.liveFilters.month = e.target.value || '';
+    state.liveFilters.month = e.target.value || currentMonthValue();
+    if ($('#live-month')) $('#live-month').value = state.liveFilters.month;
     loadLiveSheet().catch((err) => alert(err.message));
   });
   $('#audit-refresh').addEventListener('click', () => { state.filters.page = 1; loadAudit(); });

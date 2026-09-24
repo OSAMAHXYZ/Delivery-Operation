@@ -759,15 +759,8 @@ function createDeliveryTeamRouter(opts) {
     if (q.month) {
       const m = String(q.month).trim().slice(0, 7);
       if (/^\d{4}-\d{2}$/.test(m)) {
-        out = out.filter((v) => {
-          const keys = [
-            monthKeyFromIso(v.raw.proformaDate),
-            monthKeyFromIso(v.raw.date),
-            monthKeyFromIso(v.raw.deliveryDate),
-            monthKeyFromIso(v.ops.assignedAt),
-          ];
-          return keys.includes(m);
-        });
+        // Proforma month only — ignore delivery / assignedAt dates for Live Sheet & counts
+        out = out.filter((v) => monthKeyFromIso(v.raw && v.raw.proformaDate) === m);
       }
     }
     return out;
@@ -857,7 +850,10 @@ function createDeliveryTeamRouter(opts) {
         console.error('[delivery-team] onEnsureHubRawOnLiveSheet failed:', err.message || err);
       }
     }
-    const q = { ...(req.query || {}), assigned: 'yes' };
+    const tz = Number(req.query.tzOffset);
+    // Default: current month by proforma — other months never appear or get counted
+    const month = String(req.query.month || currentMonthKey(tz)).trim().slice(0, 7);
+    const q = { ...(req.query || {}), assigned: 'yes', month };
     let list = store.allVehicles();
     list = applyFilters(list, q, req.dtUser);
     list = sortVehicles(list, req.query.sort || 'status', req.query.dir || 'asc');
@@ -878,7 +874,7 @@ function createDeliveryTeamRouter(opts) {
     res.json({
       at: new Date().toISOString(),
       total: list.length,
-      month: q.month || '',
+      month,
       byStatus,
       byEmployee,
       bySalesType,
@@ -895,9 +891,13 @@ function createDeliveryTeamRouter(opts) {
   });
 
   router.get('/dashboard', auth, (req, res) => {
-    const month = String((req.query && req.query.month) || '').trim().slice(0, 7);
     const tz = Number(req.query.tzOffset);
-    const filterQ = month && /^\d{4}-\d{2}$/.test(month) ? { month, tzOffset: tz } : { tzOffset: tz };
+    const requestedMonth = String((req.query && req.query.month) || '').trim().slice(0, 7);
+    // Default dashboard to current proforma month so other months are not counted
+    const month = (requestedMonth && /^\d{4}-\d{2}$/.test(requestedMonth))
+      ? requestedMonth
+      : currentMonthKey(tz);
+    const filterQ = { month, tzOffset: tz };
     // Full team fleet — everyone can see other users' schedules & sales-type mix
     const teamFleet = applyFilters(store.allVehicles(), filterQ, req.dtUser);
     // Personal scope for employee KPIs
@@ -1381,6 +1381,7 @@ function createDeliveryTeamRouter(opts) {
       }
 
       const today = todayIso(Number(req.headers['x-tz-offset']) || 180);
+      const currentMonth = currentMonthKey(Number(req.headers['x-tz-offset']) || 180);
       let rowsProcessed = 0;
       let newVins = 0;
       let updatedVins = 0;
@@ -1389,6 +1390,7 @@ function createDeliveryTeamRouter(opts) {
       let opsImported = 0;
       let assignedFromPic = 0;
       let picUnresolved = 0;
+      let skippedOtherMonth = 0;
       const errors = [];
       const seenInFile = new Set();
       const uploadId = `up_${Date.now()}`;
@@ -1407,6 +1409,12 @@ function createDeliveryTeamRouter(opts) {
         const vinKey = normVin(raw.vin);
         if (!vinKey) {
           errors.push({ row: r + 1, error: 'Missing VIN' });
+          continue;
+        }
+        // Delivery sheet: ignore rows whose proforma is not the current month
+        const pfMonth = monthKeyFromIso(raw.proformaDate || raw.date);
+        if (deliveryFmt && pfMonth && pfMonth !== currentMonth) {
+          skippedOtherMonth += 1;
           continue;
         }
         if (seenInFile.has(vinKey)) duplicateInFile += 1;
@@ -1471,6 +1479,7 @@ function createDeliveryTeamRouter(opts) {
         updatedVins,
         todaysProformas,
         duplicateVins: duplicateInFile,
+        skippedOtherMonth,
         opsImported,
         assignedFromPic,
         picUnresolved,
@@ -1483,7 +1492,7 @@ function createDeliveryTeamRouter(opts) {
         user: req.dtUser.name,
         action: 'upload_raw_data',
         oldValue: '',
-        newValue: `${filename} · sheet «${sheetName}» · ${rowsProcessed} rows · assigned from PIC ${assignedFromPic}`,
+        newValue: `${filename} · sheet «${sheetName}» · ${rowsProcessed} rows · skipped other-month ${skippedOtherMonth} · assigned from PIC ${assignedFromPic}`,
       });
       store.save();
 
@@ -1526,6 +1535,7 @@ function createDeliveryTeamRouter(opts) {
           updatedVins,
           todaysProformas,
           duplicateVins: duplicateInFile,
+          skippedOtherMonth,
           opsImported,
           assignedFromPic,
           picUnresolved,
@@ -1534,6 +1544,7 @@ function createDeliveryTeamRouter(opts) {
           carrierHubSync: carrierHubSync || undefined,
           errors: errors.slice(0, 50),
           errorCount: errors.length,
+          currentMonth,
         },
         hubSync: syncHint || undefined,
       });
