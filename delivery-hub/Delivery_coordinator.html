@@ -574,7 +574,7 @@
         <div class="coord-toolbar" id="coordToolbar">
             <input type="search" id="coordSearch" placeholder="ابحث شركة أو VIN أو منتج…" autocomplete="off">
             <span class="hub-meta" id="coordSearchMeta">فلترة اللوحات والقائمة</span>
-        </div>
+            </div>
 
         <section class="hub-section">
             <details class="coord-upload" id="uploadDetails" open>
@@ -583,12 +583,12 @@
                     <span class="hub-hint summary-hint">أو من Delivery Team · حنوف / ربى</span>
                 </summary>
                 <div style="margin-top:14px">
-                    <label class="hub-upload" id="uploadZone">
-                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            <label class="hub-upload" id="uploadZone">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
                         <strong>اسحب ملف Excel أو انقر للاختيار — رفع كامل</strong>
                         <p class="hub-meta">Sales Raw أو أرشيف delivery_export — يفضّل رفع Sales Raw من Delivery Team (حنوف / ربى) ليراه الجميع بنفس الوقت</p>
-                    </label>
-                    <p class="hub-status" id="uploadStatus"></p>
+            </label>
+            <p class="hub-status" id="uploadStatus"></p>
                     <div class="hub-actions-row" style="margin-top:14px;flex-wrap:wrap;gap:10px;align-items:center">
                         <input type="file" id="mergeDatesInput" accept=".xlsx,.xls" hidden>
                         <button type="button" class="hub-btn hub-btn--primary" id="btnMergeDates">تحديث التواريخ من Sales Raw</button>
@@ -1211,7 +1211,7 @@
             const groups = groupQueueByCompany(unique);
             wrap.innerHTML = groups.map((g) => {
                 const rows = g.items.map((item) => {
-                    const avail = item.status === 'available';
+                const avail = item.status === 'available';
                     const label = item.statusLabel || (avail ? 'Waiting' : 'محجوز');
                     const yard = item.warehouseInStock && item.warehouseSlot
                         ? `<span class="hub-badge hub-badge--yard">${item.warehouseSlot}</span>`
@@ -1234,7 +1234,7 @@
                         <div class="${agentCls}" title="الموظف الحالي">${agent}</div>
                         <div class="qv-reassign">${g.unassigned ? '' : companySelectHtml(currentCo, vin)}</div>
                     </div>`;
-                }).join('');
+            }).join('');
                 const badge = g.unassigned
                     ? '<span class="hub-badge hub-badge--unassigned">بدون شركة</span>'
                     : (g.isWh
@@ -1335,7 +1335,7 @@
         async function loadCompanyOptions() {
             try {
                 const res = await fetch('/api/delivery-options');
-                const data = await res.json();
+            const data = await res.json();
                 if (res.ok && Array.isArray(data.companies)) {
                     companyOptions = data.companies.slice();
                 }
