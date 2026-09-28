@@ -340,6 +340,23 @@
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
   }
 
+  function previousMonthValue() {
+    const d = new Date(Date.now() + state.tzOffset * 60000);
+    const p = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1));
+    return `${p.getUTCFullYear()}-${String(p.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  /** Only the current + previous proforma month exist; limit month pickers to them. */
+  function limitMonthInput(inp) {
+    if (!inp) return;
+    inp.min = previousMonthValue();
+    inp.max = currentMonthValue();
+  }
+
+  function activeMonthsLabel() {
+    return `${previousMonthValue()} + ${currentMonthValue()}`;
+  }
+
   function canUploadSalesRaw() {
     return canManage() || isRuba();
   }
@@ -490,7 +507,6 @@
 
   async function loadLiveSheet({ silent = false } = {}) {
     const f = state.liveFilters;
-    if (!f.month) f.month = currentMonthValue();
     const params = new URLSearchParams();
     params.set('tzOffset', String(state.tzOffset));
     params.set('sort', 'status');
@@ -499,7 +515,7 @@
     if (f.employee) params.set('employee', f.employee);
     if (f.status) params.set('status', f.status);
     if (f.carrier) params.set('carrier', f.carrier);
-    params.set('month', f.month);
+    if (f.month) params.set('month', f.month);
     const data = await api(`/live-sheet?${params}`);
     if (data.hubRaw) renderRawStatus(data.hubRaw);
     const rows = data.rows || [];
@@ -537,6 +553,7 @@
     }
 
     const monthInp = $('#live-month');
+    limitMonthInput(monthInp);
     if (monthInp && monthInp.value !== (f.month || '')) {
       monthInp.value = f.month || '';
     }
@@ -606,7 +623,7 @@
     const dot = $('#live-dot');
     if (meta) {
       const t = new Date(data.at || Date.now()).toLocaleTimeString();
-      const monthNote = f.month ? ` · ${f.month}` : ' · all months';
+      const monthNote = f.month ? ` · ${f.month}` : ` · ${activeMonthsLabel()}`;
       const editNote = canEditLiveSheet() ? ' · editable' : '';
       meta.textContent = `${data.total || 0} assigned VINs${monthNote}${editNote} · live · last sync ${t}${changed && silent ? ' · updated' : ''}`;
     }
@@ -979,16 +996,20 @@
   }
 
   async function loadDashboard() {
-    if (!state.monthFilter) state.monthFilter = currentMonthValue();
-    const month = state.monthFilter;
+    const month = state.monthFilter || '';
     state.filters.month = month;
-    const d = await api(`/dashboard?tzOffset=${state.tzOffset}&month=${encodeURIComponent(month)}`);
+    const d = await api(`/dashboard?tzOffset=${state.tzOffset}${month ? `&month=${encodeURIComponent(month)}` : ''}`);
     if (d.hubRaw) renderRawStatus(d.hubRaw);
     if (d.targetMonth) state.targetMonth = d.targetMonth;
     const monthInp = $('#dash-month');
+    limitMonthInput(monthInp);
     if (monthInp && monthInp.value !== month) monthInp.value = month;
     const hint = $('#dash-month-hint');
-    if (hint) hint.textContent = `Proforma month ${month} · other months ignored`;
+    if (hint) {
+      hint.textContent = month
+        ? `Proforma month ${month}`
+        : `Proforma months ${activeMonthsLabel()} · older months removed`;
+    }
 
     const t = d.totals || {};
     const kpis = canManage()
@@ -2145,22 +2166,28 @@
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       const s = data.summary;
       summary.innerHTML = `
-        <p><b>Sheet used:</b> ${esc(data.sheetName)} <span class="hint">(${esc(data.format || 'auto')})</span></p>
+        <p><b>Main sheet:</b> ${esc(data.sheetName)} <span class="hint">(${esc(data.format || 'auto')})</span></p>
         <div class="summary-grid">
           <div><strong>${s.rowsProcessed}</strong><span>Rows processed</span></div>
           <div><strong>${s.newVins}</strong><span>New VINs</span></div>
           <div><strong>${s.updatedVins}</strong><span>Updated VINs</span></div>
           <div><strong>${s.assignedFromPic || 0}</strong><span>Assigned from PIC</span></div>
           <div><strong>${s.carriersSynced || 0}</strong><span>الناقل → company boards</span></div>
-          <div><strong>${s.opsImported || 0}</strong><span>Ops / status imported</span></div>
+          <div><strong>${s.opsImported || 0}</strong><span>Ops rows imported</span></div>
+          <div><strong>${s.statusesImported || 0}</strong><span>Statuses imported</span></div>
           <div><strong>${s.todaysProformas}</strong><span>Today's dates</span></div>
-          <div><strong>${s.skippedOtherMonth || 0}</strong><span>Skipped other months</span></div>
+          <div><strong>${s.skippedOtherMonth || 0}</strong><span>Skipped older months</span></div>
+          <div><strong>${s.removedOld || 0}</strong><span>Old VINs removed</span></div>
+          <div><strong>${s.removedCancelled || 0}</strong><span>الغاء removed (not in raw)</span></div>
           <div><strong>${s.duplicateVins}</strong><span>Duplicate VINs</span></div>
           <div><strong>${s.errorCount}</strong><span>Errors</span></div>
         </div>
-        ${s.skippedOtherMonth ? `<p class="hint" style="margin-top:8px">Ignored ${s.skippedOtherMonth} row(s) whose proforma is outside ${esc(s.currentMonth || 'this month')} — they do not appear on Live Sheet.</p>` : ''}
+        ${Array.isArray(s.sheetsRead) && s.sheetsRead.length ? `<p class="hint" style="margin-top:8px"><b>Sheets read:</b> ${s.sheetsRead.map((sh) => `«${esc(sh.name)}» ${sh.imported}/${sh.dataRows} rows${sh.skippedOlder ? ` (${sh.skippedOlder} older)` : ''}${sh.missingVin ? ` (${sh.missingVin} no VIN)` : ''}`).join(' · ')}</p>` : ''}
+        ${s.skippedOtherMonth ? `<p class="hint" style="margin-top:8px">Ignored ${s.skippedOtherMonth} row(s) with proforma before ${esc(s.oldestMonth || 'last month')} — only ${esc(s.oldestMonth || '')} and ${esc(s.currentMonth || '')} are kept.</p>` : ''}
+        ${s.removedCancelled ? `<p class="hint" style="margin-top:8px">${s.removedCancelled} VIN(s) with status الغاء were removed because they are no longer in Sales Raw.</p>` : ''}
+        ${s.cancelledChecked === false ? `<p class="hint" style="color:var(--orange);margin-top:8px">Sales Raw is not loaded — الغاء VINs were not re-checked.</p>` : ''}
         ${s.picUnresolved ? `<p class="hint" style="color:var(--orange);margin-top:8px">${s.picUnresolved} PIC name(s) not matched (use Hanouf / Rasha / Ruba / Ibrahim·Ebrahim / Abdullah)</p>` : ''}
-        ${s.errors && s.errors.length ? `<p class="hint" style="color:var(--red);margin-top:10px">${s.errors.slice(0, 8).map((e) => `Row ${e.row}: ${esc(e.error)}`).join(' · ')}</p>` : ''}`;
+        ${s.errors && s.errors.length ? `<p class="hint" style="color:var(--red);margin-top:10px">${s.errors.slice(0, 8).map((e) => `${e.sheet ? `${esc(e.sheet)} ` : ''}Row ${e.row}: ${esc(e.error)}`).join(' · ')}</p>` : ''}`;
       state.liveFingerprint = '';
       await refreshView();
     } catch (err) {
@@ -2293,10 +2320,9 @@
     loadDashboard().catch((err) => alert(err.message));
   });
   $('#dash-month-all')?.addEventListener('click', () => {
-    // Counts stay on current proforma month (other months are ignored)
-    state.monthFilter = currentMonthValue();
-    state.filters.month = state.monthFilter;
-    if ($('#dash-month')) $('#dash-month').value = state.monthFilter;
+    state.monthFilter = '';
+    state.filters.month = '';
+    if ($('#dash-month')) $('#dash-month').value = '';
     loadDashboard().catch((err) => alert(err.message));
   });
   $('#live-refresh')?.addEventListener('click', () => loadLiveSheet().catch((e) => alert(e.message)));
@@ -2318,8 +2344,7 @@
     loadLiveSheet().catch((err) => alert(err.message));
   });
   $('#live-month')?.addEventListener('change', (e) => {
-    state.liveFilters.month = e.target.value || currentMonthValue();
-    if ($('#live-month')) $('#live-month').value = state.liveFilters.month;
+    state.liveFilters.month = e.target.value || '';
     loadLiveSheet().catch((err) => alert(err.message));
   });
   $('#audit-refresh').addEventListener('click', () => { state.filters.page = 1; loadAudit(); });

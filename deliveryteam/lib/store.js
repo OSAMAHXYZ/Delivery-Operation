@@ -101,6 +101,28 @@ function createStore(filePath) {
     data.vehicles[vinKey] = vehicle;
   }
 
+  /**
+   * Remove vehicles by VIN. Each removed record is appended to
+   * `<store>.removed.jsonl` so purged rows can be recovered.
+   */
+  function removeVehicles(vins, reason) {
+    const removed = [];
+    for (const vin of vins || []) {
+      const key = String(vin || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!key || !data.vehicles[key]) continue;
+      removed.push({ vin: key, reason: String(reason || ''), removedAt: new Date().toISOString(), vehicle: data.vehicles[key] });
+      delete data.vehicles[key];
+    }
+    if (removed.length) {
+      try {
+        fs.appendFileSync(`${filePath}.removed.jsonl`, `${removed.map((r) => JSON.stringify(r)).join('\n')}\n`);
+      } catch (err) {
+        console.error('[delivery-team] removed-archive write failed:', err.message);
+      }
+    }
+    return removed.length;
+  }
+
   function pushAudit(entry) {
     data.audit.unshift({
       id: `aud_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
@@ -157,6 +179,7 @@ function createStore(filePath) {
     allVehicles,
     getVehicle,
     upsertVehicle,
+    removeVehicles,
     pushAudit,
     pushUpload,
     getMonthTargets,

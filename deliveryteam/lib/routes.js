@@ -125,6 +125,30 @@ function currentMonthKey(tzOffsetMinutes) {
   return todayIso(tzOffsetMinutes).slice(0, 7);
 }
 
+function previousMonthKey(tzOffsetMinutes) {
+  const [y, m] = currentMonthKey(tzOffsetMinutes).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+}
+
+/** Live Sheet / dashboard window: current month + the month before (by proforma). */
+function activeMonthKeys(tzOffsetMinutes) {
+  return [currentMonthKey(tzOffsetMinutes), previousMonthKey(tzOffsetMinutes)];
+}
+
+function vehicleMonthKey(v) {
+  const raw = (v && v.raw) || {};
+  return monthKeyFromIso(raw.proformaDate) || monthKeyFromIso(raw.date);
+}
+
+function isCancelledStatus(value) {
+  const s = String(value || '').trim()
+    .replace(/^[a-zA-Z]\.\s*/u, '')
+    .replace(/\.[a-zA-Z]\s*$/u, '')
+    .trim()
+    .toLowerCase();
+  return ['الغاء', 'إلغاء', 'ألغاء', 'الإلغاء', 'cancel', 'cancelled', 'canceled'].includes(s);
+}
+
 function findAssignableUser(employeeName) {
   const want = String(employeeName || '').trim().toLowerCase();
   if (!want) return null;
@@ -555,6 +579,68 @@ function createDeliveryTeamRouter(opts) {
     try { return fn(vin); } catch { return null; }
   }
 
+  let lastPruneAt = 0;
+  let lastPruneHubUploadAt = '';
+
+  /**
+   * Keep only the current + previous proforma month, and drop الغاء VINs
+   * that are no longer in the hub Sales Raw. Removed rows are archived by the store.
+   */
+  function pruneStaleVehicles({ force = false, tz, by = 'system' } = {}) {
+    const hubStatus = typeof opts.getHubRawStatus === 'function' ? opts.getHubRawStatus() : null;
+    const hubUploadAt = String((hubStatus && hubStatus.uploadedAt) || '');
+    const now = Date.now();
+    if (!force && hubUploadAt === lastPruneHubUploadAt && now - lastPruneAt < 5 * 60_000) return null;
+    lastPruneAt = now;
+    lastPruneHubUploadAt = hubUploadAt;
+
+    const oldestMonth = previousMonthKey(tz);
+    // Without a loaded Sales Raw every الغاء VIN would look missing
+    const hubReady = !!(hubStatus && Number(hubStatus.vehicleCount) > 0);
+    let hubVins = null;
+    if (hubReady && typeof opts.getHubVinSet === 'function') {
+      try { hubVins = opts.getHubVinSet(); } catch { hubVins = null; }
+    }
+    const inHubRaw = (vin) => (hubVins ? hubVins.has(normVin(vin)) : !!hubVehicleFor(vin));
+
+    const oldVins = [];
+    const cancelledVins = [];
+    for (const v of store.allVehicles()) {
+      const mk = vehicleMonthKey(v);
+      if (mk && mk < oldestMonth) {
+        oldVins.push(v.vin);
+        continue;
+      }
+      const cancelled = isCancelledStatus(v.ops && v.ops.opsStatus)
+        || isCancelledStatus(v.raw && v.raw.status);
+      if (cancelled && hubReady && !inHubRaw(v.vin)) cancelledVins.push(v.vin);
+    }
+    const removedOld = oldVins.length
+      ? store.removeVehicles(oldVins, `proforma older than ${oldestMonth}`)
+      : 0;
+    const removedCancelled = cancelledVins.length
+      ? store.removeVehicles(cancelledVins, 'الغاء — VIN no longer in Sales Raw')
+      : 0;
+    if (removedOld || removedCancelled) {
+      store.pushAudit({
+        vin: '',
+        user: by,
+        action: 'prune_vehicles',
+        oldValue: '',
+        newValue: `removed ${removedOld} older than ${oldestMonth} · ${removedCancelled} الغاء not in Sales Raw`,
+      });
+      store.save();
+    }
+    return { removedOld, removedCancelled, oldestMonth, hubChecked: hubReady };
+  }
+
+  function safePrune(args) {
+    try { return pruneStaleVehicles(args); } catch (err) {
+      console.error('[delivery-team] prune failed:', err.message || err);
+      return null;
+    }
+  }
+
   /** Ensure Sales Raw fields are on the team vehicle (persist fills for Assignment / Live Sheet). */
   function withHubRawEnrichment(v) {
     if (!v) return null;
@@ -762,6 +848,14 @@ function createDeliveryTeamRouter(opts) {
         // Proforma month only — ignore delivery / assignedAt dates for Live Sheet & counts
         out = out.filter((v) => monthKeyFromIso(v.raw && v.raw.proformaDate) === m);
       }
+    } else if (Array.isArray(q.months) && q.months.length) {
+      const allowed = new Set(q.months);
+      out = out.filter((v) => allowed.has(monthKeyFromIso(v.raw && v.raw.proformaDate)));
+    } else if (q.oldestMonth) {
+      out = out.filter((v) => {
+        const mk = vehicleMonthKey(v);
+        return !mk || mk >= q.oldestMonth;
+      });
     }
     return out;
   }
@@ -817,8 +911,10 @@ function createDeliveryTeamRouter(opts) {
   }
 
   router.get('/vehicles', auth, (req, res) => {
+    const tz = Number(req.query.tzOffset);
+    safePrune({ tz });
     let list = scopedVehicles(req.dtUser);
-    list = applyFilters(list, req.query || {}, req.dtUser);
+    list = applyFilters(list, { ...(req.query || {}), oldestMonth: previousMonthKey(tz) }, req.dtUser);
     list = sortVehicles(list, req.query.sort, req.query.dir);
     const total = list.length;
     const wantAll = String(req.query.all || '') === '1';
@@ -851,9 +947,12 @@ function createDeliveryTeamRouter(opts) {
       }
     }
     const tz = Number(req.query.tzOffset);
-    // Default: current month by proforma — other months never appear or get counted
-    const month = String(req.query.month || currentMonthKey(tz)).trim().slice(0, 7);
-    const q = { ...(req.query || {}), assigned: 'yes', month };
+    safePrune({ tz });
+    // Default: current + previous proforma month; a specific ?month= narrows to that month
+    const reqMonth = String(req.query.month || '').trim().slice(0, 7);
+    const month = /^\d{4}-\d{2}$/.test(reqMonth) ? reqMonth : '';
+    const months = activeMonthKeys(tz);
+    const q = { ...(req.query || {}), assigned: 'yes', month, months };
     let list = store.allVehicles();
     list = applyFilters(list, q, req.dtUser);
     list = sortVehicles(list, req.query.sort || 'status', req.query.dir || 'asc');
@@ -875,6 +974,7 @@ function createDeliveryTeamRouter(opts) {
       at: new Date().toISOString(),
       total: list.length,
       month,
+      months,
       byStatus,
       byEmployee,
       bySalesType,
@@ -892,12 +992,14 @@ function createDeliveryTeamRouter(opts) {
 
   router.get('/dashboard', auth, (req, res) => {
     const tz = Number(req.query.tzOffset);
+    safePrune({ tz });
     const requestedMonth = String((req.query && req.query.month) || '').trim().slice(0, 7);
-    // Default dashboard to current proforma month so other months are not counted
+    // Default: current + previous proforma month; older months are never counted
     const month = (requestedMonth && /^\d{4}-\d{2}$/.test(requestedMonth))
       ? requestedMonth
-      : currentMonthKey(tz);
-    const filterQ = { month, tzOffset: tz };
+      : '';
+    const activeMonths = activeMonthKeys(tz);
+    const filterQ = month ? { month, tzOffset: tz } : { months: activeMonths, tzOffset: tz };
     // Full team fleet — everyone can see other users' schedules & sales-type mix
     const teamFleet = applyFilters(store.allVehicles(), filterQ, req.dtUser);
     // Personal scope for employee KPIs
@@ -1002,16 +1104,7 @@ function createDeliveryTeamRouter(opts) {
         }));
     }
 
-    // Available months from data (for filter UI)
-    const monthSet = new Set();
-    store.allVehicles().forEach((v) => {
-      [v.raw.proformaDate, v.raw.date, v.raw.deliveryDate, v.ops.assignedAt].forEach((d) => {
-        const mk = monthKeyFromIso(d);
-        if (mk) monthSet.add(mk);
-      });
-    });
-    const months = [...monthSet].sort().reverse();
-    if (!months.includes(currentMonthKey(tz))) months.unshift(currentMonthKey(tz));
+    const months = activeMonths.slice();
 
     const hubTransfer = typeof opts.getHubTransferStats === 'function'
       ? opts.getHubTransferStats()
@@ -1310,13 +1403,35 @@ function createDeliveryTeamRouter(opts) {
       const vinAliases = HEADER_MAP.vin.map(normalizeHeader);
       const pfAliases = HEADER_MAP.proformaDate.map(normalizeHeader);
 
+      // Some exports store a short !ref (sheet dimension) — widen it to the real last cell so no rows are dropped
+      function expandSheetRange(sh) {
+        let maxR = -1;
+        let maxC = -1;
+        Object.keys(sh).forEach((k) => {
+          if (k[0] === '!') return;
+          const c = XLSX.utils.decode_cell(k);
+          if (c.r > maxR) maxR = c.r;
+          if (c.c > maxC) maxC = c.c;
+        });
+        if (maxR < 0) return;
+        const range = sh['!ref']
+          ? XLSX.utils.decode_range(sh['!ref'])
+          : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+        if (maxR > range.e.r || maxC > range.e.c) {
+          range.e.r = Math.max(range.e.r, maxR);
+          range.e.c = Math.max(range.e.c, maxC);
+          sh['!ref'] = XLSX.utils.encode_range(range);
+        }
+      }
+
       function scoreSheet(name) {
         const sh = workbook.Sheets[name];
-        if (!sh) return { name, score: -1, headerIdx: 0, matrix: [] };
-        const matrix = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '', raw: true, cellDates: true });
+        if (!sh) return { name, score: -1, headerIdx: 0, matrix: [], bestHits: -1 };
+        expandSheetRange(sh);
+        const matrix = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '', raw: true, cellDates: true, blankrows: true });
         let headerIdx = 0;
         let bestHits = -1;
-        for (let i = 0; i < Math.min(matrix.length, 40); i += 1) {
+        for (let i = 0; i < Math.min(matrix.length, 60); i += 1) {
           const cells = (matrix[i] || []).map((c) => normalizeHeader(c));
           if (!cells.some(Boolean)) continue;
           const hits = cells.filter((c) => vinAliases.some((a) => c === a || c.includes(a))
@@ -1334,141 +1449,173 @@ function createDeliveryTeamRouter(opts) {
         let score = bestHits;
         const n = String(name || '').toLowerCase();
         if (/e\s*sales|esales|delivery\s*sheet|تسليم/i.test(n)) score += 20;
-        if (isDeliverySheetHeaders((matrix[headerIdx] || []).map((h) => String(h == null ? '' : h).trim()))) {
-          score += 10;
-        }
-        return { name, score, headerIdx, matrix, bestHits };
+        const headerCells = (matrix[headerIdx] || []).map((h) => String(h == null ? '' : h).trim());
+        const deliveryHeaders = isDeliverySheetHeaders(headerCells);
+        if (deliveryHeaders) score += 10;
+        const hasVin = headerCells.some((h) => {
+          const hn = normalizeHeader(h);
+          return vinAliases.some((a) => hn === a || hn.includes(a)) || hn.includes('الشاس');
+        });
+        const isPreferred = /e\s*sales|esales/i.test(String(name || ''));
+        return { name, score, headerIdx, matrix, bestHits, hasVin, deliveryHeaders, isPreferred };
       }
 
-      // Prefer «E sales» / Delivery sheet; fall back to best-scoring sheet with VIN column
-      let picked = null;
-      const preferred = sheetNames.find((n) => /^e\s*sales$/i.test(String(n).trim()))
-        || sheetNames.find((n) => /e\s*sales|esales/i.test(String(n)));
-      if (preferred) {
-        const cand = scoreSheet(preferred);
-        if (cand.bestHits >= 1) picked = cand;
-      }
-      if (!picked) {
-        const ranked = sheetNames.map(scoreSheet).sort((a, b) => b.score - a.score);
-        picked = ranked[0];
-      }
-      if (!picked || picked.bestHits < 1 || !picked.matrix.length) {
+      // Read every worksheet that has a VIN header. Delivery sheets go last (best one last)
+      // so their statuses / الناقل win over other tabs for the same VIN.
+      const sheetsToImport = sheetNames
+        .map(scoreSheet)
+        .filter((c) => c.matrix.length > c.headerIdx + 1 && c.hasVin && (c.bestHits >= 2 || c.isPreferred))
+        .sort((a, b) => (Number(a.deliveryHeaders) - Number(b.deliveryHeaders)) || (a.score - b.score));
+      if (!sheetsToImport.length) {
         return res.status(400).json({
           error: 'No Delivery sheet found — expected a worksheet with رقم الشاسية / VIN (e.g. «E sales»)',
         });
       }
+      const primarySheet = sheetsToImport[sheetsToImport.length - 1];
+      const sheetName = primarySheet.name;
 
-      const sheetName = picked.name;
-      const matrix = picked.matrix;
-      const headerIdx = picked.headerIdx;
-      const headerRow = matrix[headerIdx] || [];
-      const headers = headerRow.map((h, i) => {
-        const t = String(h == null ? '' : h).trim();
-        return t || `Column ${i + 1}`;
-      });
-      const deliveryFmt = isDeliverySheetHeaders(headers);
-      const useLegacyCols = !deliveryFmt && isLegacyRawColHeaders(headers);
-      const applySalesRawLetters = !deliveryFmt && (
-        useLegacyCols
-        || sheetLooksLikeSalesRawHeaders(headers)
-      );
-      const hasVin = headers.some((h) => {
-        const n = normalizeHeader(h);
-        return vinAliases.some((a) => n === a || n.includes(a)) || n.includes('الشاس');
-      });
-      if (!hasVin) {
-        return res.status(400).json({ error: 'Missing VIN column — expected رقم الشاسية / Chassis / VIN' });
-      }
-
-      const today = todayIso(Number(req.headers['x-tz-offset']) || 180);
-      const currentMonth = currentMonthKey(Number(req.headers['x-tz-offset']) || 180);
+      const tzHeader = Number(req.headers['x-tz-offset']) || 180;
+      const today = todayIso(tzHeader);
+      const currentMonth = currentMonthKey(tzHeader);
+      const oldestMonth = previousMonthKey(tzHeader);
       let rowsProcessed = 0;
-      let newVins = 0;
-      let updatedVins = 0;
       let todaysProformas = 0;
       let duplicateInFile = 0;
       let opsImported = 0;
+      let statusesImported = 0;
       let assignedFromPic = 0;
       let picUnresolved = 0;
       let skippedOtherMonth = 0;
+      let blankRowsSkipped = 0;
       const errors = [];
-      const seenInFile = new Set();
+      const createdVins = new Set();
+      const updatedVinSet = new Set();
+      const sheetsRead = [];
       const uploadId = `up_${Date.now()}`;
+      let anyDeliveryFmt = false;
+      let anyLegacyCols = false;
 
-      for (let r = headerIdx + 1; r < matrix.length; r += 1) {
-        const line = matrix[r] || [];
-        if (line.every((c) => String(c == null ? '' : c).trim() === '')) continue;
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = line[i] != null ? line[i] : ''; });
-        // Keep original blank header cells addressable for phone column
-        headerRow.forEach((h, i) => {
-          const key = String(h == null ? '' : h).trim() || `Column ${i + 1}`;
-          if (obj[key] === undefined) obj[key] = line[i] != null ? line[i] : '';
+      for (const sheet of sheetsToImport) {
+        const matrix = sheet.matrix;
+        const headerIdx = sheet.headerIdx;
+        const headerRow = matrix[headerIdx] || [];
+        const headers = headerRow.map((h, i) => {
+          const t = String(h == null ? '' : h).trim();
+          return t || `Column ${i + 1}`;
         });
-        const raw = mapRawRow(obj, line, { useLegacyCols, applySalesRawLetters });
-        const vinKey = normVin(raw.vin);
-        if (!vinKey) {
-          errors.push({ row: r + 1, error: 'Missing VIN' });
-          continue;
-        }
-        // Delivery sheet: ignore rows whose proforma is not the current month
-        const pfMonth = monthKeyFromIso(raw.proformaDate || raw.date);
-        if (deliveryFmt && pfMonth && pfMonth !== currentMonth) {
-          skippedOtherMonth += 1;
-          continue;
-        }
-        if (seenInFile.has(vinKey)) duplicateInFile += 1;
-        seenInFile.add(vinKey);
-        rowsProcessed += 1;
+        const deliveryFmt = isDeliverySheetHeaders(headers);
+        const useLegacyCols = !deliveryFmt && isLegacyRawColHeaders(headers);
+        const applySalesRawLetters = !deliveryFmt && (
+          useLegacyCols
+          || sheetLooksLikeSalesRawHeaders(headers)
+        );
+        if (deliveryFmt) anyDeliveryFmt = true;
+        if (useLegacyCols) anyLegacyCols = true;
+        const useESalesCols = !!deliveryFmt || headers.some((h) => /ناقل|carrier/i.test(String(h)));
+        const seenInFile = new Set();
+        const sheetStat = {
+          name: sheet.name,
+          format: deliveryFmt ? 'delivery-sheet' : (useLegacyCols ? 'legacy-raw' : 'generic'),
+          dataRows: 0,
+          imported: 0,
+          skippedOlder: 0,
+          missingVin: 0,
+        };
+        sheetsRead.push(sheetStat);
 
-        const sheetOps = mapOpsFromRow(obj, line, { useESalesCols: !!deliveryFmt || headers.some((h) => /ناقل|carrier/i.test(String(h))) });
-        const hasSheetOps = Object.values(sheetOps).some((v) => String(v || '').trim() !== '');
-
-        const existing = store.getVehicle(vinKey);
-        // Archive / Delivery sheet upload: PIC always drives assignment when present
-        const forceAssign = !!deliveryFmt || !!String(raw.pic || '').trim();
-        let carriersTouched = false;
-        if (!existing) {
-          let ops = emptyOps();
-          if (hasSheetOps) {
-            ops = mergeOpsFromSheet(ops, sheetOps);
-            opsImported += 1;
+        for (let r = headerIdx + 1; r < matrix.length; r += 1) {
+          const line = matrix[r] || [];
+          if (line.every((c) => String(c == null ? '' : c).trim() === '')) {
+            blankRowsSkipped += 1;
+            continue;
           }
-          const asg = assignFromPic(ops, raw.pic || cellText(line, E_SALES_COL.pic), req.dtUser.name, { force: forceAssign });
-          ops = asg.ops;
-          if (asg.changed) assignedFromPic += 1;
-          else if (String(raw.pic || cellText(line, E_SALES_COL.pic) || '').trim() && !asg.name) picUnresolved += 1;
-          if (ops.carrier) carriersTouched = true;
-          store.upsertVehicle(vinKey, {
-            vin: vinKey,
-            raw: { ...raw, vin: vinKey },
-            ops,
-            createdAt: new Date().toISOString(),
-            rawUpdatedAt: new Date().toISOString(),
-            lastUploadId: uploadId,
+          sheetStat.dataRows += 1;
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = line[i] != null ? line[i] : ''; });
+          // Keep original blank header cells addressable for phone column
+          headerRow.forEach((h, i) => {
+            const key = String(h == null ? '' : h).trim() || `Column ${i + 1}`;
+            if (obj[key] === undefined) obj[key] = line[i] != null ? line[i] : '';
           });
-          newVins += 1;
-        } else {
-          existing.raw = { ...existing.raw, ...raw, vin: vinKey };
-          existing.rawUpdatedAt = new Date().toISOString();
-          existing.lastUploadId = uploadId;
-          let ops = { ...emptyOps(), ...existing.ops };
-          if (hasSheetOps) {
-            ops = mergeOpsFromSheet(ops, sheetOps);
-            opsImported += 1;
+          const raw = mapRawRow(obj, line, { useLegacyCols, applySalesRawLetters });
+          const vinKey = normVin(raw.vin);
+          if (!vinKey) {
+            sheetStat.missingVin += 1;
+            errors.push({ sheet: sheet.name, row: r + 1, error: 'Missing VIN' });
+            continue;
           }
-          const asg = assignFromPic(ops, raw.pic || cellText(line, E_SALES_COL.pic), req.dtUser.name, { force: forceAssign });
-          ops = asg.ops;
-          if (asg.changed) assignedFromPic += 1;
-          else if (String(raw.pic || cellText(line, E_SALES_COL.pic) || '').trim() && !asg.name) picUnresolved += 1;
-          if (ops.carrier) carriersTouched = true;
-          existing.ops = ops;
-          store.upsertVehicle(vinKey, existing);
-          updatedVins += 1;
+          // Only the current + previous proforma month are kept
+          const pfMonth = monthKeyFromIso(raw.proformaDate) || monthKeyFromIso(raw.date);
+          if (pfMonth && pfMonth < oldestMonth) {
+            skippedOtherMonth += 1;
+            sheetStat.skippedOlder += 1;
+            continue;
+          }
+          if (seenInFile.has(vinKey)) duplicateInFile += 1;
+          seenInFile.add(vinKey);
+          rowsProcessed += 1;
+          sheetStat.imported += 1;
+
+          const sheetOps = mapOpsFromRow(obj, line, { useESalesCols });
+          const hasSheetOps = Object.values(sheetOps).some((v) => String(v || '').trim() !== '');
+          if (String(sheetOps.opsStatus || '').trim()) statusesImported += 1;
+
+          const picName = raw.pic || (deliveryFmt ? cellText(line, E_SALES_COL.pic) : '');
+          const existing = store.getVehicle(vinKey);
+          // Archive / Delivery sheet upload: PIC always drives assignment when present
+          const forceAssign = !!deliveryFmt || !!String(raw.pic || '').trim();
+          if (!existing) {
+            let ops = emptyOps();
+            if (hasSheetOps) {
+              ops = mergeOpsFromSheet(ops, sheetOps);
+              opsImported += 1;
+            }
+            const asg = assignFromPic(ops, picName, req.dtUser.name, { force: forceAssign });
+            ops = asg.ops;
+            if (asg.changed) assignedFromPic += 1;
+            else if (String(picName || '').trim() && !asg.name) picUnresolved += 1;
+            store.upsertVehicle(vinKey, {
+              vin: vinKey,
+              raw: { ...raw, vin: vinKey },
+              ops,
+              createdAt: new Date().toISOString(),
+              rawUpdatedAt: new Date().toISOString(),
+              lastUploadId: uploadId,
+            });
+            createdVins.add(vinKey);
+          } else {
+            // Fill from the sheet without wiping known values with blank cells
+            const mergedRaw = { ...(existing.raw || {}) };
+            Object.keys(raw).forEach((k) => {
+              const val = raw[k];
+              if (val != null && String(val).trim() !== '') mergedRaw[k] = val;
+            });
+            mergedRaw.vin = vinKey;
+            existing.raw = mergedRaw;
+            existing.rawUpdatedAt = new Date().toISOString();
+            existing.lastUploadId = uploadId;
+            let ops = { ...emptyOps(), ...existing.ops };
+            if (hasSheetOps) {
+              ops = mergeOpsFromSheet(ops, sheetOps);
+              opsImported += 1;
+            }
+            const asg = assignFromPic(ops, picName, req.dtUser.name, { force: forceAssign });
+            ops = asg.ops;
+            if (asg.changed) assignedFromPic += 1;
+            else if (String(picName || '').trim() && !asg.name) picUnresolved += 1;
+            existing.ops = ops;
+            store.upsertVehicle(vinKey, existing);
+            if (!createdVins.has(vinKey)) updatedVinSet.add(vinKey);
+          }
+          if (raw.proformaDate === today || raw.date === today) todaysProformas += 1;
         }
-        if (carriersTouched) { /* counted after loop via sync */ }
-        if (raw.proformaDate === today || raw.date === today) todaysProformas += 1;
       }
+
+      const newVins = createdVins.size;
+      const updatedVins = updatedVinSet.size;
+      const deliveryFmt = anyDeliveryFmt;
+      const useLegacyCols = anyLegacyCols;
+      const prune = safePrune({ force: true, tz: tzHeader, by: req.dtUser.name }) || {};
 
       store.pushUpload({
         id: uploadId,
@@ -1481,8 +1628,12 @@ function createDeliveryTeamRouter(opts) {
         duplicateVins: duplicateInFile,
         skippedOtherMonth,
         opsImported,
+        statusesImported,
         assignedFromPic,
         picUnresolved,
+        removedOld: prune.removedOld || 0,
+        removedCancelled: prune.removedCancelled || 0,
+        sheetsRead,
         format: deliveryFmt ? 'delivery-sheet' : (useLegacyCols ? 'legacy-raw' : 'generic'),
         errors: errors.slice(0, 50),
         uploadedBy: req.dtUser.name,
@@ -1492,7 +1643,7 @@ function createDeliveryTeamRouter(opts) {
         user: req.dtUser.name,
         action: 'upload_raw_data',
         oldValue: '',
-        newValue: `${filename} · sheet «${sheetName}» · ${rowsProcessed} rows · skipped other-month ${skippedOtherMonth} · assigned from PIC ${assignedFromPic}`,
+        newValue: `${filename} · sheets ${sheetsRead.map((s) => `«${s.name}»`).join(', ')} · ${rowsProcessed} rows · ${statusesImported} statuses · skipped older than ${oldestMonth} ${skippedOtherMonth} · assigned from PIC ${assignedFromPic}`,
       });
       store.save();
 
@@ -1537,6 +1688,7 @@ function createDeliveryTeamRouter(opts) {
           duplicateVins: duplicateInFile,
           skippedOtherMonth,
           opsImported,
+          statusesImported,
           assignedFromPic,
           picUnresolved,
           carriersOnSheet: carrierSyncItems.length,
@@ -1545,6 +1697,12 @@ function createDeliveryTeamRouter(opts) {
           errors: errors.slice(0, 50),
           errorCount: errors.length,
           currentMonth,
+          oldestMonth,
+          sheetsRead,
+          blankRowsSkipped,
+          removedOld: prune.removedOld || 0,
+          removedCancelled: prune.removedCancelled || 0,
+          cancelledChecked: !!prune.hubChecked,
         },
         hubSync: syncHint || undefined,
       });

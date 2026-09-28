@@ -1573,6 +1573,12 @@ function syncTeamRawToHubInventory(teamStore) {
   return { upserted, carriers };
 }
 
+/** Delivery Team keeps the current + previous proforma month (Riyadh time). */
+function deliveryTeamOldestMonthKey() {
+  const now = new Date(Date.now() + 180 * 60000);
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+}
+
 /** Push hub Sales Raw vehicles into Delivery Team store (preserve ops).
  * Overwrites mapped raw fields from the latest Sales Raw so Live Sheet / dashboards stay current.
  */
@@ -1585,10 +1591,13 @@ function syncHubVehiclesToDeliveryTeam(vehicles) {
   let created = 0;
   let updated = 0;
   const now = new Date().toISOString();
+  const oldestMonth = deliveryTeamOldestMonthKey();
 
   for (const veh of list) {
     const vin = normVin(veh && veh.vin);
     if (!vin) continue;
+    const pfMonth = /^\d{4}-\d{2}/.test(String(veh.proformaDate || '')) ? String(veh.proformaDate).slice(0, 7) : '';
+    if (pfMonth && pfMonth < oldestMonth && !deliveryTeamStore.getVehicle(vin)) continue;
     const rawPatch = {
       vin,
       product: String(veh.product || veh.model || '').trim(),
@@ -2104,6 +2113,7 @@ deliveryTeamHooks.getHubVehicle = (vin) => {
   return vehicleIndex().get(key) || null;
 };
 deliveryTeamHooks.getSalesRawQuality = () => getSalesRawQuality();
+deliveryTeamHooks.getHubVinSet = () => new Set(vehicleIndex().keys());
 
 /** Resolve VIN from Sales Raw or Delivery Team store for coordinator submit. */
 function resolveVehicleForSubmit(vin) {
@@ -4025,7 +4035,32 @@ function parseQueueFromRows(rows) {
   return queue;
 }
 
+/** Some exports store a short sheet dimension; widen !ref to the real last cell so no rows are dropped. */
+function widenWorkbookRanges(wb) {
+  for (const name of (wb && wb.SheetNames) || []) {
+    const sh = wb.Sheets[name];
+    if (!sh) continue;
+    let maxR = -1;
+    let maxC = -1;
+    for (const k of Object.keys(sh)) {
+      if (k[0] === '!') continue;
+      const c = XLSX.utils.decode_cell(k);
+      if (c.r > maxR) maxR = c.r;
+      if (c.c > maxC) maxC = c.c;
+    }
+    if (maxR < 0) continue;
+    const range = sh['!ref'] ? XLSX.utils.decode_range(sh['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+    if (maxR > range.e.r || maxC > range.e.c) {
+      range.e.r = Math.max(range.e.r, maxR);
+      range.e.c = Math.max(range.e.c, maxC);
+      sh['!ref'] = XLSX.utils.encode_range(range);
+    }
+  }
+  return wb;
+}
+
 function parseSalesFromWorkbook(wb, filename, opts = {}) {
+  widenWorkbookRanges(wb);
   // Prefer Sales Raw / Rowdata when Hanouf uploads Sales Raw; otherwise inventory first for archives
   const preferSalesRaw = Boolean(opts.preferSalesRaw)
     || /sales\s*raw|row\s*data|rowdata/i.test(String(filename || ''));
