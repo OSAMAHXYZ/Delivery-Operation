@@ -519,27 +519,7 @@
     const data = await api(`/live-sheet?${params}`);
     if (data.hubRaw) renderRawStatus(data.hubRaw);
     const rows = data.rows || [];
-    const fingerprint = JSON.stringify(rows.map((r) => [
-      r.vin,
-      r.ops.opsStatus,
-      r.ops.assignedEmployeeName,
-      r.ops.carrier,
-      r.ops.updatedAt,
-      r.ops.notes,
-      r.ops.guestSentDate,
-      r.ops.signatureReceivedDate,
-      r.ops.accountsSentDate,
-      r.ops.accountsApprovalDate,
-      r.ops.vin1502,
-      r.ops.trafficFile,
-      r.ops.trafficFeesOps,
-      r.ops.insuranceOps,
-      r.ops.registrationIssueDate,
-      r.ops.transferCity,
-      r.ops.guestCollectAt,
-      r.ops.guestCollected,
-      r.ops.guestCenter,
-    ]));
+    const fingerprint = JSON.stringify(rows.map((r) => [r.vin, liveRowSig(r)]));
     const changed = fingerprint !== state.liveFingerprint;
     state.liveFingerprint = fingerprint;
 
@@ -577,15 +557,21 @@
       const metaCarriers = (state.meta && state.meta.carriers) || [];
       const allCarriers = [...new Set([...metaCarriers, ...carrierNames])];
       const prev = f.carrier || '';
-      carrierSel.innerHTML = `<option value="">All الناقل</option>
+      const carrierHtml = `<option value="">All الناقل</option>
         <option value="__empty__"${prev === '__empty__' ? ' selected' : ''}>بدون ناقل (فارغ)</option>
         ${allCarriers.map((c) =>
           `<option value="${esc(c)}"${prev === c ? ' selected' : ''}>${esc(c)}${byCar[c] != null ? ` (${byCar[c]})` : ''}</option>`
         ).join('')}`;
+      if (carrierSel.dataset.html !== carrierHtml && document.activeElement !== carrierSel) {
+        carrierSel.innerHTML = carrierHtml;
+        carrierSel.dataset.html = carrierHtml;
+      }
     }
 
     const chips = $('#live-chips');
-    if (chips) {
+    const chipsSig = JSON.stringify([data.total, data.byEmployee, data.byCarrier, data.bySalesType, data.byStatus, f.employee, f.carrier, f.status]);
+    if (chips && chips.dataset.sig !== chipsSig) {
+      chips.dataset.sig = chipsSig;
       const byEmp = data.byEmployee || {};
       const bySt = data.byStatus || {};
       const byCar = data.byCarrier || {};
@@ -635,17 +621,6 @@
     if (!changed && silent) return;
 
     const table = $('#live-table');
-    const active = document.activeElement;
-    const editingLive = !!(
-      silent
-      && active
-      && table
-      && active.classList
-      && active.classList.contains('cell-edit')
-      && table.contains(active)
-    );
-    if (editingLive) return;
-
     const liveEditable = canEditLiveSheet();
     const editHint = $('#live-edit-hint');
     if (editHint) editHint.hidden = !liveEditable;
@@ -704,17 +679,84 @@
       { key: 'by', label: 'By', html: (r) => na(r.ops.updatedBy) },
     ];
 
+    const buildRow = (r, i) => {
+      const statusCls = statusRowClass(r.ops.opsStatus);
+      const guestCls = guestCenterValue(r) === 'Yes' ? 'row-guest-exp' : '';
+      return `<tr class="${statusCls} ${guestCls}" data-vin="${esc(r.vin)}">${cols.map((c) =>
+        `<td class="col-${c.key}">${c.html(r, i)}</td>`
+      ).join('')}</tr>`;
+    };
+    const bindRow = (root) => {
+      $$('.vin-link', root).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
+      bindGuestButtons(root);
+      if (liveEditable) bindEditableCells(root);
+    };
+
+    // Background polls patch only the rows that changed, in place, so one user's
+    // save never reorders, re-renders or interrupts what another user is doing.
+    const tbody = table.tBodies && table.tBodies[0];
+    if (silent && tbody && state.liveRowSigs && state.liveRowSigs.size) {
+      patchLiveRows(tbody, rows, { buildRow, bindRow });
+      return;
+    }
+
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th class="col-${c.key}">${esc(c.label)}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map((r, i) => {
-        const statusCls = statusRowClass(r.ops.opsStatus);
-        const guestCls = guestCenterValue(r) === 'Yes' ? 'row-guest-exp' : '';
-        return `<tr class="${statusCls} ${guestCls}" data-vin="${esc(r.vin)}">${cols.map((c) =>
-          `<td class="col-${c.key}">${c.html(r, i)}</td>`
-        ).join('')}</tr>`;
-      }).join('') || `<tr><td colspan="${cols.length}">No assigned VINs yet. Use Assignment to assign vehicles.</td></tr>`}</tbody>`;
-    $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
-    bindGuestButtons(table);
-    if (liveEditable) bindEditableCells(table);
+      <tbody>${rows.map((r, i) => buildRow(r, i)).join('') || `<tr><td colspan="${cols.length}">No assigned VINs yet. Use Assignment to assign vehicles.</td></tr>`}</tbody>`;
+    bindRow(table);
+    state.liveRowSigs = new Map(rows.map((r) => [r.vin, liveRowSig(r)]));
+  }
+
+  function liveRowSig(r) {
+    return JSON.stringify([r.ops, r.raw, r.carrierLocked || false]);
+  }
+
+  function patchLiveRows(tbody, rows, { buildRow, bindRow }) {
+    const sigs = state.liveRowSigs;
+    const byVin = new Map(rows.map((r) => [r.vin, r]));
+    const busy = (tr) => tr.contains(document.activeElement) || !!tr.querySelector('.is-saving');
+    const fromHtml = (html) => {
+      const tb = document.createElement('tbody');
+      tb.innerHTML = html;
+      return tb.firstElementChild;
+    };
+    let deferred = false;
+
+    [...tbody.rows].forEach((tr) => {
+      const vin = tr.dataset.vin;
+      if (!vin) {
+        tr.remove();
+        return;
+      }
+      const r = byVin.get(vin);
+      if (!r) {
+        if (busy(tr)) { deferred = true; return; }
+        tr.remove();
+        sigs.delete(vin);
+        return;
+      }
+      const sig = liveRowSig(r);
+      if (sigs.get(vin) === sig) return;
+      if (busy(tr)) { deferred = true; return; }
+      const next = fromHtml(buildRow(r, 0));
+      tr.replaceWith(next);
+      bindRow(next);
+      sigs.set(vin, sig);
+    });
+
+    rows.forEach((r) => {
+      if (sigs.has(r.vin)) return;
+      const next = fromHtml(buildRow(r, 0));
+      tbody.appendChild(next);
+      bindRow(next);
+      sigs.set(r.vin, liveRowSig(r));
+    });
+
+    [...tbody.rows].forEach((tr, i) => {
+      const num = tr.querySelector('td.col-num');
+      if (num) num.textContent = String(i + 1);
+    });
+    // A row being edited was skipped — force the next poll to retry it
+    if (deferred) state.liveFingerprint = '';
   }
 
   function openXferVinsModal(title, subtitle, vins) {
@@ -1123,100 +1165,109 @@
       }
 
       // —— Compact targets / Ach% table ——
-      $('#dash-emp-table').innerHTML = `<thead><tr>
-          <th>Employee</th>
-          <th class="num">Assigned</th>
-          <th class="num">Claimed</th>
-          <th class="num">Remaining</th>
-          <th class="num">Progress %</th>
-          <th class="num">Target</th>
-          <th class="num">Ach%</th>
-        </tr></thead>
-        <tbody>${showRows.map((e) => {
-          const isMe = e.id === meId || e.name === meName;
-          const targetCell = canEditTarget
-            ? `<input type="number" min="0" step="1" class="target-input" data-emp-id="${esc(e.id)}" data-emp-name="${esc(e.name)}" value="${e.target > 0 ? e.target : ''}" placeholder="—" title="Set monthly target (Hanouf)" />`
-            : (e.target > 0 ? e.target : '—');
-          const ach = formatAchPct(e.achPct);
-          const achCls = achPctClass(e.achPct);
-          return `<tr data-emp="${esc(e.name)}" class="${isMe ? 'is-me' : ''}" title="Open ${esc(e.name)} on Live Sheet">
-          <td><b>${esc(e.name)}</b>${isMe ? ' <span class="badge info">you</span>' : ''}</td>
-          <td class="num">${e.assigned}</td>
-          <td class="num">${e.claimed}</td>
-          <td class="num">${e.remaining}</td>
-          <td class="num">${e.progress}%</td>
-          <td class="num target-cell" data-stop-nav="1">${targetCell}</td>
-          <td class="num ach-cell ${achCls}" data-emp-ach="${esc(e.id)}">${esc(ach)}</td>
-        </tr>`;
-        }).join('') || '<tr><td colspan="7">No employees</td></tr>'}</tbody>`;
+      // Skip the rebuild while a target is being typed / saved so background refreshes never wipe it
+      const empTableEl = $('#dash-emp-table');
+      const activeEl = document.activeElement;
+      const editingTarget = !!(empTableEl && (
+        (activeEl && activeEl.classList && activeEl.classList.contains('target-input') && empTableEl.contains(activeEl))
+        || empTableEl.querySelector('.target-input.is-saving')
+      ));
+      if (!editingTarget) {
+        $('#dash-emp-table').innerHTML = `<thead><tr>
+            <th>Employee</th>
+            <th class="num">Assigned</th>
+            <th class="num">Claimed</th>
+            <th class="num">Remaining</th>
+            <th class="num">Progress %</th>
+            <th class="num">Target</th>
+            <th class="num">Ach%</th>
+          </tr></thead>
+          <tbody>${showRows.map((e) => {
+            const isMe = e.id === meId || e.name === meName;
+            const targetCell = canEditTarget
+              ? `<input type="number" min="0" step="1" class="target-input" data-emp-id="${esc(e.id)}" data-emp-name="${esc(e.name)}" value="${e.target > 0 ? e.target : ''}" placeholder="—" title="Set monthly target (Hanouf)" />`
+              : (e.target > 0 ? e.target : '—');
+            const ach = formatAchPct(e.achPct);
+            const achCls = achPctClass(e.achPct);
+            return `<tr data-emp="${esc(e.name)}" class="${isMe ? 'is-me' : ''}" title="Open ${esc(e.name)} on Live Sheet">
+            <td><b>${esc(e.name)}</b>${isMe ? ' <span class="badge info">you</span>' : ''}</td>
+            <td class="num">${e.assigned}</td>
+            <td class="num">${e.claimed}</td>
+            <td class="num">${e.remaining}</td>
+            <td class="num">${e.progress}%</td>
+            <td class="num target-cell" data-stop-nav="1">${targetCell}</td>
+            <td class="num ach-cell ${achCls}" data-emp-ach="${esc(e.id)}">${esc(ach)}</td>
+          </tr>`;
+          }).join('') || '<tr><td colspan="7">No employees</td></tr>'}</tbody>`;
 
-      $$('#dash-emp-table .target-input').forEach((inp) => {
-        inp.addEventListener('click', (ev) => ev.stopPropagation());
-        inp.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter') {
-            ev.preventDefault();
-            inp.blur();
-          }
-        });
-        inp.addEventListener('change', async () => {
-          const empId = inp.dataset.empId;
-          const empName = inp.dataset.empName;
-          const month = state.monthFilter || targetMonth || state.targetMonth;
-          if (!month) {
-            alert('Select a month first (top of dashboard), then set the target');
-            return;
-          }
-          const raw = String(inp.value || '').trim();
-          const target = raw === '' ? 0 : Number(raw);
-          if (!Number.isFinite(target) || target < 0) {
-            alert('Enter a valid target (≥ 0)');
-            return;
-          }
-          try {
-            inp.classList.add('is-saving');
-            const res = await api('/targets', {
-              method: 'POST',
-              json: {
-                month,
-                employee: empId || empName,
-                target,
-                tzOffset: state.tzOffset,
-              },
-            });
-            inp.classList.remove('is-saving');
-            inp.classList.add('is-saved');
-            const achEl = $(`#dash-emp-table [data-emp-ach="${empId}"]`);
-            if (achEl) {
-              achEl.textContent = formatAchPct(res.achPct);
-              achEl.className = `num ach-cell ${achPctClass(res.achPct)}`;
+        $$('#dash-emp-table .target-input').forEach((inp) => {
+          inp.addEventListener('click', (ev) => ev.stopPropagation());
+          inp.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') {
+              ev.preventDefault();
+              inp.blur();
             }
-            setTimeout(() => inp.classList.remove('is-saved'), 1000);
-          } catch (err) {
-            inp.classList.remove('is-saving');
-            alert(err.message || 'Failed to save target');
-          }
+          });
+          inp.addEventListener('change', async () => {
+            const empId = inp.dataset.empId;
+            const empName = inp.dataset.empName;
+            const month = state.monthFilter || targetMonth || state.targetMonth;
+            if (!month) {
+              alert('Select a month first (top of dashboard), then set the target');
+              return;
+            }
+            const raw = String(inp.value || '').trim();
+            const target = raw === '' ? 0 : Number(raw);
+            if (!Number.isFinite(target) || target < 0) {
+              alert('Enter a valid target (≥ 0)');
+              return;
+            }
+            try {
+              inp.classList.add('is-saving');
+              const res = await api('/targets', {
+                method: 'POST',
+                json: {
+                  month,
+                  employee: empId || empName,
+                  target,
+                  tzOffset: state.tzOffset,
+                },
+              });
+              inp.classList.remove('is-saving');
+              inp.classList.add('is-saved');
+              const achEl = $(`#dash-emp-table [data-emp-ach="${empId}"]`);
+              if (achEl) {
+                achEl.textContent = formatAchPct(res.achPct);
+                achEl.className = `num ach-cell ${achPctClass(res.achPct)}`;
+              }
+              setTimeout(() => inp.classList.remove('is-saved'), 1000);
+            } catch (err) {
+              inp.classList.remove('is-saving');
+              alert(err.message || 'Failed to save target');
+            }
+          });
         });
-      });
 
-      $$('#dash-emp-table tr[data-emp]').forEach((tr) => {
-        tr.style.cursor = 'pointer';
-        tr.addEventListener('click', (ev) => {
-          if (ev.target.closest('[data-stop-nav]')) return;
-          const emp = tr.dataset.emp;
-          state.liveFilters.employee = emp || '';
-          state.liveFilters.month = state.monthFilter || state.liveFilters.month || '';
-          state.liveFilters.status = '';
-          state.liveFilters.q = '';
-          if ($('#live-employee')) {
-            $('#live-employee').value = emp || '';
-            $('#live-employee').dataset.filled = '1';
-          }
-          if ($('#live-month')) $('#live-month').value = state.liveFilters.month || '';
-          if ($('#live-status')) $('#live-status').value = '';
-          if ($('#live-q')) $('#live-q').value = '';
-          setView('live');
+        $$('#dash-emp-table tr[data-emp]').forEach((tr) => {
+          tr.style.cursor = 'pointer';
+          tr.addEventListener('click', (ev) => {
+            if (ev.target.closest('[data-stop-nav]')) return;
+            const emp = tr.dataset.emp;
+            state.liveFilters.employee = emp || '';
+            state.liveFilters.month = state.monthFilter || state.liveFilters.month || '';
+            state.liveFilters.status = '';
+            state.liveFilters.q = '';
+            if ($('#live-employee')) {
+              $('#live-employee').value = emp || '';
+              $('#live-employee').dataset.filled = '1';
+            }
+            if ($('#live-month')) $('#live-month').value = state.liveFilters.month || '';
+            if ($('#live-status')) $('#live-status').value = '';
+            if ($('#live-q')) $('#live-q').value = '';
+            setView('live');
+          });
         });
-      });
+      }
     }
 
     if (salesCard) {
