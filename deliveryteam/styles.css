@@ -669,6 +669,34 @@ table.data tbody tr:nth-child(even) td { background: #fafcfd; }
 table.data tr:hover td { background: #eef5fb !important; }
 table.data tr.selected td { background: #fff1f2 !important; }
 table.data tr.is-me td { box-shadow: inset 3px 0 0 var(--navy, #0b1f33); }
+table.data td,
+table.data th { cursor: cell; }
+html body table.data tr td.cell-sel.cell-sel,
+html body table.data tr th.cell-sel.cell-sel {
+  background: #cfe3fb !important;
+  box-shadow: inset 0 0 0 1px #3b82f6 !important;
+  color: #0b1f33;
+}
+.cell-copy-toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translate(-50%, 12px);
+  background: #0b1f33;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 1000;
+}
+.cell-copy-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
 #dash-emp-table .target-input {
   width: 72px;
   padding: 4px 6px;

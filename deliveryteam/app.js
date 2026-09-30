@@ -2227,14 +2227,14 @@
           <div><strong>${s.opsImported || 0}</strong><span>Ops rows imported</span></div>
           <div><strong>${s.statusesImported || 0}</strong><span>Statuses imported</span></div>
           <div><strong>${s.todaysProformas}</strong><span>Today's dates</span></div>
-          <div><strong>${s.skippedOtherMonth || 0}</strong><span>Skipped older months</span></div>
+          <div><strong>${s.skippedOtherMonth || 0}</strong><span>Skipped other months</span></div>
           <div><strong>${s.removedOld || 0}</strong><span>Old VINs removed</span></div>
           <div><strong>${s.removedCancelled || 0}</strong><span>الغاء removed (not in raw)</span></div>
           <div><strong>${s.duplicateVins}</strong><span>Duplicate VINs</span></div>
           <div><strong>${s.errorCount}</strong><span>Errors</span></div>
         </div>
-        ${Array.isArray(s.sheetsRead) && s.sheetsRead.length ? `<p class="hint" style="margin-top:8px"><b>Sheets read:</b> ${s.sheetsRead.map((sh) => `«${esc(sh.name)}» ${sh.imported}/${sh.dataRows} rows${sh.skippedOlder ? ` (${sh.skippedOlder} older)` : ''}${sh.missingVin ? ` (${sh.missingVin} no VIN)` : ''}`).join(' · ')}</p>` : ''}
-        ${s.skippedOtherMonth ? `<p class="hint" style="margin-top:8px">Ignored ${s.skippedOtherMonth} row(s) with proforma before ${esc(s.oldestMonth || 'last month')} — only ${esc(s.oldestMonth || '')} and ${esc(s.currentMonth || '')} are kept.</p>` : ''}
+        ${Array.isArray(s.sheetsRead) && s.sheetsRead.length ? `<p class="hint" style="margin-top:8px"><b>Sheets read:</b> ${s.sheetsRead.map((sh) => `«${esc(sh.name)}» ${sh.imported}/${sh.dataRows} rows${sh.skippedOlder ? ` (${sh.skippedOlder} other months)` : ''}${sh.missingVin ? ` (${sh.missingVin} no VIN)` : ''}`).join(' · ')}</p>` : ''}
+        ${s.skippedOtherMonth ? `<p class="hint" style="margin-top:8px">Ignored ${s.skippedOtherMonth} row(s) with proforma outside ${esc(s.currentMonth || 'this month')} — only this month’s rows are read.</p>` : ''}
         ${s.removedCancelled ? `<p class="hint" style="margin-top:8px">${s.removedCancelled} VIN(s) with status الغاء were removed because they are no longer in Sales Raw.</p>` : ''}
         ${s.cancelledChecked === false ? `<p class="hint" style="color:var(--orange);margin-top:8px">Sales Raw is not loaded — الغاء VINs were not re-checked.</p>` : ''}
         ${s.picUnresolved ? `<p class="hint" style="color:var(--orange);margin-top:8px">${s.picUnresolved} PIC name(s) not matched (use Hanouf / Rasha / Ruba / Ibrahim·Ebrahim / Abdullah)</p>` : ''}
@@ -2316,6 +2316,203 @@
       }
     }
   }
+
+  // Excel-style cell range selection + Ctrl+C on every table.data
+  function initCellCopy() {
+    const BLOCKING = 'input, select, textarea, label, a[href], [contenteditable], button:not(.vin-link)';
+    const sel = { table: null, anchor: null, focus: null, dragging: false, moved: false };
+    let suppressClick = false;
+    let observer = null;
+    let toastTimer = null;
+
+    const cellFromEvent = (target) => {
+      const cell = target && target.closest && target.closest('td, th');
+      if (!cell) return null;
+      const table = cell.closest('table.data');
+      return table ? { table, cell } : null;
+    };
+    const coords = (cell) => ({ r: cell.parentElement.rowIndex, c: cell.cellIndex });
+
+    const bounds = () => {
+      const a = sel.anchor;
+      const f = sel.focus;
+      return {
+        r1: Math.min(a.r, f.r), r2: Math.max(a.r, f.r),
+        c1: Math.min(a.c, f.c), c2: Math.max(a.c, f.c),
+      };
+    };
+
+    const clearMarks = () => {
+      $$('.cell-sel', document).forEach((el) => el.classList.remove('cell-sel'));
+    };
+
+    const paint = () => {
+      clearMarks();
+      if (!sel.table || !sel.anchor) return;
+      const b = bounds();
+      for (let r = b.r1; r <= b.r2; r += 1) {
+        const row = sel.table.rows[r];
+        if (!row) continue;
+        for (let c = b.c1; c <= b.c2; c += 1) {
+          if (row.cells[c]) row.cells[c].classList.add('cell-sel');
+        }
+      }
+    };
+
+    const clear = () => {
+      sel.table = null;
+      sel.anchor = null;
+      sel.focus = null;
+      sel.dragging = false;
+      if (observer) observer.disconnect();
+      clearMarks();
+    };
+
+    const watchTable = (table) => {
+      if (observer) observer.disconnect();
+      // Live Sheet polls replace rows in place — keep the highlight on the new rows
+      observer = new MutationObserver(() => {
+        if (!sel.table) return;
+        if (!document.contains(sel.table)) { clear(); return; }
+        observer.disconnect();
+        paint();
+        observer.observe(sel.table, { childList: true, subtree: true });
+      });
+      observer.observe(table, { childList: true, subtree: true });
+    };
+
+    const cellText = (cell) => {
+      if (!cell) return '';
+      const control = cell.querySelector('select, input, textarea');
+      let text;
+      if (control && control.tagName === 'SELECT') {
+        text = control.value ? (control.selectedOptions[0] || {}).textContent || control.value : '';
+      } else if (control && control.type !== 'checkbox') {
+        text = control.value;
+      } else {
+        text = cell.innerText;
+      }
+      text = String(text || '').replace(/[\t\r\n]+/g, ' ').trim();
+      return text === '—' ? '' : text;
+    };
+
+    const buildClip = () => {
+      const b = bounds();
+      const rows = [];
+      for (let r = b.r1; r <= b.r2; r += 1) {
+        const row = sel.table.rows[r];
+        if (!row) continue;
+        const vals = [];
+        for (let c = b.c1; c <= b.c2; c += 1) vals.push(cellText(row.cells[c]));
+        rows.push(vals);
+      }
+      const tsv = rows.map((v) => v.join('\t')).join('\r\n');
+      const html = `<table>${rows.map((v) => `<tr>${v.map((x) => `<td>${esc(x)}</td>`).join('')}</tr>`).join('')}</table>`;
+      const count = rows.reduce((n, v) => n + v.length, 0);
+      return { tsv, html, count };
+    };
+
+    const toast = (msg) => {
+      let el = $('#cell-copy-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'cell-copy-toast';
+        el.className = 'cell-copy-toast';
+        document.body.appendChild(el);
+      }
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+    };
+
+    const isTyping = () => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return false;
+      return el.matches('input, textarea, select, [contenteditable]');
+    };
+
+    document.addEventListener('mousedown', (e) => {
+      suppressClick = false;
+      if (e.button !== 0) return;
+      const hit = cellFromEvent(e.target);
+      if (!hit || e.target.closest(BLOCKING)) {
+        clear();
+        return;
+      }
+      e.preventDefault();
+      if (isTyping()) document.activeElement.blur();
+      const native = window.getSelection && window.getSelection();
+      if (native) native.removeAllRanges();
+      const pos = coords(hit.cell);
+      if (e.shiftKey && sel.table === hit.table && sel.anchor) {
+        sel.focus = pos;
+        suppressClick = true;
+      } else {
+        sel.table = hit.table;
+        sel.anchor = pos;
+        sel.focus = pos;
+        watchTable(hit.table);
+      }
+      sel.dragging = true;
+      sel.moved = false;
+      paint();
+    });
+
+    document.addEventListener('mouseover', (e) => {
+      if (!sel.dragging) return;
+      const hit = cellFromEvent(e.target);
+      if (!hit || hit.table !== sel.table) return;
+      const pos = coords(hit.cell);
+      if (pos.r === sel.focus.r && pos.c === sel.focus.c) return;
+      sel.focus = pos;
+      sel.moved = true;
+      paint();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!sel.dragging) return;
+      sel.dragging = false;
+      if (sel.moved) suppressClick = true;
+    });
+
+    // A drag across cells must not also trigger row / VIN click handlers
+    document.addEventListener('click', (e) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+
+    document.addEventListener('copy', (e) => {
+      if (!sel.table || !sel.anchor || isTyping()) return;
+      const native = window.getSelection && window.getSelection();
+      if (native && !native.isCollapsed) return;
+      const clip = buildClip();
+      e.clipboardData.setData('text/plain', clip.tsv);
+      e.clipboardData.setData('text/html', clip.html);
+      e.preventDefault();
+      toast(`Copied ${clip.count} cell${clip.count === 1 ? '' : 's'}`);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!sel.table || !sel.anchor) return;
+      if (e.key === 'Escape') { clear(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C') && !isTyping()) {
+        e.preventDefault();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch { ok = false; }
+        if (!ok && navigator.clipboard) {
+          const clip = buildClip();
+          navigator.clipboard.writeText(clip.tsv)
+            .then(() => toast(`Copied ${clip.count} cell${clip.count === 1 ? '' : 's'}`))
+            .catch(() => {});
+        }
+      }
+    });
+  }
+
+  initCellCopy();
 
   // Events
   $('#login-btn').addEventListener('click', login);

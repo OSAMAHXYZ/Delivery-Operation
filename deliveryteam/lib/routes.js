@@ -1544,9 +1544,9 @@ function createDeliveryTeamRouter(opts) {
             errors.push({ sheet: sheet.name, row: r + 1, error: 'Missing VIN' });
             continue;
           }
-          // Only the current + previous proforma month are kept
+          // Only rows whose proforma falls in the current month are read
           const pfMonth = monthKeyFromIso(raw.proformaDate) || monthKeyFromIso(raw.date);
-          if (pfMonth && pfMonth < oldestMonth) {
+          if (pfMonth && pfMonth !== currentMonth) {
             skippedOtherMonth += 1;
             sheetStat.skippedOlder += 1;
             continue;
@@ -1643,7 +1643,7 @@ function createDeliveryTeamRouter(opts) {
         user: req.dtUser.name,
         action: 'upload_raw_data',
         oldValue: '',
-        newValue: `${filename} · sheets ${sheetsRead.map((s) => `«${s.name}»`).join(', ')} · ${rowsProcessed} rows · ${statusesImported} statuses · skipped older than ${oldestMonth} ${skippedOtherMonth} · assigned from PIC ${assignedFromPic}`,
+        newValue: `${filename} · sheets ${sheetsRead.map((s) => `«${s.name}»`).join(', ')} · ${rowsProcessed} rows · ${statusesImported} statuses · skipped outside ${currentMonth} ${skippedOtherMonth} · assigned from PIC ${assignedFromPic}`,
       });
       store.save();
 
