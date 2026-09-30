@@ -2317,10 +2317,29 @@
     }
   }
 
+  function tableCellText(cell) {
+    if (!cell) return '';
+    const control = cell.querySelector('select, input, textarea');
+    let text;
+    if (control && control.tagName === 'SELECT') {
+      text = control.value ? (control.selectedOptions[0] || {}).textContent || control.value : '';
+    } else if (control && control.type !== 'checkbox') {
+      text = control.value;
+    } else {
+      text = cell.innerText;
+    }
+    text = String(text || '').replace(/[\t\r\n]+/g, ' ').trim();
+    return text === '—' ? '' : text;
+  }
+
+  const isFilteredOut = (row) => !!row && row.classList.contains('col-filtered-out');
+
   // Excel-style cell range selection + Ctrl+C on every table.data
   function initCellCopy() {
     const BLOCKING = 'input, select, textarea, label, a[href], [contenteditable], button:not(.vin-link)';
+    const DRAG_FROM_CONTROL = 'input:not([type="checkbox"]):not([type="radio"]), textarea';
     const sel = { table: null, anchor: null, focus: null, dragging: false, moved: false };
+    let pending = null;
     let suppressClick = false;
     let observer = null;
     let toastTimer = null;
@@ -2352,7 +2371,7 @@
       const b = bounds();
       for (let r = b.r1; r <= b.r2; r += 1) {
         const row = sel.table.rows[r];
-        if (!row) continue;
+        if (!row || isFilteredOut(row)) continue;
         for (let c = b.c1; c <= b.c2; c += 1) {
           if (row.cells[c]) row.cells[c].classList.add('cell-sel');
         }
@@ -2381,29 +2400,14 @@
       observer.observe(table, { childList: true, subtree: true });
     };
 
-    const cellText = (cell) => {
-      if (!cell) return '';
-      const control = cell.querySelector('select, input, textarea');
-      let text;
-      if (control && control.tagName === 'SELECT') {
-        text = control.value ? (control.selectedOptions[0] || {}).textContent || control.value : '';
-      } else if (control && control.type !== 'checkbox') {
-        text = control.value;
-      } else {
-        text = cell.innerText;
-      }
-      text = String(text || '').replace(/[\t\r\n]+/g, ' ').trim();
-      return text === '—' ? '' : text;
-    };
-
     const buildClip = () => {
       const b = bounds();
       const rows = [];
       for (let r = b.r1; r <= b.r2; r += 1) {
         const row = sel.table.rows[r];
-        if (!row) continue;
+        if (!row || isFilteredOut(row)) continue;
         const vals = [];
-        for (let c = b.c1; c <= b.c2; c += 1) vals.push(cellText(row.cells[c]));
+        for (let c = b.c1; c <= b.c2; c += 1) vals.push(tableCellText(row.cells[c]));
         rows.push(vals);
       }
       const tsv = rows.map((v) => v.join('\t')).join('\r\n');
@@ -2434,10 +2438,17 @@
 
     document.addEventListener('mousedown', (e) => {
       suppressClick = false;
+      pending = null;
       if (e.button !== 0) return;
       const hit = cellFromEvent(e.target);
-      if (!hit || e.target.closest(BLOCKING)) {
+      if (!hit || e.target.closest('.col-filter-btn')) {
         clear();
+        return;
+      }
+      // Plain click on an edit box edits it; Shift+click selects the cell instead
+      if (e.target.closest(BLOCKING) && !e.shiftKey) {
+        clear();
+        if (e.target.closest(DRAG_FROM_CONTROL)) pending = { table: hit.table, pos: coords(hit.cell) };
         return;
       }
       e.preventDefault();
@@ -2460,6 +2471,25 @@
     });
 
     document.addEventListener('mouseover', (e) => {
+      if (pending && (e.buttons & 1)) {
+        const hit = cellFromEvent(e.target);
+        if (!hit || hit.table !== pending.table) return;
+        const pos = coords(hit.cell);
+        if (pos.r === pending.pos.r && pos.c === pending.pos.c) return;
+        // Dragging out of an edit box turns into a cell range selection
+        if (isTyping()) document.activeElement.blur();
+        const native = window.getSelection && window.getSelection();
+        if (native) native.removeAllRanges();
+        sel.table = pending.table;
+        sel.anchor = pending.pos;
+        sel.focus = pos;
+        sel.dragging = true;
+        sel.moved = true;
+        pending = null;
+        watchTable(sel.table);
+        paint();
+        return;
+      }
       if (!sel.dragging) return;
       const hit = cellFromEvent(e.target);
       if (!hit || hit.table !== sel.table) return;
@@ -2471,9 +2501,14 @@
     });
 
     document.addEventListener('mouseup', () => {
+      pending = null;
       if (!sel.dragging) return;
       sel.dragging = false;
       if (sel.moved) suppressClick = true;
+    });
+
+    document.addEventListener('selectstart', (e) => {
+      if (sel.dragging) e.preventDefault();
     });
 
     // A drag across cells must not also trigger row / VIN click handlers
@@ -2513,6 +2548,258 @@
   }
 
   initCellCopy();
+
+  // Excel-style ▾ filter on every column header of every table.data (client-side, per table)
+  function initColumnFilters() {
+    const SKIP_LABELS = new Set(['', '#', 'Open']);
+    const BLANK = '(Blanks)';
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    const filters = new Map();
+    let menu = null;
+    let scheduled = false;
+
+    const headerRow = (table) => (table.tHead && table.tHead.rows[0]) || null;
+    const labelOf = (th) => (th.dataset.filterLabel != null
+      ? th.dataset.filterLabel
+      : String(th.textContent || '').trim());
+    const dataRows = (table) => [...table.tBodies]
+      .flatMap((tb) => [...tb.rows])
+      .filter((tr) => !(tr.cells.length === 1 && tr.cells[0].colSpan > 1));
+    const columnIndex = (header, label) => {
+      const th = [...header.cells].find((c) => labelOf(c) === label);
+      return th ? th.cellIndex : -1;
+    };
+    const tableFilters = (table) => {
+      if (!filters.has(table.id)) filters.set(table.id, new Map());
+      return filters.get(table.id);
+    };
+
+    const rowPasses = (tr, colFilters, header, skipLabel) => {
+      for (const [label, allowed] of colFilters) {
+        if (label === skipLabel) continue;
+        const idx = columnIndex(header, label);
+        if (idx < 0) continue;
+        if (!allowed.has(tableCellText(tr.cells[idx]))) return false;
+      }
+      return true;
+    };
+
+    const ensureButtons = (table) => {
+      const header = headerRow(table);
+      if (!header) return;
+      [...header.cells].forEach((th) => {
+        if (th.querySelector('.col-filter-btn')) return;
+        const label = String(th.textContent || '').trim();
+        th.dataset.filterLabel = label;
+        if (SKIP_LABELS.has(label)) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'col-filter-btn';
+        btn.title = `Filter ${label}`;
+        btn.setAttribute('aria-label', `Filter ${label}`);
+        th.classList.add('has-col-filter');
+        th.appendChild(btn);
+      });
+    };
+
+    const updateBar = (table, shown, total, active) => {
+      const anchor = table.closest('.table-wrap') || table;
+      const prev = anchor.previousElementSibling;
+      let bar = prev && prev.classList.contains('col-filter-bar') ? prev : null;
+      if (!active) {
+        if (bar) bar.remove();
+        return;
+      }
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'col-filter-bar';
+        anchor.parentNode.insertBefore(bar, anchor);
+      }
+      const html = `Filtered: <b>${shown}</b> of ${total} rows
+        <button type="button" class="col-filter-clear" data-table="${esc(table.id)}">Clear column filters</button>`;
+      if (bar.dataset.sig !== html) {
+        bar.dataset.sig = html;
+        bar.innerHTML = html;
+      }
+    };
+
+    const apply = (table) => {
+      const header = headerRow(table);
+      if (!header) return;
+      const colFilters = filters.get(table.id);
+      const active = !!(colFilters && colFilters.size);
+      [...header.cells].forEach((th) => {
+        const btn = th.querySelector('.col-filter-btn');
+        if (btn) btn.classList.toggle('active', active && colFilters.has(labelOf(th)));
+      });
+      const rows = dataRows(table);
+      if (!active && !table.dataset.colFiltered) {
+        updateBar(table, rows.length, rows.length, false);
+        return;
+      }
+      let shown = 0;
+      rows.forEach((tr) => {
+        const ok = !active || rowPasses(tr, colFilters, header, null);
+        tr.classList.toggle('col-filtered-out', !ok);
+        if (ok) shown += 1;
+      });
+      if (active) table.dataset.colFiltered = '1';
+      else delete table.dataset.colFiltered;
+      updateBar(table, shown, rows.length, active);
+    };
+
+    const refreshAll = () => {
+      scheduled = false;
+      $$('#app table.data[id]').forEach((table) => {
+        ensureButtons(table);
+        apply(table);
+      });
+    };
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(refreshAll);
+    };
+
+    const closeMenu = () => {
+      if (menu) menu.remove();
+      menu = null;
+    };
+
+    const openMenu = (btn) => {
+      closeMenu();
+      const th = btn.closest('th');
+      const table = th && th.closest('table.data');
+      if (!table) return;
+      const header = headerRow(table);
+      const label = labelOf(th);
+      const idx = th.cellIndex;
+      const colFilters = tableFilters(table);
+      const current = colFilters.get(label) || null;
+
+      const counts = new Map();
+      dataRows(table).forEach((tr) => {
+        if (!rowPasses(tr, colFilters, header, label)) return;
+        const v = tableCellText(tr.cells[idx]);
+        counts.set(v, (counts.get(v) || 0) + 1);
+      });
+      const values = [...counts.keys()].sort((a, b) => {
+        if (a === '') return 1;
+        if (b === '') return -1;
+        return collator.compare(a, b);
+      });
+
+      menu = document.createElement('div');
+      menu.className = 'col-filter-menu';
+      menu.innerHTML = `
+        <div class="cfm-head">Filter · <b>${esc(label)}</b></div>
+        <input type="search" class="cfm-search" placeholder="Search values…" />
+        <label class="cfm-item cfm-all"><input type="checkbox" /> <span>(Select all)</span></label>
+        <div class="cfm-list">${values.map((v, i) => `
+          <label class="cfm-item" data-i="${i}">
+            <input type="checkbox" data-i="${i}" ${!current || current.has(v) ? 'checked' : ''} />
+            <span>${esc(v === '' ? BLANK : v)}</span><em>${counts.get(v)}</em>
+          </label>`).join('') || '<p class="hint">No values</p>'}</div>
+        <div class="cfm-actions">
+          <button type="button" class="btn cfm-clear">Clear filter</button>
+          <button type="button" class="btn-primary cfm-ok">OK</button>
+        </div>`;
+      document.body.appendChild(menu);
+
+      const r = btn.getBoundingClientRect();
+      const w = menu.offsetWidth;
+      menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - w - 8))}px`;
+      menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 8)}px`;
+
+      const search = $('.cfm-search', menu);
+      const allBox = $('.cfm-all input', menu);
+      const okBtn = $('.cfm-ok', menu);
+      const items = $$('.cfm-list .cfm-item', menu);
+      const visibleItems = () => items.filter((it) => !it.hidden);
+      const syncAll = () => {
+        const vis = visibleItems();
+        const on = vis.filter((it) => $('input', it).checked).length;
+        allBox.checked = vis.length > 0 && on === vis.length;
+        allBox.indeterminate = on > 0 && on < vis.length;
+        okBtn.disabled = on === 0;
+      };
+      syncAll();
+
+      search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        items.forEach((it) => {
+          const v = values[Number(it.dataset.i)];
+          it.hidden = !!q && !(v === '' ? BLANK : v).toLowerCase().includes(q);
+        });
+        syncAll();
+      });
+      allBox.addEventListener('change', () => {
+        visibleItems().forEach((it) => { $('input', it).checked = allBox.checked; });
+        syncAll();
+      });
+      items.forEach((it) => $('input', it).addEventListener('change', syncAll));
+
+      const commit = () => {
+        const searching = !!search.value.trim();
+        const picked = items
+          .filter((it) => (!searching || !it.hidden) && $('input', it).checked)
+          .map((it) => values[Number(it.dataset.i)]);
+        if (!picked.length) return;
+        if (!searching && picked.length === values.length) colFilters.delete(label);
+        else colFilters.set(label, new Set(picked));
+        closeMenu();
+        apply(table);
+      };
+      okBtn.addEventListener('click', commit);
+      search.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      });
+      $('.cfm-clear', menu).addEventListener('click', () => {
+        colFilters.delete(label);
+        closeMenu();
+        apply(table);
+      });
+      search.focus();
+    };
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.col-filter-btn');
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (menu && menu.dataset.for === btn.closest('th').dataset.filterLabel) {
+          closeMenu();
+          return;
+        }
+        openMenu(btn);
+        if (menu) menu.dataset.for = btn.closest('th').dataset.filterLabel;
+        return;
+      }
+      const clearBtn = e.target.closest('.col-filter-clear');
+      if (clearBtn) {
+        filters.delete(clearBtn.dataset.table);
+        const table = document.getElementById(clearBtn.dataset.table);
+        if (table) apply(table);
+      }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (menu && !menu.contains(e.target) && !e.target.closest('.col-filter-btn')) closeMenu();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menu) closeMenu();
+    });
+    window.addEventListener('resize', closeMenu);
+    document.addEventListener('scroll', (e) => {
+      if (menu && !menu.contains(e.target)) closeMenu();
+    }, true);
+
+    const app = document.getElementById('app');
+    if (app) new MutationObserver(schedule).observe(app, { childList: true, subtree: true });
+    schedule();
+  }
+
+  initColumnFilters();
 
   // Events
   $('#login-btn').addEventListener('click', login);
