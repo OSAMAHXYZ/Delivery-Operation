@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "test:plan-tracker": "node report-sheet/plan-tracker.test.js",
+    "test:company-performance": "node delivery-transformation/lib/company-performance.test.js",
     "admin:dev": "npm run dev --prefix admin-app",
     "admin:build": "npm run build --prefix admin-app"
   },

@@ -26,7 +26,7 @@ const RTL_DAILY_FILES_DIR = path.join(RTL_DAILY_DIR, 'excel');
 const RTL_DAILY_INDEX = path.join(RTL_DAILY_DIR, 'index.json');
 const LEGACY_RTL_DAILY_DIR = path.join(ROOT, 'report-sheet-data', 'rtl-daily');
 const REPORT_SLOT_IDS = Object.freeze([
-  'backorder', 'rtl', 'central', 'sales', 'cancelled', 'accessories'
+  'backorder', 'rtl', 'central', 'sales', 'cancelled', 'accessories', 'gec', 'gecVisitors', 'lexusB2c', 'toyotaB2c'
 ]);
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** Timestamped snapshot id: 2026-09-09T14-30-05-123-ab12 (or legacy YYYY-MM-DD). */
@@ -52,7 +52,6 @@ const deliveryTeamHooks = {
   getHubRawStatus: null,
   getHubTransferStats: null,
   getHubVehicle: null,
-  getSalesRawQuality: null,
 };
 const { createDeliveryTeamRouter } = require('./deliveryteam/lib/routes');
 const deliveryTeam = createDeliveryTeamRouter({
@@ -97,11 +96,6 @@ const deliveryTeam = createDeliveryTeamRouter({
     typeof deliveryTeamHooks.getHubVehicle === 'function'
       ? deliveryTeamHooks.getHubVehicle(vin)
       : null
-  ),
-  getSalesRawQuality: () => (
-    typeof deliveryTeamHooks.getSalesRawQuality === 'function'
-      ? deliveryTeamHooks.getSalesRawQuality()
-      : { duplicateVins: [], vinSheetVins: [] }
   ),
 });
 const deliveryTeamRouter = deliveryTeam.router;
@@ -345,6 +339,11 @@ function ensureReportSheetDirs() {
   if (!fs.existsSync(REPORT_SHEET_FILES)) fs.mkdirSync(REPORT_SHEET_FILES, { recursive: true });
 }
 
+function positiveOr(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 function defaultReportSheetMeta() {
   return {
     at: 0,
@@ -356,8 +355,48 @@ function defaultReportSheetMeta() {
     accessoriesSettled: 0,
     workingDays: 22,
     allocationValues: {},
+    gecSlaMinutes: 5,
+    gecControl: null,
+    gecControlAt: 0,
     fileNames: {}
   };
+}
+
+const GEC_CONTROL_GROUPS = ['visitor', 'lead', 'conversion'];
+
+/** Admin → GEC CONTROL rules: { visitor, lead, conversion: [{ name, enabled }] } or null when invalid. */
+function sanitizeGecControl(input) {
+  if (!input || typeof input !== 'object') return null;
+  if (!GEC_CONTROL_GROUPS.some((g) => Array.isArray(input[g]))) return null;
+  const out = {};
+  for (const g of GEC_CONTROL_GROUPS) {
+    const seen = new Set();
+    out[g] = (Array.isArray(input[g]) ? input[g] : [])
+      .map((x) => (typeof x === 'string' ? { name: x, enabled: true } : x))
+      .filter((x) => x && typeof x === 'object')
+      .map((x) => ({ name: String(x.name == null ? '' : x.name).replace(/\s+/g, ' ').trim().slice(0, 80), enabled: x.enabled !== false }))
+      .filter((x) => {
+        const k = x.name.toLowerCase();
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 80);
+  }
+  return out;
+}
+
+function broadcastGecControlUpdate(at) {
+  const payload = JSON.stringify({ type: 'gec_control_updated', at: at || Date.now() });
+  for (const client of wsClients) {
+    if (client.readyState === 1) {
+      try {
+        client.send(payload);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 }
 
 function loadReportSheetMeta() {
@@ -378,9 +417,14 @@ function saveReportSheetMeta(meta) {
   fs.renameSync(tmp, REPORT_SHEET_META);
 }
 
+function reportSlotId(slot) {
+  const key = String(slot || '').trim().toLowerCase();
+  return REPORT_SLOT_IDS.find((id) => id.toLowerCase() === key) || null;
+}
+
 function reportSheetFilePath(slot) {
-  const id = String(slot || '').trim().toLowerCase();
-  if (!REPORT_SLOT_IDS.includes(id)) return null;
+  const id = reportSlotId(slot);
+  if (!id) return null;
   return path.join(REPORT_SHEET_FILES, id);
 }
 
@@ -1455,7 +1499,7 @@ function applyTeamCityToQueueItem(item, transferCity) {
  */
 function syncTeamCarriersToCoordinator(items) {
   const list = Array.isArray(items) ? items : [];
-  if (!list.length) return { added: 0, reassigned: 0, skipped: 0, same: 0, cityUpdated: 0 };
+  if (!list.length) return { added: 0, reassigned: 0, skipped: 0, same: 0, cityUpdated: 0, claimed: 0 };
   ensureOptions();
   store.queue = dedupeQueue(store.queue || []);
   const now = new Date().toISOString();
@@ -1464,11 +1508,25 @@ function syncTeamCarriersToCoordinator(items) {
   let skipped = 0;
   let same = 0;
   let cityUpdated = 0;
+  let claimed = 0;
+
+  function claimForAgent(queueItem, assignTo) {
+    const agent = String(assignTo || '').trim();
+    if (!agent || !queueItem) return false;
+    const prev = String(queueItem.assignedTo || '').trim();
+    if (prev === agent && queueItem.status === 'claimed') return false;
+    queueItem.status = 'claimed';
+    queueItem.assignedTo = agent;
+    queueItem.agentStatus = queueItem.agentStatus || 'in_stock';
+    queueItem.assignedAt = queueItem.assignedAt || now;
+    return true;
+  }
 
   for (const item of list) {
     const vin = normVin(item.vin || (item.raw && item.raw.vin) || (item.vehicle && item.vehicle.vin));
     const carrier = teamVehicleCarrier(item.vehicle ? { ...item, ...item.vehicle, ops: item.ops || item.vehicle.ops, raw: item.raw || item.vehicle.raw } : item);
     const transferCity = teamVehicleTransferCity(item.vehicle ? { ...item, ...item.vehicle, ops: item.ops || item.vehicle.ops, raw: item.raw || item.vehicle.raw } : item);
+    const assignTo = String(item.assignTo || '').trim();
     if (!vin) {
       skipped += 1;
       continue;
@@ -1508,7 +1566,8 @@ function syncTeamCarriersToCoordinator(items) {
 
       if (sameCompany) {
         if (transferCity && applyTeamCityToQueueItem(existingItem, transferCity)) cityUpdated += 1;
-        same += 1;
+        if (claimForAgent(existingItem, assignTo)) claimed += 1;
+        else same += 1;
         continue;
       }
 
@@ -1521,17 +1580,18 @@ function syncTeamCarriersToCoordinator(items) {
       // keep deliveryCompany after enrich (enrich does not clear it, but be explicit)
       existingItem.deliveryCompany = deliveryCompany;
       existingItem.company = deliveryCompany;
+      if (claimForAgent(existingItem, assignTo)) claimed += 1;
       reassigned += 1;
       continue;
     }
 
     const base = {
       vin,
-      status: 'available',
-      agentStatus: '',
-      assignedTo: '',
+      status: assignTo ? 'claimed' : 'available',
+      agentStatus: assignTo ? 'in_stock' : '',
+      assignedTo: assignTo || '',
       addedAt: now,
-      assignedAt: '',
+      assignedAt: assignTo ? now : '',
       deliveryCompany,
       plannedDeliveryMode: 'memo',
       company: deliveryCompany,
@@ -1541,10 +1601,11 @@ function syncTeamCarriersToCoordinator(items) {
     };
     store.queue.push(enrichFromVehicle(base, hubVeh));
     added += 1;
+    if (assignTo) claimed += 1;
   }
 
-  if (added || reassigned || cityUpdated) persistAndBroadcast();
-  return { added, reassigned, skipped, same, cityUpdated };
+  if (added || reassigned || cityUpdated || claimed) persistAndBroadcast();
+  return { added, reassigned, skipped, same, cityUpdated, claimed };
 }
 
 /** Merge all Delivery Team vehicles into hub inventory + sync carriers to boards. */
@@ -1573,12 +1634,6 @@ function syncTeamRawToHubInventory(teamStore) {
   return { upserted, carriers };
 }
 
-/** Delivery Team keeps the current + previous proforma month (Riyadh time). */
-function deliveryTeamOldestMonthKey() {
-  const now = new Date(Date.now() + 180 * 60000);
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
-}
-
 /** Push hub Sales Raw vehicles into Delivery Team store (preserve ops).
  * Overwrites mapped raw fields from the latest Sales Raw so Live Sheet / dashboards stay current.
  */
@@ -1591,13 +1646,10 @@ function syncHubVehiclesToDeliveryTeam(vehicles) {
   let created = 0;
   let updated = 0;
   const now = new Date().toISOString();
-  const oldestMonth = deliveryTeamOldestMonthKey();
 
   for (const veh of list) {
     const vin = normVin(veh && veh.vin);
     if (!vin) continue;
-    const pfMonth = /^\d{4}-\d{2}/.test(String(veh.proformaDate || '')) ? String(veh.proformaDate).slice(0, 7) : '';
-    if (pfMonth && pfMonth < oldestMonth && !deliveryTeamStore.getVehicle(vin)) continue;
     const rawPatch = {
       vin,
       product: String(veh.product || veh.model || '').trim(),
@@ -1700,7 +1752,11 @@ function buildCompanyByVinFromDrafts(drafts) {
       company = 'مستودع الهاتفية';
     }
     if (!company || isUnassignedDeliveryCompany({ company, deliveryCompany: company })) {
-      // Do not map empty — leave Live Sheet الناقل alone (Hanouf/manual values stay)
+      // Explicitly mark as empty so Live Sheet clears الناقل
+      const vins = collectDraftVins(payload, [d.vin, ...(Array.isArray(d.vins) ? d.vins : [])]);
+      vins.forEach((vin) => {
+        if (vin && !map.has(vin)) map.set(vin, '');
+      });
       continue;
     }
     const vins = collectDraftVins(payload, [d.vin, ...(Array.isArray(d.vins) ? d.vins : [])]);
@@ -1713,8 +1769,9 @@ function buildCompanyByVinFromDrafts(drafts) {
 }
 
 /**
- * Stamp Delivery Team Live Sheet الناقل from Print Drafts when a real company is known.
- * Never clears an existing الناقل (Hanouf / employee / sheet values must stay visible).
+ * Stamp Delivery Team Live Sheet الناقل from Print Drafts when a VIN is on a draft.
+ * Never clears an existing الناقل — Hanouf / البراء manual picks must stay until
+ * a draft (or coordinator assign) explicitly maps the VIN to a company.
  */
 function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
   if (!deliveryTeamStore || typeof deliveryTeamStore.allVehicles !== 'function') {
@@ -1734,16 +1791,14 @@ function syncPrintDraftCompaniesToDeliveryTeam(drafts) {
     const vin = normVin(v && v.vin);
     if (!vin) continue;
     scanned += 1;
-    // No Print Draft company for this VIN → keep current الناقل
     if (!byVin.has(vin)) continue;
     const company = String(byVin.get(vin) || '').trim();
-    if (!company) continue;
-    const carrier = mapCoordinatorCompanyToCarrier(company);
-    const next = String(carrier || '').trim();
-    // Still no usable الناقل mapping → do not wipe manual value
-    if (!next) continue;
+    const carrier = company ? mapCoordinatorCompanyToCarrier(company) : '';
+    // Draft with no mappable company — leave existing الناقل alone
+    if (!carrier) continue;
     if (!v.ops) v.ops = {};
     const prev = String(v.ops.carrier || '').trim();
+    const next = String(carrier || '').trim();
     if (prev === next) {
       matched += 1;
       continue;
@@ -2112,8 +2167,6 @@ deliveryTeamHooks.getHubVehicle = (vin) => {
   if (!key) return null;
   return vehicleIndex().get(key) || null;
 };
-deliveryTeamHooks.getSalesRawQuality = () => getSalesRawQuality();
-deliveryTeamHooks.getHubVinSet = () => new Set(vehicleIndex().keys());
 
 /** Resolve VIN from Sales Raw or Delivery Team store for coordinator submit. */
 function resolveVehicleForSubmit(vin) {
@@ -3607,113 +3660,6 @@ function backfillProformaColumnP(wb, sheetName, vehicles) {
   }
 }
 
-/**
- * Sales Raw / archive quality for Hanouf assign pool:
- * - duplicateVins: appear more than once on the primary Raw Data sheet
- * - vinSheetVins: also present on another VIN-bearing sheet (Vehicle Inventory, etc.)
- */
-function analyzeWorkbookVinQuality(wb, primarySheetName) {
-  const primaryKey = normalizeHeader(primarySheetName || '');
-  const primaryCounts = new Map();
-  const vinSheetVins = new Set();
-  const sheetHits = [];
-
-  for (const name of wb.SheetNames || []) {
-    const norm = normalizeHeader(name);
-    if (!norm) continue;
-    if (
-      norm.includes('print draft')
-      || norm.includes('coordinator queue')
-      || norm.includes('مسودات')
-      || norm === 'products'
-      || norm === 'summary'
-    ) {
-      continue;
-    }
-    const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    const rowsArr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-    if (!rowsArr || rowsArr.length < 2) continue;
-    const headerRow = rowsArr[0] || [];
-    const isPrimary = primaryKey && norm === primaryKey;
-    const looksVinSheet = !isPrimary && (
-      norm.includes('vehicle inventory')
-      || norm.includes('inventory')
-      || (norm.includes('vehicle') && !norm.includes('raw'))
-      || norm.includes('سجل')
-      || (norm.includes('شاسي') && !norm.includes('raw'))
-      || /^vins?$/i.test(String(name || '').trim())
-    );
-
-    let found = 0;
-    for (let i = 1; i < rowsArr.length; i++) {
-      const vin = extractVinFromArrayLine(headerRow, rowsArr[i]);
-      if (!vin) continue;
-      found += 1;
-      if (isPrimary) {
-        primaryCounts.set(vin, (primaryCounts.get(vin) || 0) + 1);
-      } else if (looksVinSheet) {
-        vinSheetVins.add(vin);
-      }
-    }
-    if (found) sheetHits.push({ name, count: found, primary: Boolean(isPrimary), vinSheet: Boolean(looksVinSheet) });
-  }
-
-  // If primary wasn't identified, treat the densest sheet as primary for duplicate counts
-  if (!primaryCounts.size && sheetHits.length) {
-    const densest = sheetHits.slice().sort((a, b) => b.count - a.count)[0];
-    const sheet = wb.Sheets[densest.name];
-    const rowsArr = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-    const headerRow = (rowsArr && rowsArr[0]) || [];
-    for (let i = 1; i < (rowsArr || []).length; i++) {
-      const vin = extractVinFromArrayLine(headerRow, rowsArr[i]);
-      if (!vin) continue;
-      primaryCounts.set(vin, (primaryCounts.get(vin) || 0) + 1);
-    }
-  }
-
-  const duplicateVins = [];
-  for (const [vin, count] of primaryCounts.entries()) {
-    if (count > 1) duplicateVins.push(vin);
-  }
-
-  return {
-    primarySheet: primarySheetName || '',
-    scannedAt: new Date().toISOString(),
-    duplicateVins,
-    vinSheetVins: [...vinSheetVins],
-    sheets: sheetHits,
-  };
-}
-
-function saveSalesRawQuality(quality) {
-  if (!store.meta || typeof store.meta !== 'object') store.meta = {};
-  store.meta.salesRawQuality = quality && typeof quality === 'object'
-    ? {
-      primarySheet: String(quality.primarySheet || ''),
-      scannedAt: quality.scannedAt || new Date().toISOString(),
-      duplicateVins: Array.isArray(quality.duplicateVins) ? quality.duplicateVins.map(normVin).filter(Boolean) : [],
-      vinSheetVins: Array.isArray(quality.vinSheetVins) ? quality.vinSheetVins.map(normVin).filter(Boolean) : [],
-      sheets: Array.isArray(quality.sheets) ? quality.sheets : [],
-    }
-    : null;
-  return store.meta.salesRawQuality;
-}
-
-function getSalesRawQuality() {
-  const q = store.meta && store.meta.salesRawQuality;
-  if (!q || typeof q !== 'object') {
-    return { primarySheet: '', scannedAt: null, duplicateVins: [], vinSheetVins: [], sheets: [] };
-  }
-  return {
-    primarySheet: String(q.primarySheet || ''),
-    scannedAt: q.scannedAt || null,
-    duplicateVins: Array.isArray(q.duplicateVins) ? q.duplicateVins : [],
-    vinSheetVins: Array.isArray(q.vinSheetVins) ? q.vinSheetVins : [],
-    sheets: Array.isArray(q.sheets) ? q.sheets : [],
-  };
-}
-
 /** True when sheet is classic Sales Raw / Rowdata (Col A = S/A), not Vehicle Inventory. */
 function sheetLooksLikeSalesRaw(headerRow, sheetName) {
   const name = String(sheetName || '');
@@ -4035,32 +3981,7 @@ function parseQueueFromRows(rows) {
   return queue;
 }
 
-/** Some exports store a short sheet dimension; widen !ref to the real last cell so no rows are dropped. */
-function widenWorkbookRanges(wb) {
-  for (const name of (wb && wb.SheetNames) || []) {
-    const sh = wb.Sheets[name];
-    if (!sh) continue;
-    let maxR = -1;
-    let maxC = -1;
-    for (const k of Object.keys(sh)) {
-      if (k[0] === '!') continue;
-      const c = XLSX.utils.decode_cell(k);
-      if (c.r > maxR) maxR = c.r;
-      if (c.c > maxC) maxC = c.c;
-    }
-    if (maxR < 0) continue;
-    const range = sh['!ref'] ? XLSX.utils.decode_range(sh['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
-    if (maxR > range.e.r || maxC > range.e.c) {
-      range.e.r = Math.max(range.e.r, maxR);
-      range.e.c = Math.max(range.e.c, maxC);
-      sh['!ref'] = XLSX.utils.encode_range(range);
-    }
-  }
-  return wb;
-}
-
 function parseSalesFromWorkbook(wb, filename, opts = {}) {
-  widenWorkbookRanges(wb);
   // Prefer Sales Raw / Rowdata when Hanouf uploads Sales Raw; otherwise inventory first for archives
   const preferSalesRaw = Boolean(opts.preferSalesRaw)
     || /sales\s*raw|row\s*data|rowdata/i.test(String(filename || ''));
@@ -4150,8 +4071,7 @@ function parseSalesFromWorkbook(wb, filename, opts = {}) {
     rawRows: rows.slice(0, 5000),
     drafts: [],
     queue: [],
-    isExport: isDeliveryExportWorkbook(wb, filename),
-    quality: analyzeWorkbookVinQuality(wb, preferred),
+    isExport: isDeliveryExportWorkbook(wb, filename)
   };
 
   if (result.isExport) {
@@ -4339,10 +4259,8 @@ function applyParsedInventory(parsed, {
     uploadedAt: new Date().toISOString(),
     uploadedBy: String(uploadedBy || '').trim() || store.meta?.uploadedBy || '',
     uploadedByName: String(uploadedByName || '').trim() || store.meta?.uploadedByName || '',
-    nextDeliveryNoteSeq: Number(store.meta?.nextDeliveryNoteSeq) || 1,
-    salesRawQuality: store.meta?.salesRawQuality || null,
+    nextDeliveryNoteSeq: Number(store.meta?.nextDeliveryNoteSeq) || 1
   };
-  if (parsed.quality) saveSalesRawQuality(parsed.quality);
 
   let draftsApplied = null;
   if (replaceDrafts || (Array.isArray(parsed.drafts) && parsed.drafts.length)) {
@@ -4659,6 +4577,14 @@ app.get('/deliveryteam/', (_req, res) => {
   res.sendFile(path.join(ROOT, 'deliveryteam', 'index.html'));
 });
 
+// Delivery Transformation — separate store, users, and API (no link to Delivery Team / hub data)
+const { createDeliveryTransformationRouter } = require('./delivery-transformation/lib/routes');
+const deliveryTransformation = createDeliveryTransformationRouter({
+  dataFile: path.join(PERSISTENT_ROOT, 'delivery-transformation-data.json'),
+  password: DELIVERY_TEAM_PASSWORD,
+});
+app.use('/api/delivery-transformation', deliveryTransformation.router);
+
 /** Shared Sales Report push — same snapshot for every laptop on this server. */
 app.get('/api/report-sheet/meta', (_req, res) => {
   const meta = loadReportSheetMeta();
@@ -4674,8 +4600,32 @@ app.get('/api/report-sheet/meta', (_req, res) => {
     allocationValues: meta.allocationValues && typeof meta.allocationValues === 'object'
       ? meta.allocationValues
       : {},
+    gecSlaMinutes: positiveOr(meta.gecSlaMinutes, 5),
+    gecControl: sanitizeGecControl(meta.gecControl),
+    gecControlAt: Number(meta.gecControlAt) || 0,
     fileNames: meta.fileNames && typeof meta.fileNames === 'object' ? meta.fileNames : {}
   });
+});
+
+/** Admin → GEC CONTROL: saves status rules only (pushed files and other settings stay untouched). */
+app.post('/api/report-sheet/gec-control', (req, res) => {
+  try {
+    const body = req.body || {};
+    const control = body.gecControl == null ? null : sanitizeGecControl(body.gecControl);
+    if (body.gecControl != null && !control) {
+      return res.status(400).json({ error: 'Invalid GEC CONTROL payload — expected { visitor, lead, conversion } lists' });
+    }
+    const meta = loadReportSheetMeta();
+    const at = Date.now();
+    meta.gecControl = control;
+    meta.gecControlAt = at;
+    saveReportSheetMeta(meta);
+    broadcastGecControlUpdate(at);
+    return res.json({ ok: true, at, gecControl: control });
+  } catch (err) {
+    console.error('[report-sheet/gec-control]', err);
+    return res.status(500).json({ error: err.message || 'Save failed' });
+  }
 });
 
 app.get('/api/report-sheet/file/:slot', (req, res) => {
@@ -4684,13 +4634,196 @@ app.get('/api/report-sheet/file/:slot', (req, res) => {
     return res.status(404).json({ error: 'File not found' });
   }
   const meta = loadReportSheetMeta();
-  const slot = String(req.params.slot || '').trim().toLowerCase();
+  const slot = reportSlotId(req.params.slot);
   const name = (meta.fileNames && meta.fileNames[slot]) || `${slot}.xlsx`;
   res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('X-Report-Sheet-Name', encodeURIComponent(name));
   res.setHeader('Cache-Control', 'no-store');
   return res.sendFile(fp);
 });
+
+/**
+ * B2C workbooks (Lexus B2C · Toyota B2C) — Details sheet · Order No · Status. Same rules as
+ * report-sheet/lexus-control/lexus-core.js and report-sheet/toyotaB2C-control/toyota-b2c-core.js,
+ * so row keys match the per-order data in each brand's tracker file.
+ */
+const B2C_SLOTS = Object.freeze({
+  lexusB2c: {
+    label: 'Lexus',
+    file: path.join(PERSISTENT_ROOT, 'lexus-tracker-data.json'),
+    api: '/api/lexus-tracker',
+    ws: 'lexus_tracker_updated',
+  },
+  toyotaB2c: {
+    label: 'Toyota',
+    file: path.join(PERSISTENT_ROOT, 'toyota-b2c-tracker-data.json'),
+    api: '/api/toyota-b2c-tracker',
+    ws: 'toyota_b2c_tracker_updated',
+  },
+});
+const B2C_SLOT_IDS = Object.keys(B2C_SLOTS);
+const lexusStr = (v) => (v == null ? '' : String(v)).trim();
+const lexusNormHeader = (v) => lexusStr(v).toLowerCase().replace(/[_\s]+/g, ' ').replace(/[.:#]+$/g, '').trim();
+const LEXUS_ORDER_HEADER = (n) => /^order\s*(no|number|num|#)$/.test(n) || /^order\s*no\b/.test(n) || /\border\s*(no|number)\b/.test(n);
+
+function lexusOrderKey(v) {
+  if (v == null || v === '' || v instanceof Date) return '';
+  let s;
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v) || v % 1) return '';
+    s = String(v);
+  } else {
+    s = lexusStr(v).replace(/^'/, '').replace(/\.0+$/, '').replace(/\s+/g, '').toUpperCase();
+  }
+  if (/^\d+$/.test(s)) s = s.replace(/^0+/, '') || '0';
+  return s;
+}
+
+function lexusCategory(text) {
+  const s = lexusStr(text).toLowerCase();
+  if (!s) return 'progress';
+  if (/cancel/.test(s)) return 'cancelled';
+  if (/\b(not|un|non)[\s-]*deliver/.test(s)) return 'progress';
+  if (/deliver/.test(s)) return 'delivered';
+  return 'progress';
+}
+
+function readLexusB2c(buf) {
+  const wb = XLSX.read(buf, { type: 'buffer', cellDates: true });
+  const names = wb.SheetNames || [];
+  const sheetName = names.find((n) => /^\s*details\s*$/i.test(n)) || names.find((n) => /details/i.test(n)) || names[1] || names[0];
+  const ws = sheetName && wb.Sheets[sheetName];
+  if (!ws || !ws['!ref']) return null;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  range.s.c = 0;
+  const lines = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false, raw: true, range })
+    .filter((l) => Array.isArray(l) && l.some((c) => lexusStr(c) !== ''));
+
+  let headerIdx = -1;
+  let orderCol = -1;
+  for (let i = 0; i < Math.min(lines.length, 40) && headerIdx < 0; i += 1) {
+    const idx = lines[i].findIndex((c) => LEXUS_ORDER_HEADER(lexusNormHeader(c)));
+    if (idx >= 0) { headerIdx = i; orderCol = idx; }
+  }
+  if (headerIdx < 0) return null;
+
+  const headerLine = lines[headerIdx];
+  let width = 0;
+  for (let i = headerIdx; i < lines.length; i += 1) width = Math.max(width, lines[i].length);
+  while (width > 0 && lines.slice(headerIdx).every((l) => lexusStr(l[width - 1]) === '')) width -= 1;
+  const seen = {};
+  const headers = Array.from({ length: width }, (_, c) => {
+    const h = lexusStr(headerLine[c]) || `Column ${XLSX.utils.encode_col(c)}`;
+    seen[h] = (seen[h] || 0) + 1;
+    return seen[h] > 1 ? `${h} (${seen[h]})` : h;
+  });
+  const hkeys = headers.map(lexusNormHeader);
+  let statusCol = hkeys.findIndex((n) => n === 'status' || n === 'order status');
+  if (statusCol < 0) statusCol = hkeys.findIndex((n) => /status/.test(n) && !/date|time/.test(n));
+
+  const rows = [];
+  const dup = {};
+  for (let i = headerIdx + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    const base = lexusOrderKey(line[orderCol]);
+    if (!base || lexusNormHeader(line[orderCol]) === hkeys[orderCol]) continue;
+    dup[base] = (dup[base] || 0) + 1;
+    rows.push({
+      key: dup[base] > 1 ? `${base}#${dup[base]}` : base,
+      line: Array.from({ length: width }, (_, c) => (line[c] == null ? '' : line[c])),
+    });
+  }
+  return {
+    wb,
+    sheetName,
+    pre: lines.slice(0, headerIdx),
+    headerRow: Array.from({ length: width }, (_, c) => (headerLine[c] == null ? '' : headerLine[c])),
+    headers,
+    hkeys,
+    statusCol,
+    rows,
+  };
+}
+
+function writeLexusB2c(parsed, headerRow, lines) {
+  parsed.wb.Sheets[parsed.sheetName] = XLSX.utils.aoa_to_sheet([...parsed.pre, headerRow, ...lines]);
+  return XLSX.write(parsed.wb, { type: 'buffer', bookType: 'xlsx', compression: true });
+}
+
+/**
+ * New Lexus B2C file + the one already on the server → one file:
+ * orders in both take the new values, orders only in the old file stay, new orders are added.
+ * Orders closed at End of month are not brought back while the new file still shows them delivered / cancelled.
+ */
+function mergeLexusB2c(prevBuf, nextBuf, archived, label = 'Lexus') {
+  const next = readLexusB2c(nextBuf);
+  if (!next) return { error: `No "Order No" column in the new ${label} B2C file · kept the existing data` };
+  let prev = null;
+  try { prev = prevBuf ? readLexusB2c(prevBuf) : null; } catch { prev = null; }
+
+  const colIndex = new Map(next.hkeys.map((k, c) => [k, c]));
+  const headerRow = next.headerRow.slice();
+  if (prev) {
+    prev.hkeys.forEach((k, c) => {
+      if (colIndex.has(k)) return;
+      colIndex.set(k, headerRow.length);
+      headerRow.push(prev.headers[c]);
+    });
+  }
+  const width = headerRow.length;
+  const prevByKey = new Map(prev ? prev.rows.map((r) => [r.key, r]) : []);
+  const fillFromPrev = (row, line) => prev.hkeys.forEach((k, c) => { line[colIndex.get(k)] = row.line[c]; });
+
+  const out = [];
+  const used = new Set();
+  const summary = { added: 0, updated: 0, kept: 0, skipped: 0, total: 0 };
+  next.rows.forEach((row) => {
+    const old = prevByKey.get(row.key);
+    const status = next.statusCol >= 0 ? row.line[next.statusCol] : '';
+    if (!old && archived && archived[row.key] && lexusCategory(status) !== 'progress') {
+      summary.skipped += 1;
+      return;
+    }
+    const line = new Array(width).fill('');
+    if (old) fillFromPrev(old, line);
+    row.line.forEach((v, c) => { line[c] = v; });
+    out.push(line);
+    used.add(row.key);
+    summary[old ? 'updated' : 'added'] += 1;
+  });
+  if (prev) {
+    prev.rows.forEach((row) => {
+      if (used.has(row.key)) return;
+      const line = new Array(width).fill('');
+      fillFromPrev(row, line);
+      out.push(line);
+      summary.kept += 1;
+    });
+  }
+  summary.total = out.length;
+  return { buffer: writeLexusB2c(next, headerRow, out), summary };
+}
+
+/** @returns {{ buffer: Buffer, name: string, summary: object|null }} */
+function pushLexusB2c(prevBuf, prevName, buf, name, slot = 'lexusB2c') {
+  if (prevBuf && prevBuf.equals(buf)) return { buffer: buf, name, summary: null };
+  const label = B2C_SLOTS[slot].label;
+  const archived = loadB2cTracker(slot).archived;
+  if (!prevBuf && !Object.keys(archived).length) return { buffer: buf, name, summary: null };
+  let merged;
+  try {
+    merged = mergeLexusB2c(prevBuf, buf, archived, label);
+  } catch (err) {
+    console.error(`[report-sheet/push] ${label} B2C merge`, err);
+    merged = { error: `Could not read the new ${label} B2C file (${err.message}) · kept the existing data` };
+  }
+  if (merged.error) {
+    return prevBuf
+      ? { buffer: prevBuf, name: prevName, summary: { error: merged.error } }
+      : { buffer: buf, name, summary: { error: merged.error } };
+  }
+  return { buffer: merged.buffer, name: name.replace(/\.(csv|xls|xlsx|xlsm)$/i, '') + '.xlsx', summary: merged.summary };
+}
 
 app.post('/api/report-sheet/push', (req, res) => {
   try {
@@ -4701,6 +4834,23 @@ app.post('/api/report-sheet/push', (req, res) => {
     const filesIn = body.files && typeof body.files === 'object' ? body.files : {};
     const fileNames = {};
     const slots = [];
+    const prevMeta = loadReportSheetMeta();
+    const pushedControl = sanitizeGecControl(body.gecControl);
+    const prevControl = sanitizeGecControl(prevMeta.gecControl);
+    const controlChanged = !!pushedControl && JSON.stringify(pushedControl) !== JSON.stringify(prevControl);
+
+    // B2C files (Lexus · Toyota) are cumulative: a Push merges into them and never drops them.
+    const prevB2c = {};
+    const b2cMerge = {};
+    B2C_SLOT_IDS.forEach((id) => {
+      const fp = reportSheetFilePath(id);
+      prevB2c[id] = {
+        fp,
+        buf: fs.existsSync(fp) ? fs.readFileSync(fp) : null,
+        name: (prevMeta.fileNames && prevMeta.fileNames[id]) || `${id}.xlsx`,
+      };
+      b2cMerge[id] = null;
+    });
 
     clearReportSheetFiles();
 
@@ -4709,11 +4859,18 @@ app.post('/api/report-sheet/push', (req, res) => {
     for (const id of REPORT_SLOT_IDS) {
       const entry = filesIn[id];
       if (!entry || !entry.base64) continue;
-      const buf = Buffer.from(String(entry.base64), 'base64');
+      let buf = Buffer.from(String(entry.base64), 'base64');
       if (!buf.length) continue;
+      let name = String(entry.name || `${id}.xlsx`).trim() || `${id}.xlsx`;
+      if (B2C_SLOTS[id]) {
+        const prev = prevB2c[id];
+        const merged = pushLexusB2c(prev.buf, prev.name, buf, name, id);
+        buf = merged.buffer;
+        name = merged.name;
+        b2cMerge[id] = merged.summary;
+      }
       const fp = reportSheetFilePath(id);
       fs.writeFileSync(fp, buf);
-      const name = String(entry.name || `${id}.xlsx`).trim() || `${id}.xlsx`;
       fileNames[id] = name;
       slots.push(id);
 
@@ -4735,6 +4892,14 @@ app.post('/api/report-sheet/push', (req, res) => {
       }
     }
 
+    B2C_SLOT_IDS.forEach((id) => {
+      const prev = prevB2c[id];
+      if (!prev.buf || slots.includes(id)) return;
+      fs.writeFileSync(prev.fp, prev.buf);
+      fileNames[id] = prev.name;
+      slots.push(id);
+    });
+
     const meta = {
       at,
       targetsAt: at,
@@ -4747,6 +4912,9 @@ app.post('/api/report-sheet/push', (req, res) => {
       allocationValues: body.allocationValues && typeof body.allocationValues === 'object'
         ? body.allocationValues
         : {},
+      gecSlaMinutes: positiveOr(body.gecSlaMinutes, 5),
+      gecControl: pushedControl || prevControl,
+      gecControlAt: controlChanged ? at : (Number(prevMeta.gecControlAt) || 0),
       fileNames
     };
     saveReportSheetMeta(meta);
@@ -4757,6 +4925,8 @@ app.post('/api/report-sheet/push', (req, res) => {
       slots,
       hasSales: meta.hasSales,
       hasCancelled: meta.hasCancelled,
+      lexusB2c: b2cMerge.lexusB2c,
+      toyotaB2c: b2cMerge.toyotaB2c,
       rtlDaily: rtlSnapshot
         ? {
           id: rtlSnapshot.id,
@@ -4776,14 +4946,336 @@ app.post('/api/report-sheet/push', (req, res) => {
 app.post('/api/report-sheet/clear', (_req, res) => {
   try {
     clearReportSheetFiles();
+    const prev = loadReportSheetMeta();
     const meta = defaultReportSheetMeta();
     meta.at = Date.now();
+    // GEC CONTROL is configuration, not pushed data — keep it.
+    meta.gecControl = sanitizeGecControl(prev.gecControl);
+    meta.gecControlAt = Number(prev.gecControlAt) || 0;
     saveReportSheetMeta(meta);
     broadcastReportSheetUpdate(meta.at);
     return res.json({ ok: true, at: meta.at });
   } catch (err) {
     console.error('[report-sheet/clear]', err);
     return res.status(500).json({ error: err.message || 'Clear failed' });
+  }
+});
+
+/**
+ * B2C Controllers (Lexus · Toyota) · per-order user data (cell edits, note, follow-ups, first seen).
+ * One file per brand, separate from the pushed files so Admin Push / Clear never overwrite what users entered.
+ */
+const LEXUS_KEY_RE = /^[A-Z0-9][A-Z0-9\-_/#.]{0,79}$/;
+
+function loadB2cTracker(slot) {
+  const file = B2C_SLOTS[slot].file;
+  try {
+    if (!fs.existsSync(file)) return { at: 0, orders: {}, archived: {} };
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return {
+      at: Number(parsed && parsed.at) || 0,
+      orders: parsed && parsed.orders && typeof parsed.orders === 'object' ? parsed.orders : {},
+      archived: parsed && parsed.archived && typeof parsed.archived === 'object' ? parsed.archived : {}
+    };
+  } catch {
+    return { at: 0, orders: {}, archived: {} };
+  }
+}
+
+function saveB2cTracker(slot, data) {
+  const file = B2C_SLOTS[slot].file;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data), 'utf8');
+  fs.renameSync(tmp, file);
+}
+
+function broadcastB2cTracker(slot, at, keys) {
+  const payload = JSON.stringify({ type: B2C_SLOTS[slot].ws, at, keys });
+  for (const client of wsClients) {
+    if (client.readyState === 1) {
+      try {
+        client.send(payload);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+const lexusText = (v, max) => String(v == null ? '' : v).slice(0, max);
+
+B2C_SLOT_IDS.forEach((slot) => {
+const { api } = B2C_SLOTS[slot];
+
+app.get(`${api}/state`, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { at, orders } = loadB2cTracker(slot);
+  res.json({ at, orders });
+});
+
+/** Orders shown for the first time start their 24 h follow-up clock now (existing ones keep theirs). */
+app.post(`${api}/seen`, (req, res) => {
+  try {
+    const keys = Array.isArray(req.body && req.body.keys) ? req.body.keys : [];
+    const data = loadB2cTracker(slot);
+    const at = Date.now();
+    const added = [];
+    for (const raw of keys.slice(0, 20000)) {
+      const key = String(raw || '').trim().toUpperCase();
+      if (!LEXUS_KEY_RE.test(key)) continue;
+      const entry = data.orders[key] || (data.orders[key] = {});
+      if (!entry.firstSeenAt) {
+        entry.firstSeenAt = at;
+        added.push(key);
+      }
+    }
+    if (added.length) {
+      data.at = at;
+      saveB2cTracker(slot, data);
+      broadcastB2cTracker(slot, at, added.slice(0, 50));
+    }
+    return res.json({ ok: true, at: data.at, added: added.length });
+  } catch (err) {
+    console.error(`[${api}/seen]`, err);
+    return res.status(500).json({ error: err.message || 'Save failed' });
+  }
+});
+
+/**
+ * body: { key, by, edits?: { [header]: string|null }, note?: string, followUp?: true }
+ * A follow-up must come with an updated note (non-empty and different from the saved one).
+ */
+app.post(`${api}/order`, (req, res) => {
+  try {
+    const body = req.body || {};
+    const key = String(body.key || '').trim().toUpperCase();
+    if (!LEXUS_KEY_RE.test(key)) return res.status(400).json({ error: 'Invalid order key' });
+    const by = lexusText(body.by, 60).trim();
+    const data = loadB2cTracker(slot);
+    const existing = data.orders[key] || {};
+    if (body.followUp === true) {
+      const next = body.note === undefined ? '' : lexusText(body.note, 4000).trim();
+      if (!next) return res.status(400).json({ error: 'Update the notes before recording a follow-up' });
+      if (next === lexusText(existing.note, 4000).trim()) {
+        return res.status(400).json({ error: 'The notes were not changed — update them before recording a follow-up' });
+      }
+    }
+    const at = Date.now();
+    const entry = data.orders[key] || (data.orders[key] = {});
+    if (!entry.firstSeenAt) entry.firstSeenAt = at;
+
+    if (body.edits && typeof body.edits === 'object') {
+      const edits = entry.edits && typeof entry.edits === 'object' ? entry.edits : {};
+      Object.entries(body.edits).slice(0, 200).forEach(([header, value]) => {
+        const h = lexusText(header, 120);
+        if (!h) return;
+        if (value === null) delete edits[h];
+        else edits[h] = lexusText(value, 2000);
+      });
+      entry.edits = edits;
+    }
+    if (body.note !== undefined) entry.note = lexusText(body.note, 4000);
+    if (body.followUp === true) {
+      const list = Array.isArray(entry.followUps) ? entry.followUps : [];
+      list.push({ at, by, note: entry.note || '' });
+      entry.followUps = list.slice(-200);
+    }
+    entry.updatedAt = at;
+    entry.updatedBy = by;
+    data.at = at;
+    saveB2cTracker(slot, data);
+    broadcastB2cTracker(slot, at, [key]);
+    return res.json({ ok: true, at, key, order: entry });
+  } catch (err) {
+    console.error(`[${api}/order]`, err);
+    return res.status(500).json({ error: err.message || 'Save failed' });
+  }
+});
+});
+
+/**
+ * Admin → End of month: one workbook with every sheet of every pushed file (+ Lexus notes / follow-ups),
+ * saved on the server and returned for download, then Delivered + Cancelled orders leave the Lexus B2C data.
+ */
+const END_OF_MONTH_PASSWORD = process.env.END_OF_MONTH_PASSWORD || '1234';
+const END_OF_MONTH_DIR = path.join(REPORT_SHEET_DIR, 'end-of-month');
+const REPORT_SLOT_LABELS = Object.freeze({
+  backorder: 'Back Order',
+  rtl: 'RTL Stock',
+  central: 'E-Sales Stock',
+  sales: 'Sales Raw',
+  cancelled: 'Cancelled BOs',
+  accessories: 'Accessories',
+  gec: 'GEC',
+  gecVisitors: 'GEC Visitors',
+  lexusB2c: 'Lexus B2C',
+  toyotaB2c: 'Toyota B2C',
+});
+
+function riyadhStamp(ms) {
+  const d = new Date(ms + 3 * 3600000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}_${p(d.getUTCHours())}-${p(d.getUTCMinutes())}`;
+}
+
+app.post('/api/report-sheet/end-of-month', (req, res) => {
+  try {
+    const body = req.body || {};
+    if (String(body.password || '') !== END_OF_MONTH_PASSWORD) return res.status(403).json({ error: 'Wrong password' });
+    ensureReportSheetDirs();
+    const at = Date.now();
+    const meta = loadReportSheetMeta();
+    const fileNames = meta.fileNames || {};
+
+    const out = XLSX.utils.book_new();
+    const usedNames = new Set();
+    const addSheet = (ws, wanted) => {
+      const base = String(wanted).replace(/[\\/?*[\]:]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 31) || 'Sheet';
+      let name = base;
+      for (let i = 2; usedNames.has(name.toLowerCase()); i += 1) name = `${base.slice(0, 31 - String(i).length - 1)}~${i}`;
+      usedNames.add(name.toLowerCase());
+      XLSX.utils.book_append_sheet(out, ws, name);
+    };
+
+    const files = [];
+    const sources = [];
+    for (const id of REPORT_SLOT_IDS) {
+      const fp = reportSheetFilePath(id);
+      if (!fs.existsSync(fp)) continue;
+      try {
+        const wb = XLSX.read(fs.readFileSync(fp), { type: 'buffer', cellNF: true });
+        sources.push({ id, wb });
+        files.push([REPORT_SLOT_LABELS[id] || id, fileNames[id] || `${id}.xlsx`, (wb.SheetNames || []).join(', ')]);
+      } catch (err) {
+        files.push([REPORT_SLOT_LABELS[id] || id, fileNames[id] || `${id}.xlsx`, `Could not read: ${err.message}`]);
+      }
+    }
+    if (!sources.length) return res.status(400).json({ error: 'No pushed files on the server · nothing to export' });
+
+    // Each B2C brand: split into orders that stay (in progress) and orders that close (delivered / cancelled).
+    const brands = B2C_SLOT_IDS.map((slot) => {
+      const fp = reportSheetFilePath(slot);
+      const tracker = loadB2cTracker(slot);
+      let book = null;
+      const closed = { delivered: [], cancelled: [] };
+      const keepLines = [];
+      if (fs.existsSync(fp)) {
+        try { book = readLexusB2c(fs.readFileSync(fp)); } catch { book = null; }
+      }
+      if (book) {
+        const statusHeader = book.statusCol >= 0 ? book.headers[book.statusCol] : '';
+        book.rows.forEach((row) => {
+          const edits = (tracker.orders[row.key] && tracker.orders[row.key].edits) || {};
+          const status = statusHeader && Object.prototype.hasOwnProperty.call(edits, statusHeader)
+            ? edits[statusHeader]
+            : (book.statusCol >= 0 ? row.line[book.statusCol] : '');
+          const cat = lexusCategory(status);
+          if (cat === 'progress') keepLines.push(row.line);
+          else closed[cat].push(row.key);
+        });
+      }
+      const closedKeys = [...closed.delivered, ...closed.cancelled];
+      return { slot, label: B2C_SLOTS[slot].label, fp, tracker, book, closed, closedKeys, keepLines };
+    });
+
+    const summary = [
+      ['End of month', riyadhStamp(at).replace('_', ' ')],
+      ...brands.flatMap((b) => [
+        [],
+        [`${b.label} orders removed`, b.closedKeys.length],
+        ['· Delivered', b.closed.delivered.length],
+        ['· Cancelled', b.closed.cancelled.length],
+        [`${b.label} orders kept (in progress)`, b.keepLines.length],
+      ]),
+      [],
+      ['Slot', 'File', 'Sheets'],
+      ...files,
+    ];
+    addSheet(XLSX.utils.aoa_to_sheet(summary), 'Summary');
+    sources.forEach(({ id, wb }) => {
+      (wb.SheetNames || []).forEach((sn) => addSheet(wb.Sheets[sn], `${REPORT_SLOT_LABELS[id] || id} - ${sn}`));
+    });
+
+    const fmt = (ms) => (ms ? riyadhStamp(Number(ms)).replace('_', ' ').replace(/-(\d\d)$/, ':$1') : '');
+    brands.forEach(({ label, tracker, closed, closedKeys }) => {
+      const closedSet = new Set(closedKeys);
+      const notes = [['Order', 'Closed now', 'Note', 'Follow-ups', 'Last follow-up', 'Last by', 'Follow-up history', 'Edited cells', 'First seen', 'Updated by', 'Updated']];
+      Object.entries(tracker.orders).forEach(([key, o]) => {
+        const followUps = Array.isArray(o.followUps) ? o.followUps : [];
+        const edits = o.edits && typeof o.edits === 'object' ? Object.entries(o.edits) : [];
+        if (!o.note && !followUps.length && !edits.length) return;
+        const last = followUps[followUps.length - 1] || {};
+        notes.push([
+          key,
+          closedSet.has(key) ? (closed.delivered.includes(key) ? 'Delivered' : 'Cancelled') : '',
+          o.note || '',
+          followUps.length,
+          fmt(last.at),
+          last.by || '',
+          followUps.map((f) => `${fmt(f.at)} ${f.by || ''}${f.note ? ` · ${f.note}` : ''}`).join('\n').slice(0, 32000),
+          edits.map(([h, v]) => `${h}: ${v}`).join('\n').slice(0, 32000),
+          fmt(o.firstSeenAt),
+          o.updatedBy || '',
+          fmt(o.updatedAt),
+        ]);
+      });
+      if (notes.length > 1) addSheet(XLSX.utils.aoa_to_sheet(notes), `${label} notes & follow-ups`);
+    });
+
+    const archive = XLSX.write(out, { type: 'buffer', bookType: 'xlsx', compression: true });
+    const fileName = `End-of-month_${riyadhStamp(at)}.xlsx`;
+    fs.mkdirSync(END_OF_MONTH_DIR, { recursive: true });
+    fs.writeFileSync(path.join(END_OF_MONTH_DIR, fileName), archive);
+
+    const changed = brands.filter((b) => b.book && b.closedKeys.length);
+    changed.forEach(({ slot, fp, tracker, book, closedKeys, keepLines }) => {
+      fs.writeFileSync(fp, writeLexusB2c(book, book.headerRow, keepLines));
+      closedKeys.forEach((key) => {
+        delete tracker.orders[key];
+        tracker.archived[key] = at;
+      });
+      tracker.at = at;
+      saveB2cTracker(slot, tracker);
+    });
+    if (changed.length) {
+      meta.at = at;
+      saveReportSheetMeta(meta);
+      broadcastReportSheetUpdate(at);
+      changed.forEach(({ slot, closedKeys }) => broadcastB2cTracker(slot, at, closedKeys.slice(0, 50)));
+    }
+
+    const brandInfo = {};
+    brands.forEach((b) => {
+      brandInfo[b.slot] = {
+        label: b.label,
+        hasFile: !!b.book,
+        removed: b.closedKeys.length,
+        delivered: b.closed.delivered.length,
+        cancelled: b.closed.cancelled.length,
+        kept: b.keepLines.length,
+      };
+    });
+    const lexusInfo = brandInfo.lexusB2c;
+    const info = {
+      at,
+      removed: lexusInfo.removed,
+      delivered: lexusInfo.delivered,
+      cancelled: lexusInfo.cancelled,
+      kept: lexusInfo.kept,
+      brands: brandInfo,
+      sheets: out.SheetNames.length,
+      files: sources.length,
+    };
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('X-File-Name', encodeURIComponent(fileName));
+    res.setHeader('X-End-Of-Month', encodeURIComponent(JSON.stringify(info)));
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(archive);
+  } catch (err) {
+    console.error('[report-sheet/end-of-month]', err);
+    return res.status(500).json({ error: err.message || 'End of month failed' });
   }
 });
 
@@ -5934,7 +6426,12 @@ app.post('/api/delivery-inventory/create-pdf-drafts', (req, res) => {
 });
 
 app.get('/api/delivery-inventory/vehicles', (req, res) => {
-  const search = String(req.query.search || '').trim().toUpperCase();
+  const searchRaw = String(req.query.search || '').trim();
+  const tokens = searchRaw
+    .toUpperCase()
+    .split(/[\s,;/|]+/)
+    .map((t) => t.replace(/[^A-Z0-9\u0600-\u06FF]/gi, ''))
+    .filter((t) => t.length >= 1);
   const limit = Math.min(Number(req.query.limit) || 80, 200);
   const exclude = new Set(
     String(req.query.exclude || '')
@@ -5945,9 +6442,26 @@ app.get('/api/delivery-inventory/vehicles', (req, res) => {
   let list = store.vehicles.filter((v) => {
     const vin = normVin(v.vin);
     if (!vin || exclude.has(vin)) return false;
-    if (!search) return true;
-    const hay = `${vin} ${v.product || ''} ${v.plate || ''} ${v.gt || ''} ${v.location || ''} ${v.phone || ''} ${v.customerName || ''}`.toUpperCase();
-    return hay.includes(search);
+    if (!tokens.length) return true;
+    const hay = [
+      vin,
+      v.product,
+      v.model,
+      v.plate,
+      v.gt,
+      v.location,
+      v.phone,
+      v.customerName,
+      v.userName,
+      v.salesAdvisor,
+      v.invoiceOwner,
+      v.salesOrder,
+      v.salesType,
+      v.proformaDate,
+      v.color,
+    ].map((x) => String(x || '').toUpperCase()).join(' ');
+    const compact = hay.replace(/[^A-Z0-9\u0600-\u06FF]/gi, '');
+    return tokens.every((t) => hay.includes(t) || compact.includes(t.replace(/[^A-Z0-9\u0600-\u06FF]/gi, '')));
   });
   list = list.slice(0, limit);
   res.json({ vehicles: list });
@@ -6494,6 +7008,85 @@ app.post('/api/delivery-coordinator/claim', (req, res) => {
   item.assignedAt = new Date().toISOString();
   persistAndBroadcast();
   res.json({ item: enrichQueueItem(item) });
+});
+
+/**
+ * Agent shortcut: type any VIN + company → put on queue as memo → open & print.
+ * Does not require the VIN to exist in Sales Raw / inventory.
+ */
+app.post('/api/delivery-coordinator/agent-quick-vin', (req, res) => {
+  const auth = authenticateAgent(req.body?.username, req.body?.password);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+
+  const vin = normVin(req.body?.vin);
+  if (!vin || vin.length < 6) {
+    return res.status(400).json({ error: 'أدخل رقم شاسيه صحيح (VIN)' });
+  }
+
+  let deliveryCompany = String(
+    req.body?.company || req.body?.deliveryCompany || req.body?.company_rep || ''
+  ).trim();
+  if (!deliveryCompany) {
+    return res.status(400).json({ error: 'اختر الشركة' });
+  }
+
+  ensureOptions();
+  const companyExists = (store.options.companies || []).some(
+    (x) => String(x).toLowerCase() === deliveryCompany.toLowerCase()
+  );
+  if (!companyExists) {
+    store.options.companies = uniqueSorted([...(store.options.companies || []), deliveryCompany]);
+  }
+
+  const veh = resolveVehicleForSubmit(vin);
+  const now = new Date().toISOString();
+  let item = findQueueItem(vin);
+  let created = false;
+
+  if (!item) {
+    item = enrichFromVehicle({
+      vin,
+      status: 'available',
+      agentStatus: '',
+      assignedTo: '',
+      addedAt: now,
+      assignedAt: '',
+      deliveryCompany,
+      company: deliveryCompany,
+      plannedDeliveryMode: 'memo',
+      entryAgent: auth.username,
+    }, veh || {});
+    store.queue.push(item);
+    created = true;
+  } else {
+    const prevCompany = String(item.deliveryCompany || item.company || '').trim();
+    if (
+      prevCompany
+      && !isUnassignedDeliveryCompany(item)
+      && prevCompany.toLowerCase() !== deliveryCompany.toLowerCase()
+    ) {
+      recordQueueCompanyChange(item, deliveryCompany);
+    }
+    item.deliveryCompany = deliveryCompany;
+    item.company = deliveryCompany;
+    item.plannedDeliveryMode = 'memo';
+    if (veh) {
+      if (!item.product && (veh.product || veh.model)) item.product = veh.product || veh.model || '';
+      if (!item.model && (veh.model || veh.product)) item.model = veh.model || veh.product || '';
+      if (!item.customerName && veh.customerName) item.customerName = veh.customerName;
+      if (!item.phone && veh.phone) item.phone = veh.phone;
+      if (!item.gt && veh.gt) item.gt = veh.gt;
+      if (!item.location && veh.location) item.location = veh.location;
+    }
+  }
+
+  syncCoordinatorAssignmentsToDeliveryTeam([item], { by: auth.username || 'agent-quick' });
+  persistAndBroadcast();
+  res.json({
+    ok: true,
+    created,
+    item: enrichQueueItem(item),
+  });
 });
 
 app.post('/api/delivery-coordinator/set-status', (req, res) => {

@@ -7,12 +7,57 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="dashboard.css?v=20260914eu2" />
+  <link rel="stylesheet" href="dashboard.css?v=20260928id1" />
   <link rel="stylesheet" href="ops-redesign-skin.css?v=20260914eu2" />
   <link rel="stylesheet" href="responsive-layout.css?v=20260914eu2" />
   <link rel="stylesheet" href="enterprise-ui.css?v=20260915aa1" />
-  <script src="data-store.js"></script>
+  <script src="employee-roster.js?v=20260928id1"></script>
+  <script src="data-store.js?v=20261001dr1"></script>
+  <script src="gec-data.js?v=20261004visitj"></script>
   <script src="allocation-plan-data.js"></script>
+  <style>
+    .gec-ctl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+    .gec-ctl-col { border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .gec-ctl-col[data-group="visitor"] { border-top: 3px solid #7c3aed; }
+    .gec-ctl-col[data-group="lead"] { border-top: 3px solid #2563eb; }
+    .gec-ctl-col[data-group="conversion"] { border-top: 3px solid #059669; }
+    .gec-ctl-head b { display: block; font-size: 13px; letter-spacing: 0.1em; }
+    .gec-ctl-head small { display: block; opacity: 0.7; font-size: 12px; margin-top: 2px; }
+    .gec-ctl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .gec-ctl-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 10px; background: rgba(148, 163, 184, 0.1); }
+    .gec-ctl-list li.is-off { opacity: 0.55; }
+    .gec-ctl-list li.is-off span { text-decoration: line-through; }
+    .gec-ctl-list label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0; font-weight: 600; }
+    .gec-ctl-list label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .gec-ctl-list input[type="checkbox"] { width: 16px; height: 16px; flex: none; }
+    .gec-ctl-list button { border: 0; background: transparent; cursor: pointer; font-size: 16px; line-height: 1; opacity: 0.55; color: inherit; padding: 2px 6px; }
+    .gec-ctl-list button:hover { opacity: 1; color: #e11d48; }
+    .gec-ctl-empty { opacity: 0.6; font-size: 12px; padding: 6px 2px; }
+    .gec-ctl-add { display: flex; gap: 6px; }
+    .gec-ctl-add input { flex: 1; min-width: 0; }
+    .gec-ctl-dirty { color: #d97706; font-weight: 700; }
+    #discard-draft-btn[hidden] { display: none; }
+    .pill.slot-draft { background: #fff4e2; color: #b45309; border: 1px solid #f5c98a; }
+    .gec-found-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    .gec-found-table th, .gec-found-table td { padding: 7px 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.25); text-align: left; }
+    .gec-found-table td.num, .gec-found-table th.num { text-align: right; }
+    .gec-found-table .stage { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .gec-found-table .stage.s-visitor { background: #f3efff; color: #6d28d9; }
+    .gec-found-table .stage.s-lead { background: #ebf2ff; color: #1d4ed8; }
+    .gec-found-table .stage.s-converted { background: #e6f7f0; color: #047857; }
+    .gec-found-table .stage.s-unlisted { background: #fff4e2; color: #b45309; }
+    .gec-found-table button { margin-right: 4px; padding: 3px 9px; font-size: 12px; }
+    @media (max-width: 1100px) { .gec-ctl-grid { grid-template-columns: 1fr; } }
+    .eom-dialog { border: 0; border-radius: 16px; padding: 0; width: min(440px, 92vw); box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); }
+    .eom-dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+    .eom-dialog form { padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .eom-dialog h2 { margin: 0; font-size: 18px; }
+    .eom-dialog ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+    .eom-dialog label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+    .eom-dialog input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; }
+    .eom-dialog .eom-err { color: #e11d48; font-size: 13px; min-height: 18px; }
+    .eom-dialog .eom-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  </style>
 </head>
 <body class="live-app admin-page toyota-theme">
   <div class="app-frame">
@@ -41,11 +86,23 @@
           <span class="side-nav-icon" aria-hidden="true">▦</span>
           <span class="side-nav-label">Allocation Plan</span>
         </button>
+        <button type="button" class="tab side-nav-item" data-admin-panel="gec" id="tab-gec">
+          <span class="side-nav-icon" aria-hidden="true">◎</span>
+          <span class="side-nav-label">GEC Control</span>
+        </button>
       </nav>
       <div class="sidebar-footer">
         <a class="side-nav-item side-nav-link" href="data-uploader.html">
           <span class="side-nav-icon" aria-hidden="true">⇪</span>
           <span class="side-nav-label">Data Uploader</span>
+        </a>
+        <a class="side-nav-item side-nav-link" href="lexus-control/lexus-controller.html" target="_blank" rel="noopener">
+          <span class="side-nav-icon" aria-hidden="true">✎</span>
+          <span class="side-nav-label">Lexus Controller</span>
+        </a>
+        <a class="side-nav-item side-nav-link" href="toyotaB2C-control/toyota-b2c-controller.html" target="_blank" rel="noopener">
+          <span class="side-nav-icon" aria-hidden="true">✎</span>
+          <span class="side-nav-label">Toyota B2C Controller</span>
         </a>
         <a class="side-nav-item side-nav-link" href="index.html">
           <span class="side-nav-icon" aria-hidden="true">◉</span>
@@ -73,7 +130,9 @@
           <span class="status" id="status">Ready</span>
           <span class="status ok" id="admin-mode-badge">ADMIN</span>
           <a class="btn" href="index.html">Live report</a>
-          <button type="button" class="btn" id="clear-files-btn" disabled>Clear files</button>
+          <button type="button" class="btn" id="discard-draft-btn" hidden title="Throw away uploads / changes that were not pushed and show the live files again">Discard draft</button>
+          <button type="button" class="btn" id="clear-files-btn" disabled title="Empties the slots here · live files are only cleared when you click Push to live">Clear files</button>
+          <button type="button" class="btn" id="eom-btn" title="Download every pushed sheet in one Excel, then remove Delivered + Cancelled Lexus and Toyota B2C orders">End of month</button>
           <button type="button" class="btn-primary" id="push-btn">Push to live</button>
         </div>
       </header>
@@ -135,6 +194,11 @@
             <input id="working-days" type="number" min="1" step="1" placeholder="e.g. 22" title="Sales working days used for daily target pace" />
             <span class="hint">Daily base = target ÷ working days · shortfall from yesterday adds to today’s required proforma</span>
           </div>
+          <div class="admin-accessories-settled">
+            <label for="gec-sla-minutes">GEC SLA (minutes)</label>
+            <input id="gec-sla-minutes" type="number" min="1" step="1" placeholder="e.g. 5" title="Allowed minutes from lead Created Date/Time to Sales Response" />
+            <span class="hint">GEC Dashboard · Over SLA = Created Date/Time → Sales Response longer than this · saved for later, not shown on the dashboard yet</span>
+          </div>
           <div class="target-grid" id="target-grid"></div>
         </div>
       </div>
@@ -158,11 +222,57 @@
       </div>
     </section>
 
+    <section class="admin-panel" id="panel-gec" hidden>
+      <div class="xl-toolbar admin-toolbar">
+        <button type="button" class="btn-primary" id="gec-control-save">Save GEC Control</button>
+        <button type="button" class="btn" id="gec-control-reset">Reset to defaults</button>
+        <span class="hint" id="gec-control-hint">Save keeps the rules as a draft · they reach the live GEC dashboards only when you click Push to live</span>
+      </div>
+
+      <div class="card admin-section-card">
+        <div class="pbi-viz-head">
+          <h2>GEC CONTROL · status rules</h2>
+          <span class="admin-section-tag">Visitor · Lead · Conversion</span>
+        </div>
+        <p class="admin-lead">
+          Every GEC record is classified by its <b>Status</b> — first enabled match of <b>Conversion → Lead → Visitor</b> (upper/lower case ignored).
+          <b>Visitor</b> statuses are registrations, not leads. <b>Conversion</b> statuses count as converted and still count as leads.
+          A status in no list counts as a lead and is flagged under <b>Attention</b> on the dashboard until you classify it here.
+        </p>
+        <div class="gec-ctl-grid" id="gec-ctl-grid"></div>
+      </div>
+
+      <div class="card admin-section-card">
+        <div class="pbi-viz-head">
+          <h2>Statuses in the GEC File</h2>
+          <span class="admin-section-tag" id="gec-found-tag">From the file in slot 7</span>
+        </div>
+        <div id="gec-found"><p class="foot" style="margin:0">Upload the GEC File in Excel Uploads to list its statuses here.</p></div>
+      </div>
+    </section>
+
     <footer class="page-foot">Admin only · Push updates all live dashboards · <a href="index.html">Open live report</a></footer>
   </div>
       </div>
     </div>
   </div>
+
+  <dialog class="eom-dialog" id="eom-dialog">
+    <form method="dialog" id="eom-form">
+      <h2>End of month</h2>
+      <ul>
+        <li>Downloads <b>one Excel</b> with every sheet of every pushed file (a copy is also kept on the server).</li>
+        <li>Then removes all <b>Delivered</b> and <b>Cancelled</b> orders from the Lexus Controller and the Toyota B2C Controller · in-progress orders stay.</li>
+      </ul>
+      <label for="eom-password">PASSWORD</label>
+      <input type="password" id="eom-password" autocomplete="off" required />
+      <div class="eom-err" id="eom-err"></div>
+      <div class="eom-actions">
+        <button type="button" class="btn" id="eom-cancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="eom-run">Run end of month</button>
+      </div>
+    </form>
+  </dialog>
 
 <script>
 (function () {
@@ -187,41 +297,26 @@
     { id: "sales", n: 4, title: "Sales Raw Data", ar: "بيانات المبيعات", blurb: "Required for Sales Report · Col A / P / V" },
     { id: "cancelled", n: 5, title: "Cancelled BOs", ar: "أوامر ملغاة", blurb: "Cancelled list · Col I = VIN required · count all rows by salesman (duplicates included)" },
     { id: "accessories", n: 6, title: "Accessories", ar: "الإكسسوارات", blurb: "Sheet 1 · Col D VIN · Col L amount · Sheet VSND · Col I VIN · Col L employee · Col S in-progress" },
+    { id: "gec", n: 7, title: "GEC File", ar: "مركز تجربة الضيوف", blurb: "Lead Data sheet · Employee Number in Col R · feeds the GEC Dashboard · optional Visitors sheet" },
+    { id: "gecVisitors", n: 8, title: "GEC Visitors", ar: "زوار مركز تجربة الضيوف", blurb: "Optional · visitor log · Date · Promoter (emp. no. or name) · Visit Purpose · optional Count · no personal info" },
+    { id: "lexusB2c", n: 9, title: "Lexus B2C", ar: "لكزس · طلبات الأفراد", blurb: "Sheet “Details” · Order No + Status · each Push adds new orders & updates existing ones (nothing is removed) · feeds the Lexus Controller & Lexus Tracker" },
+    { id: "toyotaB2c", n: 10, title: "Toyota B2C", ar: "تويوتا · طلبات الأفراد", blurb: "Sheet “Details” · Order No + Status · each Push adds new orders & updates existing ones (nothing is removed) · feeds the Toyota B2C Controller & B2C Tracker" },
+  ];
+  const B2C_SLOTS = [
+    { id: "lexusB2c", label: "Lexus B2C" },
+    { id: "toyotaB2c", label: "Toyota B2C" },
   ];
 
-  const DEFAULT_EMPLOYEE_NAMES = [
-    "Samaher Abdulmoghni Al Amri",
-    "Haneen Talal Aqeel Al Madani",
-    "Not assigned",
-    "Wasim Kathem Awad",
-    "Ahmed Saleh Ahmed Binmahfoodh",
-    "Ghina Assad Alameer",
-    "Amjad Ahmed Alwafi",
-    "Ghadeer Abdulhadi Attia Altayyari",
-    "Maryam Salah Abdulrahman Tabakh",
-    "Muteb Abdullah Nasser Al Shehri",
-    "Mansuor Ali Al Qahtani",
-    "Ahmed Mahmoud Yousef Al Fitni",
-    "Mohammed Abkar Mohammed Abkar Negry",
-    "Mohammed Al Khateeb",
-    "Mohsen Zuhair Ali Al Attas",
-    "Fatmah Mohammed Alasseri",
-    "Essa Meraizeeq Almutairy",
-    "Moath Khalel Al Hjoouj",
-    "Khulood Abdulmajeed Albaloushi",
-    "Raoum Fahad Samkari",
-    "Alawiyyah Rafi Saad Al Shehri",
-    "Manal Moshref Almalki",
-    "Lujen Sami Saeed Bazhair",
-    "Muhannad Abdullah Makdour Minyawi",
-    "Maqbool Omar Ashour",
-    "Tawdod Al Sharef",
-    "Ali Muharraq A Alharbi",
-  ];
+  const EMPLOYEE_ROSTER = window.EmployeeRoster.EMPLOYEES;
+  const DEFAULT_EMPLOYEE_NAMES = EMPLOYEE_ROSTER.map((e) => e.name);
   const EMPLOYEE_COUNT = DEFAULT_EMPLOYEE_NAMES.length;
   const DEFAULT_EMPLOYEES = DEFAULT_EMPLOYEE_NAMES.map((name, i) => ({ id: i + 1, name, target: 0 }));
 
   const slots = Object.fromEntries(SLOT_DEFS.map((s) => [s.id, { name: "", buffer: null, size: 0 }]));
+  /* Draft (not live): uploads, Clear files and GEC Control stay here until Push to live. */
+  const draftSlots = new Set();
+  let draftCleared = false;
+  let gecStaged = null;
   let targetSearch = "";
   let employeeTargets = loadEmployeeTargets();
 
@@ -253,6 +348,13 @@
   }
   function isPlaceholderName(name) {
     return /^Employee\s*\d+$/i.test(String(name || "").trim());
+  }
+  function employeeCodeFor(name) {
+    const norm = (v) => String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const n = norm(name);
+    if (!n) return "";
+    const hit = EMPLOYEE_ROSTER.find((e) => [e.name, ...(e.aliases || [])].some((x) => norm(x) === n));
+    return hit ? hit.code : "";
   }
   function detectFileType(file) {
     const name = (file.name || "").toLowerCase();
@@ -515,6 +617,10 @@
     if (workingDaysEl && document.activeElement !== workingDaysEl) {
       workingDaysEl.value = String(loadWorkingDays() || 22);
     }
+    const gecSlaEl = $("#gec-sla-minutes");
+    if (gecSlaEl && document.activeElement !== gecSlaEl) {
+      gecSlaEl.value = String(Store.readGecSlaMinutes());
+    }
     const q = targetSearch.trim().toLowerCase();
     const totalTarget = employeeTargets.reduce((s, e) => s + effectiveTarget(e), 0);
     const filled = employeeTargets.filter((e) => effectiveTarget(e) > 0).length;
@@ -526,13 +632,15 @@
       <div class="admin-side-stat"><span>Total target</span><b>${formatNumber(totalTarget)}</b></div>
     `;
     $("#target-grid").innerHTML = employeeTargets.map((e, i) => {
-      const hidden = q && !String(e.name).toLowerCase().includes(q) ? ' style="display:none"' : "";
+      const code = employeeCodeFor(e.name);
+      const hidden = q && !String(e.name).toLowerCase().includes(q) && !code.includes(q) ? ' style="display:none"' : "";
       const onVac = !!e.vacation;
       const onGuest = !!e.guestExpCenter;
       return `<div class="target-row${onVac ? " is-vacation" : ""}${onGuest ? " is-guest" : ""}"${hidden}>
         <div class="idx">${e.id}</div>
         <input data-emp-name="${i}" type="text" value="${escapeHtml(e.name || DEFAULT_EMPLOYEES[i].name)}" placeholder="Employee name" autocomplete="off" />
         <div class="target-row-controls">
+          ${code ? `<span class="target-emp-code" title="Employee ID">ID ${escapeHtml(code)}</span>` : ""}
           <label class="target-vacation" title="Target counts as 0 · shows VACATION on report">
             <input data-emp-vacation="${i}" type="checkbox"${onVac ? " checked" : ""} />
             <span>Vacation</span>
@@ -553,7 +661,8 @@
     $("#slots").innerHTML = SLOT_DEFS.map((d) => {
       const s = slots[d.id];
       const loaded = s.buffer ? " loaded" : "";
-      const required = d.id === "sales" ? ' <span class="pill slot-required">Required</span>' : "";
+      const required = (d.id === "sales" ? ' <span class="pill slot-required">Required</span>' : "")
+        + (draftSlots.has(d.id) ? ' <span class="pill slot-draft" title="Uploaded here only · live files unchanged until Push to live">Draft · not live</span>' : "");
       const meta = s.buffer
         ? `<span class="meta"><b>${escapeHtml(s.name)}</b><br>${formatBytes(s.size)}</span>`
         : `<span class="meta">Drop or click · .xlsx / .xls / .csv</span>`;
@@ -575,22 +684,172 @@
     else if (hasSales) foot = "Sales Raw ready · Push to live for Sales Report (Previous BO optional).";
     else if (hasCancelled) foot = "Add Sales Raw Data to generate Sales Report.";
     else foot = "Upload Sales Raw for Sales Report · other files optional.";
+    const pending = draftPendingText();
+    $("#discard-draft-btn").hidden = !pending;
+    if (pending) foot = `${pending} · live files stay unchanged until Push to live. ${foot}`;
     $("#files-foot").textContent = foot;
-    if (any) setStatus(hasSales ? "Ready to push" : "Files loaded · add Sales Raw for Sales Report", "ok");
+    if (pending) setStatus(`${pending} — click Push to live`, "busy");
+    else if (any) setStatus(hasSales ? "Ready to push" : "Files loaded · add Sales Raw for Sales Report", "ok");
     renderAdminKpis();
+  }
+
+  function draftPendingText() {
+    const parts = [];
+    if (draftCleared) parts.push("Clear files");
+    if (draftSlots.size) parts.push(`${draftSlots.size} new file(s)`);
+    if (gecStaged) parts.push("GEC Control");
+    return parts.length ? `Draft: ${parts.join(" + ")}` : "";
+  }
+
+  async function persistDraft() {
+    const files = {};
+    draftSlots.forEach((id) => {
+      const s = slots[id];
+      if (s && s.buffer) files[id] = { name: s.name, buffer: s.buffer, size: s.size };
+    });
+    try {
+      if (!draftCleared && !gecStaged && !Object.keys(files).length) await Store.clearAdminDraft();
+      else await Store.saveAdminDraft({ at: Date.now(), cleared: draftCleared, files, gecControl: gecStaged });
+    } catch { /* draft stays in this tab only */ }
+  }
+
+  async function discardDraft() {
+    draftSlots.clear();
+    draftCleared = false;
+    gecStaged = null;
+    try { await Store.clearAdminDraft(); } catch { /* ignore */ }
   }
 
   function showAdminPanel(which) {
     const uploads = $("#panel-uploads");
     const targets = $("#panel-targets");
     const allocation = $("#panel-allocation");
+    const gec = $("#panel-gec");
     uploads.hidden = which !== "uploads";
     targets.hidden = which !== "targets";
     if (allocation) allocation.hidden = which !== "allocation";
+    if (gec) gec.hidden = which !== "gec";
     document.querySelectorAll("[data-admin-panel]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.adminPanel === which);
     });
     if (which === "allocation") renderAllocationPanel();
+    if (which === "gec") { renderGecControl(); renderGecFound(); }
+  }
+
+  // ---------- GEC CONTROL (visitor / lead / conversion status rules) ----------
+
+  const Gec = window.GecData;
+  const GEC_GROUPS = [
+    { id: "visitor", title: "VISITOR STATUS", sub: "Registered, not yet leads" },
+    { id: "lead", title: "LEAD STATUS", sub: "Counted as registered leads" },
+    { id: "conversion", title: "CONVERSION STATUS", sub: "Counted as converted (still a lead)" },
+  ];
+  const XLSX_SRC = "https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js";
+  let gecDraft = Gec.normalizeControl(Store.readGecControl());
+  let gecSaved = JSON.stringify(gecDraft);
+  let gecFound = { buffer: null, rows: null, error: "" };
+  const gecDirty = () => JSON.stringify(gecDraft) !== gecSaved;
+
+  function setGecHint(text, cls) {
+    const el = $("#gec-control-hint");
+    el.innerHTML = text;
+    el.className = "hint" + (cls ? " " + cls : "");
+  }
+
+  function renderGecControl() {
+    $("#gec-ctl-grid").innerHTML = GEC_GROUPS.map((g) => {
+      const list = gecDraft[g.id];
+      return `<div class="gec-ctl-col" data-group="${g.id}">
+        <div class="gec-ctl-head"><b>${g.title}</b><small>${g.sub}</small></div>
+        <ul class="gec-ctl-list">${list.length ? list.map((x, i) => `
+          <li class="${x.enabled ? "" : "is-off"}">
+            <label title="${x.enabled ? "Enabled — click to disable" : "Disabled — click to enable"}"><input type="checkbox" data-gec-toggle="${g.id}" data-i="${i}"${x.enabled ? " checked" : ""} /><span>${escapeHtml(x.name)}</span></label>
+            <button type="button" data-gec-remove="${g.id}" data-i="${i}" title="Remove “${escapeHtml(x.name)}”" aria-label="Remove">×</button>
+          </li>`).join("") : `<li class="gec-ctl-empty">No statuses</li>`}</ul>
+        <form class="gec-ctl-add" data-gec-add="${g.id}"><input type="text" placeholder="Add status…" maxlength="80" aria-label="Add ${g.title.toLowerCase()}" /><button type="submit" class="btn">Add</button></form>
+      </div>`;
+    }).join("");
+    if (gecDirty()) setGecHint('<span class="gec-ctl-dirty">Unsaved changes</span> — click <b>Save GEC Control</b>, then <b>Push to live</b> to apply them to every live dashboard');
+    else if (gecStaged) setGecHint('<span class="gec-ctl-dirty">Saved as draft · not live</span> — click <b>Push to live</b> to apply it to every live GEC dashboard');
+  }
+
+  function addGecStatus(group, name) {
+    const clean = String(name || "").replace(/\s+/g, " ").trim();
+    if (!clean) return;
+    const list = gecDraft[group];
+    const hit = list.find((x) => x.name.toLowerCase() === clean.toLowerCase());
+    if (hit) hit.enabled = true;
+    else list.push({ name: clean, enabled: true });
+    renderGecControl();
+    renderGecFound();
+  }
+
+  function loadScriptOnce(src) {
+    if (document.querySelector(`script[src="${src}"]`) && window.XLSX) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("Could not load the Excel reader"));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function renderGecFound() {
+    const box = $("#gec-found");
+    const slot = slots.gec;
+    if (!slot || !slot.buffer) {
+      $("#gec-found-tag").textContent = "No GEC File";
+      box.innerHTML = `<p class="foot" style="margin:0">Upload the GEC File in <b>Excel Uploads</b> (slot 7) to list its statuses and classify them here.</p>`;
+      return;
+    }
+    $("#gec-found-tag").textContent = slot.name;
+    if (gecFound.buffer !== slot.buffer) {
+      gecFound = { buffer: slot.buffer, rows: null, error: "" };
+      box.innerHTML = `<p class="foot" style="margin:0">Reading ${escapeHtml(slot.name)}…</p>`;
+      try {
+        await loadScriptOnce(XLSX_SRC);
+        const ds = Gec.parseBuffer(slot.buffer, { fileName: slot.name });
+        const counts = new Map();
+        ds.records.forEach((r) => {
+          const e = counts.get(r.status.toLowerCase()) || { status: r.status, label: r.statusLabel, count: 0 };
+          e.count += 1;
+          counts.set(r.status.toLowerCase(), e);
+        });
+        gecFound.rows = [...counts.values()].sort((a, b) => b.count - a.count);
+        gecFound.total = ds.records.length;
+      } catch (err) {
+        gecFound.error = err.message || String(err);
+      }
+      if (gecFound.buffer !== slot.buffer) return;
+    }
+    if (gecFound.error) { box.innerHTML = `<p class="foot" style="margin:0">Could not read the GEC File: ${escapeHtml(gecFound.error)}</p>`; return; }
+    if (!gecFound.rows) return;
+    Gec.setControl(gecDraft);
+    const STAGE = { visitor: "Visitor (registered)", lead: "Lead", converted: "Converted", unlisted: "Not classified → lead" };
+    const unlisted = gecFound.rows.filter((r) => Gec.classifyStatus(r.status) === "unlisted");
+    box.innerHTML = `<p class="foot" style="margin:0">${formatNumber(gecFound.total)} unique transactions · ${gecFound.rows.length} statuses${unlisted.length ? ` · <b class="gec-ctl-dirty">${unlisted.length} not classified</b>` : " · all classified"} · stage uses the rules above (including unsaved changes)</p>
+      <table class="gec-found-table"><thead><tr><th>Status</th><th class="num">Records</th><th>Stage</th><th>Add to</th></tr></thead><tbody>
+      ${gecFound.rows.map((r) => {
+        const stage = Gec.classifyStatus(r.status);
+        const name = r.status;
+        return `<tr><td>${escapeHtml(r.label)}</td><td class="num">${formatNumber(r.count)}</td>
+          <td><span class="stage s-${stage}">${STAGE[stage]}</span></td>
+          <td>${name ? GEC_GROUPS.map((g) => `<button type="button" class="btn" data-gec-found="${g.id}" data-name="${escapeHtml(name)}">${g.id[0].toUpperCase() + g.id.slice(1)}</button>`).join("") : '<span class="hint">blank status</span>'}</td></tr>`;
+      }).join("")}</tbody></table>`;
+  }
+
+  async function saveGecControl() {
+    const control = Gec.normalizeControl(gecDraft);
+    gecDraft = control;
+    const liveControl = JSON.stringify(Gec.normalizeControl(Store.readGecControl()));
+    gecStaged = JSON.stringify(control) === liveControl ? null : control;
+    gecSaved = JSON.stringify(control);
+    await persistDraft();
+    renderGecControl();
+    renderGecFound();
+    if (!gecStaged) setGecHint("Same as live · nothing to push", "ok");
+    renderSlots();
   }
 
   async function onFileChosen(slotId, file) {
@@ -606,8 +865,9 @@
     try {
       const buffer = await file.arrayBuffer();
       slots[slotId] = { name: file.name, buffer, size: buffer.byteLength };
+      draftSlots.add(slotId);
+      await persistDraft();
       renderSlots();
-      setStatus("File ready — click Push to live", "busy");
     } catch (err) {
       showError(err.message || String(err));
     } finally {
@@ -620,21 +880,44 @@
       await Store.syncFromServer();
       employeeTargets = loadEmployeeTargets();
       allocationValues = loadAllocationValues();
+      if (!gecDirty()) {
+        gecDraft = Gec.normalizeControl(Store.readGecControl());
+        gecSaved = JSON.stringify(gecDraft);
+      }
       renderTargetsPanel();
       renderAllocationPanel();
     } catch {
       /* use local cache */
     }
-    try {
-      const payload = await Store.loadWorkbookFiles();
-      if (!payload || !payload.files) return;
-      Object.keys(payload.files).forEach((id) => {
-        const f = payload.files[id];
-        if (!f || !f.buffer) return;
+    let draft = null;
+    try { draft = await Store.loadAdminDraft(); } catch { /* no draft */ }
+    if (draft && draft.cleared) draftCleared = true;
+    if (!draftCleared) {
+      try {
+        const payload = await Store.loadWorkbookFiles();
+        if (payload && payload.files) {
+          Object.keys(payload.files).forEach((id) => {
+            const f = payload.files[id];
+            if (!f || !f.buffer || draftSlots.has(id) || !slots[id]) return;
+            slots[id] = { name: f.name, buffer: f.buffer, size: f.size || f.buffer.byteLength };
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (draft && draft.files) {
+      Object.keys(draft.files).forEach((id) => {
+        const f = draft.files[id];
+        if (!f || !f.buffer || draftSlots.has(id) || !slots[id]) return;
         slots[id] = { name: f.name, buffer: f.buffer, size: f.size || f.buffer.byteLength };
+        draftSlots.add(id);
       });
-    } catch {
-      /* ignore */
+    }
+    if (draft && draft.gecControl && !gecDirty()) {
+      gecStaged = Gec.normalizeControl(draft.gecControl);
+      gecDraft = Gec.normalizeControl(gecStaged);
+      gecSaved = JSON.stringify(gecDraft);
     }
   }
 
@@ -658,6 +941,10 @@
       localStorage.setItem(WORKING_DAYS_KEY, JSON.stringify({ days: workingDays, at: targetStamp.at }));
       localStorage.setItem(WORKING_DAYS_PUSH_KEY, JSON.stringify({ days: workingDays, at: targetStamp.at }));
 
+      const gecSlaInput = Number($("#gec-sla-minutes").value);
+      const gecSlaMinutes = Number.isFinite(gecSlaInput) && gecSlaInput > 0 ? gecSlaInput : 5;
+      localStorage.setItem(Store.GEC_SLA_KEY, JSON.stringify({ minutes: gecSlaMinutes, at: targetStamp.at }));
+
       allocationValues = collectAllocationFromForm();
       localStorage.setItem(ALLOCATION_PLAN_KEY, JSON.stringify({ values: allocationValues, at: targetStamp.at }));
       localStorage.setItem(ALLOCATION_PLAN_PUSH_KEY, JSON.stringify({ at: targetStamp.at }));
@@ -670,20 +957,44 @@
 
       let serverAt = Date.now();
       let server = null;
+      const pushedGec = gecStaged ? Gec.normalizeControl(gecStaged) : undefined;
+      const pushedClear = draftCleared;
       try {
+        if (pushedClear) await Store.clearOnServer();
         server = await Store.pushToServer({
           targets: employeeTargets,
           accessoriesSettled: settledAmount,
           workingDays,
           allocationValues,
+          gecSlaMinutes,
+          gecControl: pushedGec,
           filesBySlot,
         });
         serverAt = Number(server.at) || serverAt;
+        for (const { id } of B2C_SLOTS) {
+          if (!Array.isArray(server.slots) || !server.slots.includes(id) || !(server[id] || !filesBySlot[id])) continue;
+          const merged = await fetchServerSlot(id);
+          if (merged) {
+            slots[id] = merged;
+            filesBySlot[id] = { name: merged.name, buffer: merged.buffer };
+            renderSlots();
+          }
+        }
       } catch (err) {
         showError(`Server sync failed: ${err.message || err}. Saved on this browser only.`);
       }
 
       const dataStamp = await Store.saveWorkbookFiles(filesBySlot, { at: serverAt });
+      if (server) {
+        if (pushedGec) {
+          Store.writeGecControl(pushedGec, serverAt);
+          Store.notifyGecControl();
+        }
+        await discardDraft();
+        renderSlots();
+        renderGecControl();
+        if (!gecDirty()) setGecHint(`Live · pushed ${new Date(serverAt).toLocaleTimeString()}`, "ok");
+      }
 
       Store.broadcast({
         type: "admin-pushed",
@@ -702,7 +1013,8 @@
       renderAllocationPanel();
       const slotCount = Object.keys(filesBySlot).length;
       if (!slotCount) {
-        setStatus("Pushed settings only — upload at least one Excel file, then Push again.", "err");
+        if (pushedClear && server) setStatus("Live files cleared · settings pushed", "ok");
+        else setStatus("Pushed settings only — upload at least one Excel file, then Push again.", "err");
         return;
       }
       const srOk = dataStamp.hasSales;
@@ -712,10 +1024,17 @@
       const serverNote = server
         ? ""
         : " · server was offline (saved in this browser only)";
+      const lexusNote = B2C_SLOTS.map(({ id, label }) => {
+        const m = server && server[id];
+        if (!m) return "";
+        return m.error
+          ? ` · ${label}: ${m.error}`
+          : ` · ${label}: ${m.added} new, ${m.updated} updated, ${m.kept} kept${m.skipped ? `, ${m.skipped} closed at month end skipped` : ""} (${m.total} orders)`;
+      }).join("");
       setStatus(
         srOk
-          ? `Pushed ${slotCount} file(s) to live — open Live Dashboard and it will load${rtlNote}${serverNote}`
-          : `Pushed ${slotCount} file(s) to live — add Sales Raw for Sales Report${rtlNote}${serverNote}`,
+          ? `Pushed ${slotCount} file(s) to live — open Live Dashboard and it will load${rtlNote}${lexusNote}${serverNote}`
+          : `Pushed ${slotCount} file(s) to live — add Sales Raw for Sales Report${rtlNote}${lexusNote}${serverNote}`,
         server ? "ok" : "busy"
       );
       // Open / focus the live dashboard so Push visibly loads the panels
@@ -728,13 +1047,106 @@
     }
   }
 
+  async function fetchServerSlot(id) {
+    try {
+      const res = await fetch(`/api/report-sheet/file/${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!res.ok) return null;
+      const buffer = await res.arrayBuffer();
+      let name = `${id}.xlsx`;
+      try { name = decodeURIComponent(res.headers.get("X-Report-Sheet-Name") || name); } catch { /* keep */ }
+      return { name, buffer, size: buffer.byteLength };
+    } catch {
+      return null;
+    }
+  }
+
+  function openEndOfMonth() {
+    $("#eom-password").value = "";
+    $("#eom-err").textContent = "";
+    $("#eom-run").disabled = false;
+    $("#eom-dialog").showModal();
+    $("#eom-password").focus();
+  }
+
+  async function runEndOfMonth(e) {
+    e.preventDefault();
+    const password = $("#eom-password").value;
+    if (!password) return;
+    $("#eom-run").disabled = true;
+    $("#eom-err").textContent = "Building the Excel…";
+    setStatus("End of month…", "busy");
+    try {
+      const res = await fetch("/api/report-sheet/end-of-month", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `End of month failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      let fileName = "End-of-month.xlsx";
+      let info = {};
+      try { fileName = decodeURIComponent(res.headers.get("X-File-Name") || fileName); } catch { /* keep */ }
+      try { info = JSON.parse(decodeURIComponent(res.headers.get("X-End-Of-Month") || "%7B%7D")); } catch { /* keep */ }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      $("#eom-dialog").close();
+
+      const brands = info.brands || { lexusB2c: { label: "Lexus", hasFile: true, removed: info.removed, delivered: info.delivered, cancelled: info.cancelled, kept: info.kept } };
+      const changed = B2C_SLOTS.filter(({ id }) => brands[id] && brands[id].removed);
+      if (changed.length) {
+        for (const { id } of changed) {
+          const merged = await fetchServerSlot(id);
+          if (merged) slots[id] = merged;
+        }
+        try { await Store.syncFromServer({ force: true }); } catch { /* next load syncs */ }
+        Store.broadcast({ type: "admin-pushed", at: Number(info.at) || Date.now() });
+        renderSlots();
+      }
+      const brandText = B2C_SLOTS
+        .map(({ id }) => brands[id])
+        .filter((b) => b && (b.hasFile || b.removed))
+        .map((b) => `${b.label}: ${b.removed || 0} removed (${b.delivered || 0} delivered, ${b.cancelled || 0} cancelled) · ${b.kept || 0} in progress kept`)
+        .join(" · ");
+      setStatus(
+        `End of month done · ${fileName} downloaded (${info.sheets || 0} sheets from ${info.files || 0} file(s))${brandText ? ` · ${brandText}` : ""}`,
+        "ok"
+      );
+    } catch (err) {
+      $("#eom-err").textContent = err.message || String(err);
+      $("#eom-run").disabled = false;
+      $("#eom-password").select();
+      setStatus("End of month not run", "err");
+    }
+  }
+
   async function clearFiles() {
     SLOT_DEFS.forEach((d) => { slots[d.id] = { name: "", buffer: null, size: 0 }; });
-    try { await Store.clearWorkbookFiles(); } catch { /* ignore */ }
-    try { await Store.clearOnServer(); } catch { /* ignore */ }
-    Store.broadcast({ type: "admin-cleared", at: Date.now() });
+    draftSlots.clear();
+    draftCleared = true;
+    await persistDraft();
     renderSlots();
-    setStatus("Files cleared on server", "ok");
+  }
+
+  async function discardDraftAndReload() {
+    if (!confirm("Discard the draft and reload the files currently live?")) return;
+    await discardDraft();
+    SLOT_DEFS.forEach((d) => { slots[d.id] = { name: "", buffer: null, size: 0 }; });
+    gecDraft = Gec.normalizeControl(Store.readGecControl());
+    gecSaved = JSON.stringify(gecDraft);
+    await hydrateFromStore();
+    renderSlots();
+    renderGecControl();
+    renderGecFound();
+    setStatus("Draft discarded · showing live files", "ok");
   }
 
   document.querySelectorAll("[data-admin-panel]").forEach((btn) => {
@@ -770,6 +1182,10 @@
   $("#push-btn-2").addEventListener("click", pushToLive);
   $("#push-btn-3").addEventListener("click", pushToLive);
   $("#clear-files-btn").addEventListener("click", clearFiles);
+  $("#discard-draft-btn").addEventListener("click", discardDraftAndReload);
+  $("#eom-btn").addEventListener("click", openEndOfMonth);
+  $("#eom-form").addEventListener("submit", runEndOfMonth);
+  $("#eom-cancel").addEventListener("click", () => $("#eom-dialog").close());
   $("#allocation-plan-wrap").addEventListener("input", (e) => {
     const input = e.target.closest("[data-alloc-id]");
     if (!input) return;
@@ -810,11 +1226,46 @@
     if (!input) return;
     onFileChosen(input.dataset.slot, input.files[0]);
   });
+  $("#gec-ctl-grid").addEventListener("change", (e) => {
+    const t = e.target.closest("[data-gec-toggle]");
+    if (!t) return;
+    const item = gecDraft[t.dataset.gecToggle][Number(t.dataset.i)];
+    if (item) item.enabled = t.checked;
+    renderGecControl();
+    renderGecFound();
+  });
+  $("#gec-ctl-grid").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-gec-remove]");
+    if (!b) return;
+    gecDraft[b.dataset.gecRemove].splice(Number(b.dataset.i), 1);
+    renderGecControl();
+    renderGecFound();
+  });
+  $("#gec-ctl-grid").addEventListener("submit", (e) => {
+    const form = e.target.closest("[data-gec-add]");
+    if (!form) return;
+    e.preventDefault();
+    addGecStatus(form.dataset.gecAdd, form.querySelector("input").value);
+  });
+  $("#gec-found").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-gec-found]");
+    if (b) addGecStatus(b.dataset.gecFound, b.dataset.name);
+  });
+  $("#gec-control-save").addEventListener("click", saveGecControl);
+  $("#gec-control-reset").addEventListener("click", () => {
+    if (!confirm("Reset GEC Control to the default status lists? (Click Save to apply.)")) return;
+    gecDraft = Gec.defaultControl();
+    renderGecControl();
+    renderGecFound();
+  });
 
   showAdminPanel("uploads");
   renderTargetsPanel();
   renderAllocationPanel();
-  hydrateFromStore().then(renderSlots);
+  hydrateFromStore().then(() => {
+    renderSlots();
+    if (!$("#panel-gec").hidden) { renderGecControl(); renderGecFound(); }
+  });
 })();
 </script>
 </body>

@@ -493,6 +493,7 @@
       <div class="nav-links">
         <a href="admin.html">Admin Push</a>
         <a href="index.html">Live Dashboard</a>
+        <a href="rtlComparing.html">RTL Comparing</a>
       </div>
     </div>
 
@@ -694,6 +695,7 @@
   const RTL_IDB_NAME = "toyota_rtl_daily_files_v1";
   const RTL_IDB_STORE = "day_files";
   const RTL_IDB_KEY = "by_date_v1";
+  const RTL_IDB_VERSION = 2;
 
   let scanned = [];
   let scannedFileName = "";
@@ -715,58 +717,72 @@
 
   const $ = (sel) => document.querySelector(sel);
 
-  function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-    }
-    return btoa(binary);
-  }
-
   function openRtlIdb() {
     return new Promise((resolve, reject) => {
-      const req = indexedDB.open(RTL_IDB_NAME, 1);
-      req.onupgradeneeded = () => {
+      const req = indexedDB.open(RTL_IDB_NAME, RTL_IDB_VERSION);
+      req.onupgradeneeded = (ev) => {
         const db = req.result;
-        if (!db.objectStoreNames.contains(RTL_IDB_STORE)) db.createObjectStore(RTL_IDB_STORE);
+        const tx = req.transaction;
+        const store = db.objectStoreNames.contains(RTL_IDB_STORE)
+          ? tx.objectStore(RTL_IDB_STORE)
+          : db.createObjectStore(RTL_IDB_STORE);
+        // v1 kept every day Excel in one record. Split them so a key list does not load the files.
+        if (ev.oldVersion > 0 && ev.oldVersion < 2) {
+          const getReq = store.get(RTL_IDB_KEY);
+          getReq.onsuccess = () => {
+            const map = getReq.result;
+            if (!map || typeof map !== "object") return;
+            Object.entries(map).forEach(([dateKey, pack]) => {
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !pack) return;
+              store.put(pack, dateKey);
+            });
+            store.delete(RTL_IDB_KEY);
+          };
+        }
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error || new Error("IndexedDB open failed"));
     });
   }
 
-  function idbGetRtlDays() {
+  function idbListRtlDayKeys() {
     return openRtlIdb().then(
       (db) =>
         new Promise((resolve, reject) => {
           const tx = db.transaction(RTL_IDB_STORE, "readonly");
-          const req = tx.objectStore(RTL_IDB_STORE).get(RTL_IDB_KEY);
-          req.onsuccess = () => resolve(req.result && typeof req.result === "object" ? req.result : {});
+          const req = tx.objectStore(RTL_IDB_STORE).getAllKeys();
+          req.onsuccess = () => resolve(
+            (req.result || []).map(String).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))
+          );
           req.onerror = () => reject(req.error);
         })
     );
   }
 
-  function idbSetRtlDays(map) {
+  function idbGetRtlDay(dateKey) {
     return openRtlIdb().then(
       (db) =>
         new Promise((resolve, reject) => {
-          const tx = db.transaction(RTL_IDB_STORE, "readwrite");
-          tx.objectStore(RTL_IDB_STORE).put(map || {}, RTL_IDB_KEY);
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => reject(tx.error);
+          const tx = db.transaction(RTL_IDB_STORE, "readonly");
+          const req = tx.objectStore(RTL_IDB_STORE).get(dateKey);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
         })
     );
   }
 
-  /** Merge day packs into IndexedDB in one read/write (much faster than per-day cache). */
+  /** Write only the days that changed. Does not read or rewrite the other Excel files. */
   async function idbMergeRtlDays(updates) {
-    if (!updates || !Object.keys(updates).length) return;
-    const all = await idbGetRtlDays();
-    Object.assign(all, updates);
-    await idbSetRtlDays(all);
+    const entries = Object.entries(updates || {}).filter(([, pack]) => pack);
+    if (!entries.length) return;
+    const db = await openRtlIdb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(RTL_IDB_STORE, "readwrite");
+      const store = tx.objectStore(RTL_IDB_STORE);
+      entries.forEach(([dateKey, pack]) => store.put(pack, dateKey));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   }
 
   /** Run async work over items with a concurrency limit. */
@@ -810,8 +826,7 @@
    * Parallel uploads (skip re-writing IndexedDB — data is already local).
    */
   async function restoreBrowserDayFilesToServer({ onProgress } = {}) {
-    const local = await idbGetRtlDays();
-    const dates = Object.keys(local || {}).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    const dates = (await idbListRtlDayKeys()).sort();
     if (!dates.length) return { restored: 0, skipped: 0, failed: 0 };
     const toRestore = [];
     let skipped = 0;
@@ -820,9 +835,7 @@
         skipped += 1;
         continue;
       }
-      const pack = local[dateKey];
-      if (!pack || !pack.buffer) continue;
-      toRestore.push({ dateKey, pack });
+      toRestore.push(dateKey);
     }
     if (!toRestore.length) return { restored: 0, skipped, failed: 0 };
 
@@ -832,8 +845,10 @@
     const total = toRestore.length;
     if (typeof onProgress === "function") onProgress({ done: 0, total, restored, failed });
 
-    await mapPool(toRestore, 4, async ({ dateKey, pack }) => {
+    await mapPool(toRestore, 4, async (dateKey) => {
       try {
+        const pack = await idbGetRtlDay(dateKey);
+        if (!pack || !pack.buffer) return;
         const blob = new Blob([pack.buffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
@@ -972,12 +987,13 @@
     setStatus($("#day-cal-status"), text, kind);
   }
 
-  async function saveRtlToServer({ dateKey, fileName, source, fileBlob, excelBase64, vehicles, skipBrowserCache }) {
+  async function saveRtlToServer({ dateKey, fileName, source, fileBlob, fileBuffer, excelBase64, vehicles, skipBrowserCache }) {
     // Prefer binary upload (same durability as Admin Push Excel on disk).
     let saved = null;
     let bufferForCache = null;
-    if (fileBlob && (fileBlob instanceof Blob || fileBlob instanceof File) && fileBlob.size > 0) {
-      const buf = await fileBlob.arrayBuffer();
+    const readyBuffer = fileBuffer && fileBuffer.byteLength ? fileBuffer : null;
+    if (readyBuffer || (fileBlob && (fileBlob instanceof Blob || fileBlob instanceof File) && fileBlob.size > 0)) {
+      const buf = readyBuffer || await fileBlob.arrayBuffer();
       bufferForCache = buf;
       const qs = new URLSearchParams({
         date: dateKey,
@@ -1045,14 +1061,14 @@
 
     try {
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const wb = XLSX.read(buf, { type: "array", dense: true, cellDates: true });
       const result = scanRtlWorkbook(wb);
       scanned = result.vehicles;
       scannedHeaders = result.headers || [];
       scannedExtraHeaders = result.extraHeaders || [];
       scannedFileName = file.name;
       scannedFileBlob = file;
-      scannedExcelBase64 = arrayBufferToBase64(buf);
+      scannedExcelBase64 = "";
       $("#kpi-rows").textContent = String(result.rowsRead || 0);
       renderPreview();
 
@@ -1075,7 +1091,7 @@
         fileName: scannedFileName,
         source: "uploader-day-box",
         fileBlob: file,
-        excelBase64: scannedExcelBase64,
+        fileBuffer: buf,
         vehicles: scanned,
       });
       setStatus(
@@ -1301,6 +1317,7 @@
 
       const details = {};
       headers.forEach((h, i) => {
+        if (mappedIdx.has(i)) return;
         const val = cellToString(line[i]);
         if (!val) return;
         details[h] = val;
@@ -1407,89 +1424,87 @@
     $("#btn-clear-preview").disabled = !scanned.length;
   }
 
-  async function loadMonthDayStats(monthKey) {
+  function applyMonthStatsFromMeta(monthKey) {
     const mk = String(monthKey || "").trim() || monthKeyFromDate(todayRiyadh());
     monthAge0ByDay = {};
     monthVinByDay = {};
+    Object.keys(activeByDay || {}).forEach((dateKey) => {
+      if (!String(dateKey).startsWith(mk)) return;
+      const snap = activeSnapForDay(dateKey);
+      if (!snap) return;
+      monthVinByDay[dateKey] = Number(snap.count) || 0;
+      if (snap.age0 != null && snap.age0 !== "") monthAge0ByDay[dateKey] = Number(snap.age0);
+    });
+  }
+
+  let archiveSyncGen = 0;
+
+  /** Browser restore and Excel backups run after the calendar is already on screen. */
+  async function syncArchiveInBackground(gen, { autoRestore }) {
+    if (autoRestore) {
+      try {
+        const r = await restoreBrowserDayFilesToServer({
+          onProgress: ({ done, total }) => {
+            if (gen !== archiveSyncGen || !total) return;
+            setStatus($("#list-status"), `Archive ready · restoring browser backups ${done}/${total}…`);
+          },
+        });
+        if (gen !== archiveSyncGen) return;
+        if (r.restored > 0) {
+          await loadMeta({ autoRestore: false });
+          return;
+        }
+      } catch (restoreErr) {
+        console.warn("[rtl-daily] browser restore", restoreErr);
+      }
+    }
+    if (gen !== archiveSyncGen) return;
     try {
-      const res = await fetch(`/api/rtl-daily/active-month?month=${encodeURIComponent(mk)}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const pack = await res.json();
-      Object.entries(pack.days || {}).forEach(([dateKey, snap]) => {
-        monthVinByDay[dateKey] = Number(snap.count) || ((snap.vehicles || []).length) || 0;
-        monthAge0ByDay[dateKey] = Number.isFinite(Number(snap.age0))
-          ? Number(snap.age0)
-          : countAge0(snap.vehicles || []);
+      const have = new Set(await idbListRtlDayKeys());
+      if (gen !== archiveSyncGen) return;
+      const missing = Object.keys(activeByDay || {}).filter((dateKey) => !have.has(dateKey));
+      if (!missing.length) return;
+      const updates = {};
+      await mapPool(missing, 4, async (dateKey) => {
+        if (gen !== archiveSyncGen) return;
+        const excelRes = await fetch(`/api/rtl-daily/by-day/${encodeURIComponent(dateKey)}/excel`, { cache: "no-store" });
+        if (!excelRes.ok) return;
+        const buf = await excelRes.arrayBuffer();
+        const snap = snapshots.find((s) => (s.date || "") === dateKey && s.active)
+          || snapshots.find((s) => (s.date || "") === dateKey);
+        updates[dateKey] = {
+          fileName: (snap && snap.fileName) || `${dateKey}.xlsx`,
+          buffer: buf,
+          count: snap && snap.count,
+          age0: snap && snap.age0,
+          source: "server-sync",
+          at: Date.now(),
+        };
       });
-    } catch {
-      /* ignore — day boxes still show from meta */
+      if (gen !== archiveSyncGen || !Object.keys(updates).length) return;
+      await idbMergeRtlDays(updates);
+    } catch (syncErr) {
+      console.warn("[rtl-daily] browser sync", syncErr);
     }
   }
 
   async function loadMeta({ autoRestore = true } = {}) {
+    const gen = ++archiveSyncGen;
     setStatus($("#list-status"), "Loading…");
     try {
       const res = await fetch(API_META, { cache: "no-store" });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
       const data = await res.json();
+      if (gen !== archiveSyncGen) return;
       snapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
       activeByDay = data.activeByDay && typeof data.activeByDay === "object" ? data.activeByDay : {};
-      let restoreNote = "";
-      if (Number(data.rehydratedDays) > 0) {
-        restoreNote = ` · reloaded ${data.rehydratedDays} day(s) from by-day Excel`;
-      }
-      if (autoRestore) {
-        try {
-          const r = await restoreBrowserDayFilesToServer({
-            onProgress: ({ done, total }) => {
-              if (total > 0) {
-                setStatus($("#list-status"), `Restoring browser backups… ${done}/${total}`);
-              }
-            },
-          });
-          if (r.restored > 0) {
-            restoreNote += ` · restored ${r.restored} from this browser`;
-            const res2 = await fetch(API_META, { cache: "no-store" });
-            if (res2.ok) {
-              const data2 = await res2.json();
-              snapshots = Array.isArray(data2.snapshots) ? data2.snapshots : snapshots;
-              activeByDay = data2.activeByDay && typeof data2.activeByDay === "object" ? data2.activeByDay : activeByDay;
-            }
-          }
-        } catch (restoreErr) {
-          console.warn("[rtl-daily] browser restore", restoreErr);
-        }
-      }
-      // Keep browser backups in sync with server by-day Excels (incl. Admin Push → today).
-      try {
-        const local = await idbGetRtlDays();
-        const missing = Object.keys(activeByDay || {}).filter((dateKey) => !(local[dateKey] && local[dateKey].buffer));
-        if (missing.length) {
-          const updates = {};
-          await mapPool(missing, 6, async (dateKey) => {
-            const excelRes = await fetch(`/api/rtl-daily/by-day/${encodeURIComponent(dateKey)}/excel`, { cache: "no-store" });
-            if (!excelRes.ok) return;
-            const buf = await excelRes.arrayBuffer();
-            const snap = snapshots.find((s) => (s.date || "") === dateKey && s.active)
-              || snapshots.find((s) => (s.date || "") === dateKey);
-            updates[dateKey] = {
-              fileName: (snap && snap.fileName) || `${dateKey}.xlsx`,
-              buffer: buf,
-              count: snap && snap.count,
-              age0: snap && snap.age0,
-              source: "server-sync",
-              at: Date.now(),
-            };
-          });
-          await idbMergeRtlDays(updates);
-        }
-      } catch (syncErr) {
-        console.warn("[rtl-daily] browser sync", syncErr);
-      }
+      const restoreNote = Number(data.rehydratedDays) > 0
+        ? ` · reloaded ${data.rehydratedDays} day(s) from by-day Excel`
+        : "";
       const activeDays = Object.keys(activeByDay).length;
       const cal = $("#cal-month");
       const mk = (cal && cal.value) || monthKeyFromDate(todayRiyadh());
-      await loadMonthDayStats(mk);
+      applyMonthStatsFromMeta(mk);
       renderSnapList();
       renderDayGrid();
       fillCompareSelects();
@@ -1499,7 +1514,9 @@
           ? `${snapshots.length} snapshot(s) · ${activeDays} active day(s) for schedule${restoreNote}`
           : `No snapshots yet${restoreNote}`
       );
+      void syncArchiveInBackground(gen, { autoRestore });
     } catch (err) {
+      if (gen !== archiveSyncGen) return;
       setStatus($("#list-status"), err.message || "Failed to load", "err");
     }
   }
@@ -1651,7 +1668,7 @@
     const day = selectedDayKey ? Number(selectedDayKey.slice(8, 10)) : 1;
     const dim = daysInMonth(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)));
     const nextDay = Math.min(Math.max(1, day || 1), dim);
-    await loadMonthDayStats(mk);
+    applyMonthStatsFromMeta(mk);
     selectScheduleDay(dateKeyForDay(mk, nextDay), { syncMonth: false });
   });
 

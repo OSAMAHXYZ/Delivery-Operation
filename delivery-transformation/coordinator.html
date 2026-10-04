@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منسق التسليم — Delivery Transformation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../delivery-hub/delivery-user-ui.css?v=20260906a" />
+  <link rel="stylesheet" href="coordinator.css?v=20261001cc3" />
+</head>
+<body class="user-ui">
+  <div id="gateLogin">
+    <div class="gate-card">
+      <div class="gate-eyebrow">Coordinator · Live Sheet</div>
+      <h2>منسق التسليم</h2>
+      <p class="gate-lead">اختر اسمك · انقر الشاسيه من Live Sheet لطباعة مذكرة الترحيل</p>
+      <div class="gate-user">
+        <div>
+          <label for="loginUser">اسم المستخدم</label>
+          <select id="loginUser" required></select>
+        </div>
+        <div>
+          <label for="loginPass">كلمة المرور</label>
+          <input id="loginPass" type="password" value="1234" autocomplete="current-password" />
+        </div>
+        <button type="button" class="btn btn-primary" id="btnLogin">دخول</button>
+        <p class="ws-toast" id="loginStatus"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="agentWorkspace" class="hidden">
+    <div class="ws-shell">
+      <div class="ws-topbar">
+        <div class="ws-brand">
+          <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'" />
+          <div>
+            <h1>لوحة الترحيل <span class="live-pill" id="livePill" title="Live">● Live</span></h1>
+            <p>السيارات المعيّنة للناقل · انقر الشاسيه لطباعة مذكرة الترحيل</p>
+          </div>
+        </div>
+        <div class="ws-user-pill">
+          <a href="index.html" class="btn-ghost">المركز</a>
+          <a href="inventory-managment.html" class="btn-ghost">المخزون</a>
+          <strong id="loggedAs">مرحباً</strong>
+          <button type="button" class="btn-ghost" id="btnLogout">خروج</button>
+        </div>
+      </div>
+
+      <div class="ws-stats" id="wsStats"></div>
+
+      <section class="co-actions" aria-label="إجراءات المنسق">
+        <button type="button" class="co-action co-action--warehouse" id="btnWarehouse">
+          <span class="co-action-ico" aria-hidden="true">🏬</span>
+          <span class="co-action-text"><b>التسليم في المستودع</b><small>ابحث الشاسيه واطبع قائمة الفحص</small></span>
+        </button>
+        <button type="button" class="co-action co-action--missing" id="btnMissingVin">
+          <span class="co-action-ico" aria-hidden="true">🔎</span>
+          <span class="co-action-text"><b>في حال عدم وجود السيارة</b><small>اختر من كل شاسيهات Live Sheet</small></span>
+        </button>
+        <button type="button" class="co-action co-action--display" id="btnDisplayInternal">
+          <span class="co-action-ico" aria-hidden="true">🏷</span>
+          <span class="co-action-text"><b>Display &amp; Internal</b><small>صالة عرض أو داخلي</small></span>
+        </button>
+      </section>
+
+      <section class="ws-section co-perf-section hidden" id="coPerfSection">
+        <div class="ws-section-head">
+          <h2>Company performance</h2>
+          <span class="hint">Assignment → Hanouf Sales Raw · unique VIN · avg days uses completed only</span>
+        </div>
+        <div class="co-perf-filters">
+          <label>From <input type="date" id="coPerfFrom" /></label>
+          <label>To <input type="date" id="coPerfTo" /></label>
+          <button type="button" class="btn-ghost" id="coPerfApply">Apply</button>
+          <button type="button" class="btn-ghost" id="coPerfMonth">This month</button>
+          <span class="hint" id="coPerfMeta">—</span>
+        </div>
+        <div class="co-perf-layout">
+          <div class="co-perf-donut-card" id="coPerfDonut">
+            <div class="co-perf-donut-head">
+              <div>
+                <h3>Days to Sales</h3>
+                <p class="co-perf-sub">Assignment → Hanouf</p>
+              </div>
+              <button type="button" class="btn-ghost" id="coPerfMore">More Details</button>
+            </div>
+            <div class="co-perf-donut-body" id="coPerfDonutBody"></div>
+          </div>
+          <div class="co-perf-chart-card">
+            <h3>Avg. Days by Company</h3>
+            <div class="co-perf-bars" id="coPerfBars"></div>
+          </div>
+        </div>
+        <div class="table-wrap co-perf-table-wrap">
+          <table class="coord-sheet co-perf-table" id="coPerfTable">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="num">Total VINs</th>
+                <th class="num">Completed</th>
+                <th class="num">Pending</th>
+                <th class="num">Avg. Days to Sales</th>
+              </tr>
+            </thead>
+            <tbody id="coPerfTbody">
+              <tr><td colspan="5">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <nav class="co-view-tabs" role="tablist" aria-label="العرض">
+        <button type="button" class="co-view-tab is-active" id="tabFleet" role="tab" aria-selected="true">
+          السيارات المعيّنة <span class="co-view-count" id="tabFleetCount">0</span>
+        </button>
+        <button type="button" class="co-view-tab" id="tabLiveSheet" role="tab" aria-selected="false">
+          Live Sheet <span class="co-view-ro">عرض فقط</span> <span class="co-view-count" id="tabLiveCount">0</span>
+        </button>
+      </nav>
+
+      <section class="ws-section co-fleet-section" id="coFleetSection">
+        <div class="ws-section-head">
+          <h2>السيارات المعيّنة حسب الناقل</h2>
+          <span class="hint">تعيين هنوف / رشا يظهر هنا فوراً · انقر الشاسيه لطباعة المذكرة</span>
+        </div>
+        <div class="fleet-search-wrap">
+          <input type="search" id="availableVinSearch" class="fleet-search"
+            placeholder="ابحث برقم الشاسيه أو الشركة أو المنتج… مثال 7022 أو JTNB"
+            autocomplete="off" spellcheck="false" inputmode="search" />
+          <span class="fleet-search-count" id="availableVinSearchCount"></span>
+          <button type="button" class="fleet-expand-btn" id="fleet-fold-all">طي الكل</button>
+          <button type="button" class="fleet-expand-btn" id="fleet-open-all">فتح الكل</button>
+        </div>
+        <div class="fleet-companies" id="availableFleet"></div>
+        <p class="ws-empty fleet-search-empty hidden" id="availableVinSearchEmpty">
+          لا توجد نتائج مطابقة للبحث
+          <button type="button" class="btn-missing-vin btn-missing-vin--empty" id="btnMissingVinEmpty">
+            في حال عدم وجود السيارة اضغط هنا
+          </button>
+        </p>
+      </section>
+
+      <section class="ws-section co-live-section hidden" id="coLiveSheetSection">
+        <div class="ws-section-head">
+          <h2>Live Sheet <span class="co-ro-badge">عرض فقط</span></h2>
+          <span class="hint" id="liveSheetHint">يتحدّث تلقائياً</span>
+        </div>
+        <div class="fleet-search-wrap">
+          <input type="search" id="liveSheetSearch" class="fleet-search"
+            placeholder="ابحث في Live Sheet… شاسيه، عميل، موظف، ناقل، مدينة"
+            autocomplete="off" spellcheck="false" inputmode="search" />
+          <span class="fleet-search-count" id="liveSheetSearchCount"></span>
+          <span class="co-live-pulse" id="liveSheetPulse" title="تحديث مباشر"><i></i> مباشر</span>
+        </div>
+        <div class="coord-sheet-wrap">
+          <table class="coord-sheet" id="coordLiveTable"></table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="mainApp" class="hidden">
+    <nav class="page-nav no-print">
+      <a href="#" class="page-nav-brand" id="brandHome">
+        <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'" />
+        <span id="navTitle">مذكرة ترحيل السيارات</span>
+      </a>
+      <button type="button" class="nav-btn primary" id="btnBackWorkspace">← لوحة السيارات</button>
+    </nav>
+
+    <div class="layout">
+      <header class="hero no-print">
+        <h1 id="printHeroTitle">مذكرة ترحيل السيارات</h1>
+        <p id="printHeroHint">اكتب اسم الشركة · الفرع من مدينة الترحيل على Live Sheet · رقم المذكرة تلقائي من 1000</p>
+      </header>
+
+      <div class="form-col">
+        <form id="deliveryForm">
+          <section class="card memo-only-section">
+            <h2>بيانات المذكرة — Header</h2>
+            <div class="grid grid-4">
+              <div>
+                <label for="doc_date">التاريخ / Date</label>
+                <input id="doc_date" name="doc_date" type="date" required />
+              </div>
+              <div>
+                <label for="invoice_number">رقم المذكرة / Memo No.</label>
+                <input id="invoice_number" name="invoice_number" type="text" inputmode="numeric" required readonly />
+              </div>
+              <div>
+                <label for="dep_hour">ساعة الخروج / Hour</label>
+                <input id="dep_hour" name="dep_hour" type="text" inputmode="numeric" />
+              </div>
+              <div>
+                <label for="dep_minute">دقيقة الخروج / Minute</label>
+                <input id="dep_minute" name="dep_minute" type="text" inputmode="numeric" />
+              </div>
+            </div>
+          </section>
+
+          <section class="card memo-only-section">
+            <h2>بيانات العميل والنقل — Customer &amp; Transport</h2>
+            <div class="grid grid-2">
+              <div>
+                <label for="company_rep">اسم الشركة / Company <span class="req">*</span></label>
+                <select id="company_rep" name="company_rep" required>
+                  <option value="">— اختر الشركة —</option>
+                </select>
+                <p class="company-lock-hint hidden" id="companyLockHint"></p>
+              </div>
+              <div>
+                <label for="customer_name">مندوب الشركة / Name <span class="req">*</span></label>
+                <input id="customer_name" name="customer_name" type="text" required list="rep-list"
+                  placeholder="اكتب اسم المندوب" autocomplete="off" />
+                <datalist id="rep-list"></datalist>
+              </div>
+              <div>
+                <label for="transfer_date">تاريخ الترحيل / Transfer Date</label>
+                <input id="transfer_date" name="transfer_date" type="date" />
+              </div>
+              <div>
+                <label for="corresponding_date">الموافق / Corresponding Date</label>
+                <input id="corresponding_date" name="corresponding_date" type="date" />
+              </div>
+              <div>
+                <label for="day_name">اليوم / Day</label>
+                <input id="day_name" name="day_name" type="text" readonly />
+              </div>
+              <div>
+                <label for="trailer_number">رقم التريلا / Trailer No.</label>
+                <input id="trailer_number" name="trailer_number" type="text" />
+              </div>
+              <div>
+                <label for="car_count">عدد السيارات / Car Count</label>
+                <input id="car_count" name="car_count" type="text" readonly />
+              </div>
+              <div>
+                <label for="branch_to">محولة إلى فرع / Branch <span class="req hidden" id="branchReq">*</span></label>
+                <input id="branch_to" name="branch_to" type="text" required readonly list="branch-list" autocomplete="off" />
+                <datalist id="branch-list"></datalist>
+              </div>
+              <div style="grid-column:1/-1">
+                <label for="attachments">المرفقات / Attachments <span class="req hidden" id="attachReq">*</span></label>
+                <textarea id="attachments" name="attachments" rows="2"></textarea>
+                <div id="attachmentsManual" class="attach-choices hidden">
+                  <label class="attach-opt">
+                    <input type="radio" name="attach_opt" value="صالة عرض" />
+                    <span>صالة عرض</span>
+                  </label>
+                  <label class="attach-opt">
+                    <input type="radio" name="attach_opt" value="تسليم" />
+                    <span>تسليم</span>
+                  </label>
+                </div>
+                <div id="attachmentsDisplay" class="attach-choices hidden">
+                  <label class="attach-opt">
+                    <input type="radio" name="display_opt" value="داخلي" />
+                    <span>داخلي</span>
+                  </label>
+                  <label class="attach-opt">
+                    <input type="radio" name="display_opt" value="صالة عرض" />
+                    <span>صالة عرض</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card warehouse-top-fields hidden" id="warehouseTopFields">
+            <h2>بيانات قائمة فحص التسليم</h2>
+            <p class="hint">هذه الحقول تظهر على نموذج المستودع · الشاسية من البحث</p>
+            <div class="grid grid-2">
+              <div>
+                <label for="wh_owner_name">اسم المالك</label>
+                <input id="wh_owner_name" name="wh_owner_name" type="text" placeholder="اسم المالك" />
+              </div>
+              <div>
+                <label for="wh_user_name">اسم المستخدم</label>
+                <input id="wh_user_name" name="wh_user_name" type="text" placeholder="اسم المستخدم" />
+              </div>
+              <div>
+                <label for="wh_user_phone">هاتف</label>
+                <input id="wh_user_phone" name="wh_user_phone" type="text" placeholder="05xxxxxxxx" />
+              </div>
+              <div>
+                <label for="wh_user_id">رقم الهوية</label>
+                <input id="wh_user_id" name="wh_user_id" type="text" placeholder="رقم الهوية" />
+              </div>
+              <div>
+                <label for="wh_print_date">تاريخ طباعة المستند</label>
+                <input id="wh_print_date" name="wh_print_date" type="date" />
+              </div>
+              <div>
+                <label for="wh_print_time">وقت طباعة المستند</label>
+                <input id="wh_print_time" name="wh_print_time" type="time" step="1" />
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>جدول السيارات — Vehicles</h2>
+            <p class="hint" id="carsHint">الشاسية من Live Sheet · يمكن تعديل اللوحة والملاحظات قبل الطباعة</p>
+            <div style="overflow-x:auto;margin-top:10px">
+              <table class="cars-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>الموديل / Model</th>
+                    <th>الشاسية / Chassis</th>
+                    <th>رقم اللوحة / Plate</th>
+                    <th>ملاحظات / Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="carsBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="actions no-print">
+            <button type="button" class="btn btn-primary" id="btnPrint">🖨 طباعة A4</button>
+            <button type="button" class="btn btn-secondary" id="btnToday">تعيين تاريخ اليوم</button>
+            <p class="status no-print" id="printStatus"></p>
+          </div>
+        </form>
+      </div>
+
+      <aside class="preview-panel">
+        <div class="preview-card">
+          <h2 class="no-print" id="previewTitle">معاينة مذكرة الترحيل</h2>
+          <div class="print-sheet" id="printSheet">
+            <img id="previewFormImage" src="../images/muthakara-tarhil-form.png" alt="مذكرة ترحيل" />
+            <div id="overlayFields" class="overlay-layer"></div>
+          </div>
+          <div class="actions no-print" style="margin-top:12px">
+            <button type="button" class="btn btn-primary" id="btnPrint2">🖨 طباعة A4</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="vin-modal no-print" id="vinModal" role="dialog" aria-modal="true">
+    <div class="vin-modal-panel">
+      <div class="vin-modal-head">
+        <h3 id="vinModalTitle">التسليم في المستودع — ابحث عن الشاسيه</h3>
+        <input type="search" id="vinModalSearch" placeholder="بحث بالشاسيه أو المنتج أو الطلب…" autocomplete="off" />
+        <button type="button" class="vin-modal-close" id="vinModalClose" aria-label="إغلاق">×</button>
+      </div>
+      <div class="vin-src-tabs hidden" id="vinSrcTabs" role="tablist">
+        <button type="button" class="vin-src-tab is-active" data-vin-src="live" role="tab">Live Sheet</button>
+        <button type="button" class="vin-src-tab" data-vin-src="sales" role="tab">Sales Raw · غير معيّن</button>
+        <span class="vin-src-meta" id="vinSrcMeta"></span>
+      </div>
+      <p class="vin-modal-note hidden" id="vinModalNote"></p>
+      <div class="vin-modal-body">
+        <div class="vin-grid" id="vinModalGrid"></div>
+      </div>
+      <div class="vin-modal-foot hidden" id="vinModalFoot">
+        <button type="button" class="btn-missing-vin" id="vinModalManual">السيارة غير موجودة في القائمة؟ اكتب الشاسيه يدوياً</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dts-modal no-print" id="dtsModal" hidden>
+    <div class="dts-modal-panel" role="dialog" aria-modal="true" aria-labelledby="dtsModalTitle">
+      <div class="dts-modal-head">
+        <div>
+          <h2 id="dtsModalTitle">Days to Sales — Assignment → Hanouf</h2>
+          <p class="hint">Unique VIN · Hanouf Sales Raw only</p>
+        </div>
+        <button type="button" class="vin-modal-close" id="dtsModalClose" aria-label="Close">×</button>
+      </div>
+      <div class="dts-modal-filters">
+        <label>Company
+          <select id="dtsCoCompany"><option value="">All Companies</option></select>
+        </label>
+        <label>Bucket
+          <select id="dtsCoBucket"><option value="">All</option></select>
+        </label>
+        <label>Status
+          <select id="dtsCoStatus">
+            <option value="ALL">All</option>
+            <option value="SOLD">Sold</option>
+            <option value="PENDING">Pending</option>
+          </select>
+        </label>
+        <label class="dts-co-search">Search
+          <input type="search" id="dtsCoSearch" placeholder="Search VIN..." autocomplete="off" />
+        </label>
+      </div>
+      <div class="dts-modal-summary" id="dtsCoSummary"></div>
+      <div class="dts-modal-table-wrap">
+        <table class="coord-sheet co-perf-table">
+          <thead>
+            <tr>
+              <th>VIN</th>
+              <th>Company</th>
+              <th>Assignment Date</th>
+              <th>Hanouf Sales Date</th>
+              <th class="num">Days to Sales</th>
+              <th>Bucket</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="dtsCoTbody"></tbody>
+        </table>
+      </div>
+      <p class="hint" id="dtsCoFoot"></p>
+    </div>
+  </div>
+
+  <script src="../scripts/muthakara-field-layout.js"></script>
+  <script src="../scripts/check-note-field-layout.js"></script>
+  <script src="shared.js?v=20261003scope2"></script>
+  <script src="coordinator.js?v=20261003scope2"></script>
+</body>
+</html>

@@ -9,16 +9,30 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="data-store.js?v=20260920force1"></script>
+  <script src="employee-roster.js?v=20260928id1"></script>
+  <script src="data-store.js?v=20260930lx1"></script>
+<script src="gec-data.js?v=20261004visitj"></script>
+<script src="gec-dashboard.js?v=20261004visitj"></script>
+  <script src="sales-control.js?v=20260928sc1"></script>
   <script src="allocation-plan-data.js?v=20260921sfx2"></script>
   <script src="inventory-command-center.js?v=20260907icc"></script>
   <script src="vin-color-match.js"></script>
   <script src="lib/bo-order-lookup.js?v=20260915rv3"></script>
-  <script src="plan-tracker.js?v=20260921res1"></script>
+  <script src="plan-tracker.js?v=20260926ptfix"></script>
+  <script src="lexus-control/lexus-core.js?v=20260930lx6"></script>
+  <script src="lexus-control/lexus-tracker.js?v=20260930lx6"></script>
+  <script src="toyotaB2C-control/toyota-b2c-core.js?v=20260930tb1"></script>
+  <script src="toyotaB2C-control/toyota-b2c-tracker.js?v=20260930tb1"></script>
   <link rel="stylesheet" href="dashboard.css?v=20260920st1" />
   <link rel="stylesheet" href="ops-redesign-skin.css?v=20260914eu2" />
   <link rel="stylesheet" href="responsive-layout.css?v=20260914eu2" />
   <link rel="stylesheet" href="enterprise-ui.css?v=20260915aa6" />
+  <link rel="stylesheet" href="gec-dashboard.css?v=20260929view1" />
+  <link rel="stylesheet" href="sales-control.css?v=20260928sc1" />
+  <link rel="stylesheet" href="gec-control.css?v=20260929conv1" />
+  <link rel="stylesheet" href="lexus-control/lexus-tracker.css?v=20261004lxwhite" />
+  <link rel="stylesheet" href="toyotaB2C-control/toyota-b2c-tracker.css?v=20260930tb1" />
+  <link rel="stylesheet" href="sales-cockpit.css?v=20261001lx1" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 
 </head>
@@ -101,97 +115,38 @@
     <section id="dashboard">
       <!-- Panel tabs are rendered in the left sidebar (#panel-tabs) -->
 
-      <!-- PANEL: Summary · Delivered vs Proforma -->
-      <div class="panel-section dvp-summary" id="panel-summary" style="display:none">
-        <header class="dvp-head">
-          <div class="dvp-brand">
-            <div>
-              <h2 class="dvp-title">Sales Performance</h2>
-              <p class="dvp-sub">Delivered vs Proforma by Channel</p>
-            </div>
-          </div>
-          <div class="dvp-head-meta">
-            <div class="dvp-filter-chip dvp-asof" title="Report period">
-              <span class="dvp-filter-ico" aria-hidden="true">📅</span>
-              <div>
-                <span class="lab">Date</span>
-                <strong id="dvp-asof">—</strong>
-              </div>
-            </div>
-            <label class="dvp-filter-chip" for="dvp-f-showroom">
-              <span class="dvp-filter-ico" aria-hidden="true">◎</span>
-              <select id="dvp-f-showroom" aria-label="Filter by showroom">
-                <option value="">All Showrooms</option>
-              </select>
-            </label>
-            <label class="dvp-filter-chip" for="dvp-f-model">
-              <span class="dvp-filter-ico" aria-hidden="true">▦</span>
-              <select id="dvp-f-model" aria-label="Filter by model">
-                <option value="">All Models</option>
-              </select>
-            </label>
-            <button type="button" class="btn" id="dvp-refresh-btn">Refresh</button>
-            <div class="dvp-head-logo">
-              <img src="../images/logo/toyota.png" alt="" width="36" height="36" onerror="this.style.display='none'" />
-              <span>ALJ · Abdul Latif Jameel</span>
-            </div>
-          </div>
-        </header>
+      <!-- PANEL: GEC Control Center (full-viewport overlay, see gec-dashboard.css) -->
+      <div class="panel-section" id="panel-gec" style="display:none"><div id="gec-host"></div></div>
 
-        <div class="dvp-empty card" id="dvp-empty" hidden>
-          <h3>Delivered vs Proforma</h3>
-          <p>Push <b>Sales Raw Data</b> from Admin to build Lexus · Telesales · B2C · Experience Automall totals.</p>
-          <p class="foot">Lexus = product codes ESH/ES/IS/LC/LSH/LX/LXH/NX/NXH/RX/RXH. <b>B2C</b> = Col A Not Assigned or API-PATCH only. <b>Guest Exp</b> = advisors marked in Admin → Push. <b>Telesales</b> = everyone else.</p>
-        </div>
+      <!-- PANEL: Lexus Tracker (lexus-control/lexus-tracker.js) -->
+      <div class="panel-section" id="panel-lexus" style="display:none"><div id="lexus-tracker-host"></div></div>
 
-        <div id="dvp-board" class="dvp-board" hidden>
-          <div class="dvp-cards" id="dvp-cards"></div>
+      <!-- PANEL: B2C Tracker · Toyota B2C orders (toyotaB2C-control/toyota-b2c-tracker.js) -->
+      <div class="panel-section" id="panel-b2c" style="display:none"><div id="toyota-b2c-tracker-host"></div></div>
 
-          <div class="dvp-mid">
-            <article class="card dvp-overview-card">
-              <div class="dvp-overview-head">
-                <div>
-                  <h3>All Channels Overview</h3>
-                  <p class="hint">Delivered and Proforma by Channel</p>
-                </div>
-                <div class="dvp-legend" aria-hidden="true">
-                  <span class="dvp-leg is-del"><i></i>Delivered</span>
-                  <span class="dvp-leg is-pro"><i></i>Pro-Forma</span>
-                </div>
-              </div>
-              <div class="chart-box dvp-overview-box"><canvas id="chart-dvp-overview"></canvas></div>
-            </article>
-            <article class="card dvp-share-card">
-              <h3>Total Sales (All Channels)</h3>
-              <div class="dvp-share-layout">
-                <div class="dvp-donut-wrap">
-                  <div class="chart-box dvp-share-box"><canvas id="chart-dvp-share"></canvas></div>
-                  <p class="dvp-donut-center" id="dvp-donut-center" hidden></p>
-                </div>
-                <ul class="dvp-share-legend" id="dvp-share-legend"></ul>
-              </div>
-            </article>
-          </div>
-
-          <div class="dvp-totals" id="dvp-totals"></div>
-
-          <footer class="dvp-foot">
-            <p class="dvp-foot-left">Last updated: <strong id="dvp-last-updated">—</strong> · Data synced from Admin Push</p>
-            <p class="dvp-foot-right">TOYOTA · ABDUL LATIF JAMEEL MOTORS</p>
-          </footer>
-        </div>
-      </div>
+      <!-- PANEL: Sales Control Center · Delivered vs Pro-Forma (full-viewport overlay, see sales-control.css) -->
+      <div class="panel-section" id="panel-summary" style="display:none"><div id="sales-host"></div></div>
 
       <!-- PANEL: Sales Dashboard -->
       <div class="panel-section sr-panel" id="panel-salesreport" role="tabpanel" aria-labelledby="tab-salesreport" style="display:none">
       <div class="sr-dash" id="sr-pbi-page">
         <div class="sr-dash-head">
           <div class="sr-dash-head-copy">
-            <p class="sr-eyebrow">Sales Performance</p>
-            <h2 class="sr-title">Sales Dashboard</h2>
-            <p class="sr-sub">Track performance, manage targets, and drive results.</p>
+            <div class="sr-brand" aria-hidden="true">
+              <img class="sr-brand-logo" src="../images/logo/toyota.png" alt="" width="30" height="30" decoding="async" onerror="this.style.display='none'" />
+              <span class="sr-brand-word">TOYOTA</span>
+            </div>
+            <div class="sr-brand-copy">
+              <p class="sr-eyebrow">Sales Performance</p>
+              <h2 class="sr-title">Sales Dashboard</h2>
+              <p class="sr-sub">Track performance, manage targets, and drive results.</p>
+            </div>
           </div>
           <div class="sr-dash-toolbar" role="toolbar" aria-label="Sales dashboard controls">
+            <div class="sr-live-state" title="Data from the latest Admin Push">
+              <span class="sr-live-pill"><i aria-hidden="true"></i>LIVE</span>
+              <span class="sr-updated"><span>Last Updated</span><strong id="sr-last-updated">—</strong></span>
+            </div>
             <div class="sr-day-chip" id="sr-day-chip" title="Working day">
               <button type="button" class="sr-day-nav" id="sr-day-prev" aria-label="Previous day">‹</button>
               <div class="sr-day-chip-body">
@@ -202,9 +157,21 @@
             </div>
             <div class="sr-range-pills" role="group" aria-label="Date range">
               <button type="button" class="sr-range-pill is-active" data-sr-range="today">Today</button>
-              <button type="button" class="sr-range-pill" data-sr-range="mtd">MTD</button>
-              <button type="button" class="sr-range-pill" data-sr-range="last">Last</button>
+              <button type="button" class="sr-range-pill" data-sr-range="this_month">MTD</button>
+              <button type="button" class="sr-range-pill" data-sr-range="last_month">Last</button>
               <button type="button" class="sr-range-pill" data-sr-range="all">All</button>
+            </div>
+            <div class="sr-date-range" id="sr-date-range" role="group" aria-label="Date range · from date to date" title="Pick a From and To date — the whole dashboard follows this range">
+              <label class="sr-date-range-field">
+                <span>From</span>
+                <input type="date" id="sr-date-from" aria-label="From date" title="From date" />
+              </label>
+              <span class="sr-date-range-sep" aria-hidden="true">→</span>
+              <label class="sr-date-range-field">
+                <span>To</span>
+                <input type="date" id="sr-date-to" aria-label="To date" title="To date" />
+              </label>
+              <button type="button" class="sr-date-range-apply" id="sr-date-apply">Apply</button>
             </div>
             <div class="sr-toolbar-filters">
               <label class="sr-filter-chip" for="sr-filter">
@@ -221,10 +188,24 @@
                 </select>
               </label>
             </div>
+            <button type="button" class="btn-ghost sr-clear-sel" id="sr-clear-sel" hidden>Clear selection</button>
+            <button type="button" class="sr-tool-btn" data-sr-sheet="pace" title="Daily target pace">Pace</button>
+            <button type="button" class="sr-tool-btn" data-sr-sheet="schedule" title="Employee sales schedule &amp; targets">Schedule</button>
             <button type="button" class="sr-export-btn" id="sr-csv-btn">
               <span aria-hidden="true">↑</span> Export
             </button>
-            <button type="button" class="btn-ghost sr-clear-sel" id="sr-clear-sel" hidden>Clear selection</button>
+            <button type="button" class="sr-icon-btn" id="sr-refresh-btn" title="Refresh · reload the latest Admin Push" aria-label="Refresh">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>
+            </button>
+            <button type="button" class="sr-icon-btn" id="sr-fullscreen-btn" title="Fullscreen" aria-label="Fullscreen" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+            </button>
+            <div class="sr-nav">
+              <button type="button" class="sr-icon-btn" id="sr-nav-btn" title="Other dashboards" aria-label="Other dashboards" aria-haspopup="menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              </button>
+              <div class="sr-nav-menu" id="sr-nav-menu" role="menu" hidden></div>
+            </div>
           </div>
         </div>
 
@@ -232,14 +213,11 @@
           <input type="search" id="sr-search" value="" tabindex="-1" />
           <select id="sr-date-preset" tabindex="-1">
             <option value="today" selected>Today</option>
-            <option value="mtd">Month to date</option>
-            <option value="last">Last month</option>
+            <option value="this_month">Month to date</option>
+            <option value="last_month">Last month</option>
             <option value="all">All dates</option>
             <option value="custom">Custom range</option>
           </select>
-          <input type="date" id="sr-date-from" tabindex="-1" />
-          <input type="date" id="sr-date-to" tabindex="-1" />
-          <button type="button" id="sr-date-apply" tabindex="-1">Apply</button>
           <button type="button" id="sr-date-reset" tabindex="-1">Reset</button>
           <button type="button" id="sr-filter-clear" tabindex="-1">Clear</button>
         </div>
@@ -273,6 +251,7 @@
                   <div class="sr-perf-progress-meta">
                     <span>Target <strong id="sr-perf-target-lbl">—</strong></span>
                     <span>Achieved <strong id="sr-perf-achieved-lbl">—</strong></span>
+                    <span class="sr-perf-remain-lbl">Remaining <strong id="sr-perf-remaining-lbl">—</strong></span>
                   </div>
                   <div class="sr-perf-progress-track" aria-hidden="true">
                     <div class="sr-perf-progress-fill" id="sr-perf-progress-fill" style="width:0%"></div>
@@ -378,6 +357,7 @@
               <summary class="sr-fold-summary">
                 <span>Daily Target Pace</span>
                 <span class="sr-fold-chev" aria-hidden="true">▾</span>
+                <button type="button" class="sr-sheet-close" data-sr-sheet-close title="Close (Esc)" aria-label="Close">×</button>
               </summary>
               <div class="sr-fold-body">
                 <div class="sr-pace-board" id="sr-pace-board" aria-live="polite">
@@ -391,6 +371,7 @@
               <summary class="sr-fold-summary">
                 <span>Employee Sales Schedule &amp; Targets</span>
                 <span class="sr-fold-chev" aria-hidden="true">▾</span>
+                <button type="button" class="sr-sheet-close" data-sr-sheet-close title="Close (Esc)" aria-label="Close">×</button>
               </summary>
               <div class="sr-fold-body">
                 <section class="sr-schedule" id="sr-schedule" aria-label="Employee sales schedule">
@@ -549,6 +530,7 @@
               <canvas id="chart-sr-prev"></canvas>
               <canvas id="chart-sr-pace"></canvas>
             </div>
+            <div class="sr-sheet-backdrop" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -1027,6 +1009,7 @@
             </div>
             <div class="aa-cc-toolbar pt-toolbar">
               <button type="button" class="btn" id="pt-refresh">Refresh snapshots</button>
+              <button type="button" class="btn" id="pt-export-debug" title="Export planTrackerDebug JSON">Export Debug</button>
               <button type="button" class="btn-primary" id="pt-export">Export Excel</button>
             </div>
           </header>
@@ -1038,7 +1021,7 @@
             <div class="bas-retail-head">
               <div class="bas-retail-title">
                 <h3>Free stock · prior / last month</h3>
-                <span class="hint">Unique RES VINs with Allocation Date before this month — still counted after they leave · excluded from 315 bar only</span>
+                <span class="hint">RES · Age 0 · Allocation Date before this month — unique VINs · excluded from 315 progress</span>
               </div>
               <div class="bas-retail-total-card">
                 <span class="bas-retail-total-lab">Free stock</span>
@@ -1811,6 +1794,8 @@
     { id: "sales", n: 4, title: "Sales Raw Data", ar: "بيانات المبيعات", blurb: "Required for Sales Report · Col A name · P proforma · V delivery" },
     { id: "cancelled", n: 5, title: "Cancelled BOs", ar: "أوامر ملغاة", blurb: "Cancelled list · Col I VIN · all rows · duplicates included" },
     { id: "accessories", n: 6, title: "Accessories", ar: "الإكسسوارات", blurb: "Sheet 1 · Col D VIN · Col L amount · Sheet VSND · Col I VIN · Col L employee · Col S in-progress" },
+    { id: "gec", n: 7, title: "GEC File", ar: "مركز تجربة الضيوف", blurb: "Guest Experience Center leads · GEC Dashboard" },
+    { id: "gecVisitors", n: 8, title: "GEC Visitors", ar: "زوار مركز تجربة الضيوف", blurb: "Visitor log · Date · Promoter · Visit Purpose · GEC Dashboard" },
   ];
 
   const Store = window.ReportSheetStore;
@@ -1824,35 +1809,11 @@
   const ALLOCATION_PLAN_KEY = Store.ALLOCATION_PLAN_KEY;
   const ALLOCATION_PLAN_PUSH_KEY = Store.ALLOCATION_PLAN_PUSH_KEY;
   const ALLOCATION_ROWS = window.AllocationPlanData.buildAllocationPlanRows();
-  const DEFAULT_EMPLOYEE_NAMES = [
-    "Samaher Abdulmoghni Al Amri",
-    "Haneen Talal Aqeel Al Madani",
-    "Not assigned",
-    "Wasim Kathem Awad",
-    "Ahmed Saleh Ahmed Binmahfoodh",
-    "Ghina Assad Alameer",
-    "Amjad Ahmed Alwafi",
-    "Ghadeer Abdulhadi Attia Altayyari",
-    "Maryam Salah Abdulrahman Tabakh",
-    "Muteb Abdullah Nasser Al Shehri",
-    "Mansuor Ali Al Qahtani",
-    "Ahmed Mahmoud Yousef Al Fitni",
-    "Mohammed Abkar Mohammed Abkar Negry",
-    "Mohammed Al Khateeb",
-    "Mohsen Zuhair Ali Al Attas",
-    "Fatmah Mohammed Alasseri",
-    "Essa Meraizeeq Almutairy",
-    "Moath Khalel Al Hjoouj",
-    "Khulood Abdulmajeed Albaloushi",
-    "Raoum Fahad Samkari",
-    "Alawiyyah Rafi Saad Al Shehri",
-    "Manal Moshref Almalki",
-    "Lujen Sami Saeed Bazhair",
-    "Muhannad Abdullah Makdour Minyawi",
-    "Maqbool Omar Ashour",
-    "Tawdod Al Sharef",
-    "Ali Muharraq A Alharbi",
-  ];
+  const EMPLOYEE_ROSTER = window.EmployeeRoster.EMPLOYEES;
+  const DEFAULT_EMPLOYEE_NAMES = EMPLOYEE_ROSTER.map((e) => e.name);
+  const EMPLOYEE_CODE_TO_NAME = new Map(
+    EMPLOYEE_ROSTER.filter((e) => e.code).map((e) => [String(e.code).replace(/^0+/, ""), e.name])
+  );
 
   /**
    * Canonical admin/target name → alternate spellings from Sales Raw / Cancelled / Excel.
@@ -1953,10 +1914,10 @@
 
   /** Plant / salesman code / notes defaults (Excel Month-to-Date columns) */
   const EMPLOYEE_META = {
-    "samaher abdulmoghni alamri": { plant: "Telesales North", code: "36684", note: "Vacation" },
-    "haneen talal aqeel almadani": { plant: "Telesales North", code: "36685", note: "Vacation" },
+    "samaher abdulmoghni alamri": { plant: "Telesales North", code: "", note: "Vacation" },
+    "haneen talal aqeel almadani": { plant: "Telesales North", code: "", note: "Vacation" },
     "not assigned": { plant: "eCommerce Sales – Retail", code: "", note: "Vacation" },
-    "wasim kathem awad": { plant: "eCommerce Sales – Retail", code: "12020", note: "Fleet" },
+    "wasim kathem awad": { plant: "eCommerce Sales – Retail", code: "", note: "Fleet" },
   };
 
   /**
@@ -1964,7 +1925,19 @@
    * Collapses Al/El particles and common transliterations so Col A spellings
    * count to the same person for Proforma / Delivery.
    */
+  /** Pure string → string; memoized because roster matching calls it dozens of times per Sales Raw row. */
+  const NAME_LOOSE_CACHE = new Map();
   function normalizeNameLoose(v) {
+    const input = String(v ?? "");
+    const hit = NAME_LOOSE_CACHE.get(input);
+    if (hit !== undefined) return hit;
+    const out = normalizeNameLooseUncached(input);
+    if (NAME_LOOSE_CACHE.size >= 20000) NAME_LOOSE_CACHE.clear();
+    NAME_LOOSE_CACHE.set(input, out);
+    return out;
+  }
+
+  function normalizeNameLooseUncached(v) {
     let s = String(v ?? "")
       .normalize("NFKC")
       .replace(/[ـ]/g, "")
@@ -2053,6 +2026,11 @@
     Object.keys(EMPLOYEE_NAME_ALIASES).forEach((canon) => {
       registerNameGroup(map, canon, EMPLOYEE_NAME_ALIASES[canon]);
       rosterKeys.add(normalizeNameLoose(canon));
+    });
+    EMPLOYEE_ROSTER.forEach((e) => {
+      if (!e.aliases || !e.aliases.length) return;
+      registerNameGroup(map, e.name, e.aliases);
+      rosterKeys.add(normalizeNameLoose(e.name));
     });
 
     // 2) Roster / admin targets fold into alias groups when they match any spelling
@@ -2166,9 +2144,60 @@
     return { canonical: scored[0].canonical, key: scored[0].key };
   }
 
+  /** Known HR employee ID in a cell ("49602", "49602 - Name", "Name (49602)") → roster name. */
+  function employeeNameFromCode(v) {
+    const nums = String(v ?? "").match(/(?<!\d)\d{4,7}(?!\d)/g);
+    if (!nums) return "";
+    for (const n of nums) {
+      const name = EMPLOYEE_CODE_TO_NAME.get(n.replace(/^0+/, ""));
+      if (name) return name;
+    }
+    return "";
+  }
+
+  const EMPLOYEE_CODE_HEADER = /salesman[\s._-]*(code|id|no|number)|employee[\s._-]*(code|id|no|number)|\bemp[\s._-]*(code|id|no)\b|staff[\s._-]*(id|no|number)|رقم\s*(الموظف|البائع)/;
+
+  /** Employee from a salesman / employee code column (headers aligned with cells). */
+  function employeeNameFromCodeCells(headers, cells) {
+    for (let i = 0; i < headers.length; i += 1) {
+      if (!EMPLOYEE_CODE_HEADER.test(normHeader(headers[i]))) continue;
+      const name = employeeNameFromCode(cells[i]);
+      if (name) return name;
+    }
+    return "";
+  }
+
+  function employeeNameFromCodeFields(row) {
+    if (!row) return "";
+    return employeeNameFromCodeCells(Object.keys(row), Object.values(row));
+  }
+
+  /** Roster key → HR code; rebuilt whenever the identity map is rebuilt (roster names are always registered in it). */
+  let employeeCodeIndex = null;
+  let employeeCodeIndexFor = null;
+  function employeeCodeForName(name) {
+    const key = nameKey(name);
+    if (!key) return "";
+    if (employeeCodeIndexFor !== NAME_IDENTITY_MAP) {
+      employeeCodeIndexFor = NAME_IDENTITY_MAP;
+      employeeCodeIndex = new Map();
+      EMPLOYEE_ROSTER.forEach((e) => {
+        if (!e.code) return;
+        const k = nameKey(e.name);
+        if (k && !employeeCodeIndex.has(k)) employeeCodeIndex.set(k, e.code);
+      });
+    }
+    return employeeCodeIndex.get(key) || "";
+  }
+
   function resolveEmployeeIdentity(name) {
     const loose = normalizeNameLoose(name);
     if (!loose) return null;
+    const byCode = employeeNameFromCode(name);
+    if (byCode) {
+      const codeKey = normalizeNameLoose(byCode);
+      return NAME_IDENTITY_MAP.get(codeKey) || { canonical: byCode, key: codeKey };
+    }
     if (NAME_IDENTITY_MAP.has(loose)) return NAME_IDENTITY_MAP.get(loose);
     if (loose === "not assigned" || loose === "unassigned" || loose === "eb2c" || loose === "b2c") {
       const canon = "Not assigned";
@@ -2213,7 +2242,9 @@
 
   function employeeMeta(name) {
     const key = nameKey(name);
-    return EMPLOYEE_META[key] || { plant: "eCommerce Sales – Retail", code: "", note: "" };
+    const meta = EMPLOYEE_META[key] || { plant: "eCommerce Sales – Retail", code: "", note: "" };
+    const code = employeeCodeForName(name);
+    return code ? { ...meta, code } : meta;
   }
 
   function isPlaceholderName(name) {
@@ -2375,7 +2406,7 @@
       updated = true;
     }
     if (hasSummaryInputs()) renderSummaryDashboard();
-    if (window._data) renderBoAllocStockDashboard(window._data);
+    if (window._data && activePanel === "boallocstock") renderBoAllocStockDashboard(window._data);
     if (updated) setStatus(reason || "Targets updated live", "ok");
     return updated;
   }
@@ -2511,9 +2542,10 @@
   function upperTrim(v) {
     return String(v ?? "").trim().toUpperCase();
   }
+  const NUMBER_FORMAT = new Intl.NumberFormat();
   function formatNumber(n) {
     if (!Number.isFinite(n)) return "—";
-    return new Intl.NumberFormat().format(n);
+    return NUMBER_FORMAT.format(n);
   }
   function pct1(n) {
     return (Number(n) * 100).toFixed(1) + "%";
@@ -2749,6 +2781,17 @@
     if (cell.v != null && cell.v !== "") return cell.v;
     if (cell.w != null && cell.w !== "") return cell.w;
     return "";
+  }
+
+  /** Row arrays where index 0 is always Excel Col A, even when the used range starts at B+ (blank Col A). */
+  function sheetMatrixFromColA(sheet) {
+    const opts = { header: 1, defval: "", blankrows: false, raw: true, cellDates: true };
+    try {
+      const range = XLSX.utils.decode_range(sheet["!ref"] || "A1");
+      range.s.c = 0;
+      opts.range = range;
+    } catch { /* fall back to the sheet's own range */ }
+    return XLSX.utils.sheet_to_json(sheet, opts);
   }
 
   function sheetRows(workbook, sheetName) {
@@ -3011,9 +3054,7 @@
       names[0];
     if (!workbook.Sheets[preferred]) return [];
 
-    const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[preferred], {
-      header: 1, defval: "", blankrows: false, raw: true, cellDates: true,
-    });
+    const matrix = sheetMatrixFromColA(workbook.Sheets[preferred]);
     if (!matrix.length) return [];
 
     let headerIdx = 0;
@@ -3076,7 +3117,8 @@
       const vin = extractVinValue(line[idxI]);
       if (!vin) continue;
 
-      const salesman = resolveSalesmanName(cellToString(line[idxSalesman]).trim());
+      const salesman = employeeNameFromCodeCells(uniqueHeaders, line)
+        || resolveSalesmanName(cellToString(line[idxSalesman]).trim());
       if (!salesman) continue;
 
       const obj = {
@@ -3138,9 +3180,7 @@
     const preferred = accessoriesVsndSheetName(workbook);
     if (!preferred || !workbook.Sheets[preferred]) return [];
 
-    const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[preferred], {
-      header: 1, defval: "", blankrows: false, raw: true, cellDates: true,
-    });
+    const matrix = sheetMatrixFromColA(workbook.Sheets[preferred]);
     if (!matrix.length) return [];
 
     let headerIdx = 0;
@@ -3179,11 +3219,13 @@
       if (!amount) continue;
 
       const vin = extractVinValue(line[idxI]) || upperTrim(cellToString(line[idxI]));
-      const salesman = resolveSalesmanName(cellToString(line[idxL]).trim());
+      const salesman = employeeNameFromCodeCells(uniqueHeaders, line)
+        || resolveSalesmanName(cellToString(line[idxL]).trim());
       const obj = {
         vin,
         amount,
         salesman,
+        _colL: salesman,
         _sheet: preferred,
         _kind: "vsnd",
         __cells: line,
@@ -3202,37 +3244,36 @@
     const preferred = names[0];
     if (!workbook.Sheets[preferred]) return [];
 
-    const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[preferred], {
-      header: 1, defval: "", blankrows: false, raw: true, cellDates: true,
-    });
+    const matrix = sheetMatrixFromColA(workbook.Sheets[preferred]);
     if (!matrix.length) return [];
-
-    let headerIdx = 0;
-    let bestHits = -1;
-    const markers = ["vin", "chassis", "amount", "accessories", "accessory", "date"];
-    const scanLimit = Math.min(matrix.length, 40);
-    for (let i = 0; i < scanLimit; i += 1) {
-      const cells = (matrix[i] || []).map((c) => normHeader(c));
-      if (!cells.some(Boolean)) continue;
-      const hits = markers.filter((m) => cells.some((c) => c === m || c.includes(m))).length;
-      if (hits > bestHits) { bestHits = hits; headerIdx = i; }
-      if (hits >= 2) break;
-    }
 
     // Fixed letters per business rule: D = VIN, L = amount (headers only for optional date)
     const idxD = colLetterToIndex("D");
     const idxL = colLetterToIndex("L");
-    let idxDate = -1;
-    const headerRow = matrix[headerIdx] || [];
-    const headers = headerRow.map((h, i) => cellToString(h).trim() || `Column ${indexToColLetter(i)}`);
-    const findHeaderIdx = (tests) => headers.findIndex((h) => tests.some((t) => t(normHeader(h))));
 
-    const headerVin = findHeaderIdx([
-      (n) => n === "vin" || n === "vin no" || n === "vin number" || n === "chassis",
-      (n) => n.includes("vin") || n.includes("chassis"),
-    ]);
+    // Header = last non-empty row above the first row with a VIN in Col D (skips title / report-date rows)
+    const firstDataIdx = matrix.findIndex((line) => !!extractVinValue((line || [])[idxD]));
+    let headerIdx = -1;
+    for (let i = (firstDataIdx < 0 ? Math.min(matrix.length, 1) : firstDataIdx) - 1; i >= 0; i -= 1) {
+      if ((matrix[i] || []).some((c) => cellToString(c).trim() !== "")) { headerIdx = i; break; }
+    }
+
+    let idxDate = -1;
+    const headerRow = headerIdx >= 0
+      ? (matrix[headerIdx] || [])
+      : new Array(Math.max(idxL + 1, (matrix[0] || []).length)).fill("");
+    const headers = headerRow.map((h, i) => cellToString(h).trim() || `Column ${indexToColLetter(i)}`);
+    const findHeaderIdx = (tests) => {
+      for (const t of tests) {
+        const i = headers.findIndex((h, j) => j !== idxD && j !== idxL && t(normHeader(h)));
+        if (i >= 0) return i;
+      }
+      return -1;
+    };
     const headerDate = findHeaderIdx([
-      (n) => n.includes("date") || n === "order date" || n === "transaction date",
+      (n) => n === "date" || n === "التاريخ",
+      (n) => /(invoice|transaction|sales|order|posting)\s*date/.test(n) || /تاريخ\s*(الفاتورة|البيع)/.test(n),
+      (n) => n.includes("date") || n.includes("تاريخ"),
     ]);
     if (headerDate >= 0) idxDate = headerDate;
 
@@ -3244,7 +3285,7 @@
     });
     const width = Math.max(uniqueHeaders.length, idxL + 1, idxD + 1, idxDate + 1);
 
-    const start = bestHits >= 1 || headerVin >= 0 ? headerIdx + 1 : 1;
+    const start = headerIdx + 1;
     const rows = [];
     for (let r = start; r < matrix.length; r += 1) {
       const line = padCells(matrix[r] || [], width);
@@ -3279,17 +3320,40 @@
       if (!vin) return;
       const name = resolveSalesmanName(r._salesmanRaw || r.salesman);
       if (!name) return;
-      // Prefer first non-empty; keep stable for duplicates
-      if (!map.has(vin)) map.set(vin, name);
+      // First row wins, unless a later row names a real roster employee instead of Not assigned / unknown
+      if (!map.has(vin) || salesmanMatchRank(name) > salesmanMatchRank(map.get(vin))) map.set(vin, name);
     });
     return map;
   }
 
-  function accessorySalesmanForRow(r, vinMap) {
+  /** 2 = roster employee · 1 = named but not on roster · 0 = Not assigned / blank */
+  function salesmanMatchRank(name) {
+    const key = nameKey(name);
+    if (!key || key === normalizeNameLoose("Not assigned")) return 0;
+    return isRosterEmployee(name) ? 2 : 1;
+  }
+
+  /** VIN → salesman from the Accessories VSND sheet (Col L employee). */
+  function accessoriesVsndVinEmployeeMap() {
+    const map = new Map();
+    (slots.accessories.vsndRows || []).forEach((r) => {
+      const vin = extractVinValue(r && r.vin);
+      const name = vin ? resolveSalesmanName(r.salesman) : "";
+      if (!name) return;
+      if (!map.has(vin) || salesmanMatchRank(name) > salesmanMatchRank(map.get(vin))) map.set(vin, name);
+    });
+    return map;
+  }
+
+  /** Sales Raw VIN owner first, then Accessories VSND sheet · unmatched VINs → Not assigned so totals equal the file. */
+  function accessorySalesmanForRow(r, vinMap, vsndMap) {
     if (!r) return "";
     const vin = extractVinValue(r.vin);
-    if (vin && vinMap && vinMap.has(vin)) return vinMap.get(vin);
-    return resolveSalesmanName(r.salesman) || "";
+    const candidates = [
+      vin && vinMap ? vinMap.get(vin) : "",
+      vin && vsndMap ? vsndMap.get(vin) : "",
+    ].filter(Boolean);
+    return candidates.find((n) => salesmanMatchRank(n) === 2) || candidates[0] || "Not assigned";
   }
 
   function colLetterToIndex(letter) {
@@ -3669,9 +3733,7 @@
       names[0];
     if (!workbook.Sheets[preferred]) return [];
 
-    const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[preferred], {
-      header: 1, defval: "", blankrows: false, raw: true, cellDates: true,
-    });
+    const matrix = sheetMatrixFromColA(workbook.Sheets[preferred]);
     if (!matrix.length) return [];
 
     let headerIdx = 0;
@@ -3801,6 +3863,11 @@
       });
       if (plantIdx >= 0) obj.plant = cellToString(line[plantIdx]).trim();
       if (codeIdx >= 0) obj.salesmanCode = cellToString(line[codeIdx]).trim();
+      const codeName = employeeNameFromCode(obj.salesmanCode) || employeeNameFromCodeCells(headers, line);
+      if (codeName) {
+        obj.salesman = codeName;
+        obj._salesmanRaw = codeName;
+      }
 
       // Prefer VIN column by header name, else scan row for a 17-char VIN
       const vinHeaderIdx = headers.findIndex((h) => {
@@ -4181,7 +4248,7 @@
         id: i,
         boNumber: cellToString(get(r, "boNumber")),
         customer: maskPersonName(cellToString(get(r, "customer"))),
-        salesman: resolveSalesmanName(get(r, "salesman")),
+        salesman: employeeNameFromCodeFields(r) || resolveSalesmanName(get(r, "salesman")),
         product: product || "—",
         category,
         year: cellToString(get(r, "year")),
@@ -4340,16 +4407,42 @@
     return set;
   }
 
+  // Same result as scoring every free stock row with matchScore(); keys are normalised once per row.
   function bestMatches(bos, stock) {
-    const free = stock.filter((s) => s.vin).slice();
+    const free = stock.filter((s) => s.vin).map((s) => ({
+      s,
+      product: upperTrim(s.product),
+      year: String(s.year),
+      suffix: upperTrim(s.suffix),
+      ext: colorKey(s.ext),
+      int: colorKey(s.int),
+    }));
     const used = new Set();
     return bos.map((bo) => {
+      const product = upperTrim(bo.product);
+      const year = String(bo.year || "");
+      const suffix = upperTrim(bo.suffix);
+      const ext = colorKey(bo.ext);
+      const int = colorKey(bo.int);
+      const applicable = ["product", "year", "suffix", "ext", "int"]
+        .filter((k) => bo[k] && String(bo[k]).trim()).length || 5;
+      const possible = (product ? 1 : 0) + (year ? 1 : 0) + (suffix ? 1 : 0) + (ext ? 1 : 0) + (int ? 1 : 0);
+      const maxScore = Math.round((possible / applicable) * 100);
       let best = null;
-      free.forEach((s) => {
-        if (used.has(s.id)) return;
-        const score = matchScore(bo, s);
-        if (!best || score > best.score) best = { stock: s, score };
-      });
+      for (let i = 0; i < free.length; i++) {
+        const f = free[i];
+        if (used.has(f.s.id)) continue;
+        const hits = (product && product === f.product ? 1 : 0)
+          + (year && year === f.year ? 1 : 0)
+          + (suffix && suffix === f.suffix ? 1 : 0)
+          + (ext && ext === f.ext ? 1 : 0)
+          + (int && int === f.int ? 1 : 0);
+        const score = Math.round((hits / applicable) * 100);
+        if (!best || score > best.score) {
+          best = { stock: f.s, score };
+          if (score >= maxScore) break;
+        }
+      }
       if (best && best.score >= 60) {
         used.add(best.stock.id);
         return { ...bo, matchVin: best.stock.vin, matchScore: best.score, matchSource: best.stock.source };
@@ -4460,6 +4553,30 @@
       for (const d of SLOT_DEFS) {
         const f = payload.files[d.id];
         if (!f || !f.buffer) continue;
+        if (GEC_VIEW && !GEC_VIEW_SLOTS.has(d.id)) continue;
+        if (LEXUS_VIEW) continue;
+        if (d.id === "gec") {
+          const gecDataset = window.GecData ? window.GecData.parseBuffer(f.buffer, { fileName: f.name }) : null;
+          slots.gec = {
+            file: { name: f.name, size: f.size || f.buffer.byteLength },
+            rows: gecDataset ? gecDataset.records : [],
+            name: f.name,
+            sheet: "",
+            gec: gecDataset,
+          };
+          continue;
+        }
+        if (d.id === "gecVisitors") {
+          const visitorSet = window.GecData ? window.GecData.parseVisitorsBuffer(f.buffer, { fileName: f.name }) : null;
+          slots.gecVisitors = {
+            file: { name: f.name, size: f.size || f.buffer.byteLength },
+            rows: visitorSet ? visitorSet.records : [],
+            name: f.name,
+            sheet: visitorSet ? visitorSet.sheetName || "" : "",
+            visitors: visitorSet,
+          };
+          continue;
+        }
         const wb = bufferToWorkbook(f.name, f.buffer, { firstSheetOnly: d.id === "backorder" });
         const rows = rowsForSlot(d.id, wb);
         const slot = {
@@ -4527,19 +4644,19 @@
     const totalAdminTarget = employeeTargets.reduce((s, e) => s + effectiveEmployeeTarget(e), 0);
     const useSettledPool = settled > 0 && totalAdminTarget > 0;
     const vinMap = salesVinEmployeeMap(slots.sales.rows || []);
+    const vsndMap = accessoriesVsndVinEmployeeMap();
     const soldByKey = new Map();
     let matchedRows = 0;
     let unmatchedVin = 0;
     (slots.accessories.rows || []).forEach((r) => {
       if (!accessoriesInPeriod(r, live, prevMonthKey)) return;
-      const salesman = accessorySalesmanForRow(r, vinMap);
+      const vin = extractVinValue(r.vin);
+      if (!vinMap.has(vin) && !vsndMap.has(vin)) unmatchedVin += 1;
+      else matchedRows += 1;
+      const salesman = accessorySalesmanForRow(r, vinMap, vsndMap);
       r.salesman = salesman; // keep detail tables / filters in sync
       const key = nameKey(salesman);
-      if (!key) {
-        unmatchedVin += 1;
-        return;
-      }
-      matchedRows += 1;
+      if (!key) return;
       soldByKey.set(key, (soldByKey.get(key) || 0) + (Number(r.amount) || 0));
     });
 
@@ -4549,17 +4666,16 @@
     (slots.accessories.vsndRows || []).forEach((r) => {
       const amount = Number(r.amount) || 0;
       if (!amount) return;
-      let salesman = resolveSalesmanName(r.salesman);
-      if (!salesman) {
-        const vin = extractVinValue(r.vin);
-        if (vin && vinMap.has(vin)) salesman = vinMap.get(vin);
-      }
-      r.salesman = salesman || r.salesman || "";
+      const vin = extractVinValue(r.vin);
+      const candidates = [
+        resolveSalesmanName(r._colL != null ? r._colL : r.salesman),
+        vin ? vinMap.get(vin) : "",
+      ].filter(Boolean);
+      if (!candidates.length) progressUnmatched += 1;
+      const salesman = candidates.find((n) => salesmanMatchRank(n) === 2) || candidates[0] || "Not assigned";
+      r.salesman = salesman;
       const key = nameKey(salesman);
-      if (!key) {
-        progressUnmatched += 1;
-        return;
-      }
+      if (!key) return;
       progressRows += 1;
       progressByKey.set(key, (progressByKey.get(key) || 0) + amount);
     });
@@ -4739,9 +4855,10 @@
 
   function accessoriesRawRowsForSalesman(key, live, prevMonthKey) {
     const vinMap = salesVinEmployeeMap(slots.sales.rows || []);
+    const vsndMap = accessoriesVsndVinEmployeeMap();
     return (slots.accessories.rows || []).filter((r) => {
       if (!accessoriesInPeriod(r, live, prevMonthKey)) return false;
-      const salesman = accessorySalesmanForRow(r, vinMap);
+      const salesman = accessorySalesmanForRow(r, vinMap, vsndMap);
       r.salesman = salesman;
       return nameKey(salesman) === key;
     });
@@ -4771,7 +4888,7 @@
 
   function buildEmployeeDailyProforma(live, prevMonthKey) {
     const byKey = new Map();
-    (slots.sales.rows || []).forEach((r) => {
+    salesDashboardRows().forEach((r) => {
       // Col P proforma date in selected month (includes delivered rows)
       if (!salesIsProformaInPeriod(r, live, "month", prevMonthKey)) return;
       const pd = r.proformaDate;
@@ -4883,11 +5000,30 @@
     };
   }
 
+  /** Sales Dashboard counts Toyota only; Lexus rows are split out and shown as a separate count. */
+  let srRowsSplit = null;
+  function splitSalesDashboardRows() {
+    const src = slots.sales.rows || [];
+    if (!srRowsSplit || srRowsSplit.src !== src || srRowsSplit.len !== src.length) {
+      const rows = [];
+      const lexus = [];
+      src.forEach((r) => (isLexusSaleRow(r) ? lexus : rows).push(r));
+      srRowsSplit = { src, len: src.length, rows, lexus };
+    }
+    return srRowsSplit;
+  }
+
+  function salesDashboardRows() {
+    return splitSalesDashboardRows().rows;
+  }
+
   function buildSalesReport(bos, sales, cancelled) {
     const CANCEL_TARGET = 0.30;
     const calendarLive = todayKeys();
-    const salesRows = slots.sales.rows || [];
-    const live = resolveGlobalDatePeriod(salesRows, globalDateFilter);
+    srRowsSplit = null;
+    const split = splitSalesDashboardRows();
+    const salesRows = split.rows;
+    const live = resolveGlobalDatePeriod(slots.sales.rows || [], globalDateFilter);
     window._globalLivePeriod = live;
     const prevDate = new Date(live.now.getFullYear(), live.now.getMonth() - 1, 1);
     const prevMonthKey = toYyyymm(prevDate);
@@ -4896,6 +5032,16 @@
     const byPerson = new Map();
     const deliveryBySalesType = Object.create(null);
     let proformaExceptMonth = 0;
+    let lexusDeliveryMonth = 0;
+    const lexusDeliveryByKey = Object.create(null);
+    split.lexus.forEach((r) => {
+      if (!salesIsDeliveryInPeriod(r, live, "month", prevMonthKey)) return;
+      lexusDeliveryMonth += 1;
+      const name = rosterSalesmanName(r._salesmanRaw || r.salesman);
+      const display = name ? resolveDisplayName(name) : "";
+      const key = display ? nameKey(display) : "";
+      if (key) lexusDeliveryByKey[key] = (lexusDeliveryByKey[key] || 0) + 1;
+    });
 
     const bumpSalesType = (type) => {
       const t = String(type || "Other").trim() || "Other";
@@ -4933,27 +5079,47 @@
       return byPerson.get(key);
     };
 
+    const recordSkipKeys = new Set([
+      "salesman", "plant", "salesmancode", "proformadate", "deliverydate", "vin", "_sheet",
+    ]);
+    // Prefer common fields first in display order
+    const recordPreferredOrder = ["product", "model", "year", "model year", "exterior", "interior", "suffix", "customer", "amount", "status", "location"];
+    const recordSkipCache = new Map();
+    const recordOrderCache = new Map();
+    const isRecordSkipKey = (k) => {
+      let v = recordSkipCache.get(k);
+      if (v === undefined) {
+        v = recordSkipKeys.has(normHeader(k).replace(/\s+/g, ""));
+        recordSkipCache.set(k, v);
+      }
+      return v;
+    };
+    const recordOrderOf = (k) => {
+      let v = recordOrderCache.get(k);
+      if (v === undefined) {
+        const h = normHeader(k);
+        v = recordPreferredOrder.findIndex((p) => h.includes(p));
+        recordOrderCache.set(k, v);
+      }
+      return v;
+    };
+
     function buildSalesRecord(r, flags) {
       const vin = extractVinValue(r.vin) || extractVinValue(
         Object.values(r).find((v) => extractVinValue(v))
       );
-      const skipKeys = new Set([
-        "salesman", "plant", "salesmancode", "proformadate", "deliverydate", "vin", "_sheet",
-      ]);
       const extra = [];
       Object.keys(r).forEach((k) => {
         if (String(k).startsWith("_")) return;
-        if (skipKeys.has(normHeader(k).replace(/\s+/g, ""))) return;
+        if (isRecordSkipKey(k)) return;
         const val = cellToString(r[k]).trim();
         if (!val) return;
         // Skip duplicate of known date/vin columns by value only if header is Column N
         extra.push({ key: k, value: val });
       });
-      // Prefer common fields first in display order
-      const preferredOrder = ["product", "model", "year", "model year", "exterior", "interior", "suffix", "customer", "amount", "status", "location"];
       extra.sort((a, b) => {
-        const ia = preferredOrder.findIndex((p) => normHeader(a.key).includes(p));
-        const ib = preferredOrder.findIndex((p) => normHeader(b.key).includes(p));
+        const ia = recordOrderOf(a.key);
+        const ib = recordOrderOf(b.key);
         if (ia < 0 && ib < 0) return String(a.key).localeCompare(String(b.key));
         if (ia < 0) return 1;
         if (ib < 0) return -1;
@@ -5331,6 +5497,7 @@
       diag,
       accessories,
       dailyTarget,
+      lexusDeliveryByKey,
       totals: {
         proformaDay: totProformaDay,
         proformaMonth: totProformaMonth,
@@ -5340,6 +5507,7 @@
         deliveryDay: totDeliveryDay,
         deliveryMonth: totDeliveryMonth,
         deliveryPrev: totDeliveryPrev,
+        lexusDeliveryMonth,
         proforma: totProformaMonth,
         delivery: totDeliveryMonth,
         target: totTarget,
@@ -5506,7 +5674,8 @@
       const fitCompact = horizontal && fitRow > 0 && fitRow < 30;
       ctx.save();
       ctx.font = `700 ${fitCompact ? 9 : 12}px ${cfg.figureFont || "'Space Grotesk', 'Outfit', sans-serif"}`;
-      ctx.fillStyle = "#111111";
+      const labelColor = cfg.color || "#111111";
+      ctx.fillStyle = labelColor;
       ctx.textBaseline = "middle";
       chart.data.datasets.forEach((ds, di) => {
         if (ds.hidden) return;
@@ -5528,7 +5697,7 @@
             // Outside bar on the right; if clipped, draw inside the bar in white
             if (x + pad + tw <= maxX) {
               ctx.textAlign = "left";
-              ctx.fillStyle = "#111111";
+              ctx.fillStyle = labelColor;
               ctx.fillText(text, x + pad, y);
             } else {
               ctx.textAlign = "right";
@@ -5537,7 +5706,7 @@
             }
           } else {
             ctx.textAlign = "center";
-            ctx.fillStyle = "#111111";
+            ctx.fillStyle = labelColor;
             ctx.fillText(text, x, y - 10);
           }
         });
@@ -5617,12 +5786,16 @@
   function upsertChart(id, type, labels, values, extra) {
     const canvas = document.getElementById(id);
     if (!canvas) return;
-    if (charts[id]) charts[id].destroy();
     const colors = ["#111111", "#eb0a1e", "#0f766e", "#6b7280", "#b45309", "#374151", "#9ca3af", "#c40718"];
     const fontFamily = "'Outfit', 'Segoe UI', sans-serif";
     const figureFont = "'Space Grotesk', 'Outfit', sans-serif";
     const opts = extra || {};
     const horizontal = !!opts.horizontal;
+    const cockpit = !!canvas.closest("#panel-salesreport")
+      || (document.body.classList.contains("sr-mode") && !!canvas.closest(".pbi-wide-modal"));
+    const tickColor = cockpit ? "#8d9bb0" : "#6b7280";
+    const gridColor = cockpit ? "rgba(148, 163, 184, 0.10)" : "rgba(17, 17, 17, 0.06)";
+    const strongTick = cockpit ? "#d5deea" : "#111827";
     const empKeys = opts.empKeys || null;
     const labelCount = (labels && labels.length) || 0;
     const showValues = !!opts.showValues;
@@ -5667,8 +5840,8 @@
       beginAtZero: true,
       stacked: !!opts.stacked,
       ...(opts.max != null && !opts.dualValueAxis ? { max: opts.max } : {}),
-      grid: { color: "rgba(17, 17, 17, 0.06)", drawBorder: false },
-      ticks: { precision: 0, color: "#6b7280", font: { size: 11, family: figureFont, weight: "600" } },
+      grid: { color: gridColor, drawBorder: false },
+      ticks: { precision: 0, color: tickColor, font: { size: 11, family: figureFont, weight: "600" } },
       border: { display: false },
     };
     const categoryScale = {
@@ -5677,7 +5850,7 @@
       ticks: {
         maxRotation: horizontal ? 0 : 40,
         autoSkip: false,
-        color: horizontal ? "#374151" : "#111111",
+        color: cockpit ? "#b6c2d3" : (horizontal ? "#374151" : "#111111"),
         font: {
           size: horizontal ? 10 : 12,
           family: fontFamily,
@@ -5727,9 +5900,9 @@
         weight: "700",
       };
       categoryScale.ticks.padding = 8;
-      categoryScale.ticks.color = "#111827";
+      categoryScale.ticks.color = strongTick;
     }
-    charts[id] = new Chart(canvas, {
+    const chartConfig = {
       type,
       data: {
         labels,
@@ -5737,7 +5910,7 @@
           data: values,
           backgroundColor: opts.backgroundColor || (type === "doughnut" ? colors : "rgba(235, 10, 30, 0.88)"),
           borderWidth: type === "doughnut" ? 3 : 0,
-          borderColor: type === "doughnut" ? "#fff" : undefined,
+          borderColor: type === "doughnut" ? (cockpit ? "#0d1420" : "#fff") : undefined,
           borderRadius: type === "bar" ? 4 : 0,
           ...datasetsExtra,
         }]).map((ds) => ({
@@ -5782,7 +5955,7 @@
             display: opts.legend === false
               ? false
               : (opts.legend === true || type === "doughnut" || !!(opts.datasets && opts.datasets.length > 1)),
-            labels: { color: "#64748b", font: { size: 12, family: fontFamily }, boxWidth: 12, padding: 14 },
+            labels: { color: cockpit ? "#c7d2e0" : "#64748b", font: { size: 12, family: fontFamily }, boxWidth: 12, padding: 14 },
           },
           tooltip: {
             backgroundColor: "rgba(30, 41, 59, 0.92)",
@@ -5807,6 +5980,7 @@
           barEndLabels: {
             display: showValues && type === "bar",
             suffix: valueSuffix,
+            color: cockpit ? "#e8eef7" : "#111111",
             fontFamily,
             figureFont,
           },
@@ -5871,7 +6045,16 @@
               };
             })(),
       },
-    });
+    };
+    const existing = charts[id];
+    if (cockpit && existing && existing.canvas === canvas && existing.config.type === type) {
+      existing.data = chartConfig.data;
+      existing.options = chartConfig.options;
+      existing.update();
+      return;
+    }
+    if (existing) existing.destroy();
+    charts[id] = new Chart(canvas, chartConfig);
   }
 
   function sumNumeric(arr) {
@@ -5895,7 +6078,7 @@
     const n = nums.length;
     const sum = nums.reduce((a, b) => a + b, 0);
     if (looksLikePercentLabel(label) && n > 0) {
-      return { lab: `Avg ${label}`, val: formatWideTotal(sum / n) };
+      return { lab: `Avg ${label}`, val: formatWideTotal(sum / n) + (/%/.test(String(label)) ? "%" : "") };
     }
     return { lab: `Total ${label}`, val: formatWideTotal(sum) };
   }
@@ -6113,6 +6296,8 @@
     }
     const body = $("#pbi-wide-body");
     if (body) body.hidden = false;
+    const wideBox = $("#pbi-wide-box");
+    if (wideBox) wideBox.classList.remove("pbi-wide-box--empty");
     const modal = document.querySelector(".pbi-wide-modal");
     if (modal) {
       modal.classList.remove("pbi-wide-modal--table");
@@ -6300,6 +6485,7 @@
         if (wideCanvas) delete wideCanvas.dataset.fitRowPx;
       }
       renderWideNumbers(snap);
+      if (sr) renderWideAccessoriesSummary(sr);
       const extra = { ...(snap.extra || {}) };
       upsertChart("pbi-wide-canvas", snap.type, snap.labels, snap.values, extra);
       if (horizontal && snap.type === "bar" && n > 1) {
@@ -6337,7 +6523,7 @@
     const order = ["Cash", "Bank", "ALJUF", "Employee", "Fleet"];
     const counts = Object.create(null);
     order.forEach((t) => { counts[t] = 0; });
-    (slots.sales.rows || []).forEach((r) => {
+    salesDashboardRows().forEach((r) => {
       if (!salesIsDeliveryInPeriod(r, live, "month", prevMonthKey)) return;
       const display = rosterSalesmanName(r._salesmanRaw || r.salesman);
       if (!display) return;
@@ -6536,6 +6722,15 @@
     let snap = String(sourceId).startsWith("chart-bo-")
       ? (buildBoWideSnapshot(sourceId) || chartSnapshots[sourceId])
       : chartSnapshots[sourceId];
+    if (!snap && sourceId === "chart-sr-salestype" && window._data && window._data.salesReport) {
+      const types = deliverySalesTypeBreakdown(window._data.salesReport);
+      snap = {
+        type: "doughnut",
+        labels: types.map((x) => x.type),
+        values: types.map((x) => x.count),
+        extra: { cutout: "58%", legend: false },
+      };
+    }
     if (!snap) {
       console.warn("[wide] no snapshot for", sourceId);
       return;
@@ -6630,6 +6825,10 @@
     renderWideNumbers(snap);
     const extra = { ...(snap.extra || {}) };
     upsertChart("pbi-wide-canvas", snap.type, snap.labels, snap.values, extra);
+    box.classList.toggle(
+      "pbi-wide-box--empty",
+      snap.type === "doughnut" && !(Array.isArray(snap.values) && snap.values.some((v) => Number(v) > 0))
+    );
     if (horizontal && snap.type === "bar" && n > 1) {
       const seriesN = (snap.extra && snap.extra.datasets && snap.extra.datasets.length) || 1;
       if (!(isBo && n > 10)) {
@@ -6722,6 +6921,9 @@
   const PANEL_DEFS = [
     { id: "summary", label: "Summary · Del vs Prof" },
     { id: "salesreport", label: "Sales Dashboard" },
+    { id: "gec", label: "GEC Dashboard" },
+    { id: "lexus", label: "Lexus Tracker" },
+    { id: "b2c", label: "B2C Tracker" },
     { id: "bodashboard", label: "BO Dashboard" },
     { id: "boerrors", label: "BO Errors" },
     { id: "boallocstock", label: "Allocation" },
@@ -6731,7 +6933,18 @@
     { id: "reservedvehicles", label: "Reserved Vehicles Tracker" },
     { id: "dashboard", label: "Stock & BO Dashboard" },
   ];
-  let activePanel = "salesreport";
+  /** gecdashboardview.html → index.html?view=gec: GEC Control Center only, view-only, reloads on every Admin Push. */
+  const GEC_VIEW = new URLSearchParams(location.search).get("view") === "gec";
+  const GEC_VIEW_SLOTS = new Set(["gec", "gecVisitors", "sales", "backorder"]);
+  /** lexusb2ctracker.html → index.html?view=lexus: Lexus Tracker only. The tracker loads its own files and reloads on every Admin Push. */
+  const LEXUS_VIEW = new URLSearchParams(location.search).get("view") === "lexus";
+  let activePanel = GEC_VIEW ? "gec" : LEXUS_VIEW ? "lexus" : "salesreport";
+  let panelBeforeGec = "";
+  let panelBeforeLexus = "";
+  let panelBeforeB2c = "";
+  let panelBeforeSummary = "";
+  /** Date changed inside the Sales Control Center; other panels rebuild when the user leaves it. */
+  let globalDateStale = false;
 
   function hasSalesRaw() {
     return slotHasRows("sales");
@@ -6771,6 +6984,7 @@
       if (p.id === "reservedvehicles") return true;
       if (p.id === "allocationaudit") return true;
       if (p.id === "plantracker") return true;
+      if (p.id === "gec") return true;
       if (p.id === "boerrors") return true;
       // BO + Allocation + Stock & BO Dashboard always visible — empty state when files missing
       return true;
@@ -7380,12 +7594,50 @@
     });
   }
 
+  function renderGecPanel() {
+    const host = $("#gec-host");
+    if (!host || !window.GecDashboard) return;
+    if (host.parentNode !== document.body) document.body.appendChild(host);
+    window.GecDashboard.render(host, (slots.gec && slots.gec.gec) || null, {
+      visitors: (slots.gecVisitors && slots.gecVisitors.visitors) || null,
+      sales: (slots.sales && slots.sales.rows) || null,
+      backorder: (slots.backorder && slots.backorder.rows) || null,
+      control: Store.readGecControl(),
+      lastUpdated: Number(Store.readDataPushStamp().at) || 0,
+      onRefresh: () => refreshFromAdmin("Refreshed", { force: true }),
+      onExit: GEC_VIEW ? null : () => {
+        const others = visiblePanels().filter((p) => p.id !== "gec").map((p) => p.id);
+        switchPanel(others.includes(panelBeforeGec) ? panelBeforeGec : (others[0] || "dashboard"));
+      },
+    });
+  }
+
+  // Admin → GEC CONTROL saved (this laptop via storage event, others via live sync): re-classify without re-parsing.
+  const onGecControlUpdated = () => { if (activePanel === "gec") renderGecPanel(); };
+  window.addEventListener("gec-control-updated", onGecControlUpdated);
+  window.addEventListener("storage", (e) => { if (e.key === Store.GEC_CONTROL_KEY) onGecControlUpdated(); });
+
   function switchPanel(panelId) {
     const panels = visiblePanels();
     if (!panels.some((p) => p.id === panelId)) {
       panelId = panels[0] ? panels[0].id : "dashboard";
     }
+    if (panelId === "gec" && activePanel !== "gec") panelBeforeGec = activePanel;
+    if (panelId === "lexus" && activePanel !== "lexus") panelBeforeLexus = activePanel;
+    if (panelId === "b2c" && activePanel !== "b2c") panelBeforeB2c = activePanel;
+    if (panelId === "summary" && activePanel !== "summary") panelBeforeSummary = activePanel;
+    if (activePanel === "boerrors" && panelId !== "boerrors") {
+      const boeWrap = document.getElementById("boe-table-wrap");
+      if (boeWrap) boeWrap.textContent = "";
+    }
     activePanel = panelId;
+    document.body.classList.toggle("gec-mode", panelId === "gec");
+    document.body.classList.toggle("lx-mode", panelId === "lexus");
+    document.body.classList.toggle("tb-mode", panelId === "b2c");
+    document.body.classList.toggle("sc-mode", panelId === "summary");
+    document.body.classList.toggle("sr-mode", panelId === "salesreport");
+    if (panelId !== "salesreport") setSrSheet("");
+    if (globalDateStale && panelId !== "summary") rebuildForGlobalDate();
     PANEL_DEFS.forEach((p) => {
       const el = document.getElementById("panel-" + p.id);
       if (el) el.style.display = p.id === panelId ? "" : "none";
@@ -7393,6 +7645,9 @@
     const iconMap = {
       summary: "◫",
       salesreport: "▣",
+      gec: "✦",
+      lexus: "L",
+      b2c: "T",
       bodashboard: "▤",
       boerrors: "⚠",
       boallocstock: "▦",
@@ -7422,6 +7677,29 @@
       dateEl.textContent = `TOYOTA · ${d}`;
     }
     if (panelId === "summary") renderSummaryDashboard();
+    if (panelId === "gec") renderGecPanel();
+    if (panelId === "lexus" && window.LexusTracker) {
+      const lxHost = $("#lexus-tracker-host");
+      if (lxHost.parentNode !== document.body) document.body.appendChild(lxHost);
+      window.LexusTracker.mount(lxHost);
+      window.LexusTracker.show({
+        onExit: LEXUS_VIEW ? null : () => {
+          const others = visiblePanels().filter((p) => p.id !== "lexus").map((p) => p.id);
+          switchPanel(others.includes(panelBeforeLexus) ? panelBeforeLexus : (others[0] || "dashboard"));
+        },
+      });
+    }
+    if (panelId === "b2c" && window.ToyotaB2cTracker) {
+      const tbHost = $("#toyota-b2c-tracker-host");
+      if (tbHost.parentNode !== document.body) document.body.appendChild(tbHost);
+      window.ToyotaB2cTracker.mount(tbHost);
+      window.ToyotaB2cTracker.show({
+        onExit: () => {
+          const others = visiblePanels().filter((p) => p.id !== "b2c").map((p) => p.id);
+          switchPanel(others.includes(panelBeforeB2c) ? panelBeforeB2c : (others[0] || "dashboard"));
+        },
+      });
+    }
     if (panelId === "reservedvehicles") renderReservedVehiclesTracker();
     if (panelId === "allocationaudit") renderAllocationAudit();
     if (panelId === "plantracker") renderPlanTrackerPanel();
@@ -7430,6 +7708,24 @@
       renderBoAllocStockDashboard(window._data);
     }
     if (panelId === "bodashboard" && window._data) renderBoDashboard(window._data);
+    if (panelId === "dashboard") ensureMainDashboard();
+    if (panelId === "stockdashboard" && window._data && stockDashRenderedFor !== window._data) {
+      stockDashRenderedFor = window._data;
+      renderStockDashboard();
+    }
+  }
+
+  var mainDashRenderedFor = null;
+  var stockDashRenderedFor = null;
+  function renderMainDashboard(d) {
+    mainDashRenderedFor = d;
+    renderKpis(d);
+    renderCharts(d);
+    renderTabs();
+    renderTable(d);
+  }
+  function ensureMainDashboard() {
+    if (window._data && mainDashRenderedFor !== window._data) renderMainDashboard(window._data);
   }
 
   const GLOBAL_DATE_FILTER_KEY = "toyota_global_date_filter_v2";
@@ -7505,10 +7801,31 @@
       el.value = globalDateFilter.to || "";
       el.disabled = !custom;
     });
-    const applySr = $("#sr-date-apply");
     const applyBas = $("#bas-date-apply");
-    if (applySr) applySr.disabled = !custom;
     if (applyBas) applyBas.disabled = !custom;
+
+    // Sales Dashboard From → To is always editable and shows the range in effect.
+    const srFrom = $("#sr-date-from");
+    const srTo = $("#sr-date-to");
+    if (srFrom && srTo) {
+      srFrom.disabled = false;
+      srTo.disabled = false;
+      if (!custom && live) {
+        const shownFrom = preset === "today" ? live.now : live.rangeFrom;
+        const shownTo = preset === "today" ? live.now : live.rangeTo;
+        const isoFrom = toIsoDateInput(shownFrom);
+        const isoTo = toIsoDateInput(shownTo);
+        if (isoFrom) srFrom.value = isoFrom;
+        if (isoTo) srTo.value = isoTo;
+      }
+    }
+    const applySr = $("#sr-date-apply");
+    if (applySr) {
+      applySr.disabled = false;
+      applySr.classList.remove("is-dirty");
+    }
+    const srRange = $("#sr-date-range");
+    if (srRange) srRange.classList.toggle("is-active", custom);
 
     const bounds = salesDateBounds(slots.sales.rows || []);
     ["#sr-date-from", "#sr-date-to", "#bas-date-from", "#bas-date-to"].forEach((sel) => {
@@ -7571,6 +7888,13 @@
       globalDateFilter.to = "";
     }
     saveGlobalDateFilter();
+    rebuildForGlobalDate();
+    setStatus(reason || `Date filter · ${globalDatePresetLabel(globalDateFilter.preset)}`, "ok");
+  }
+
+  /** Rebuild every date-dependent panel for the current globalDateFilter. */
+  function rebuildForGlobalDate() {
+    globalDateStale = false;
     window._globalLivePeriod = ensureGlobalLivePeriod();
     if (window._data) {
       if (hasSalesReportInputs()) rebuildSalesReport();
@@ -7582,10 +7906,9 @@
       }
       invalidateIccCache();
       if (hasSummaryInputs()) renderSummaryDashboard();
-      renderBoAllocStockDashboard(window._data);
+      if (activePanel === "boallocstock") renderBoAllocStockDashboard(window._data);
     }
     syncGlobalDateControls(window._globalLivePeriod);
-    setStatus(reason || `Date filter · ${globalDatePresetLabel(globalDateFilter.preset)}`, "ok");
   }
 
   function resetGlobalDateFilter() {
@@ -7595,7 +7918,7 @@
       if (hasSalesReportInputs()) rebuildSalesReport();
       invalidateIccCache();
       if (hasSummaryInputs()) renderSummaryDashboard();
-      renderBoAllocStockDashboard(window._data);
+      if (activePanel === "boallocstock") renderBoAllocStockDashboard(window._data);
     }
     syncGlobalDateControls(window._globalLivePeriod);
     setStatus("Date filter reset to Today", "ok");
@@ -8108,7 +8431,7 @@
     $("#emp-drawer-name").textContent = row["Sales Employee"] || row.Salesman;
     $("#emp-drawer-sub").textContent = `${row.Plant || ""} · Code ${row.Salesman || "—"} · ${live.label} · Excel rows from Sales Raw`;
 
-    const rawRows = (slots.sales.rows || []).filter((r) => nameKey(r._salesmanRaw || r.salesman) === key);
+    const rawRows = salesDashboardRows().filter((r) => nameKey(r._salesmanRaw || r.salesman) === key);
     const records = row._records || [];
     const proformaMonth = records.filter((r) => r.flags?.proformaMonth);
     const deliveryMonth = records.filter((r) => r.flags?.deliveryMonth);
@@ -8268,7 +8591,7 @@
 
     el.innerHTML = `
       <div class="sr-cancel-mock-body">
-        <div class="sr-cancel-donut" style="--cancel-deg:${deg}deg" aria-hidden="true">
+        <div class="sr-cancel-donut" style="--cancel-deg:${deg}deg;--cancel-ring:${(deg * 2).toFixed(1)}deg" aria-hidden="true">
           <div class="sr-cancel-donut-hole">
             <strong>${escapeHtml(pctText)}</strong>
             <span>Cancellation Rate</span>
@@ -8309,18 +8632,27 @@
     const bg = labels.map((lab) => colors[lab] || colors.Other);
     const total = values.reduce((a, b) => a + (Number(b) || 0), 0);
     if (legendEl) {
+      const items = types.map((x) => ({
+        ...x,
+        color: colors[x.type] || colors.Other,
+        pct: total > 0 ? Math.round((x.count / total) * 100) : 0,
+      }));
+      const shown = items.filter((x) => x.count > 0);
       legendEl.innerHTML = types.length
-        ? types
-            .map((x) => {
-              const pct = total > 0 ? Math.round((x.count / total) * 100) : 0;
-              return `<div class="pbi-wide-salestype-item">
-                <span class="swatch" style="background:${colors[x.type] || colors.Other}"></span>
+        ? `<div class="sr-st-dist">
+            <div class="sr-st-total"><span>Total</span><strong>${formatNumber(total)}</strong></div>
+            <div class="sr-st-bar" role="img" aria-label="${escapeHtml(items.map((x) => `${x.type} ${x.pct}%`).join(", "))}">
+              ${shown.map((x) => `<span class="sr-st-seg" style="flex-grow:${x.count};background:${x.color}" title="${escapeHtml(x.type)} · ${formatNumber(x.count)} · ${x.pct}%">${x.pct >= 7 ? `${x.pct}%` : ""}</span>`).join("")}
+            </div>
+          </div>
+          <div class="sr-st-legend">
+            ${items.map((x) => `<div class="pbi-wide-salestype-item${x.count ? "" : " is-zero"}">
+                <span class="swatch" style="background:${x.color}"></span>
                 <span class="name">${escapeHtml(x.type)}</span>
                 <span class="count">${formatNumber(x.count)}</span>
-                <span class="pct">${pct}%</span>
-              </div>`;
-            })
-            .join("")
+                <span class="pct">${x.pct}%</span>
+              </div>`).join("")}
+          </div>`
         : `<p class="foot" style="margin:0">No delivered cars in this period.</p>`;
     }
     if (total > 0) {
@@ -8364,7 +8696,19 @@
   }
 
   function applySrDateFilter() {
-    applyGlobalDateFilter("Sales report updated for selected dates");
+    const sel = $("#sr-date-preset");
+    if (sel) sel.value = "custom";
+    const fromEl = $("#sr-date-from");
+    const toEl = $("#sr-date-to");
+    const bas = { from: $("#bas-date-from"), to: $("#bas-date-to") };
+    if (bas.from && fromEl) bas.from.value = fromEl.value;
+    if (bas.to && toEl) bas.to.value = toEl.value;
+    const from = fromEl ? fromEl.value : "";
+    const to = toEl ? toEl.value : "";
+    const label = from && to
+      ? (from === to ? `Sales Dashboard · ${from}` : `Sales Dashboard · ${from} → ${to}`)
+      : "Sales report updated for selected dates";
+    applyGlobalDateFilter(label);
   }
 
   function resetSrDateFilter() {
@@ -8406,6 +8750,7 @@
         nameEl.textContent = "—";
       }
     }
+    renderSrLastUpdated();
     renderNameList(sr);
     renderPaceBoard(sr);
     renderPbiKpis(sr);
@@ -8421,6 +8766,86 @@
         ? "Showing one employee only · click Clear or the name again to show all"
         : "Click a name to filter this page to that person only";
     }
+  }
+
+  // ---------- Sales Dashboard cockpit · presentation helpers (no business logic) ----------
+
+  const SR_AVATAR_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#6366f1"];
+
+  function srInitials(name) {
+    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "?";
+    const a = parts[0][0] || "";
+    const b = parts.length > 1 ? parts[parts.length - 1][0] : (parts[0][1] || "");
+    return (a + b).toUpperCase();
+  }
+
+  function srAvatarColor(name) {
+    let h = 0;
+    const s = String(name || "");
+    for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return SR_AVATAR_COLORS[h % SR_AVATAR_COLORS.length];
+  }
+
+  /** Daily Proforma / Delivery series is used by the KPI sparklines and the Prof + Del chart · build once per report + selection. */
+  const srDailySeriesCache = new WeakMap();
+  function srDailySeries(sr, selectedKey) {
+    if (!sr || typeof sr !== "object") return buildDailyProfDelSeries(sr, selectedKey);
+    let byKey = srDailySeriesCache.get(sr);
+    if (!byKey) { byKey = new Map(); srDailySeriesCache.set(sr, byKey); }
+    const k = selectedKey || "";
+    if (!byKey.has(k)) byKey.set(k, buildDailyProfDelSeries(sr, k));
+    return byKey.get(k);
+  }
+
+  function srSparkSvg(values, color) {
+    const nums = (values || []).map((v) => Number(v) || 0);
+    if (nums.length < 2 || !nums.some((v) => v > 0)) {
+      return `<svg class="sr-kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="28" x2="100" y2="28" stroke="${color}" stroke-opacity=".35" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+    }
+    const max = Math.max(...nums);
+    const step = 100 / (nums.length - 1);
+    const pts = nums.map((v, i) => `${(i * step).toFixed(2)},${(28 - (v / max) * 24).toFixed(2)}`);
+    return `<svg class="sr-kpi-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+      <polygon points="0,30 ${pts.join(" ")} 100,30" fill="${color}" fill-opacity=".14"/>
+      <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    </svg>`;
+  }
+
+  function srMeterHtml(pct, color, markPct) {
+    const w = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+    return `<div class="sr-kpi-meter" aria-hidden="true"><i style="width:${w.toFixed(1)}%;background:${color}"></i>${markPct != null ? `<b style="left:${markPct}%"></b>` : ""}</div>`;
+  }
+
+  const SR_KPI_ICONS = {
+    truck: '<path d="M3 7h11v8H3zM14 10h4l3 3v2h-7"/><circle cx="7" cy="17" r="1.8"/><circle cx="17" cy="17" r="1.8"/>',
+    doc: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+    layers: '<path d="M12 4l8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/>',
+    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    pct: '<path d="M6 18L18 6"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>',
+    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+    x: '<circle cx="12" cy="12" r="8"/><path d="M9 9l6 6M15 9l-6 6"/>',
+    people: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="10" r="2.4"/><path d="M15.5 14.5A4.5 4.5 0 0 1 21 19"/>',
+  };
+
+  function setSrSheet(name) {
+    const panel = document.getElementById("panel-salesreport");
+    if (!panel) return;
+    const next = name === "pace" || name === "schedule" ? name : "";
+    if (next) panel.dataset.srSheet = next;
+    else delete panel.dataset.srSheet;
+    const fold = next === "pace" ? $("#sr-pace-fold") : next === "schedule" ? $("#sr-emp-fold") : null;
+    if (fold) fold.open = true;
+    document.querySelectorAll("[data-sr-sheet]").forEach((b) => b.classList.toggle("is-active", b.dataset.srSheet === next));
+  }
+
+  function renderSrLastUpdated() {
+    const el = $("#sr-last-updated");
+    if (!el) return;
+    const at = Number(Store.readDataPushStamp().at) || 0;
+    el.textContent = at
+      ? new Date(at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+      : "—";
   }
 
   function renderNameList(sr) {
@@ -8440,9 +8865,11 @@
       const active = r._key === srView.selectedKey ? " active" : "";
       const del = Number(r["Delivery (Month)"]) || 0;
       const pro = Number(r["Proforma (Month)"]) || 0;
+      const label = shortEmpLabel(r["Sales Employee"]);
       return `<button type="button" class="pbi-name sr-emp-row${active}" data-emp-key="${escapeHtml(r._key)}" role="option" aria-selected="${active ? "true" : "false"}">
-        <span class="nm">${escapeHtml(shortEmpLabel(r["Sales Employee"]))}</span>
-        <span class="sr-emp-counts">${formatNumber(pro)}-${formatNumber(del)}</span>
+        <span class="sr-emp-av" style="--av:${srAvatarColor(label)}" aria-hidden="true">${escapeHtml(srInitials(label))}</span>
+        <span class="nm">${escapeHtml(label)}</span>
+        <span class="sr-emp-counts" title="Proforma – Delivery">${formatNumber(pro)}-${formatNumber(del)}</span>
         <span class="sr-emp-chev" aria-hidden="true">›</span>
       </button>`;
     }).join("") || `<p class="foot" style="margin:8px">No employees match.</p>`;
@@ -8526,7 +8953,7 @@
     for (let d = 1; d <= days; d += 1) labels.push(String(d));
 
     const keyFilter = selectedKey ? String(selectedKey) : "";
-    (slots.sales.rows || []).forEach((r) => {
+    salesDashboardRows().forEach((r) => {
       if (keyFilter) {
         const name = rosterSalesmanName(r._salesmanRaw || r.salesman);
         if (nameKey(name) !== keyFilter) return;
@@ -8552,7 +8979,7 @@
   }
 
   function renderProfDelDailyChart(sr, rows) {
-    const series = buildDailyProfDelSeries(sr, srView.selectedKey || "");
+    const series = srDailySeries(sr, srView.selectedKey || "");
     const maxY = Math.max(5, ...series.proforma, ...series.delivery);
     upsertChart("chart-sr-profdel", "line", series.labels, null, {
       legend: true,
@@ -8560,34 +8987,33 @@
       max: Math.ceil(maxY * 1.15),
       datasets: [
         {
+          type: "bar",
           label: "Proforma",
           data: series.proforma,
-          borderColor: "#2563eb",
-          backgroundColor: "rgba(37, 99, 235, 0.12)",
-          pointLabelBg: "#2563eb",
-          pointBackgroundColor: "#2563eb",
-          pointBorderColor: "#fff",
-          pointBorderWidth: 1.5,
-          pointRadius: 3.5,
-          pointHoverRadius: 5,
-          borderWidth: 2.5,
-          tension: 0.25,
-          fill: false,
+          backgroundColor: "rgba(109, 124, 255, 0.78)",
+          hoverBackgroundColor: "rgba(129, 142, 255, 0.95)",
+          borderColor: "rgba(109, 124, 255, 1)",
+          pointLabelBg: "#5b5ff0",
+          borderWidth: 0,
+          borderRadius: 4,
+          maxBarThickness: 22,
+          order: 2,
         },
         {
           label: "Delivery",
           data: series.delivery,
-          borderColor: "#eb0a1e",
-          backgroundColor: "rgba(235, 10, 30, 0.10)",
-          pointLabelBg: "#9f1239",
-          pointBackgroundColor: "#eb0a1e",
-          pointBorderColor: "#fff",
+          borderColor: "#ff2d44",
+          backgroundColor: "rgba(255, 45, 68, 0.14)",
+          pointLabelBg: "#c8102e",
+          pointBackgroundColor: "#ff2d44",
+          pointBorderColor: "#0b1220",
           pointBorderWidth: 1.5,
           pointRadius: 3.5,
           pointHoverRadius: 5,
           borderWidth: 2.5,
-          tension: 0.25,
-          fill: false,
+          tension: 0.3,
+          fill: true,
+          order: 1,
         },
       ],
     });
@@ -8672,14 +9098,14 @@
       const target = r._vacation ? null : rowTargetNum(r);
       const delPctVal = target ? (del / target) * 100 : null;
       cards = [
-        { lab: "Delivery MTD", val: formatNumber(del), ico: "truck", tone: "blue", trend: momDeltaPct(del, delPrev) },
-        { lab: "Proforma MTD", val: formatNumber(pro), ico: "doc", tone: "violet", trend: momDeltaPct(pro, proPrev) },
-        { lab: "Prof + Del", val: formatNumber(r["Prof+Del"] ?? (pro + del)), ico: "layers", tone: "green", trend: momDeltaPct(pro + del, delPrev + proPrev) },
-        { lab: "Proforma Except This Month", val: formatNumber(r["Proforma (Except Month)"] ?? r["Proforma (Prev)"] ?? 0), ico: "clock", tone: "sky", trend: null },
-        { lab: "DEL %", val: delPctVal == null ? "—" : delPctVal.toFixed(1) + "%", ico: "pct", tone: "red", trend: null },
-        { lab: "TARGET", val: r._vacation ? "VACATION" : formatNumber(target || 0), ico: "target", tone: "teal", trend: 0 },
-        { lab: "CANCELLED BO %", val: escapeHtml(cancelPct), ico: "x", tone: "warn", over: cancelOver, ok: ratio != null && !cancelOver, trend: null },
-        { lab: "EMPLOYEES", val: "1", ico: "people", tone: "blue", trend: 0 },
+        { lab: "Delivery MTD", val: formatNumber(del), ico: "truck", tone: "blue", trend: momDeltaPct(del, delPrev), desc: "Delivered cars", spark: "delivery", lexus: (sr.lexusDeliveryByKey && sr.lexusDeliveryByKey[srView.selectedKey]) || 0 },
+        { lab: "Proforma MTD", val: formatNumber(pro), ico: "doc", tone: "violet", trend: momDeltaPct(pro, proPrev), desc: "Proformas issued", spark: "proforma" },
+        { lab: "Prof + Del", val: formatNumber(r["Prof+Del"] ?? (pro + del)), ico: "layers", tone: "green", trend: momDeltaPct(pro + del, delPrev + proPrev), desc: "Proforma + Delivery", spark: "both" },
+        { lab: "Proforma Except This Month", val: formatNumber(r["Proforma (Except Month)"] ?? r["Proforma (Prev)"] ?? 0), ico: "clock", tone: "sky", trend: null, desc: "Proformas outside this month" },
+        { lab: "DEL %", val: delPctVal == null ? "—" : delPctVal.toFixed(1) + "%", ico: "pct", tone: "red", trend: null, desc: "Delivery ÷ Target", meter: delPctVal },
+        { lab: "TARGET", val: r._vacation ? "VACATION" : formatNumber(target || 0), ico: "target", tone: "teal", trend: 0, desc: "Employee monthly target", meter: target ? ((pro + del) / target) * 100 : null },
+        { lab: "CANCELLED BO %", val: escapeHtml(cancelPct), ico: "x", tone: "warn", over: cancelOver, ok: ratio != null && !cancelOver, trend: null, desc: "Cancelled ÷ (Delivery + Cancelled) · limit 30%", meter: ratio == null ? null : ratio * 100, mark: 30 },
+        { lab: "EMPLOYEES", val: "1", ico: "people", tone: "blue", trend: 0, desc: shortEmpLabel(r["Sales Employee"] || "Selected employee") },
       ];
     } else {
       const ratio = cancelPctRatio(t.cancelled || 0, t.deliveryMonth || 0);
@@ -8691,26 +9117,43 @@
       const proPrev = Number(t.proformaPrev) || 0;
       const delPctVal = t.target ? ((t.delPct || 0) * 100) : null;
       cards = [
-        { lab: "Delivery MTD", val: formatNumber(del), ico: "truck", tone: "blue", trend: momDeltaPct(del, delPrev) },
-        { lab: "Proforma MTD", val: formatNumber(pro), ico: "doc", tone: "violet", trend: momDeltaPct(pro, proPrev) },
-        { lab: "Prof + Del", val: formatNumber(t.profPlusDel || (pro + del)), ico: "layers", tone: "green", trend: momDeltaPct(pro + del, delPrev + proPrev) },
-        { lab: "Proforma Except This Month", val: formatNumber(t.proformaExceptMonth != null ? t.proformaExceptMonth : (t.proformaPrev || 0)), ico: "clock", tone: "sky", trend: null },
-        { lab: "DEL %", val: delPctVal == null ? "—" : delPctVal.toFixed(1) + "%", ico: "pct", tone: "red", trend: null },
-        { lab: "TARGET", val: formatNumber(t.target || 0), ico: "target", tone: "teal", trend: 0 },
-        { lab: "CANCELLED BO %", val: escapeHtml(cancelPct), ico: "x", tone: "warn", over: cancelOver, ok: ratio != null && !cancelOver, trend: null, badWhenUp: true },
-        { lab: "EMPLOYEES", val: formatNumber((sr.rows || []).length), ico: "people", tone: "blue", trend: 0 },
+        { lab: "Delivery MTD", val: formatNumber(del), ico: "truck", tone: "blue", trend: momDeltaPct(del, delPrev), desc: "Delivered cars · team", spark: "delivery", lexus: Number(t.lexusDeliveryMonth) || 0 },
+        { lab: "Proforma MTD", val: formatNumber(pro), ico: "doc", tone: "violet", trend: momDeltaPct(pro, proPrev), desc: "Proformas issued · team", spark: "proforma" },
+        { lab: "Prof + Del", val: formatNumber(t.profPlusDel || (pro + del)), ico: "layers", tone: "green", trend: momDeltaPct(pro + del, delPrev + proPrev), desc: "Proforma + Delivery", spark: "both" },
+        { lab: "Proforma Except This Month", val: formatNumber(t.proformaExceptMonth != null ? t.proformaExceptMonth : (t.proformaPrev || 0)), ico: "clock", tone: "sky", trend: null, desc: "Proformas outside this month" },
+        { lab: "DEL %", val: delPctVal == null ? "—" : delPctVal.toFixed(1) + "%", ico: "pct", tone: "red", trend: null, desc: "Delivery ÷ Target", meter: delPctVal },
+        { lab: "TARGET", val: formatNumber(t.target || 0), ico: "target", tone: "teal", trend: 0, desc: "Team monthly target", meter: t.target ? ((pro + del) / t.target) * 100 : null },
+        { lab: "CANCELLED BO %", val: escapeHtml(cancelPct), ico: "x", tone: "warn", over: cancelOver, ok: ratio != null && !cancelOver, trend: null, badWhenUp: true, desc: "Cancelled ÷ (Delivery + Cancelled) · limit 30%", meter: ratio == null ? null : ratio * 100, mark: 30 },
+        { lab: "EMPLOYEES", val: formatNumber((sr.rows || []).length), ico: "people", tone: "blue", trend: 0, desc: "Sales employees in the report" },
       ];
     }
-    const icoMap = {
-      truck: "D", doc: "P", layers: "+", clock: "E", pct: "%", target: "T", x: "X", people: "N",
+    const toneColor = { blue: "#4f9dff", violet: "#a78bfa", green: "#34d399", sky: "#38bdf8", red: "#ff4d5e", teal: "#2dd4bf", warn: "#f59e0b" };
+    const needsSeries = cards.some((c) => c.spark);
+    const series = needsSeries ? srDailySeries(sr, srView.selectedKey || "") : null;
+    const visual = (c) => {
+      const color = toneColor[c.tone] || "#4f9dff";
+      if (c.spark && series) {
+        const data = c.spark === "delivery" ? series.delivery
+          : c.spark === "proforma" ? series.proforma
+            : series.proforma.map((v, i) => v + (series.delivery[i] || 0));
+        return srSparkSvg(data, color);
+      }
+      if (c.meter !== undefined) {
+        const meterColor = c.over ? "#ff4d5e" : c.ok ? "#34d399" : color;
+        return srMeterHtml(c.meter == null ? NaN : c.meter, meterColor, c.mark);
+      }
+      return "";
     };
     el.innerHTML = cards.map((c) => `
       <div class="sr-kpi-card tone-${c.tone || "neutral"}${c.over ? " is-over" : c.ok ? " is-ok" : ""}">
         <div class="sr-kpi-top">
-          <span class="sr-kpi-ico" aria-hidden="true">${icoMap[c.ico] || "•"}</span>
+          <span class="sr-kpi-ico" aria-hidden="true"><svg viewBox="0 0 24 24">${SR_KPI_ICONS[c.ico] || ""}</svg></span>
           <span class="sr-kpi-lab">${c.lab}</span>
+          ${c.lexus != null ? `<span class="sr-kpi-lexus" title="Lexus delivered in this period · not counted in the Sales Dashboard">Lexus <b>${formatNumber(c.lexus)}</b></span>` : ""}
         </div>
         <div class="sr-kpi-val">${c.val}</div>
+        ${c.desc ? `<div class="sr-kpi-desc">${escapeHtml(c.desc)}</div>` : ""}
+        <div class="sr-kpi-visual">${visual(c)}</div>
       </div>`).join("");
   }
 
@@ -8732,7 +9175,7 @@
     const live = sr.live || todayKeys();
     const day = row.day || {};
     const month = row.month || row;
-    const rawRows = (slots.sales.rows || []).filter((r) => nameKey(r._salesmanRaw || r.salesman) === key);
+    const rawRows = salesDashboardRows().filter((r) => nameKey(r._salesmanRaw || r.salesman) === key);
     const cancelRawRows = cancelledRawRowsForSalesman(key);
     const accRawRows = accessoriesRawRowsForSalesman(key, live, sr.prevMonthKey);
     const records = row._records || [];
@@ -8866,6 +9309,8 @@
     if (fillEl) fillEl.style.width = fill.toFixed(1) + "%";
     if (tgtLbl) tgtLbl.textContent = formatNumber(targetSum);
     if (achLbl) achLbl.textContent = `${formatNumber(achieved)}${profDelPct == null ? "" : ` (${profDelPct.toFixed(1)}%)`}`;
+    const remLbl = $("#sr-perf-remaining-lbl");
+    if (remLbl) remLbl.textContent = formatNumber(remaining);
     el.innerHTML = `
       <div class="sr-perf-metric is-del">
         <span class="k">DEL %</span>
@@ -14492,7 +14937,7 @@
       const year = boeYearValue(r, get);
       const yearLetter = boeYearColLetter(r);
       const boNumber = colF || cellToString(get(r, "boNumber")).trim();
-      const salesman = resolveSalesmanName(get(r, "salesman"));
+      const salesman = employeeNameFromCodeFields(r) || resolveSalesmanName(get(r, "salesman"));
 
       const errors = [];
       const errorLetters = new Set();
@@ -15742,7 +16187,7 @@
         ext,
         int: intc,
         key: makeKey(product, suffix, year, ext, intc),
-        salesman: resolveSalesmanName(getBo(r, "salesman")),
+        salesman: employeeNameFromCodeFields(r) || resolveSalesmanName(getBo(r, "salesman")),
         boNumber: cellToString(getBo(r, "boNumber")),
         orderDate: orderDate ? cellToString(orderDate) : cellToString(orderRaw),
         orderTs: orderDate ? orderDate.getTime() : idx,
@@ -16078,7 +16523,7 @@
         product,
         suffix,
         pairs,
-        salesman: resolveSalesmanName(getBo(r, "salesman")),
+        salesman: employeeNameFromCodeFields(r) || resolveSalesmanName(getBo(r, "salesman")),
         boNumber: cellToString(getBo(r, "boNumber") || cellByLetter(r, "A")),
         orderDate: orderDate ? cellToString(orderDate) : cellToString(orderRaw),
         orderTs: orderDate ? orderDate.getTime() : idx,
@@ -17575,9 +18020,20 @@
     return String(raw ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
 
+  /** Pure text → boolean; memoized because Sales Raw repeats the same product / cell values thousands of times. */
+  const LEXUS_CODE_CACHE = new Map();
   function isLexusProductCode(raw) {
     const text = cellToString(raw).trim();
     if (!text) return false;
+    const hit = LEXUS_CODE_CACHE.get(text);
+    if (hit !== undefined) return hit;
+    const out = isLexusProductText(text);
+    if (LEXUS_CODE_CACHE.size >= 50000) LEXUS_CODE_CACHE.clear();
+    LEXUS_CODE_CACHE.set(text, out);
+    return out;
+  }
+
+  function isLexusProductText(text) {
     if (/\blexus\b/i.test(text)) return true;
     const compact = compactProductCode(text);
     if (!compact) return false;
@@ -17948,329 +18404,76 @@
     };
   }
 
-  function dvpCylHtml(delivered, proforma, theme, channelId) {
-    const max = Math.max(delivered, proforma, 1);
-    const hDel = Math.max(8, Math.round((delivered / max) * 100));
-    const hPro = Math.max(8, Math.round((proforma / max) * 100));
-    const ch = escapeHtml(channelId || "");
-    return `<div class="dvp-cyls dvp-cyls--${escapeHtml(theme)}">
-      <button type="button" class="dvp-cyl" data-dvp-channel="${ch}" data-dvp-metric="delivered" aria-label="Show delivered VINs">
-        <div class="dvp-cyl-stack" style="height:${hDel}%">
-          <span class="dvp-cyl-val">${escapeHtml(formatNumber(delivered))}</span>
-          <div class="dvp-cyl-bar is-del"></div>
-        </div>
-        <span class="dvp-cyl-lab">Delivered</span>
-      </button>
-      <button type="button" class="dvp-cyl" data-dvp-channel="${ch}" data-dvp-metric="proforma" aria-label="Show proforma VINs">
-        <div class="dvp-cyl-stack" style="height:${hPro}%">
-          <span class="dvp-cyl-val">${escapeHtml(formatNumber(proforma))}</span>
-          <div class="dvp-cyl-bar is-pro"></div>
-        </div>
-        <span class="dvp-cyl-lab">Pro-Forma</span>
-      </button>
-    </div>`;
-  }
-
-  let dvpLastPack = null;
-  const DVP_CHANNEL_LABELS = {
-    lexus: "Lexus Sales",
-    telesales: "Telesales",
-    b2c: "B2C Sales",
-    guest: "Experience Automall",
-    all: "All Channels",
-  };
-
-  function dvpListFor(channelId, metric) {
-    const lists = (dvpLastPack && dvpLastPack.lists) || {};
-    const key = metric === "proforma" ? "proforma" : "delivered";
-    if (channelId === "all") {
-      return ["lexus", "telesales", "b2c", "guest"].flatMap((id) => (lists[id] && lists[id][key]) || []);
+  /** Previous page's calculation for a showroom/model filter (parity check in the Sales Control Center). */
+  function dvpReferenceSummary(showroom, model) {
+    const saved = dvpView;
+    dvpView = { showroom: showroom || "", model: model || "" };
+    try {
+      return buildDeliveredVsProformaSummary();
+    } finally {
+      dvpView = saved;
     }
-    return (lists[channelId] && lists[channelId][key]) || [];
   }
 
-  function openDvpVinDrill(channelId, metric) {
-    const titleEl = $("#aa-drill-title");
-    const subEl = $("#aa-drill-sub");
-    const bodyEl = $("#aa-drill-body");
-    const drawer = $("#aa-drill-drawer");
-    const backdrop = $("#aa-drill-backdrop");
-    if (!bodyEl || !drawer || !backdrop) return;
-    const metricLabel = metric === "proforma" ? "Pro-Forma" : "Delivered";
-    const channelLabel = DVP_CHANNEL_LABELS[channelId] || channelId;
-    const list = dvpListFor(channelId, metric);
-    if (titleEl) titleEl.textContent = `${channelLabel} · ${metricLabel}`;
-    if (subEl) subEl.textContent = `${formatNumber(list.length)} VIN${list.length === 1 ? "" : "s"} · Sales Raw`;
-    if (!list.length) {
-      bodyEl.innerHTML = `<p class="foot">No related VINs for this number.</p>`;
-    } else {
-      bodyEl.innerHTML = `
-        <div class="aa-drill-toolbar">
-          <span class="aa-drill-count">${formatNumber(list.length)} VIN${list.length === 1 ? "" : "s"}</span>
-          <button type="button" class="btn" id="aa-drill-copy">Copy VINs</button>
-        </div>
-        <div class="table-wrap aa-drill-table-wrap">
-          <table class="data-table aa-table aa-drill-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>VIN</th>
-                <th>Advisor</th>
-                <th>Showroom</th>
-                <th>Model</th>
-                <th>Proforma</th>
-                <th>Delivery</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${list.map((v, i) => `
-                <tr>
-                  <td class="num">${i + 1}</td>
-                  <td class="mono">${escapeHtml(v.vin)}</td>
-                  <td>${escapeHtml(v.salesman || "—")}</td>
-                  <td>${escapeHtml(v.plant || "—")}</td>
-                  <td>${escapeHtml(v.product || "—")}</td>
-                  <td>${escapeHtml(v.proformaDate ? formatRvDate(v.proformaDate) : "—")}</td>
-                  <td>${escapeHtml(v.deliveryDate ? formatRvDate(v.deliveryDate) : "—")}</td>
-                </tr>`).join("")}
-            </tbody>
-          </table>
-        </div>`;
-      const copyBtn = bodyEl.querySelector("#aa-drill-copy");
-      if (copyBtn) {
-        copyBtn.addEventListener("click", async () => {
-          const text = list.map((v) => v.vin).filter((vin) => vin && vin !== "—").join("\n");
-          try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(text);
-            } else {
-              const ta = document.createElement("textarea");
-              ta.value = text;
-              document.body.appendChild(ta);
-              ta.select();
-              document.execCommand("copy");
-              ta.remove();
-            }
-            setStatus(`Copied ${list.length} VIN${list.length === 1 ? "" : "s"}`, "ok");
-          } catch {
-            setStatus("Could not copy VINs", "busy");
-          }
-        });
-      }
+  let salesControlSrc = null;
+  let salesControlTargetsRef = null;
+  let salesControlTargetsVer = 0;
+
+  /** Sales Raw rows + the existing channel / showroom / model / period rules, handed to SalesControl. */
+  function salesControlSource() {
+    const rows = hasSalesRaw() ? (slots.sales.rows || []) : [];
+    if (employeeTargets !== salesControlTargetsRef) {
+      salesControlTargetsRef = employeeTargets;
+      salesControlTargetsVer += 1;
     }
-    backdrop.classList.add("show");
-    drawer.classList.add("open");
-    drawer.setAttribute("aria-hidden", "false");
-  }
-
-  function onDvpMetricClick(e) {
-    const btn = e.target.closest("[data-dvp-channel][data-dvp-metric]");
-    if (!btn) return;
-    e.preventDefault();
-    openDvpVinDrill(btn.getAttribute("data-dvp-channel"), btn.getAttribute("data-dvp-metric"));
-  }
-
-  function dvpTrendChip(delta) {
-    if (delta == null || !Number.isFinite(delta)) return `<span class="dvp-trend is-flat">—</span>`;
-    const up = delta >= 0;
-    const abs = Math.abs(delta);
-    const txt = `${up ? "+" : "−"}${abs >= 10 ? abs.toFixed(0) : abs.toFixed(1)}%`;
-    return `<span class="dvp-trend ${up ? "is-up" : "is-down"}">${up ? "▲" : "▼"} ${txt} vs last period</span>`;
-  }
-
-  function renderDvpCharts(data) {
-    const cards = data.cards || [];
-    const labels = cards.map((c) => c.title.replace(/\s+Sales$/, "").replace("Experience Automall", "Automall"));
-    upsertChart("chart-dvp-overview", "bar", labels, null, {
-      horizontal: true,
-      stacked: true,
-      legend: false,
-      showValues: true,
-      datasets: [
-        {
-          label: "Delivered",
-          data: cards.map((c) => c.delivered),
-          backgroundColor: "rgba(107, 114, 128, 0.92)",
-          borderRadius: 4,
-          borderSkipped: false,
-        },
-        {
-          label: "Pro-Forma",
-          data: cards.map((c) => c.proforma),
-          backgroundColor: "rgba(235, 10, 30, 0.92)",
-          borderRadius: 4,
-          borderSkipped: false,
-        },
-      ],
-    });
-    const overview = charts["chart-dvp-overview"];
-    if (overview && overview.options) {
-      overview.options.onHover = (evt, els) => {
-        if (evt && evt.native && evt.native.target) {
-          evt.native.target.style.cursor = els.length ? "pointer" : "default";
-        }
-      };
-      overview.options.onClick = (_evt, els) => {
-        if (!els.length) return;
-        const hit = els[0];
-        const card = cards[hit.index];
-        if (!card) return;
-        openDvpVinDrill(card.id, hit.datasetIndex === 1 ? "proforma" : "delivered");
-      };
-      overview.update("none");
-    }
-
-    const shareColors = {
-      lexus: "#1f2937",
-      telesales: "#3b82f6",
-      b2c: "#c4a574",
-      guest: "#7c3aed",
+    const guestKeys = guestExpEmployeeKeys();
+    const guestSig = `${salesControlTargetsVer}:${[...guestKeys].sort().join("|")}`;
+    if (salesControlSrc && salesControlSrc.rows === rows && salesControlSrc.guestSig === guestSig) return salesControlSrc;
+    salesControlSrc = {
+      rows,
+      guestSig,
+      guestCount: guestKeys.size,
+      classify: (r) => ({ bucket: dvpBucketForSaleRow(r, guestKeys), showroom: dvpSaleShowroom(r), model: dvpSaleModel(r) }),
+      isDelivery: salesIsDeliveryInPeriod,
+      isProforma: salesIsProformaInPeriod,
+      vinRecord: dvpVinRecord,
     };
-    const shareLabels = cards.map((c) => c.title);
-    const shareValues = cards.map((c) => c.delivered);
-    const shareBg = cards.map((c) => shareColors[c.id] || "#94a3b8");
-    const totalDel = data.totals.delivered || 0;
-    upsertChart("chart-dvp-share", "doughnut", shareLabels, shareValues, {
-      legend: false,
-      cutout: "72%",
-      backgroundColor: shareBg,
-    });
-    const share = charts["chart-dvp-share"];
-    if (share && share.options) {
-      share.options.onHover = (evt, els) => {
-        if (evt && evt.native && evt.native.target) {
-          evt.native.target.style.cursor = els.length ? "pointer" : "default";
-        }
-      };
-      share.options.onClick = (_evt, els) => {
-        if (!els.length) return;
-        const card = cards[els[0].index];
-        if (card) openDvpVinDrill(card.id, "delivered");
-      };
-      share.update("none");
-    }
-    const center = $("#dvp-donut-center");
-    if (center) {
-      center.hidden = false;
-      center.innerHTML = `<strong>${escapeHtml(formatNumber(totalDel))}</strong><span>Total Delivered</span>`;
-    }
-    const legend = $("#dvp-share-legend");
-    if (legend) {
-      legend.innerHTML = cards.map((c, i) => {
-        const pct = totalDel > 0 ? ((c.delivered / totalDel) * 100).toFixed(1) : "0.0";
-        return `<li>
-          <button type="button" class="dvp-share-hit" data-dvp-channel="${escapeHtml(c.id)}" data-dvp-metric="delivered">
-            <span class="swatch" style="background:${escapeHtml(shareBg[i])}"></span>
-            <span class="name">${escapeHtml(c.title)}</span>
-            <span class="meta">${escapeHtml(formatNumber(c.delivered))} (${pct}%)</span>
-          </button>
-        </li>`;
-      }).join("");
-    }
+    return salesControlSrc;
   }
 
   function renderSummaryDashboard() {
-    const panel = $("#panel-summary");
-    if (!panel || !$("#dvp-cards")) return;
-    const empty = $("#dvp-empty");
-    const board = $("#dvp-board");
-    const asof = $("#dvp-asof");
-
-    if (!hasSalesRaw()) {
-      if (empty) empty.hidden = false;
-      if (board) board.hidden = true;
-      if (asof) asof.textContent = "—";
-      return;
-    }
-
-    if (empty) empty.hidden = true;
-    if (board) board.hidden = false;
-
-    const data = buildDeliveredVsProformaSummary();
-    dvpLastPack = data;
-    if (asof) {
-      const live = data.live || {};
-      asof.textContent = dvpPeriodLabel(live, dvpActivityPeriod(live));
-    }
-    const updated = $("#dvp-last-updated");
-    if (updated) {
-      const now = new Date();
-      updated.textContent = now.toLocaleString(undefined, {
-        day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-      });
-    }
-
-    const cardsEl = $("#dvp-cards");
-    cardsEl.innerHTML = data.cards.map((c) => {
-      const status = dvpStatusFor(c.delivered, c.proforma, c.id);
-      const guestNote = c.id === "guest"
-        ? `<p class="dvp-guest-note">${c.guestCount
-          ? escapeHtml(String(c.guestCount)) + " advisor(s) marked Guest Exp in Admin"
-          : "No Guest Exp advisors selected in Admin yet"}</p>`
-        : "";
-      return `<article class="dvp-card theme-${escapeHtml(c.theme)}">
-        <div class="dvp-card-hero" style="--dvp-img:url('${escapeHtml(c.image)}')">
-          <div class="dvp-card-hero-copy">
-            <span class="dvp-brand-pill">${escapeHtml(c.brand || "TOYOTA")}</span>
-            <h3>${escapeHtml(c.title)}</h3>
-            <p>${escapeHtml(c.subtitle)}</p>
-          </div>
-        </div>
-        <div class="dvp-card-body">
-          <div class="dvp-kpi-row">
-            <button type="button" class="dvp-kpi is-del" data-dvp-channel="${escapeHtml(c.id)}" data-dvp-metric="delivered" aria-label="Show ${escapeHtml(c.title)} delivered VINs">
-              <span class="ico" aria-hidden="true">▣</span>
-              <div>
-                <span class="k">Delivered</span>
-                <span class="v">${escapeHtml(formatNumber(c.delivered))}</span>
-              </div>
-            </button>
-            <button type="button" class="dvp-kpi is-pro" data-dvp-channel="${escapeHtml(c.id)}" data-dvp-metric="proforma" aria-label="Show ${escapeHtml(c.title)} proforma VINs">
-              <span class="ico" aria-hidden="true">▤</span>
-              <div>
-                <span class="k">Pro-Forma</span>
-                <span class="v">${escapeHtml(formatNumber(c.proforma))}</span>
-              </div>
-            </button>
-          </div>
-          ${dvpCylHtml(c.delivered, c.proforma, c.theme, c.id)}
-          ${guestNote}
-          <div class="dvp-card-foot">
-            <span class="dvp-status-ico" aria-hidden="true">${status.icon}</span>
-            <div class="dvp-status-copy">
-              <strong>${escapeHtml(status.title)}</strong>
-              <span>${escapeHtml(status.tip)}</span>
-            </div>
-          </div>
-        </div>
-      </article>`;
-    }).join("");
-
-    renderDvpCharts(data);
-
-    const t = data.totals;
-    $("#dvp-totals").innerHTML = `
-      <button type="button" class="dvp-total-card is-del" data-dvp-channel="all" data-dvp-metric="delivered" aria-label="Show all delivered VINs">
-        <span class="dvp-total-ico" aria-hidden="true">▣</span>
-        <span class="k">Total Delivered</span>
-        <span class="v">${escapeHtml(formatNumber(t.delivered))}</span>
-        ${dvpTrendChip(t.delTrend)}
-      </button>
-      <button type="button" class="dvp-total-card is-pro" data-dvp-channel="all" data-dvp-metric="proforma" aria-label="Show all proforma VINs">
-        <span class="dvp-total-ico" aria-hidden="true">▤</span>
-        <span class="k">Total Proforma</span>
-        <span class="v">${escapeHtml(formatNumber(t.proforma))}</span>
-        ${dvpTrendChip(t.proTrend)}
-      </button>
-      <div class="dvp-total-card is-ratio">
-        <span class="dvp-total-ico" aria-hidden="true">◎</span>
-        <span class="k">Delivery / Proforma Ratio</span>
-        <span class="v">${t.ratio == null ? "—" : t.ratio.toFixed(1) + "%"}</span>
-        ${dvpTrendChip(t.ratioTrend)}
-      </div>
-      <div class="dvp-quote" role="note">
-        <p>“Turning opportunities into journeys.”</p>
-      </div>`;
+    if (activePanel !== "summary") return;
+    const host = $("#sales-host");
+    if (!host || !window.SalesControl) return;
+    if (host.parentNode !== document.body) document.body.appendChild(host);
+    window.SalesControl.render(host, salesControlSource(), {
+      live: window._globalLivePeriod || ensureGlobalLivePeriod(),
+      dateFilter: { ...globalDateFilter },
+      setDateFilter: (f) => {
+        const custom = f.preset === "custom";
+        globalDateFilter = { preset: f.preset || "today", from: custom ? f.from : "", to: custom ? f.to : "" };
+        saveGlobalDateFilter();
+        globalDateStale = true;
+        return ensureGlobalLivePeriod();
+      },
+      periodOf: dvpActivityPeriod,
+      periodLabel: dvpPeriodLabel,
+      prevMonthKeyOf: (live) => live.prevMonthKey || (live.prevRangeFrom ? toYyyymm(live.prevRangeFrom) : ""),
+      trendPct: dvpTrendPct,
+      statusFor: dvpStatusFor,
+      formatDate: formatRvDate,
+      dateBounds: () => {
+        const b = salesDateBounds(slots.sales.rows || []);
+        return { min: toIsoDateInput(b.min), max: toIsoDateInput(b.max) };
+      },
+      lastUpdated: Number(Store.readDataPushStamp().at) || 0,
+      onRefresh: () => refreshFromAdmin("Sales refreshed", { force: true }),
+      onExit: () => {
+        const others = visiblePanels().filter((p) => p.id !== "summary").map((p) => p.id);
+        switchPanel(others.includes(panelBeforeSummary) ? panelBeforeSummary : (others[0] || "dashboard"));
+      },
+      reference: dvpReferenceSummary,
+    });
   }
 
   function exportIccExcel() {
@@ -21457,43 +21660,51 @@
     const progressive = options.progressive !== false;
     showError("");
     refreshTargetsFromAdmin();
+    if (LEXUS_VIEW) {
+      switchPanel("lexus");
+      return;
+    }
     if (!hasAnyPushedFiles()) {
       setStatus("Waiting for Admin Push");
+      if (GEC_VIEW) switchPanel("gec");
       return;
     }
     invalidateRtlActiveMonthCache();
     const d = data();
     window._data = d;
+    globalDateStale = false;
     $("#dashboard").classList.add("show");
     $("#dashboard").style.display = "";
     const navDash = $("#nav-dashboard");
     if (navDash) navDash.disabled = false;
     switchNav("dashboard");
-    if (hasSalesReportInputs()) activePanel = "salesreport";
+    const hasGec = !!(slots.gec && slots.gec.gec && slots.gec.gec.records && slots.gec.gec.records.length);
+    const onlyGec = hasGec && SLOT_DEFS.every((s) => s.id === "gec" || s.id === "gecVisitors" || !(slots[s.id] && slots[s.id].file));
+    if (activePanel === "gec" || onlyGec) activePanel = "gec";
+    else if (activePanel === "summary" && hasSummaryInputs()) activePanel = "summary";
+    else if (hasSalesReportInputs()) activePanel = "salesreport";
     else if (hasBackOrder()) activePanel = "bodashboard";
     else activePanel = "dashboard"; // stock-only (or no preferred inputs) → Stock & BO Dashboard, not Stock Dashboard
     if (activePanel === "dashboard") view.tab = pickDefaultStockTab(d);
     switchPanel(activePanel);
 
     const paintActive = () => {
-      if (activePanel === "summary") renderSummaryDashboard();
+      if (activePanel === "gec") renderGecPanel();
+      else if (activePanel === "summary") renderSummaryDashboard();
       else if (activePanel === "salesreport" && hasSalesReportInputs()) {
         window._srRowsByKey = Object.fromEntries((d.salesReport.rows || []).map((r) => [r._key, r]));
         renderSalesReportKpis(d.salesReport);
         syncSrDateControls(d.salesReport);
         refreshSalesSelection();
-      } else if (activePanel === "bodashboard") renderBoDashboard(d);
-      else if (activePanel === "boerrors") renderBoErrorsDashboard(d);
-      else if (activePanel === "boallocstock") renderBoAllocStockDashboard(d);
-      else if (activePanel === "stockdashboard") renderStockDashboard();
+      } else if (activePanel === "bodashboard" || activePanel === "boerrors" || activePanel === "boallocstock") {
+        // already rendered by switchPanel(activePanel) above
+      }
+      else if (activePanel === "stockdashboard") {
+        if (stockDashRenderedFor !== d) { stockDashRenderedFor = d; renderStockDashboard(); }
+      }
       else if (activePanel === "reservedvehicles") renderReservedVehiclesTracker();
       else if (activePanel === "allocationaudit") renderAllocationAudit();
-      else {
-        renderKpis(d);
-        renderCharts(d);
-        renderTabs();
-        renderTable(d);
-      }
+      else ensureMainDashboard();
       if (activePanel !== "salesreport") {
         if (hasSalesReportInputs()) {
           window._srRowsByKey = Object.fromEntries((d.salesReport.rows || []).map((r) => [r._key, r]));
@@ -21512,14 +21723,9 @@
       );
     };
 
+    // Hidden panels (BO, BO Errors, Allocation, Stock, Reserved, Audit, Stock & BO) are built by switchPanel when opened.
     const paintRest = () => {
-      if (activePanel !== "bodashboard") renderBoDashboard(d);
-      if (activePanel !== "boerrors") renderBoErrorsDashboard(d);
-      if (activePanel !== "boallocstock") renderBoAllocStockDashboard(d);
-      if (activePanel !== "stockdashboard") renderStockDashboard();
-      if (activePanel !== "reservedvehicles") renderReservedVehiclesTracker();
       aaLastSeenCache.loaded = false;
-      if (activePanel !== "allocationaudit") renderAllocationAudit();
       ensureAaRtlLastSeen().then(() => {
         if (activePanel === "allocationaudit") renderAllocationAudit();
       });
@@ -21533,11 +21739,8 @@
           refreshSalesSelection();
         }
       }
-      if (activePanel !== "dashboard") {
-        renderKpis(d);
-        renderCharts(d);
-        renderTabs();
-        renderTable(d);
+      if (activePanel !== "summary" && hasSalesRaw() && window.SalesControl) {
+        window.SalesControl.prepare(salesControlSource());
       }
     };
 
@@ -21566,6 +21769,8 @@
       }
     });
     window._data = null;
+    document.body.classList.remove("sr-mode");
+    setSrSheet("");
     $("#dashboard").classList.remove("show");
     $("#dashboard").style.display = "none";
     const navDash = $("#nav-dashboard");
@@ -21574,6 +21779,8 @@
     renderSlots();
     switchNav("dashboard");
     setStatus("View cleared · Push again from Admin to reload");
+    if (GEC_VIEW) switchPanel("gec");
+    if (LEXUS_VIEW) switchPanel("lexus");
   }
 
   let lastPushAt = 0;
@@ -21600,7 +21807,7 @@
     try {
       // Fast path: paint from IndexedDB first unless forcing a full re-download.
       let painted = false;
-      if (!forceSync) {
+      if (!forceSync && !(opts && opts.skipLocal)) {
         const localPayload = await Store.loadWorkbookFiles();
         if (localPayload && localPayload.files && Object.keys(localPayload.files).length) {
           const okLocal = await applyWorkbookPayload(localPayload);
@@ -22054,30 +22261,6 @@
         refreshFromAdmin("ICC refreshed from Admin push");
       });
     }
-    const dvpRefresh = $("#dvp-refresh-btn");
-    if (dvpRefresh) {
-      dvpRefresh.addEventListener("click", () => refreshFromAdmin("Summary refreshed"));
-    }
-    const dvpShow = $("#dvp-f-showroom");
-    if (dvpShow) {
-      dvpShow.addEventListener("change", () => {
-        dvpView.showroom = dvpShow.value || "";
-        renderSummaryDashboard();
-      });
-    }
-    const dvpModel = $("#dvp-f-model");
-    if (dvpModel) {
-      dvpModel.addEventListener("change", () => {
-        dvpView.model = dvpModel.value || "";
-        renderSummaryDashboard();
-      });
-    }
-    const dvpCards = $("#dvp-cards");
-    if (dvpCards) dvpCards.addEventListener("click", onDvpMetricClick);
-    const dvpTotals = $("#dvp-totals");
-    if (dvpTotals) dvpTotals.addEventListener("click", onDvpMetricClick);
-    const dvpShareLegend = $("#dvp-share-legend");
-    if (dvpShareLegend) dvpShareLegend.addEventListener("click", onDvpMetricClick);
     const themeBtn = $("#icc-theme-toggle");
     if (themeBtn) {
       themeBtn.addEventListener("click", () => {
@@ -22172,15 +22355,127 @@
       onDatePresetChange(preset);
     });
   });
+  let srRangeTimer = null;
+  ["#sr-date-from", "#sr-date-to"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener("change", () => {
+      const apply = $("#sr-date-apply");
+      if (apply) apply.classList.add("is-dirty");
+      clearTimeout(srRangeTimer);
+      srRangeTimer = setTimeout(() => {
+        const from = parseIsoDateInput(($("#sr-date-from") || {}).value || "");
+        const to = parseIsoDateInput(($("#sr-date-to") || {}).value || "");
+        if (!from || !to || from.getFullYear() < 2000 || to.getFullYear() < 2000) return;
+        if (startOfDay(from).getTime() > startOfDay(to).getTime()) {
+          setStatus("From date must be on or before To date", "err");
+          return;
+        }
+        applySrDateFilter();
+      }, 700);
+    });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        clearTimeout(srRangeTimer);
+        applySrDateFilter();
+      }
+    });
+  });
   const srNameSearch = $("#sr-name-search");
   if (srNameSearch) {
+    let srSearchTimer = null;
     srNameSearch.addEventListener("input", (e) => {
       srView.search = e.target.value;
       const hiddenSearch = $("#sr-search");
       if (hiddenSearch) hiddenSearch.value = e.target.value;
-      if (window._data && hasSalesReportInputs()) refreshSalesSelection();
+      clearTimeout(srSearchTimer);
+      srSearchTimer = setTimeout(() => {
+        if (window._data && hasSalesReportInputs()) refreshSalesSelection();
+      }, 140);
     });
   }
+
+  (function bindSrCockpit() {
+    const panel = $("#panel-salesreport");
+    if (!panel) return;
+    panel.addEventListener("click", (e) => {
+      const open = e.target.closest("[data-sr-sheet]");
+      if (open) {
+        setSrSheet(panel.dataset.srSheet === open.dataset.srSheet ? "" : open.dataset.srSheet);
+        return;
+      }
+      if (e.target.closest("[data-sr-sheet-close]")) {
+        e.preventDefault();
+        setSrSheet("");
+        return;
+      }
+      if (panel.dataset.srSheet && e.target.closest(".sr-fold-summary")) e.preventDefault();
+      if (panel.dataset.srSheet && e.target.classList.contains("sr-sheet-backdrop")) setSrSheet("");
+    });
+    const schedCharts = $("#sr-sched-charts");
+    if (schedCharts) schedCharts.addEventListener("click", () => setSrSheet(""));
+
+    const refresh = $("#sr-refresh-btn");
+    if (refresh) {
+      refresh.addEventListener("click", () => {
+        refresh.classList.add("is-spinning");
+        Promise.resolve(refreshFromAdmin("Sales refreshed", { force: true }))
+          .catch(() => {})
+          .finally(() => { refresh.classList.remove("is-spinning"); renderSrLastUpdated(); });
+      });
+    }
+
+    const fs = $("#sr-fullscreen-btn");
+    const syncFs = () => {
+      const on = !!document.fullscreenElement;
+      if (fs) { fs.setAttribute("aria-pressed", on ? "true" : "false"); fs.title = on ? "Exit fullscreen" : "Fullscreen"; }
+    };
+    if (fs) {
+      fs.addEventListener("click", () => {
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+      });
+      document.addEventListener("fullscreenchange", syncFs);
+    }
+
+    const navBtn = $("#sr-nav-btn");
+    const navMenu = $("#sr-nav-menu");
+    const closeNav = () => {
+      if (!navMenu || navMenu.hidden) return;
+      navMenu.hidden = true;
+      navBtn.setAttribute("aria-expanded", "false");
+    };
+    if (navBtn && navMenu) {
+      navBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!navMenu.hidden) { closeNav(); return; }
+        navMenu.innerHTML = visiblePanels().map((p) =>
+          `<button type="button" role="menuitem" class="sr-nav-item${p.id === activePanel ? " is-active" : ""}" data-nav-panel="${escapeHtml(p.id)}">${escapeHtml(p.label)}</button>`
+        ).join("") + `<div class="sr-nav-sep"></div>
+          <a class="sr-nav-item" role="menuitem" href="admin.html">Admin Push</a>
+          <a class="sr-nav-item" role="menuitem" href="data-uploader.html">Data Uploader</a>`;
+        navMenu.hidden = false;
+        navBtn.setAttribute("aria-expanded", "true");
+      });
+      navMenu.addEventListener("click", (e) => {
+        const item = e.target.closest("[data-nav-panel]");
+        if (!item) return;
+        closeNav();
+        switchPanel(item.dataset.navPanel);
+      });
+      document.addEventListener("click", (e) => { if (!e.target.closest(".sr-nav")) closeNav(); });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !document.body.classList.contains("sr-mode")) return;
+      if (navMenu && !navMenu.hidden) { closeNav(); return; }
+      if (panel.dataset.srSheet && !document.querySelector(".pbi-wide-backdrop:not([hidden])")) {
+        setSrSheet("");
+        e.stopImmediatePropagation();
+      }
+    });
+  })();
   function shiftSrWorkingDay(delta) {
     const base = (window._globalLivePeriod && window._globalLivePeriod.now)
       ? new Date(window._globalLivePeriod.now)
@@ -22783,7 +23078,19 @@
 
   renderSlots();
   switchNav("dashboard");
-  refreshFromAdmin();
+  if (GEC_VIEW) {
+    document.title = "GEC Dashboard — Abdul Latif Jameel MOTORS";
+    document.body.classList.add("gec-view");
+    switchPanel("gec");
+    liveSync = Store.startLiveSync(() => refreshFromAdmin("Updated from Admin Push", { skipLocal: true }), { initialAt: lastDataPushAt });
+  }
+  if (LEXUS_VIEW) {
+    document.title = "Lexus B2C Tracker — Abdul Latif Jameel MOTORS";
+    document.body.classList.add("lexus-view");
+    switchPanel("lexus");
+  } else {
+    refreshFromAdmin();
+  }
 })();
 </script>
 </body>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Management — Delivery Transformation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="inventory-managment.css?v=20261001gx1" />
+</head>
+<body>
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>Delivery Transformation</span>
+        </div>
+      </div>
+      <h1>Inventory Management</h1>
+      <p>Ruba · الفاضل · البراء — claim Sales Raw VINs into your stock. They stay on the list until the coordinator prints a PDF.</p>
+      <div class="user-pills" id="login-pills"></div>
+      <div class="field">
+        <label for="login-user">User</label>
+        <select id="login-user"></select>
+      </div>
+      <div class="field">
+        <label for="login-pass">Password</label>
+        <input id="login-pass" type="password" value="1234" autocomplete="current-password" />
+      </div>
+      <button type="button" class="btn-primary" id="login-btn">Enter inventory</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>Inventory Management</strong>
+          <span>Sales Raw VINs · stay listed until coordinator PDF</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a href="index.html" class="btn-ghost">Hub</a>
+        <a href="coordinator.html" class="btn-ghost">Coordinator</a>
+        <strong id="side-name">—</strong>
+        <button type="button" class="btn" id="refresh-btn">Refresh</button>
+        <button type="button" class="btn-ghost" id="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="kpi-row" id="kpi-row"></div>
+      <p class="hint">Selecting a VIN puts it in your stock. It is <strong>not</strong> removed from this list until منسق التسليم generates a PDF in coordinator.html. <strong>Ruba</strong> must label each car as <strong>Display</strong> or <strong>Delivery</strong>.</p>
+
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="Search VIN / product / customer / stock owner…" />
+        <div class="tabs" id="view-tabs">
+          <button type="button" class="tab active" data-view="all">All VINs</button>
+          <button type="button" class="tab" data-view="mine">My stock</button>
+          <button type="button" class="tab" data-view="open">Unclaimed</button>
+          <button type="button" class="tab" data-view="display">Display</button>
+          <button type="button" class="tab" data-view="delivery">Delivery</button>
+        </div>
+        <div class="label-bar hidden" id="label-bar">
+          <span class="label-bar-lbl">Type for selected</span>
+          <div class="label-pills" id="label-pills">
+            <button type="button" data-label="display">Display</button>
+            <button type="button" class="active" data-label="delivery">Delivery</button>
+          </div>
+        </div>
+        <button type="button" class="btn-primary hidden" id="claim-display-btn">Add as Display</button>
+        <button type="button" class="btn-primary hidden" id="claim-delivery-btn">Add as Delivery</button>
+        <button type="button" class="btn-primary" id="claim-btn">Add selected to my stock</button>
+        <button type="button" class="btn" id="release-btn">Release selected</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr>
+              <th class="chk"><input type="checkbox" id="check-all" /></th>
+              <th>VIN</th>
+              <th>Product</th>
+              <th>Type</th>
+              <th>Proforma</th>
+              <th>Customer</th>
+              <th>Employee</th>
+              <th>Source</th>
+              <th>Stock</th>
+              <th>Label</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="empty hidden" id="empty">No VINs match this view.</p>
+    </div>
+  </div>
+
+  <div class="label-modal hidden" id="label-modal" aria-hidden="true">
+    <div class="label-modal-card">
+      <h2 id="label-modal-title">Label this car</h2>
+      <p class="hint" id="label-modal-sub">Choose Display or Delivery for the selected VIN(s).</p>
+      <div class="label-modal-vins" id="label-modal-vins"></div>
+      <div class="label-modal-actions">
+        <button type="button" class="btn-primary label-pick" data-pick="display" id="label-pick-display">Display</button>
+        <button type="button" class="btn-primary label-pick delivery" data-pick="delivery" id="label-pick-delivery">Delivery</button>
+        <button type="button" class="btn" id="label-modal-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js?v=20261003scope2"></script>
+  <script src="inventory-managment.js?v=20261003scope2"></script>
+</body>
+</html>

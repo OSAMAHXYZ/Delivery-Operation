@@ -1,0 +1,534 @@
+/*
+ * Live report (index.html) · Lexus Tracker · Lexus digital cockpit on the Control Center design system.
+ * One screen at 1920×1080: fixed 100vh grid, no page scroll — modals are the only scrolling surface.
+ * Black / graphite with champagne accents; colour only where it carries status.
+ */
+body.lx-mode { overflow: hidden !important; }
+body:not(.lx-mode) > #lexus-tracker-host { display: none; }
+body.lexus-view > .app-frame { display: none; }
+body.lexus-view { background: #fff; }
+
+#lexus-tracker-host .lxt {
+  --bg: #0a0a0b;
+  --panel: #131315;
+  --panel-2: #19191c;
+  --panel-3: #202024;
+  --line: rgba(255, 255, 255, 0.065);
+  --line-2: rgba(255, 255, 255, 0.11);
+  --text: #f2eee7;
+  --text-2: #cdc7bc;
+  --muted: #999389;
+  --dim: #6b665e;
+  --gold: #c8a96b;
+  --gold-2: #e5d2a2;
+  --gold-soft: rgba(200, 169, 107, 0.12);
+  --c-delivered: #4fae84;
+  --c-progress: #5b8ee6;
+  --c-cancelled: #c56565;
+  --c-due: #dca347;
+  --c-proforma: #8f84dc;
+  --c-queue: #c8a96b;
+  --c-sales: #a79d8c;
+  --c-none: #5e5a54;
+  --c-neutral: #8f897f;
+  --radius: 14px;
+  --gap: clamp(8px, 1vh, 14px);
+  --font: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 35fr) minmax(0, 29fr) minmax(0, 31fr);
+  gap: var(--gap);
+  padding: clamp(10px, 1.2vh, 16px) clamp(12px, 1vw, 20px);
+  background:
+    radial-gradient(1100px 460px at 85% -12%, rgba(200, 169, 107, 0.07), transparent 62%),
+    radial-gradient(900px 500px at 0% 120%, rgba(91, 142, 230, 0.035), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  -webkit-font-smoothing: antialiased;
+}
+#lexus-tracker-host .lxt *, #lexus-tracker-host .lxt *::before, #lexus-tracker-host .lxt *::after { box-sizing: border-box; }
+#lexus-tracker-host .lxt [hidden] { display: none !important; }
+#lexus-tracker-host .lxt-num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+#lexus-tracker-host .lxt-ic { width: 15px; height: 15px; flex: none; }
+#lexus-tracker-host .lxt-dim { color: var(--dim); }
+
+/* Status tones · the only colour on the page */
+#lexus-tracker-host .lxt .s-delivered { --c: var(--c-delivered); }
+#lexus-tracker-host .lxt .s-progress { --c: var(--c-progress); }
+#lexus-tracker-host .lxt .s-cancelled { --c: var(--c-cancelled); }
+#lexus-tracker-host .lxt .s-due { --c: var(--c-due); }
+#lexus-tracker-host .lxt .s-proforma { --c: var(--c-proforma); }
+#lexus-tracker-host .lxt .s-queue { --c: var(--c-queue); }
+#lexus-tracker-host .lxt .s-sales { --c: var(--c-sales); }
+#lexus-tracker-host .lxt .s-none { --c: var(--c-none); }
+#lexus-tracker-host .lxt .s-neutral { --c: var(--c-neutral); }
+
+/* Controls (host-ID scope outranks the report page theme) */
+#lexus-tracker-host .lxt button, #lexus-tracker-host .lxt a {
+  font: inherit; color: inherit; margin: 0; box-shadow: none; text-transform: none; letter-spacing: normal; min-height: 0;
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left; width: auto; height: auto; text-decoration: none;
+}
+#lexus-tracker-host .lxt select, #lexus-tracker-host .lxt input {
+  font: inherit; color: var(--text) !important; background: transparent !important; border: 0 !important; box-shadow: none !important; outline: none;
+  padding: 0 !important; margin: 0; height: auto; min-height: 0; width: auto; border-radius: 0 !important; color-scheme: dark;
+}
+#lexus-tracker-host .lxt select option { background: #19191c; color: var(--text); }
+#lexus-tracker-host .lxt .lxt-btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 10px; white-space: nowrap;
+  border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text-2); font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-btn:hover { border-color: rgba(200, 169, 107, 0.45); color: var(--text); }
+#lexus-tracker-host .lxt .lxt-btn.is-gold { border-color: rgba(200, 169, 107, 0.5); color: var(--gold-2); background: linear-gradient(180deg, rgba(200, 169, 107, 0.16), rgba(200, 169, 107, 0.06)); }
+#lexus-tracker-host .lxt .lxt-btn.is-gold:hover { background: linear-gradient(180deg, rgba(200, 169, 107, 0.26), rgba(200, 169, 107, 0.1)); color: #fff6df; }
+#lexus-tracker-host .lxt .lxt-btn.is-ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 0 8px; }
+#lexus-tracker-host .lxt .lxt-btn.is-ghost:hover { color: var(--gold-2); }
+#lexus-tracker-host .lxt .lxt-icon-btn {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; flex: none;
+  border: 1px solid var(--line-2); background: var(--panel-2); color: var(--muted); transition: all 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-icon-btn:hover { color: var(--text); border-color: rgba(200, 169, 107, 0.45); }
+#lexus-tracker-host .lxt .lxt-icon-btn.is-exit:hover { color: #f0b4b4; border-color: rgba(197, 101, 101, 0.5); }
+#lexus-tracker-host .lxt .lxt-link { display: inline-flex; align-items: center; gap: 5px; color: var(--gold); font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; }
+#lexus-tracker-host .lxt .lxt-link:hover { color: var(--gold-2); }
+#lexus-tracker-host .lxt .lxt-link.is-strong { font-size: 12px; }
+#lexus-tracker-host .lxt .lxt-link .lxt-ic { width: 14px; height: 14px; transition: transform 0.18s; }
+#lexus-tracker-host .lxt .lxt-link:hover .lxt-ic { transform: translateX(2px); }
+#lexus-tracker-host .lxt :is(button, a, tr[tabindex]):focus-visible { outline: 1.5px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- Header ---------- */
+#lexus-tracker-host .lxt-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px; min-width: 0; }
+#lexus-tracker-host .lxt-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#lexus-tracker-host .lxt-mark { display: inline-grid; place-items: center; width: 36px; height: 26px; color: var(--gold); flex: none; opacity: 0.9; }
+#lexus-tracker-host .lxt-mark svg { width: 100%; height: 100%; }
+#lexus-tracker-host .lxt-mark.is-lg { width: 64px; height: 44px; }
+#lexus-tracker-host .lxt-brand-text { display: flex; flex-direction: column; line-height: 1.1; padding-left: 12px; border-left: 1px solid var(--line-2); }
+#lexus-tracker-host .lxt-brand-text strong { font-size: 16px; font-weight: 600; letter-spacing: 0.3em; color: var(--text); white-space: nowrap; }
+#lexus-tracker-host .lxt-brand-text span { font-size: 10px; font-weight: 600; letter-spacing: 0.26em; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+
+#lexus-tracker-host .lxt-filters { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
+#lexus-tracker-host .lxt-f {
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 1px; height: 38px; padding: 3px 10px; min-width: 0;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, 0.025); cursor: pointer; transition: border-color 0.18s, background 0.18s;
+}
+#lexus-tracker-host .lxt-f:hover { border-color: var(--line-2); }
+#lexus-tracker-host .lxt-f > span { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+#lexus-tracker-host .lxt .lxt-f select { font-size: 12.5px; font-weight: 600; color: var(--text); height: 18px; min-width: 96px; max-width: 150px; cursor: pointer; }
+#lexus-tracker-host .lxt-f-date > div { display: flex; align-items: center; }
+#lexus-tracker-host .lxt-f-date em { font-style: normal; color: var(--dim); margin: 0 5px; font-size: 11px; }
+#lexus-tracker-host .lxt .lxt-f-date input[type="date"] { font-size: 12.5px; font-weight: 600; height: 18px; width: 118px; cursor: pointer; }
+#lexus-tracker-host .lxt-f.is-active { border-color: rgba(200, 169, 107, 0.55); background: var(--gold-soft); }
+#lexus-tracker-host .lxt-f.is-active > span { color: var(--gold); }
+#lexus-tracker-host .lxt-f.is-na { opacity: 0.45; cursor: default; }
+#lexus-tracker-host .lxt .lxt-f.is-na select, #lexus-tracker-host .lxt .lxt-f.is-na input { cursor: default; }
+
+#lexus-tracker-host .lxt-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+#lexus-tracker-host .lxt-live {
+  display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid rgba(79, 174, 132, 0.3); background: rgba(79, 174, 132, 0.08); color: #7fcfa9; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2em;
+}
+#lexus-tracker-host .lxt-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--c-delivered); animation: lxt-pulse 2s infinite; }
+#lexus-tracker-host .lxt-live.is-off { border-color: var(--line-2); background: transparent; color: var(--dim); }
+#lexus-tracker-host .lxt-live.is-off i { background: var(--dim); animation: none; }
+@keyframes lxt-pulse { 0% { box-shadow: 0 0 0 0 rgba(79, 174, 132, 0.5); } 70% { box-shadow: 0 0 0 6px rgba(79, 174, 132, 0); } 100% { box-shadow: 0 0 0 0 rgba(79, 174, 132, 0); } }
+#lexus-tracker-host .lxt-updated { display: flex; flex-direction: column; line-height: 1.15; margin: 0 4px; }
+#lexus-tracker-host .lxt-updated small { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+#lexus-tracker-host .lxt-updated b { font-size: 12px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+
+/* ---------- Cards ---------- */
+#lexus-tracker-host .lxt-card {
+  position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+  padding: clamp(10px, 1.25vh, 15px) 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0) 38%), var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -26px rgba(0, 0, 0, 0.95);
+}
+#lexus-tracker-host .lxt-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; min-width: 0; margin-bottom: clamp(6px, 1vh, 12px); }
+#lexus-tracker-host .lxt-card-head h2 {
+  margin: 0; display: flex; align-items: center; gap: 9px; min-width: 0; overflow: hidden; white-space: nowrap;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-2); line-height: 1.5;
+}
+#lexus-tracker-host .lxt-card-head h2 .lxt-ic { color: var(--gold); opacity: 0.85; }
+#lexus-tracker-host .lxt-card-head h2 small { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; text-transform: none; color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-head-note { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+#lexus-tracker-host .lxt-head-note b { color: var(--text); font-weight: 600; }
+
+/* ---------- KPI strip ---------- */
+#lexus-tracker-host .lxt-kpis { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--gap); }
+#lexus-tracker-host .lxt .lxt-kpi {
+  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: clamp(3px, 0.55vh, 7px); min-width: 0;
+  padding: clamp(9px, 1.2vh, 14px) 15px clamp(11px, 1.35vh, 16px);
+  background: radial-gradient(140px 80px at 100% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 72%), var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#lexus-tracker-host .lxt .lxt-kpi:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 40%, transparent); box-shadow: 0 14px 30px -20px color-mix(in srgb, var(--c) 55%, transparent); }
+#lexus-tracker-host .lxt-kpi-lab { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-kpi-val { font-size: clamp(22px, 3vh, 32px); font-weight: 600; line-height: 1; color: var(--text); white-space: nowrap; }
+#lexus-tracker-host .lxt-kpi-sub { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-kpi-sub b { color: var(--text-2); font-weight: 600; }
+#lexus-tracker-host .lxt-kpi-line { position: absolute; left: 15px; right: 15px; bottom: clamp(6px, 0.8vh, 9px); height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+#lexus-tracker-host .lxt-kpi-line i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--c); transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+#lexus-tracker-host .lxt .lxt-kpi.is-alert { border-color: color-mix(in srgb, var(--c) 45%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 12%, transparent), 0 0 26px -10px color-mix(in srgb, var(--c) 70%, transparent); }
+#lexus-tracker-host .lxt-kpi.is-alert .lxt-kpi-val { color: var(--c); }
+
+/* ---------- Row 1 · status + hero ---------- */
+#lexus-tracker-host .lxt-row1 { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 2.05fr); gap: var(--gap); min-height: 0; }
+#lexus-tracker-host .lxt-donut-wrap { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: clamp(8px, 1.2vh, 14px); }
+#lexus-tracker-host .lxt-donut, #lexus-tracker-host .lxt-gauge { position: relative; display: grid; place-items: center; min-height: 0; }
+#lexus-tracker-host .lxt-donut .lxt-ring { height: 100%; max-height: 190px; aspect-ratio: 1; }
+#lexus-tracker-host .lxt-ring { display: block; transform: rotate(-90deg); overflow: visible; }
+#lexus-tracker-host .lxt-ring circle { fill: none; stroke-width: 5; }
+#lexus-tracker-host .lxt-ring .lxt-ring-bg { stroke: rgba(255, 255, 255, 0.06); }
+#lexus-tracker-host .lxt-ring .lxt-ring-seg { stroke: var(--c); stroke-linecap: butt; transition: stroke-dasharray 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), stroke-dashoffset 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c) 45%, transparent)); }
+#lexus-tracker-host .lxt-ring-c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+#lexus-tracker-host .lxt-ring-c b { font-size: clamp(24px, 3.4vh, 36px); font-weight: 600; line-height: 1; color: var(--text); }
+#lexus-tracker-host .lxt-ring-c small { margin-top: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); }
+#lexus-tracker-host .lxt-legend { display: flex; flex-direction: column; gap: 3px; }
+#lexus-tracker-host .lxt .lxt-leg {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 52px; align-items: center; gap: 10px; padding: 5px 10px; border-radius: 9px;
+  border: 1px solid transparent; transition: background 0.18s, border-color 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-leg:hover { background: rgba(255, 255, 255, 0.035); border-color: var(--line); }
+#lexus-tracker-host .lxt-leg i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 55%, transparent); }
+#lexus-tracker-host .lxt-leg span { font-size: 12.5px; color: var(--text-2); }
+#lexus-tracker-host .lxt-leg b { font-size: 14px; font-weight: 600; color: var(--text); text-align: right; }
+#lexus-tracker-host .lxt-leg em { font-style: normal; font-size: 12px; color: var(--muted); text-align: right; }
+
+#lexus-tracker-host .lxt-hero {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--gap); min-height: 0;
+  padding: clamp(8px, 1vh, 12px); border-radius: calc(var(--radius) + 4px); overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(600px 260px at 78% 0%, rgba(229, 210, 162, 0.09), transparent 65%),
+    linear-gradient(135deg, #17171a 0%, #0e0e10 55%, #121214 100%);
+  border: 1px solid rgba(200, 169, 107, 0.16);
+}
+#lexus-tracker-host .lxt-hero::before {
+  content: ""; position: absolute; left: 8%; right: 8%; top: 0; height: 1px; z-index: 1;
+  background: linear-gradient(90deg, transparent, rgba(229, 210, 162, 0.55), transparent);
+}
+#lexus-tracker-host .lxt-hero::after {
+  content: ""; position: absolute; right: -2%; bottom: -6%; width: 62%; height: 78%; z-index: -1; pointer-events: none;
+  background: var(--lxt-hero-img, none) no-repeat right bottom / contain; opacity: 0; transition: opacity 1.2s ease;
+}
+#lexus-tracker-host .lxt-hero.is-lit::after { opacity: 0.32; }
+#lexus-tracker-host .lxt-card.is-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.005)), rgba(16, 16, 18, 0.62);
+  border-color: rgba(255, 255, 255, 0.07); backdrop-filter: blur(3px); box-shadow: none;
+}
+
+/* In-progress flow */
+#lexus-tracker-host .lxt-flow { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: clamp(2px, 0.45vh, 6px); overflow: hidden; }
+#lexus-tracker-host .lxt-flow-stack { flex: none; display: flex; gap: 2px; height: 6px; border-radius: 99px; overflow: hidden; margin: 0 8px clamp(4px, 0.8vh, 10px); background: rgba(255, 255, 255, 0.05); }
+#lexus-tracker-host .lxt-flow-stack i { display: block; min-width: 3px; height: 100%; background: var(--c); }
+#lexus-tracker-host .lxt .lxt-flow-row, #lexus-tracker-host .lxt .lxt-bar {
+  flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto 50px; grid-template-rows: auto auto; column-gap: 12px; row-gap: 4px; align-items: center;
+  width: 100%; padding: clamp(3px, 0.5vh, 6px) 8px; border-radius: 9px; border: 1px solid transparent; transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-bar { row-gap: 3px; padding-top: clamp(2px, 0.3vh, 4px); padding-bottom: clamp(2px, 0.3vh, 4px); }
+#lexus-tracker-host .lxt .lxt-flow-row:hover, #lexus-tracker-host .lxt .lxt-bar:hover { background: rgba(255, 255, 255, 0.035); border-color: var(--line); }
+#lexus-tracker-host .lxt .lxt-flow-row.is-zero { opacity: 0.45; }
+#lexus-tracker-host .lxt-flow-lab, #lexus-tracker-host .lxt-bar-lab { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-flow-lab i, #lexus-tracker-host .lxt-bar-lab i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+#lexus-tracker-host :is(.lxt-flow-row, .lxt-bar) > b { font-size: 13.5px; font-weight: 600; color: var(--text); text-align: right; }
+#lexus-tracker-host :is(.lxt-flow-row, .lxt-bar) > em { font-style: normal; font-size: 11.5px; color: var(--muted); text-align: right; }
+#lexus-tracker-host .lxt-track { grid-column: 1 / -1; display: block; height: 3px; border-radius: 99px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+#lexus-tracker-host .lxt-track > i, #lexus-tracker-host .lxt-track > span { display: flex; height: 100%; width: 0; border-radius: inherit; background: var(--c); transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+#lexus-tracker-host .lxt-track > i { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 55%, transparent), var(--c)); }
+#lexus-tracker-host .lxt-track > span { background: none; gap: 1px; }
+#lexus-tracker-host .lxt-track > span > i { display: block; height: 100%; min-width: 0; background: var(--c); }
+
+/* Follow-up monitor */
+#lexus-tracker-host .lxt-follow-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: clamp(6px, 1vh, 12px); }
+#lexus-tracker-host .lxt-follow-top { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+#lexus-tracker-host .lxt-gauge .lxt-ring { width: clamp(84px, 11vh, 118px); height: clamp(84px, 11vh, 118px); }
+#lexus-tracker-host .lxt-gauge .lxt-ring-c b { font-size: clamp(18px, 2.5vh, 26px); color: var(--c-delivered); }
+#lexus-tracker-host .lxt-gauge.is-warn .lxt-ring-c b { color: var(--c-due); }
+#lexus-tracker-host .lxt-gauge .lxt-ring-c small { font-size: 8.5px; letter-spacing: 0.18em; margin-top: 3px; }
+#lexus-tracker-host .lxt-fstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+#lexus-tracker-host .lxt .lxt-fstat {
+  display: flex; flex-direction: column; gap: 2px; padding: clamp(5px, 0.75vh, 9px) 11px; border-radius: 10px;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); transition: border-color 0.18s, background 0.18s; min-width: 0;
+}
+#lexus-tracker-host .lxt .lxt-fstat:hover { border-color: var(--line-2); background: rgba(255, 255, 255, 0.04); }
+#lexus-tracker-host .lxt-fstat small { font-size: 9px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-fstat b { font-size: clamp(16px, 2.1vh, 21px); font-weight: 600; color: var(--text); }
+#lexus-tracker-host .lxt-fstat.is-ok b { color: var(--c-delivered); }
+#lexus-tracker-host .lxt .lxt-fstat.is-due { border-color: rgba(220, 163, 71, 0.4); background: rgba(220, 163, 71, 0.07); }
+#lexus-tracker-host .lxt-fstat.is-due b { color: var(--c-due); }
+#lexus-tracker-host .lxt-over-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow: hidden; }
+#lexus-tracker-host .lxt .lxt-over {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  height: clamp(32px, 4vh, 40px); padding: 0 14px; border-radius: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+}
+#lexus-tracker-host .lxt-over.is-calm { justify-content: flex-start; color: var(--muted); border: 1px dashed var(--line-2); font-weight: 500; letter-spacing: 0.02em; }
+#lexus-tracker-host .lxt-over.is-calm .lxt-ic { color: var(--c-delivered); }
+#lexus-tracker-host .lxt .lxt-over.is-hot {
+  color: #f3d19a; text-transform: uppercase; border: 1px solid rgba(220, 163, 71, 0.5);
+  background: linear-gradient(90deg, rgba(220, 163, 71, 0.18), rgba(220, 163, 71, 0.06)); box-shadow: 0 0 22px -8px rgba(220, 163, 71, 0.55);
+  animation: lxt-glow 2.8s ease-in-out infinite;
+}
+#lexus-tracker-host .lxt-over.is-hot span { display: inline-flex; align-items: center; gap: 8px; }
+#lexus-tracker-host .lxt-over.is-hot i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-due); box-shadow: 0 0 8px var(--c-due); }
+#lexus-tracker-host .lxt-over.is-hot b { font-size: 18px; font-weight: 600; color: #ffe2ae; letter-spacing: 0; }
+@keyframes lxt-glow { 0%, 100% { box-shadow: 0 0 18px -10px rgba(220, 163, 71, 0.5); } 50% { box-shadow: 0 0 26px -6px rgba(220, 163, 71, 0.65); } }
+#lexus-tracker-host .lxt-od-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+#lexus-tracker-host .lxt .lxt-od {
+  flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%;
+  padding: 4px 10px; border-radius: 8px; font-size: 12px; transition: background 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-od:hover { background: rgba(220, 163, 71, 0.08); }
+#lexus-tracker-host .lxt-od b { font-weight: 600; color: var(--text); }
+#lexus-tracker-host .lxt-od span { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-od em { font-style: normal; font-weight: 600; color: var(--c-due); white-space: nowrap; }
+
+/* ---------- Row 2 · status · model · consultant ---------- */
+#lexus-tracker-host .lxt-row2 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); min-height: 0; }
+#lexus-tracker-host .lxt-bars, #lexus-tracker-host .lxt-people { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: clamp(1px, 0.35vh, 4px); overflow: hidden; }
+#lexus-tracker-host .lxt .lxt-bar.is-on { background: color-mix(in srgb, var(--c, var(--gold)) 10%, transparent); border-color: color-mix(in srgb, var(--c, var(--gold)) 40%, transparent); }
+#lexus-tracker-host .lxt .lxt-bar.is-dim, #lexus-tracker-host .lxt .lxt-prow.is-dim { opacity: 0.42; }
+#lexus-tracker-host .lxt .lxt-bar.is-dim:hover, #lexus-tracker-host .lxt .lxt-prow.is-dim:hover { opacity: 0.8; }
+#lexus-tracker-host .lxt .lxt-split { grid-template-columns: minmax(0, 1fr) auto 34px; }
+#lexus-tracker-host .lxt-split { --c: var(--gold); }
+#lexus-tracker-host .lxt-split-meta { display: inline-flex; gap: 8px; font-size: 11px; white-space: nowrap; }
+#lexus-tracker-host .lxt-split-meta b { font-weight: 600; color: var(--c); min-width: 10px; text-align: right; }
+#lexus-tracker-host .lxt-split .lxt-track { height: 4px; }
+
+#lexus-tracker-host .lxt-pgrid { display: grid; grid-template-columns: minmax(0, 1.8fr) repeat(5, minmax(34px, 0.5fr)); align-items: center; gap: 8px; }
+#lexus-tracker-host .lxt-phead { flex: none; padding: 0 9px 5px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--line); white-space: nowrap; }
+#lexus-tracker-host .lxt-phead span:nth-child(n + 2) { text-align: right; }
+#lexus-tracker-host .lxt .lxt-prow {
+  flex: none; width: 100%; height: clamp(28px, 3.3vh, 36px); padding: 0 9px; border-radius: 9px; border: 1px solid transparent;
+  font-size: 12.5px; transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-prow:hover { background: rgba(255, 255, 255, 0.035); border-color: var(--line); }
+#lexus-tracker-host .lxt .lxt-prow.is-on { background: var(--gold-soft); border-color: rgba(200, 169, 107, 0.4); }
+#lexus-tracker-host .lxt-prow > :nth-child(n + 2) { text-align: right; }
+#lexus-tracker-host .lxt-prow > b { font-weight: 600; color: var(--text); }
+#lexus-tracker-host .lxt-prow > span.lxt-num { color: var(--c, var(--muted)); }
+#lexus-tracker-host .lxt-prow > span.is-zero { color: var(--dim); }
+#lexus-tracker-host .lxt-prow > span.is-strong { font-weight: 700; }
+#lexus-tracker-host .lxt-pname { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#lexus-tracker-host .lxt-pname i {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-style: normal;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold-2); background: var(--gold-soft); border: 1px solid rgba(200, 169, 107, 0.25);
+}
+
+#lexus-tracker-host .lxt-calm { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; padding: 10px 16px; color: var(--muted); }
+#lexus-tracker-host .lxt-calm .lxt-ic { width: 24px; height: 24px; color: var(--dim); margin-bottom: 4px; stroke-width: 1.4; }
+#lexus-tracker-host .lxt-calm b { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+#lexus-tracker-host .lxt-calm span { font-size: 11.5px; color: var(--dim); max-width: 300px; line-height: 1.45; }
+
+/* ---------- Orders ---------- */
+#lexus-tracker-host .lxt-orders { padding-bottom: clamp(6px, 0.9vh, 10px); }
+#lexus-tracker-host .lxt-table-wrap { flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; }
+#lexus-tracker-host table.lxt-table { width: 100%; border-collapse: separate !important; border-spacing: 0 !important; margin: 0 !important; background: transparent !important; font-size: 12px !important; table-layout: auto; }
+#lexus-tracker-host .lxt-table th {
+  position: sticky; top: 0; z-index: 1; height: 32px; padding: 0 12px !important; text-align: left; white-space: nowrap;
+  background: #17171a !important; color: var(--dim) !important; font-size: 9.5px !important; font-weight: 700 !important; letter-spacing: 0.14em; text-transform: uppercase;
+  border: 0 !important; border-bottom: 1px solid var(--line-2) !important; box-shadow: none !important;
+}
+#lexus-tracker-host .lxt-table td {
+  height: 34px; padding: 0 12px !important; background: transparent !important; color: var(--text-2) !important; font-size: 12px !important;
+  border: 0 !important; border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important; white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle !important;
+}
+#lexus-tracker-host .lxt-table tbody tr { cursor: pointer; background: transparent !important; transition: background 0.15s; }
+#lexus-tracker-host .lxt-table tbody tr:hover td { background: rgba(200, 169, 107, 0.05) !important; }
+#lexus-tracker-host .lxt-table tbody tr.is-due td:first-child { box-shadow: inset 2px 0 0 var(--c-due); }
+#lexus-tracker-host .lxt-table td.is-key b { color: var(--text); font-weight: 600; }
+#lexus-tracker-host .lxt-table td.is-wide { max-width: 200px; }
+#lexus-tracker-host .lxt-table td.is-note { max-width: 180px; color: var(--muted) !important; }
+#lexus-tracker-host .lxt-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+#lexus-tracker-host .lxt-table td.lxt-td-empty { height: 60px; text-align: center; color: var(--dim) !important; cursor: default; }
+#lexus-tracker-host .lxt-table td.is-share { width: 22%; min-width: 140px; }
+#lexus-tracker-host .lxt-table td.is-share .lxt-track { height: 5px; }
+#lexus-tracker-host .lxt-table td.is-share .lxt-track > span { transition: none; }
+#lexus-tracker-host .lxt-table td.s-progress, #lexus-tracker-host .lxt-table td.s-delivered, #lexus-tracker-host .lxt-table td.s-cancelled, #lexus-tracker-host .lxt-table td.s-due { color: var(--c) !important; }
+
+#lexus-tracker-host .lxt-pill {
+  display: inline-block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--c) 80%, #fff); background: color-mix(in srgb, var(--c) 12%, transparent); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+}
+#lexus-tracker-host .lxt-cat { display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); }
+#lexus-tracker-host .lxt-cat i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px color-mix(in srgb, var(--c) 60%, transparent); }
+#lexus-tracker-host .lxt-trk { display: inline-flex; align-items: center; gap: 7px; color: color-mix(in srgb, var(--c) 75%, #fff); font-weight: 600; }
+#lexus-tracker-host .lxt-trk i { width: 6px; height: 6px; border-radius: 2px; background: var(--c); }
+#lexus-tracker-host .lxt-trk.s-none { color: var(--dim); font-weight: 500; }
+#lexus-tracker-host .lxt .lxt-catbtn {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 2px 8px 2px 4px; margin-left: -4px; border-radius: 8px;
+  border: 1px solid transparent; white-space: nowrap; transition: background 0.18s, border-color 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-catbtn:hover { background: rgba(79, 174, 132, 0.08); border-color: rgba(79, 174, 132, 0.3); }
+#lexus-tracker-host .lxt-lstat {
+  display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; direction: ltr;
+  font-size: 11px; font-weight: 600; color: var(--text-2); letter-spacing: 0.01em;
+}
+#lexus-tracker-host .lxt-lstat i { width: 5px; height: 5px; border-radius: 50%; flex: none; background: var(--c-neutral); }
+#lexus-tracker-host .lxt-lstat.is-ok { color: #7fcfa9; }
+#lexus-tracker-host .lxt-lstat.is-ok i { background: var(--c-delivered); box-shadow: 0 0 6px var(--c-delivered); }
+#lexus-tracker-host .lxt-lstat.is-warn { color: #efc27a; }
+#lexus-tracker-host .lxt-lstat.is-warn i { background: var(--c-due); }
+#lexus-tracker-host .lxt-lstat.is-idle { color: var(--gold); font-weight: 500; }
+#lexus-tracker-host .lxt-lstat.is-none { color: var(--dim); font-weight: 500; }
+#lexus-tracker-host .lxt-lstat.is-lg { font-size: 14px; }
+#lexus-tracker-host .lxt-lstat.is-lg i { width: 7px; height: 7px; }
+#lexus-tracker-host .lxt-detail h4 .lxt-link { margin-left: 10px; letter-spacing: 0.04em; text-transform: none; font-size: 11px; }
+#lexus-tracker-host .lxt-fu { font-weight: 600; }
+#lexus-tracker-host .lxt-fu.is-due { color: var(--c-due); text-shadow: 0 0 12px rgba(220, 163, 71, 0.35); }
+#lexus-tracker-host .lxt-fu.is-ok { color: var(--muted); font-weight: 500; }
+#lexus-tracker-host .lxt-acts { display: inline-flex; align-items: center; gap: 6px; }
+#lexus-tracker-host .lxt .lxt-act {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  border: 1px solid var(--line-2); color: var(--text-2); transition: border-color 0.18s, color 0.18s;
+}
+#lexus-tracker-host .lxt .lxt-act:hover { border-color: rgba(200, 169, 107, 0.5); color: var(--gold-2); }
+#lexus-tracker-host .lxt .lxt-act.is-icon { width: 24px; padding: 0; justify-content: center; }
+#lexus-tracker-host .lxt-act .lxt-ic { width: 12px; height: 12px; }
+
+/* ---------- Empty ---------- */
+#lexus-tracker-host .lxt-empty { position: absolute; inset: 70px 0 0; z-index: 20; display: grid; place-items: center; background: rgba(10, 10, 11, 0.8); backdrop-filter: blur(4px); }
+#lexus-tracker-host .lxt-empty-card {
+  max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 34px 38px;
+  background: var(--panel); border: 1px solid rgba(200, 169, 107, 0.2); border-radius: 20px; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9);
+}
+#lexus-tracker-host .lxt-empty-card strong { font-size: 16px; font-weight: 600; letter-spacing: 0.06em; }
+#lexus-tracker-host .lxt-empty-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+#lexus-tracker-host .lxt-empty-card p b { color: var(--text-2); font-weight: 600; }
+
+/* ---------- Modal (only scrolling surface) ---------- */
+#lexus-tracker-host .lxt-modal { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 3vh 3vw; background: rgba(4, 4, 5, 0.7); backdrop-filter: blur(6px); }
+#lexus-tracker-host .lxt-modal-card {
+  width: min(1560px, 100%); height: 100%; max-height: 900px; display: flex; flex-direction: column; overflow: hidden;
+  background: #121214; border: 1px solid rgba(200, 169, 107, 0.18); border-radius: 18px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+  animation: lxt-in 0.22s ease-out;
+}
+@keyframes lxt-in { from { opacity: 0; transform: translateY(8px) scale(0.99); } to { opacity: 1; transform: none; } }
+#lexus-tracker-host .lxt-modal-head { flex: none; display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+#lexus-tracker-host .lxt-modal-titles { min-width: 0; }
+#lexus-tracker-host .lxt-modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
+#lexus-tracker-host .lxt-modal-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#lexus-tracker-host .lxt-modal-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; flex: none; }
+#lexus-tracker-host .lxt .lxt-modal-tools input[type="search"] { height: 34px; width: 240px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel-2); font-size: 12.5px; }
+#lexus-tracker-host .lxt .lxt-modal-tools input[type="search"]:focus { border-color: rgba(200, 169, 107, 0.5); }
+#lexus-tracker-host .lxt-modal-tabs { flex: none; display: flex; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+#lexus-tracker-host .lxt-modal-tabs:empty { display: none; }
+#lexus-tracker-host .lxt .lxt-modal-tabs button { height: 30px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 600; transition: all 0.18s; }
+#lexus-tracker-host .lxt .lxt-modal-tabs button:hover { color: var(--text); border-color: var(--line-2); }
+#lexus-tracker-host .lxt-modal-tabs button b { margin-left: 7px; color: var(--text); font-weight: 600; }
+#lexus-tracker-host .lxt-modal-tabs button.is-due b { color: var(--c-due); }
+#lexus-tracker-host .lxt .lxt-modal-tabs button.is-on { background: var(--gold-soft); border-color: rgba(200, 169, 107, 0.45); color: var(--gold-2); }
+#lexus-tracker-host .lxt-modal-body { flex: 1; min-height: 0; overflow: auto; }
+#lexus-tracker-host .lxt-modal-body table.lxt-table th { background: #161618 !important; }
+#lexus-tracker-host .lxt-modal-foot { flex: none; padding: 9px 20px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--dim); }
+
+#lexus-tracker-host .lxt-detail { padding: 6px 20px 20px; }
+#lexus-tracker-host .lxt-detail section { margin-top: 14px; }
+#lexus-tracker-host .lxt-detail h4 { margin: 0 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
+#lexus-tracker-host .lxt-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+#lexus-tracker-host .lxt-field { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); min-width: 0; }
+#lexus-tracker-host .lxt-field.is-wide { grid-column: 1 / -1; }
+#lexus-tracker-host .lxt-field span { font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+#lexus-tracker-host .lxt-field b { font-size: 13px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+#lexus-tracker-host .lxt-field small { font-size: 11px; color: var(--c-due); }
+#lexus-tracker-host .lxt-field.is-edited { border-color: rgba(220, 163, 71, 0.35); background: rgba(220, 163, 71, 0.06); }
+#lexus-tracker-host .lxt-edited-tag { color: var(--c-due); letter-spacing: 0.08em; }
+#lexus-tracker-host .lxt-history { margin: 10px 0 0; padding-left: 20px; color: var(--text-2); font-size: 12.5px; line-height: 1.8; }
+#lexus-tracker-host .lxt-history b { font-weight: 600; color: var(--text); }
+#lexus-tracker-host .lxt-history p { margin: 0 0 6px; padding: 5px 10px; border-left: 2px solid rgba(200, 169, 107, 0.45); background: rgba(255, 255, 255, 0.025); border-radius: 0 6px 6px 0; color: var(--muted); line-height: 1.45; white-space: pre-wrap; }
+#lexus-tracker-host .lxt-pad { margin: 10px 0 0; font-size: 12.5px; }
+
+/* ---------- Tighten, never scroll ---------- */
+@media (max-width: 1760px) {
+  #lexus-tracker-host .lxt-header { grid-template-columns: auto minmax(0, 1fr); row-gap: 8px; }
+  #lexus-tracker-host .lxt-filters { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; flex-wrap: wrap; }
+  #lexus-tracker-host .lxt-card-head h2 small { display: none; }
+}
+@media (max-width: 1400px) {
+  #lexus-tracker-host .lxt-kpi-lab { font-size: 9.5px; letter-spacing: 0.1em; }
+  #lexus-tracker-host .lxt-kpi-sub { font-size: 10.5px; }
+  #lexus-tracker-host .lxt .lxt-f select { min-width: 84px; max-width: 120px; }
+  #lexus-tracker-host .lxt .lxt-btn span { display: none; }
+  #lexus-tracker-host .lxt .lxt-btn { padding: 0 10px; }
+  #lexus-tracker-host .lxt-table td.is-note, #lexus-tracker-host .lxt-table th.is-note { display: none; }
+}
+@media (max-height: 900px) {
+  #lexus-tracker-host .lxt { font-size: 12px; }
+  #lexus-tracker-host .lxt-kpi-sub { display: none; }
+  #lexus-tracker-host .lxt-table td { height: 30px; }
+}
+
+/* Phones / small tablets: one screen is not possible — stack and let the page scroll */
+@media (max-width: 900px) {
+  #lexus-tracker-host .lxt { overflow-y: auto; grid-template-rows: none; grid-auto-rows: max-content; align-content: start; padding: 12px; }
+  #lexus-tracker-host .lxt-row1, #lexus-tracker-host .lxt-hero, #lexus-tracker-host .lxt-row2 { grid-auto-rows: max-content; }
+  #lexus-tracker-host :is(.lxt-donut-wrap, .lxt-flow, .lxt-follow-body, .lxt-over-wrap, .lxt-od-list, .lxt-bars, .lxt-people, .lxt-table-wrap) { flex: none; }
+  #lexus-tracker-host :is(.lxt-flow, .lxt-over-wrap, .lxt-od-list, .lxt-bars, .lxt-people) { overflow: visible; }
+  #lexus-tracker-host .lxt-header { grid-template-columns: 1fr; }
+  #lexus-tracker-host .lxt-actions { justify-content: flex-start; flex-wrap: wrap; }
+  #lexus-tracker-host .lxt-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #lexus-tracker-host .lxt-kpi-sub { display: block; }
+  #lexus-tracker-host .lxt-row1, #lexus-tracker-host .lxt-hero, #lexus-tracker-host .lxt-row2 { grid-template-columns: 1fr; }
+  #lexus-tracker-host .lxt-donut .lxt-ring { height: 170px; }
+  #lexus-tracker-host .lxt-row2 .lxt-card { min-height: 220px; }
+  #lexus-tracker-host .lxt-table-wrap { overflow: auto; }
+  #lexus-tracker-host .lxt .lxt-modal-tools input[type="search"] { width: 140px; }
+  #lexus-tracker-host .lxt-modal { padding: 0; }
+  #lexus-tracker-host .lxt-modal-card { max-height: none; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #lexus-tracker-host .lxt *, #lexus-tracker-host .lxt *::before, #lexus-tracker-host .lxt *::after { animation: none !important; transition: none !important; }
+}
+
+/* lexusb2ctracker.html only (?view=lexus). The Lexus panel inside the report stays dark. */
+body.lexus-view #lexus-tracker-host .lxt {
+  --bg: #fff;
+  --panel: #fff;
+  --panel-2: #f6f6f7;
+  --panel-3: #eeeef0;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-2: rgba(0, 0, 0, 0.14);
+  --text: #161616;
+  --text-2: #2c2c2c;
+  --muted: #5e5a54;
+  --dim: #6f6a62;
+  --gold: #8a7040;
+  --gold-2: #6e582c;
+  --gold-soft: rgba(138, 112, 64, 0.12);
+  color-scheme: light;
+  background: #fff;
+  color: var(--text);
+}
+body.lexus-view #lexus-tracker-host .lxt select option { background: #fff; color: var(--text); }
+body.lexus-view #lexus-tracker-host .lxt-hero {
+  background: linear-gradient(135deg, #fff 0%, #f7f5f1 55%, #fff 100%);
+  border-color: rgba(138, 112, 64, 0.22);
+}
+body.lexus-view #lexus-tracker-host .lxt-card.is-glass {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+body.lexus-view #lexus-tracker-host .lxt-ring .lxt-ring-bg { stroke: rgba(0, 0, 0, 0.08); }
+body.lexus-view #lexus-tracker-host .lxt-table th,
+body.lexus-view #lexus-tracker-host .lxt-modal-body table.lxt-table th { background: #f3f3f4 !important; color: #6f6a62 !important; }
+body.lexus-view #lexus-tracker-host .lxt-table td { border-bottom-color: rgba(0, 0, 0, 0.06) !important; }
+body.lexus-view #lexus-tracker-host .lxt-empty { background: rgba(255, 255, 255, 0.86); }
+body.lexus-view #lexus-tracker-host .lxt-modal { background: rgba(255, 255, 255, 0.72); }
+body.lexus-view #lexus-tracker-host .lxt-modal-card { background: #fff; }
+body.lexus-view #lexus-tracker-host .lxt-btn.is-gold:hover { color: #3d3018; }
+body.lexus-view #lexus-tracker-host .lxt-lstat.is-ok { color: #2f7a58; }
+body.lexus-view #lexus-tracker-host .lxt-lstat.is-warn { color: #9a6b12; }

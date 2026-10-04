@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل الحضور — Delivery Transformation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="attendance.css?v=20260923a1" />
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <img src="../images/logo/toyota.png" alt="Toyota" onerror="this.style.display='none'" />
+      <div>
+        <p class="eyebrow">Delivery Transformation</p>
+        <h1>تسجيل الحضور</h1>
+      </div>
+    </header>
+
+    <section class="card" id="formCard">
+      <p class="lead">اختر شركتك ثم اكتب اسمك ورقم جوالك. الحقول الثلاثة مطلوبة.</p>
+
+      <form id="attendanceForm" novalidate>
+        <div class="field">
+          <label for="company">الشركة <span class="req">*</span></label>
+          <select id="company" name="company" required>
+            <option value="">— اختر الشركة —</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="name">الاسم <span class="req">*</span></label>
+          <input id="name" name="name" type="text" autocomplete="name" required placeholder="اكتب الاسم الثلاثي" />
+        </div>
+
+        <div class="field">
+          <label for="phone">رقم الجوال <span class="req">*</span></label>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="05xxxxxxxx" dir="ltr" />
+        </div>
+
+        <p class="status" id="formStatus" role="status"></p>
+        <button type="submit" class="btn" id="btnSubmit">تسجيل الحضور</button>
+      </form>
+    </section>
+
+    <section class="card success hidden" id="successCard">
+      <div class="check" aria-hidden="true">✓</div>
+      <h2>تم تسجيل الحضور</h2>
+      <dl class="summary">
+        <div><dt>الشركة</dt><dd id="okCompany"></dd></div>
+        <div><dt>الاسم</dt><dd id="okName"></dd></div>
+        <div><dt>الجوال</dt><dd id="okPhone" dir="ltr"></dd></div>
+        <div><dt>الوقت</dt><dd id="okTime"></dd></div>
+      </dl>
+      <button type="button" class="btn btn-ghost" id="btnAgain">تسجيل شخص آخر</button>
+    </section>
+  </main>
+
+  <script src="shared.js"></script>
+  <script src="attendance.js?v=20260923a1"></script>
+</body>
+</html>

@@ -3326,6 +3326,18 @@ tr.emp-row:hover td {
   color: #111;
 }
 
+.target-emp-code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
 .target-summary {
   display: flex;
   flex-wrap: wrap;

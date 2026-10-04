@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIN Finder — Delivery Transformation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="vin-finder.css?v=20260924vf1" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="brand">
+      <div class="brand-mark">T</div>
+      <div>
+        <strong>TOYOTA</strong>
+        <span>Delivery Transformation · VIN Finder</span>
+      </div>
+    </header>
+
+    <h1>VIN Finder</h1>
+    <p class="lead">Type a VIN or sales order number to see the Live Sheet status and the employee who has the car.</p>
+
+    <form class="search" id="form" autocomplete="off">
+      <input id="q" type="search" inputmode="search" spellcheck="false"
+        placeholder="VIN or order number — e.g. JTNB… or SO-9001" autofocus />
+      <button type="submit" class="btn-primary">Search</button>
+    </form>
+    <p class="hint" id="hint">Enter at least 4 characters.</p>
+
+    <div id="results"></div>
+  </main>
+
+  <script src="vin-finder.js?v=20260924vf1"></script>
+</body>
+</html>

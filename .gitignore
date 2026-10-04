@@ -24,6 +24,8 @@ node_modules/
 # Runtime inventory (persisted on server)
 delivery-inventory-data.json
 delivery-inventory-data.json.*.tmp
+delivery-transformation-backup-last.json
+delivery-transformation-backup-last.json.tmp
 
 # Shared Sales Report push (Excel + targets) — runtime only
 report-sheet-data/

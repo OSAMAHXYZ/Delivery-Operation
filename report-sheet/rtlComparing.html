@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTL Comparing — Retail Electronic Sales · Allocation Date in month</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f1ec;
+      --ink: #18191c;
+      --muted: #77736c;
+      --line: #e5e1da;
+      --card: #ffffff;
+      --toyota: #eb0a1e;
+      --ok: #047857;
+      --warn: #c2410c;
+      --info: #1d4ed8;
+      --shadow: 0 12px 38px rgba(32, 31, 28, 0.045);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans Arabic", "Manrope", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .wrap { max-width: 1540px; margin: 0 auto; padding: 28px 20px 48px; }
+    .top {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      gap: 16px; align-items: flex-end; margin-bottom: 20px;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand img { width: 40px; height: 40px; object-fit: contain; }
+    .brand strong {
+      display: block; font-family: "Manrope", sans-serif;
+      font-size: 1.35rem; letter-spacing: -0.02em;
+    }
+    .brand span { color: var(--muted); font-size: 0.88rem; }
+    .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+    .field-label { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+    .nav-links a, button, select, input[type="search"], input[type="month"] {
+      font: inherit; font-size: 0.85rem; font-weight: 600;
+      color: var(--ink); background: #fff;
+      border: 1px solid rgba(0,0,0,.08); border-radius: 12px;
+      padding: 0.55rem 0.9rem; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      text-decoration: none;
+    }
+    button { cursor: pointer; }
+    button.primary { background: var(--toyota); color: #fff; border-color: var(--toyota); }
+    button:disabled { opacity: .55; cursor: default; }
+    input[type="search"] { min-width: 240px; font-weight: 500; }
+    .rule {
+      margin: 0 0 18px; padding: 12px 14px; border-radius: 14px;
+      background: #fff7f7; border: 1px solid rgba(235, 10, 30, 0.18);
+      color: #9a3412; font-size: 0.9rem; line-height: 1.5;
+    }
+    .rule code { background: #fff; padding: 1px 6px; border-radius: 6px; border: 1px solid #f3d6d6; }
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px; margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--card); border: 1px solid rgba(0,0,0,.065);
+      border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow);
+    }
+    .kpi small {
+      display: block; color: var(--muted); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: .05em; font-weight: 700;
+    }
+    .kpi b { display: block; font-family: "Manrope", sans-serif; font-size: 1.9rem; margin-top: 4px; }
+    .kpi.main b { color: var(--toyota); }
+    .status-strip {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px; margin-bottom: 18px;
+    }
+    .status-chip {
+      text-align: left; border-radius: 14px; padding: 10px 14px;
+      border: 1px solid rgba(0,0,0,.08); background: #fff;
+    }
+    .status-chip small { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .status-chip b { display: block; font-family: "Manrope", sans-serif; font-size: 1.35rem; margin-top: 2px; }
+    .status-chip.ok b { color: var(--ok); }
+    .status-chip.err b { color: var(--toyota); }
+    .status-chip.warn b { color: var(--warn); }
+    .status-chip.info b { color: var(--info); }
+    .status-chip.active { outline: 2px solid var(--ink); }
+    td.status-cell { white-space: normal; min-width: 240px; max-width: 360px; }
+    .sales-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    .sales-chart { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    .sales-legend { display: grid; gap: 6px; flex: 1; min-width: 220px; }
+    .sales-leg {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 7px 10px; border-radius: 10px; border: 1px solid #eef2f7; background: #fff;
+      box-shadow: none; font-weight: 600; text-align: left;
+    }
+    .sales-leg .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 8px; }
+    .sales-leg b { font-family: "Manrope", sans-serif; font-size: 1.05rem; }
+    .sales-leg small { color: var(--muted); font-weight: 600; margin-left: 6px; }
+    .sales-leg.active { outline: 2px solid var(--ink); }
+    .not-raw { border: 1px solid #eef2f7; border-radius: 14px; padding: 10px 12px; background: #fafaf8; display: flex; flex-direction: column; min-height: 150px; }
+    .not-raw-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .not-raw-count { font-family: "Manrope", sans-serif; font-weight: 800; color: var(--toyota); font-size: 1.1rem; }
+    .not-raw-summary { display: grid; gap: 6px; }
+    .sum-chart { display: grid; gap: 7px; }
+    .sum-row {
+      display: grid; grid-template-columns: 250px 1fr 64px; align-items: center; gap: 12px;
+      padding: 6px 10px; border-radius: 10px; border: 1px solid #eef2f7; background: #fff;
+      box-shadow: none; text-align: left; font-weight: 600; font-size: 0.82rem;
+    }
+    .sum-row.active { outline: 2px solid var(--ink); }
+    .sum-row.total { background: #fff7f7; border-color: #f3d6d6; }
+    .sum-row small { display: block; color: var(--muted); font-weight: 500; font-size: 0.72rem; }
+    .sum-track { display: flex; height: 22px; background: #f4f3f0; border-radius: 7px; overflow: hidden; }
+    .sum-seg {
+      height: 100%; color: #fff; font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden;
+    }
+    .sum-row > b { font-family: "Manrope", sans-serif; font-size: 1.1rem; text-align: right; }
+    .sum-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 0.76rem; color: var(--muted); }
+    .sum-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .sum-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    #free-filters button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .pair-arrow { color: var(--muted); font-weight: 800; text-align: center; }
+    .sales-msg { color: var(--muted); font-size: 0.85rem; }
+    .swap-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+    .swap-bars { display: grid; gap: 8px; align-content: start; }
+    .swap-bar {
+      display: grid; grid-template-columns: 150px 1fr 48px; align-items: center; gap: 10px;
+      padding: 6px 8px; border-radius: 10px; border: 1px solid #eef2f7; background: #fff;
+      box-shadow: none; text-align: left; font-weight: 600; font-size: 0.8rem;
+    }
+    .swap-bar.active { outline: 2px solid var(--ink); }
+    .swap-track { height: 12px; background: #f1efeb; border-radius: 999px; overflow: hidden; }
+    .swap-fill { height: 100%; border-radius: 999px; }
+    .swap-bar b { font-family: "Manrope", sans-serif; font-size: 1rem; text-align: right; }
+    .swap-net { font-size: 0.8rem; color: var(--muted); padding: 2px 8px; }
+    .swap-list { border: 1px solid #eef2f7; border-radius: 14px; padding: 10px 12px; background: #fafaf8; font-size: 0.78rem; }
+    .swap-list > div { max-height: 130px; overflow: auto; margin-top: 6px; }
+    .swap-list .row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dashed #ece9e3; }
+    .swap-list .row b { font-family: "Manrope", sans-serif; }
+    @media (max-width: 900px) { .swap-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .sales-grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card); border: 1px solid rgba(0,0,0,.065);
+      border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .card-head {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      justify-content: space-between; margin-bottom: 12px;
+    }
+    .card h2 { margin: 0; font-family: "Manrope", sans-serif; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .card .sub { color: var(--muted); font-size: 0.83rem; margin-top: 2px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .status { font-size: 0.85rem; color: var(--muted); margin: 0 0 14px; min-height: 1.2em; }
+    .status.err { color: var(--toyota); }
+    .table-wrap { overflow: auto; max-height: 560px; border: 1px solid #eef2f7; border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td {
+      padding: 0.5rem 0.65rem; border-bottom: 1px solid #eef2f7;
+      text-align: left; vertical-align: top; white-space: nowrap;
+    }
+    th {
+      position: sticky; top: 0; background: #f8fafc; font-size: 0.7rem;
+      text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); z-index: 1;
+    }
+    tfoot td { position: sticky; bottom: 0; background: #fff5f5; font-weight: 800; border-top: 2px solid #f3d6d6; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.wrap-cell { white-space: normal; min-width: 260px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; }
+    tr.file-row { cursor: pointer; }
+    tr.file-row:hover td { background: #fafaf8; }
+    tr.file-row.selected td { background: #fff1f2; }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700; border: 1px solid transparent;
+    }
+    .pill.long { white-space: normal; max-width: 520px; line-height: 1.35; border-radius: 10px; }
+    .pill.ok { background: #ecfdf5; color: var(--ok); border-color: #a7f3d0; }
+    .pill.warn { background: #fff7ed; color: var(--warn); border-color: #fed7aa; }
+    .pill.err { background: #fef2f2; color: var(--toyota); border-color: #fecaca; }
+    .pill.info { background: #eff6ff; color: var(--info); border-color: #bfdbfe; }
+    .date-chip {
+      display: inline-block; margin: 1px 3px 1px 0; padding: 1px 6px;
+      border-radius: 6px; background: #f4f4f2; font-size: 0.72rem;
+    }
+    .empty { padding: 26px; text-align: center; color: var(--muted); }
+    .filter-tag { font-size: 0.8rem; color: var(--info); font-weight: 600; }
+    .filter-tag button { padding: 2px 8px; font-size: 0.75rem; margin-left: 6px; }
+    @media (max-width: 900px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+      .status-strip { grid-template-columns: 1fr 1fr; }
+      input[type="search"] { min-width: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <img src="../images/logo/toyota.png" alt="" onerror="this.style.display='none'" />
+        <div>
+          <strong>RTL Comparing</strong>
+          <span>Retail Electronic Sales · Allocation Date in the selected month — across every Data Uploader file</span>
+        </div>
+      </div>
+      <div class="nav-links">
+        <a href="data-uploader.html">Data Uploader</a>
+        <a href="index.html">Live Dashboard</a>
+      </div>
+    </div>
+
+    <p class="rule">
+      A row is counted when <code>Search Area Desc</code> is exactly <b>Retail Electronic Sales</b>
+      and <code>Allocation Date</code> is inside <b id="rule-month">the current month</b>. Every RTL file submitted
+      in the Data Uploader is scanned; a VIN is counted once per file, and once in the unique total.
+    </p>
+
+    <div class="toolbar" style="margin-bottom:14px">
+      <label class="field-label" for="alloc-month">Allocation month</label>
+      <input id="alloc-month" type="month" title="Allocation Date must be inside this month" />
+      <select id="mode" title="Which uploaded files to scan">
+        <option value="active">Active file per day</option>
+        <option value="all">Every upload (all snapshots)</option>
+      </select>
+      <select id="month" title="Only scan files uploaded in this month">
+        <option value="">All upload months</option>
+      </select>
+      <button id="reload" class="primary" type="button">Reload files</button>
+    </div>
+    <p id="status" class="status">Loading…</p>
+
+    <div class="kpis">
+      <div class="kpi"><small>Files scanned</small><b id="k-files">0</b></div>
+      <div class="kpi"><small>Matching VINs (sum of files)</small><b id="k-rows">0</b></div>
+      <div class="kpi main"><small>Unique VINs total</small><b id="k-unique">0</b></div>
+      <div class="kpi"><small>Files with issues</small><b id="k-issues">0</b></div>
+    </div>
+
+    <div class="status-strip" id="status-strip">
+      <button type="button" class="status-chip" data-status=""><small>Belongs to me (ever matched)</small><b id="s-all">0</b></button>
+      <button type="button" class="status-chip ok" data-status="in"><small>Still in RES</small><b id="s-in">0</b></button>
+      <button type="button" class="status-chip err" data-status="moved"><small>Moved to other place</small><b id="s-moved">0</b></button>
+      <button type="button" class="status-chip warn" data-status="realloc"><small>RES, allocation date changed</small><b id="s-realloc">0</b></button>
+      <button type="button" class="status-chip info" data-status="gone"><small>Not in latest file</small><b id="s-gone">0</b></button>
+    </div>
+
+    <section class="card" id="summary-card">
+      <div class="card-head">
+        <div>
+          <h2>Month summary</h2>
+          <div class="sub" id="summary-sub">Total · Delivered · Proforma · Moved in · Moved out · Free stock — click a bar to filter the VIN table</div>
+        </div>
+        <span id="summary-filter-tag" class="filter-tag"></span>
+      </div>
+      <div id="summary-chart" class="sum-chart"></div>
+      <div id="summary-legend" class="sum-legend"></div>
+
+      <div class="sum-block" id="free-block">
+        <div class="card-head" style="margin:16px 0 8px">
+          <div>
+            <h2 style="font-size:0.98rem">Free stock <span id="free-count" style="color:var(--ok)"></span></h2>
+            <div class="sub" id="free-sub">Retail Electronic Sales in the latest RTL file and not in Sales Raw</div>
+          </div>
+          <div class="toolbar" id="free-filters">
+            <button type="button" data-free="current">Current month</button>
+            <button type="button" data-free="older">Older</button>
+            <button type="button" data-free="all">All</button>
+            <button type="button" id="free-export">Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:300px">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>VIN</th>
+                <th>Product</th>
+                <th>Suffix</th>
+                <th>Allocation date</th>
+                <th>Label</th>
+                <th>Location</th>
+                <th>Display</th>
+              </tr>
+            </thead>
+            <tbody id="free-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="sum-block">
+        <div class="card-head" style="margin:16px 0 8px">
+          <div>
+            <h2 style="font-size:0.98rem">Swapped with what <span id="pair-count" style="color:var(--toyota)"></span></h2>
+            <div class="sub">Each car moved out is paired with a car moved in of the same product + suffix (then same product), closest date first</div>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:320px">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>Match</th>
+                <th>Moved out VIN</th>
+                <th>Model</th>
+                <th>Out date</th>
+                <th>Went to</th>
+                <th></th>
+                <th>Moved in VIN</th>
+                <th>Model</th>
+                <th>In date</th>
+                <th>Came from</th>
+                <th>Moved in · Sales Raw</th>
+              </tr>
+            </thead>
+            <tbody id="pair-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Files</h2>
+          <div class="sub">Click a file to show only its VINs below.</div>
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height:360px">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>File name</th>
+              <th>Read from</th>
+              <th class="num">Rows in file</th>
+              <th class="num">RES VINs (any date)</th>
+              <th class="num">Matching VINs</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="files-body"></tbody>
+          <tfoot id="files-foot"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="sales-card">
+      <div class="card-head">
+        <div>
+          <h2>Sales Raw check</h2>
+          <div class="sub" id="sales-sub">Sales Raw from Admin Push · Col P Proforma Date · Col V Invoice Date</div>
+        </div>
+        <span id="sales-filter-tag" class="filter-tag"></span>
+      </div>
+      <div class="sales-grid">
+        <div class="sales-chart">
+          <svg id="sales-donut" viewBox="0 0 120 120" width="150" height="150" aria-label="Sales Raw status"></svg>
+          <div class="sales-legend" id="sales-legend"></div>
+        </div>
+        <div class="not-raw">
+          <div class="not-raw-head">
+            <b>Not in raw data</b>
+            <span id="not-raw-count" class="not-raw-count">0</span>
+          </div>
+          <div class="sub" id="not-raw-latest" style="margin-bottom:6px"></div>
+          <div id="not-raw-list" class="not-raw-summary"></div>
+        </div>
+      </div>
+      <div class="not-raw-table">
+        <div class="card-head" style="margin:14px 0 8px">
+          <div>
+            <h2 style="font-size:0.98rem">Not in raw data — location in the latest RTL file</h2>
+            <div class="sub">Still Retail Electronic Sales in the latest file = with me = <b>free stock</b></div>
+          </div>
+        </div>
+        <div class="table-wrap" style="max-height:300px">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>VIN</th>
+                <th>Product</th>
+                <th>Suffix</th>
+                <th>Allocation date</th>
+                <th>Latest RTL · Search Area</th>
+                <th>Latest RTL · Location</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="not-raw-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="swap-card">
+      <div class="card-head">
+        <div>
+          <h2>Swapped cars</h2>
+          <div class="sub">Search Area changes between RTL files for these VINs · click a bar to filter the VIN table</div>
+        </div>
+        <span id="swap-filter-tag" class="filter-tag"></span>
+      </div>
+      <div class="swap-grid">
+        <div class="swap-bars" id="swap-bars"></div>
+        <div class="swap-list"><b>Moved out to</b><div id="swap-out-areas"></div></div>
+        <div class="swap-list"><b>Moved in from</b><div id="swap-in-areas"></div></div>
+      </div>
+    </section>
+
+    <section class="card" id="display-card">
+      <div class="card-head">
+        <div>
+          <h2>Display cars <span id="display-count" style="color:var(--toyota)"></span></h2>
+          <div class="sub" id="display-sub">Stock E-Sales from Admin Push · sheet "Display Central 1"</div>
+        </div>
+        <button type="button" id="display-filter-btn" data-display="toggle">Show only display cars in VIN table</button>
+      </div>
+      <div class="table-wrap" style="max-height:260px">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>VIN</th>
+              <th>Product</th>
+              <th>Suffix</th>
+              <th>Status now</th>
+              <th>Sales Raw</th>
+              <th>Found in Display Central 1</th>
+            </tr>
+          </thead>
+          <tbody id="display-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>VINs <span id="vin-count" style="color:var(--toyota)"></span></h2>
+          <div class="sub" id="vin-sub">Unique VINs across all scanned files.</div>
+        </div>
+        <div class="toolbar">
+          <span id="file-filter" class="filter-tag"></span>
+          <input id="search" type="search" placeholder="Search VIN, product, suffix…" />
+          <button id="copy" type="button">Copy VINs</button>
+          <button id="export" type="button">Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>VIN</th>
+              <th>Product</th>
+              <th>Suffix</th>
+              <th>Year</th>
+              <th>Allocation date</th>
+              <th>Status now</th>
+              <th>Current place (Search Area · Location)</th>
+              <th>Sales Raw</th>
+              <th>Swap</th>
+              <th>Display</th>
+              <th class="num">Files matched</th>
+              <th>First matched</th>
+              <th>Last matched</th>
+              <th>Matched dates</th>
+            </tr>
+          </thead>
+          <tbody id="vins-body"></tbody>
+          <tfoot id="vins-foot"></tfoot>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+(function () {
+  const API_META = "/api/rtl-daily/meta";
+  const API_SNAPSHOT = "/api/rtl-daily/";
+  const API_BY_DAY_EXCEL = (dateKey) => `/api/rtl-daily/by-day/${encodeURIComponent(dateKey)}/excel`;
+  const RTL_IDB_NAME = "toyota_rtl_daily_files_v1";
+  const RTL_IDB_STORE = "day_files";
+  const RTL_IDB_KEY = "by_date_v1";
+
+  const TARGET_AREA = "retail electronic sales";
+  const AREA_EXACT = ["searchareadesc"];
+  const AREA_ALT = ["searchareadescription", "vehiclesearchareadesc", "vehiclesearcharea", "vehsearcharea", "searcharea"];
+  const ALLOC_DATE_ALT = ["allocdate", "allocateddate", "allocationdt", "agdate", "ag"];
+  const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
+
+  const $ = (sel) => document.querySelector(sel);
+
+  let files = [];
+  let selectedFileKey = "";
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function normText(s) {
+    return String(s ?? "").replace(/\u00a0/g, " ").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function compactHeader(s) {
+    return normText(s).replace(/[^a-z0-9]/g, "");
+  }
+
+  function normVin(s) {
+    return String(s ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function isTargetArea(value) {
+    return normText(value) === TARGET_AREA;
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function keyOf(y, m, d) {
+    return `${y}-${pad2(m)}-${pad2(d)}`;
+  }
+
+  function serialToKey(serial) {
+    const day = Math.floor(serial);
+    if (day <= 20000 || day >= 100000) return "";
+    const utc = new Date(EXCEL_EPOCH_UTC + day * 86400000);
+    return keyOf(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate());
+  }
+
+  function validYmd(y, m, d) {
+    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+    const dt = new Date(y, m - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+  }
+
+  /** Allocation Date cell (Excel serial, Date, or text) → "YYYY-MM-DD", or "" when not a date. */
+  function toDateKey(v) {
+    if (v == null || v === "") return "";
+    if (typeof v === "number" && Number.isFinite(v)) return serialToKey(v);
+    if (v instanceof Date && !Number.isNaN(v.getTime())) {
+      return serialToKey(Math.round((v.getTime() - EXCEL_EPOCH_UTC) / 86400000));
+    }
+    const s = String(v).trim();
+    if (!s) return "";
+    if (/^\d+(\.\d+)?$/.test(s)) return serialToKey(Number(s));
+
+    let m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+    if (m) {
+      const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+      return validYmd(y, mo, d) ? keyOf(y, mo, d) : "";
+    }
+
+    // M/D/YYYY or D/M/YYYY — when both parts ≤ 12, pick the reading closest to today.
+    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:\s|$)/);
+    if (m) {
+      const a = Number(m[1]), b = Number(m[2]);
+      let y = Number(m[3]);
+      if (y < 100) y += 2000;
+      const us = validYmd(y, a, b) ? new Date(y, a - 1, b) : null;
+      const eu = validYmd(y, b, a) ? new Date(y, b - 1, a) : null;
+      let chosen = null;
+      if (a > 12) chosen = eu;
+      else if (b > 12) chosen = us;
+      else if (us && eu) {
+        const now = Date.now();
+        chosen = Math.abs(us - now) <= Math.abs(eu - now) ? us : eu;
+      } else chosen = us || eu;
+      return chosen ? keyOf(chosen.getFullYear(), chosen.getMonth() + 1, chosen.getDate()) : "";
+    }
+
+    const t = Date.parse(s);
+    if (Number.isNaN(t)) return "";
+    const d = new Date(t);
+    return keyOf(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  }
+
+  function currentMonthRiyadh() {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh", year: "numeric", month: "2-digit" })
+      .format(new Date())
+      .slice(0, 7);
+  }
+
+  function allocMonth() {
+    return $("#alloc-month").value || currentMonthRiyadh();
+  }
+
+  function monthLabel(mk) {
+    const [y, m] = mk.split("-").map(Number);
+    if (!y || !m) return mk;
+    return new Date(y, m - 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+  }
+
+  function matchesFor(f) {
+    const mk = allocMonth();
+    return (f.res || []).filter((r) => r.allocKey && r.allocKey.startsWith(mk));
+  }
+
+  function setStatus(msg, isErr) {
+    const el = $("#status");
+    el.textContent = msg;
+    el.classList.toggle("err", Boolean(isErr));
+  }
+
+  /* ---------- IndexedDB (browser copy saved by Data Uploader) ---------- */
+  function idbGetRtlDays() {
+    return new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open(RTL_IDB_NAME, 1); } catch { return resolve({}); }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(RTL_IDB_STORE)) db.createObjectStore(RTL_IDB_STORE);
+      };
+      req.onerror = () => resolve({});
+      req.onsuccess = () => {
+        try {
+          const db = req.result;
+          const tx = db.transaction(RTL_IDB_STORE, "readonly");
+          const get = tx.objectStore(RTL_IDB_STORE).get(RTL_IDB_KEY);
+          get.onsuccess = () => resolve(get.result && typeof get.result === "object" ? get.result : {});
+          get.onerror = () => resolve({});
+        } catch { resolve({}); }
+      };
+    });
+  }
+
+  /* ---------- Excel parsing ---------- */
+  function findIdx(compact, names) {
+    for (const n of names) {
+      const i = compact.indexOf(n);
+      if (i >= 0) return i;
+    }
+    return -1;
+  }
+
+  function findHeaderLayout(matrix) {
+    const limit = Math.min(matrix.length, 60);
+    for (let r = 0; r < limit; r += 1) {
+      const raw = matrix[r] || [];
+      const compact = raw.map(compactHeader);
+      let idxArea = findIdx(compact, AREA_EXACT);
+      const areaExact = idxArea >= 0;
+      if (!areaExact) idxArea = findIdx(compact, AREA_ALT);
+      let idxAlloc = compact.findIndex((h) => h.startsWith("allocationdate"));
+      const allocExact = idxAlloc >= 0;
+      if (!allocExact) idxAlloc = findIdx(compact, ALLOC_DATE_ALT);
+      if (idxArea < 0 || idxAlloc < 0) continue;
+      let idxVin = findIdx(compact, ["vin", "vinno", "vinnumber", "chassis", "chassisno", "chassisnumber"]);
+      if (idxVin < 0) idxVin = compact.findIndex((h) => h.includes("vin") || h.includes("chassis"));
+      const idxProduct = findIdx(compact, ["product", "model"]);
+      const idxSuffix = compact.findIndex((h) => h === "sfx" || h.includes("suffix"));
+      const idxYear = findIdx(compact, ["modelyear", "year", "my"]);
+      let idxLoc = findIdx(compact, ["allocatedlocation", "allocationlocation", "location", "loc"]);
+      if (idxLoc < 0) {
+        idxLoc = raw.findIndex((h) => {
+          const n = normText(h);
+          return /\blocation\b/.test(n) && !n.includes("search");
+        });
+      }
+      const notes = [];
+      if (!areaExact) notes.push(`used "${String(raw[idxArea]).trim()}" as Search Area Desc`);
+      if (!allocExact) notes.push(`used "${String(raw[idxAlloc]).trim()}" as Allocation Date`);
+      return { headerRow: r, idxArea, idxAlloc, idxVin, idxProduct, idxSuffix, idxYear, idxLoc, note: notes.join("; ") };
+    }
+    return null;
+  }
+
+  function guessHeaders(matrix) {
+    const limit = Math.min(matrix.length, 60);
+    let best = [];
+    for (let r = 0; r < limit; r += 1) {
+      const cells = (matrix[r] || []).map((c) => String(c ?? "").trim()).filter(Boolean);
+      if (cells.some((c) => /vin|chassis/i.test(c))) return cells;
+      if (cells.length > best.length) best = cells;
+    }
+    return best;
+  }
+
+  function joinIssues(...parts) {
+    return parts.filter(Boolean).join("; ");
+  }
+
+  function badDateNote(n) {
+    return n ? `${n} RES VIN(s) with blank/invalid Allocation Date` : "";
+  }
+
+  /** Every VIN in the file (first row wins) + the Retail Electronic Sales subset. */
+  function packFile(records, rows, issue, extra) {
+    const byVin = new Map();
+    for (const rec of records) {
+      if (!byVin.has(rec.vin)) byVin.set(rec.vin, rec);
+    }
+    const res = [];
+    let badDates = 0;
+    byVin.forEach((rec) => {
+      if (!isTargetArea(rec.area)) return;
+      res.push(rec);
+      if (!rec.allocKey) badDates += 1;
+    });
+    return { ok: true, rows, byVin, res, issue: joinIssues(issue, badDateNote(badDates)), ...(extra || {}) };
+  }
+
+  function scanWorkbook(buffer) {
+    const wb = XLSX.read(buffer, { type: "array" });
+    const missing = [];
+    for (const name of wb.SheetNames || []) {
+      const matrix = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: "", raw: true });
+      const layout = findHeaderLayout(matrix);
+      if (!layout) {
+        const headers = guessHeaders(matrix);
+        missing.push(`${name}: ${headers.slice(0, 25).join(" | ") || "empty"}`);
+        continue;
+      }
+      if (layout.idxVin < 0) {
+        return { ok: false, issue: `Sheet "${name}" has no VIN column`, rows: 0, res: [], byVin: new Map() };
+      }
+      const cell = (line, idx) => (idx >= 0 ? String(line[idx] ?? "").trim() : "");
+      const records = [];
+      for (let r = layout.headerRow + 1; r < matrix.length; r += 1) {
+        const line = matrix[r] || [];
+        const vin = normVin(line[layout.idxVin]);
+        if (!vin) continue;
+        records.push({
+          vin,
+          area: cell(line, layout.idxArea),
+          allocKey: toDateKey(line[layout.idxAlloc]),
+          location: cell(line, layout.idxLoc),
+          product: cell(line, layout.idxProduct),
+          suffix: cell(line, layout.idxSuffix),
+          year: cell(line, layout.idxYear)
+        });
+      }
+      return packFile(records, records.length, layout.note, { sheet: name });
+    }
+    return {
+      ok: false,
+      issue: `Columns "Search Area Desc" and "Allocation Date" not found. Headers in file — ${missing.join(" || ") || "no sheets"}`,
+      rows: 0,
+      res: [],
+      byVin: new Map()
+    };
+  }
+
+  /* ---------- Snapshot JSON fallback (raw columns kept in vehicle.details) ---------- */
+  function detailValue(details, test) {
+    if (!details) return undefined;
+    for (const [k, v] of Object.entries(details)) {
+      if (test(compactHeader(k))) return v;
+    }
+    return undefined;
+  }
+
+  function scanSnapshot(snap) {
+    const vehicles = Array.isArray(snap && snap.vehicles) ? snap.vehicles : [];
+    const records = [];
+    let missingColumn = false;
+    for (const v of vehicles) {
+      const vin = normVin(v.vin);
+      if (!vin) continue;
+      let area = detailValue(v.details, (h) => AREA_EXACT.includes(h));
+      if (area === undefined) area = detailValue(v.details, (h) => AREA_ALT.includes(h));
+      if (area === undefined) area = v.vehicleSearchArea;
+      let alloc = detailValue(v.details, (h) => h.startsWith("allocationdate"));
+      if (alloc === undefined) alloc = detailValue(v.details, (h) => ALLOC_DATE_ALT.includes(h));
+      if (alloc === undefined) { alloc = v.allocationDate; missingColumn = missingColumn || alloc === undefined; }
+      records.push({
+        vin,
+        area: String(area ?? "").trim(),
+        allocKey: toDateKey(alloc),
+        location: String(v.location || "").trim(),
+        product: v.product || "",
+        suffix: v.suffix || "",
+        year: v.year || ""
+      });
+    }
+    return packFile(records, vehicles.length, missingColumn ? "Allocation Date column missing in saved snapshot" : "");
+  }
+
+  /* ---------- Sales Raw (Admin Push slot "sales") ---------- */
+  const SALES_API = "/api/report-sheet/file/sales";
+  const REPORT_IDB_NAME = "toyota_report_sheet_v1";
+  const REPORT_IDB_STORE = "kv";
+  const REPORT_IDB_KEY = "workbook_files_v1";
+  const SALES_COL_P = 15;
+  const SALES_COL_V = 21;
+
+  let sales = { loaded: false, ok: false, issue: "", fileName: "", source: "", rows: 0, byVin: new Map(), headerP: "", headerV: "" };
+
+  function idbGetReportFiles() {
+    return new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open(REPORT_IDB_NAME, 1); } catch { return resolve(null); }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(REPORT_IDB_STORE)) db.createObjectStore(REPORT_IDB_STORE);
+      };
+      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        try {
+          const tx = req.result.transaction(REPORT_IDB_STORE, "readonly");
+          const get = tx.objectStore(REPORT_IDB_STORE).get(REPORT_IDB_KEY);
+          get.onsuccess = () => resolve(get.result || null);
+          get.onerror = () => resolve(null);
+        } catch { resolve(null); }
+      };
+    });
+  }
+
+  function extractVin(raw) {
+    const cleaned = String(raw ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!cleaned) return "";
+    const m = cleaned.match(/[A-HJ-NPR-Z0-9]{17}/) || cleaned.match(/[A-Z0-9]{17}/);
+    return m ? m[0] : "";
+  }
+
+  function laterKey(a, b) {
+    if (!a) return b || "";
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
+  function parseSalesRaw(buffer) {
+    const wb = XLSX.read(buffer, { type: "array" });
+    const names = wb.SheetNames || [];
+    const sheetName = names.find((n) => /raw\s*data|row\s*data|rowdata/i.test(n))
+      || names.find((n) => /sales/i.test(n))
+      || names[0];
+    if (!sheetName) return { ok: false, issue: "Sales Raw workbook has no sheets", rows: 0, byVin: new Map() };
+    const matrix = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: true, blankrows: false });
+
+    let headerIdx = -1;
+    let idxVin = -1;
+    const limit = Math.min(matrix.length, 40);
+    for (let r = 0; r < limit; r += 1) {
+      const compact = (matrix[r] || []).map(compactHeader);
+      const i = compact.findIndex((h) => ["vin", "vinno", "vinnumber", "chassis", "chassisno"].includes(h) || h.includes("vehicleidentification"));
+      if (i >= 0) { headerIdx = r; idxVin = i; break; }
+      if (headerIdx < 0 && compact.some((h) => h.includes("proforma"))) headerIdx = r;
+    }
+    if (headerIdx < 0) headerIdx = 0;
+    const headerRow = matrix[headerIdx] || [];
+
+    const byVin = new Map();
+    let rows = 0;
+    for (let r = headerIdx + 1; r < matrix.length; r += 1) {
+      const line = matrix[r] || [];
+      let vin = idxVin >= 0 ? extractVin(line[idxVin]) : "";
+      if (!vin) {
+        for (let i = 0; i < line.length; i += 1) {
+          if (i === SALES_COL_P || i === SALES_COL_V) continue;
+          vin = extractVin(line[i]);
+          if (vin) break;
+        }
+      }
+      if (!vin) continue;
+      rows += 1;
+      const proformaKey = toDateKey(line[SALES_COL_P]);
+      const invoiceKey = toDateKey(line[SALES_COL_V]);
+      const prev = byVin.get(vin) || { proformaKey: "", invoiceKey: "", rows: 0 };
+      byVin.set(vin, {
+        proformaKey: laterKey(prev.proformaKey, proformaKey),
+        invoiceKey: laterKey(prev.invoiceKey, invoiceKey),
+        rows: prev.rows + 1
+      });
+    }
+    return {
+      ok: true,
+      issue: rows ? "" : "No VINs found in Sales Raw",
+      rows,
+      byVin,
+      sheet: sheetName,
+      headerP: String(headerRow[SALES_COL_P] ?? "").trim(),
+      headerV: String(headerRow[SALES_COL_V] ?? "").trim()
+    };
+  }
+
+  async function loadSalesRaw() {
+    try {
+      const res = await fetch(SALES_API, { cache: "no-store" });
+      if (res.ok) {
+        let fileName = "sales.xlsx";
+        const hdr = res.headers.get("X-Report-Sheet-Name");
+        if (hdr) { try { fileName = decodeURIComponent(hdr); } catch { /* keep */ } }
+        const parsed = parseSalesRaw(await res.arrayBuffer());
+        return { loaded: true, source: "Server", fileName, ...parsed };
+      }
+    } catch { /* fall back to browser copy */ }
+    const payload = await idbGetReportFiles();
+    const f = payload && payload.files && payload.files.sales;
+    if (f && f.buffer) {
+      try {
+        return { loaded: true, source: "Browser", fileName: f.name || "sales.xlsx", ...parseSalesRaw(f.buffer) };
+      } catch (err) {
+        return { loaded: true, ok: false, issue: err.message || String(err), rows: 0, byVin: new Map() };
+      }
+    }
+    return { loaded: true, ok: false, issue: "Sales Raw has not been pushed from Admin Push yet", rows: 0, byVin: new Map() };
+  }
+
+  const SALES_META = {
+    delivered: { text: "Delivered", color: "#047857", cls: "ok" },
+    proforma: { text: "Proforma", color: "#1d4ed8", cls: "info" },
+    nodate: { text: "In raw, no P/V date", color: "#c2410c", cls: "warn" },
+    notraw: { text: "Not in raw data", color: "#a8a29e", cls: "err" },
+    free: { text: "Not in raw data · free stock (still RES)", color: "#047857", cls: "ok" },
+    "nr-moved": { text: "Not in raw data · moved to other area", color: "#eb0a1e", cls: "err" },
+    "nr-gone": { text: "Not in raw data · not in latest RTL file", color: "#1d4ed8", cls: "info" }
+  };
+  const LATEST_META = {
+    free: { text: "Free stock (with me)", cls: "ok" },
+    moved: { text: "Moved to other area", cls: "err" },
+    gone: { text: "Not in latest RTL file", cls: "info" }
+  };
+  let salesFilter = "";
+
+  function latestOkFile(fileList) {
+    for (let i = fileList.length - 1; i >= 0; i -= 1) {
+      if (fileList[i].ok) return fileList[i];
+    }
+    return null;
+  }
+
+  /** Where the VIN is in the newest RTL file: still RES (with me), another area, or missing. */
+  function latestInfo(vin, lf) {
+    if (!lf) return { kind: "", date: "" };
+    const rec = lf.byVin && lf.byVin.get(vin);
+    if (!rec) return { kind: "gone", date: lf.date, area: "", location: "" };
+    return {
+      kind: isTargetArea(rec.area) ? "free" : "moved",
+      date: lf.date,
+      area: rec.area || "(blank area)",
+      location: rec.location || ""
+    };
+  }
+
+  function salesFilterMatch(r, key) {
+    if (key === "free") return r.sales.kind === "notraw" && r.latest.kind === "free";
+    if (key === "nr-moved") return r.sales.kind === "notraw" && r.latest.kind === "moved";
+    if (key === "nr-gone") return r.sales.kind === "notraw" && r.latest.kind === "gone";
+    return r.sales.kind === key;
+  }
+
+  function salesInfo(vin) {
+    if (!sales.ok) return { kind: "", text: "—" };
+    const rec = sales.byVin.get(vin);
+    if (!rec) return { kind: "notraw", text: "Not in raw data" };
+    if (rec.invoiceKey) return { kind: "delivered", text: `Delivered · ${rec.invoiceKey}`, ...rec };
+    if (rec.proformaKey) return { kind: "proforma", text: `Proforma · ${rec.proformaKey}`, ...rec };
+    return { kind: "nodate", text: "In raw data · no Proforma / Invoice date", ...rec };
+  }
+
+  /* ---------- Display Central 1 (Admin Push slot "central" · Stock E-Sales) ---------- */
+  const CENTRAL_API = "/api/report-sheet/file/central";
+  const DISPLAY_SHEET = "display central 1";
+
+  let display = { loaded: false, ok: false, issue: "", fileName: "", source: "", sheet: "", vins: 0, byVin: new Map(), byTail: new Map() };
+  let displayFilter = false;
+
+  function colLetter(i) {
+    let s = "";
+    let n = i + 1;
+    while (n > 0) {
+      const m = (n - 1) % 26;
+      s = String.fromCharCode(65 + m) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
+  function parseDisplayCentral(buffer) {
+    const wb = XLSX.read(buffer, { type: "array" });
+    const names = wb.SheetNames || [];
+    const sheet = names.find((n) => normText(n) === DISPLAY_SHEET);
+    if (!sheet) {
+      return { ok: false, issue: `Sheet "Display Central 1" not found in Stock E-Sales. Sheets: ${names.join(", ") || "none"}`, byVin: new Map(), byTail: new Map(), vins: 0 };
+    }
+    const matrix = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, defval: "", raw: false, blankrows: true });
+    const byVin = new Map();
+    const byTail = new Map();
+    matrix.forEach((line, r) => {
+      (line || []).forEach((cellValue, c) => {
+        const text = String(cellValue ?? "").toUpperCase();
+        const cleaned = text.replace(/[^A-Z0-9]/g, "");
+        if (!cleaned) return;
+        const at = { row: r + 1, col: colLetter(c) };
+        const wholeIsVin = cleaned.length === 17 && /\d/.test(cleaned) && /[A-Z]/.test(cleaned);
+        const tokens = wholeIsVin ? [cleaned] : text.split(/[^A-Z0-9]+/).filter(Boolean);
+        tokens.forEach((t) => {
+          if (t.length === 17 && /\d/.test(t) && /[A-Z]/.test(t)) {
+            if (!byVin.has(t)) byVin.set(t, { ...at, via: "VIN" });
+          } else if (t.length >= 8 && t.length <= 16 && /\d{4}/.test(t)) {
+            // Chassis tail written instead of the full VIN
+            const key = t.slice(-8);
+            if (!byTail.has(key)) byTail.set(key, { ...at, via: "chassis tail", tail: t });
+          }
+        });
+      });
+    });
+    return { ok: true, issue: "", sheet, byVin, byTail, vins: byVin.size + byTail.size };
+  }
+
+  async function loadDisplayCentral() {
+    try {
+      const res = await fetch(CENTRAL_API, { cache: "no-store" });
+      if (res.ok) {
+        let fileName = "central.xlsx";
+        const hdr = res.headers.get("X-Report-Sheet-Name");
+        if (hdr) { try { fileName = decodeURIComponent(hdr); } catch { /* keep */ } }
+        return { loaded: true, source: "Server", fileName, ...parseDisplayCentral(await res.arrayBuffer()) };
+      }
+    } catch { /* fall back to browser copy */ }
+    const payload = await idbGetReportFiles();
+    const f = payload && payload.files && payload.files.central;
+    if (f && f.buffer) {
+      try {
+        return { loaded: true, source: "Browser", fileName: f.name || "central.xlsx", ...parseDisplayCentral(f.buffer) };
+      } catch (err) {
+        return { loaded: true, ok: false, issue: err.message || String(err), byVin: new Map(), byTail: new Map(), vins: 0 };
+      }
+    }
+    return { loaded: true, ok: false, issue: "Stock E-Sales has not been pushed from Admin Push yet", byVin: new Map(), byTail: new Map(), vins: 0 };
+  }
+
+  function displayInfo(vin) {
+    if (!display.ok) return null;
+    const direct = display.byVin.get(vin);
+    if (direct) return direct;
+    const tailHit = display.byTail.get(vin.slice(-8));
+    return tailHit && vin.endsWith(tailHit.tail) ? tailHit : null;
+  }
+
+  /* ---------- File list ---------- */
+  async function loadMeta() {
+    try {
+      const res = await fetch(API_META, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      return { error: err.message || String(err), snapshots: [], activeByDay: {} };
+    }
+  }
+
+  function buildFileList(meta, idbMap, mode) {
+    const list = [];
+    const snapshots = Array.isArray(meta.snapshots) ? meta.snapshots : [];
+    const activeByDay = meta.activeByDay || {};
+    const snapById = new Map(snapshots.map((s) => [s.id, s]));
+
+    if (mode === "all") {
+      for (const s of snapshots) {
+        if (!s.date) continue;
+        list.push({
+          key: s.id,
+          date: s.date,
+          id: s.id,
+          fileName: s.fileName || "",
+          active: activeByDay[s.date] === s.id,
+          at: Number(s.at) || 0
+        });
+      }
+    } else {
+      const byDate = new Map();
+      for (const [date, id] of Object.entries(activeByDay)) {
+        const s = snapById.get(id) || {};
+        byDate.set(date, { key: date, date, id, fileName: s.fileName || "", active: true, at: Number(s.at) || 0 });
+      }
+      const newestFirst = snapshots.slice().sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+      for (const s of newestFirst) {
+        if (!s.date || byDate.has(s.date)) continue;
+        byDate.set(s.date, { key: s.date, date: s.date, id: s.id, fileName: s.fileName || "", active: true, at: Number(s.at) || 0 });
+      }
+      list.push(...byDate.values());
+    }
+
+    const known = new Set(list.map((f) => f.date));
+    for (const [date, pack] of Object.entries(idbMap || {})) {
+      if (known.has(date) || !pack || !pack.buffer) continue;
+      list.push({ key: `idb:${date}`, date, id: "", fileName: pack.fileName || "", active: true, at: Number(pack.at) || 0, idbOnly: true });
+    }
+
+    list.sort((a, b) => a.date.localeCompare(b.date) || a.at - b.at);
+    return list;
+  }
+
+  async function readFile(entry, idbMap) {
+    if (entry.active && !entry.idbOnly) {
+      try {
+        const res = await fetch(API_BY_DAY_EXCEL(entry.date), { cache: "no-store" });
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          return { source: "Server Excel", ...scanWorkbook(buf) };
+        }
+      } catch { /* fall through */ }
+    }
+    const pack = idbMap && idbMap[entry.date];
+    if (entry.active && pack && pack.buffer) {
+      try {
+        return { source: "Browser Excel", ...scanWorkbook(pack.buffer) };
+      } catch { /* fall through */ }
+    }
+    if (entry.id) {
+      const res = await fetch(API_SNAPSHOT + encodeURIComponent(entry.id), { cache: "no-store" });
+      if (res.ok) {
+        const snap = await res.json();
+        if (!entry.fileName && snap.fileName) entry.fileName = snap.fileName;
+        return { source: "Saved snapshot", ...scanSnapshot(snap) };
+      }
+      return { source: "—", ok: false, issue: `Snapshot not found (HTTP ${res.status})`, rows: 0, res: [] };
+    }
+    return { source: "—", ok: false, issue: "No file available", rows: 0, res: [] };
+  }
+
+  async function reload() {
+    const btn = $("#reload");
+    btn.disabled = true;
+    selectedFileKey = "";
+    files = [];
+    render();
+    try {
+      setStatus("Loading uploaded files list…");
+      const [meta, idbMap, salesPack, displayPack] = await Promise.all([loadMeta(), idbGetRtlDays(), loadSalesRaw(), loadDisplayCentral()]);
+      sales = salesPack;
+      display = displayPack;
+      const list = buildFileList(meta, idbMap, $("#mode").value);
+      if (!list.length) {
+        setStatus(meta.error ? `Server unavailable (${meta.error}) and no files saved in this browser.` : "No files have been submitted in the Data Uploader yet.", Boolean(meta.error));
+        return;
+      }
+      for (let i = 0; i < list.length; i += 1) {
+        const entry = list[i];
+        setStatus(`Scanning file ${i + 1} of ${list.length} — ${entry.date}${entry.fileName ? " · " + entry.fileName : ""}`);
+        let result;
+        try {
+          result = await readFile(entry, idbMap);
+        } catch (err) {
+          result = { source: "—", ok: false, issue: err.message || String(err), rows: 0, res: [] };
+        }
+        files.push({ ...entry, ...result });
+        render();
+      }
+      populateMonths();
+      const warn = meta.error ? ` Server unavailable (${meta.error}) — used browser copies only.` : "";
+      setStatus(`Done. Scanned ${files.length} file(s).${warn}`, Boolean(meta.error));
+    } finally {
+      btn.disabled = false;
+      render();
+    }
+  }
+
+  /* ---------- Aggregation + rendering ---------- */
+  function visibleFiles() {
+    const month = $("#month").value;
+    return month ? files.filter((f) => f.date.startsWith(month)) : files;
+  }
+
+  function isMatch(rec) {
+    return Boolean(rec && isTargetArea(rec.area) && rec.allocKey && rec.allocKey.startsWith(allocMonth()));
+  }
+
+  function placeText(rec) {
+    if (!rec) return "";
+    const area = rec.area || "(blank area)";
+    return rec.location && normText(rec.location) !== normText(area) ? `${area} · ${rec.location}` : area;
+  }
+
+  /** Where a VIN that belonged to the condition is now, judged across every scanned file in order. */
+  function trackVin(vin, fileList) {
+    let lastOk = -1;
+    let lastMatch = -1;
+    let lastSeen = -1;
+    fileList.forEach((f, i) => {
+      if (!f.ok) return;
+      lastOk = i;
+      const rec = f.byVin && f.byVin.get(vin);
+      if (!rec) return;
+      lastSeen = i;
+      if (isMatch(rec)) lastMatch = i;
+    });
+    if (lastSeen < 0 || lastMatch < 0) return { status: "in", label: "In RES", current: null };
+    const current = fileList[lastSeen].byVin.get(vin);
+    const lastSeenDate = fileList[lastSeen].date;
+    const goneNote = lastSeen < lastOk ? ` — not in latest file (last seen ${lastSeenDate})` : "";
+
+    if (lastSeen === lastMatch) {
+      return lastSeen === lastOk
+        ? { status: "in", label: "In RES", current, lastSeenDate }
+        : { status: "gone", label: `Not in latest file — last seen ${lastSeenDate} in RES`, current, lastSeenDate };
+    }
+
+    let movedIdx = lastMatch + 1;
+    while (movedIdx < fileList.length && !(fileList[movedIdx].byVin && fileList[movedIdx].byVin.get(vin))) movedIdx += 1;
+    const movedDate = fileList[movedIdx] ? fileList[movedIdx].date : lastSeenDate;
+
+    if (isTargetArea(current.area)) {
+      return {
+        status: "realloc",
+        label: `Still RES, Allocation Date changed to ${current.allocKey || "blank"} (since ${movedDate})${goneNote}`,
+        current, lastSeenDate, movedDate
+      };
+    }
+    return {
+      status: "moved",
+      label: `Moved to ${placeText(current)} (since ${movedDate})${goneNote}`,
+      current, lastSeenDate, movedDate
+    };
+  }
+
+  /** Latest RES → other area (out) and other area → RES (in) change between consecutive sightings. */
+  function swapInfo(vin, fileList) {
+    let prev = null;
+    let out = null;
+    let inn = null;
+    for (const f of fileList) {
+      if (!f.ok) continue;
+      const rec = f.byVin && f.byVin.get(vin);
+      if (!rec) continue;
+      const isRes = isTargetArea(rec.area);
+      if (prev) {
+        const wasRes = isTargetArea(prev.rec.area);
+        if (wasRes && !isRes) out = { date: f.date, fromDate: prev.date, area: rec.area || "(blank area)", place: placeText(rec) };
+        if (!wasRes && isRes) inn = { date: f.date, fromDate: prev.date, area: prev.rec.area || "(blank area)", place: placeText(prev.rec) };
+      }
+      prev = { rec, date: f.date };
+    }
+    return { out, in: inn };
+  }
+
+  let swapFilter = "";
+
+  const STATUS_META = {
+    in: { text: "In RES", cls: "ok" },
+    moved: { text: "Moved", cls: "err" },
+    realloc: { text: "Allocation changed", cls: "warn" },
+    gone: { text: "Not in latest file", cls: "info" }
+  };
+  let statusFilter = "";
+
+  function aggregateVins(fileList, scopeList) {
+    const map = new Map();
+    for (const f of scopeList || fileList) {
+      for (const m of matchesFor(f)) {
+        let row = map.get(m.vin);
+        if (!row) {
+          row = { vin: m.vin, product: "", suffix: "", year: "", allocKey: "", dates: [], fileKeys: new Set() };
+          map.set(m.vin, row);
+        }
+        if (!row.product && m.product) row.product = m.product;
+        if (!row.suffix && m.suffix) row.suffix = m.suffix;
+        if (!row.year && m.year) row.year = m.year;
+        if (m.allocKey) row.allocKey = m.allocKey;
+        row.fileKeys.add(f.key);
+        if (!row.dates.includes(f.date)) row.dates.push(f.date);
+      }
+    }
+    const rows = Array.from(map.values());
+    rows.forEach((r) => {
+      r.dates.sort();
+      Object.assign(r, trackVin(r.vin, fileList));
+    });
+    rows.sort((a, b) => a.dates[0].localeCompare(b.dates[0]) || a.vin.localeCompare(b.vin));
+    return rows;
+  }
+
+  function populateMonths() {
+    const sel = $("#month");
+    const cur = sel.value;
+    const months = Array.from(new Set(files.map((f) => f.date.slice(0, 7)))).sort();
+    sel.innerHTML = '<option value="">All upload months</option>' + months.map((m) => `<option value="${m}">${m}</option>`).join("");
+    if (months.includes(cur)) sel.value = cur;
+  }
+
+  function baseVinRows() {
+    const fl = visibleFiles();
+    const scoped = selectedFileKey ? fl.filter((f) => f.key === selectedFileKey) : fl;
+    let rows = aggregateVins(fl, scoped);
+    if (statusFilter) rows = rows.filter((r) => r.status === statusFilter);
+    const lf = latestOkFile(fl);
+    rows.forEach((r) => {
+      r.sales = salesInfo(r.vin);
+      r.latest = latestInfo(r.vin, lf);
+      r.swap = swapInfo(r.vin, fl);
+      r.display = displayInfo(r.vin);
+    });
+    return rows;
+  }
+
+  function swapText(s) {
+    const parts = [];
+    if (s.in) parts.push(`In ← ${s.in.area} (${s.in.date})`);
+    if (s.out) parts.push(`Out → ${s.out.area} (${s.out.date})`);
+    return parts.join(" · ");
+  }
+
+  function currentVinRows(base) {
+    let rows = base || baseVinRows();
+    if (salesFilter) rows = rows.filter((r) => salesFilterMatch(r, salesFilter));
+    if (swapFilter === "out") rows = rows.filter((r) => r.swap.out);
+    else if (swapFilter === "in") rows = rows.filter((r) => r.swap.in);
+    else if (swapFilter === "both") rows = rows.filter((r) => r.swap.in && r.swap.out);
+    if (displayFilter) rows = rows.filter((r) => r.display);
+    if (summaryFilter) rows = rows.filter((r) => summaryMatch(r, summaryFilter));
+    const q = normText($("#search").value);
+    if (q) {
+      rows = rows.filter((r) =>
+        r.vin.toLowerCase().includes(q.replace(/[^a-z0-9]/g, "")) ||
+        normText(r.product).includes(q) ||
+        normText(r.suffix).includes(q) ||
+        normText(r.label).includes(q) ||
+        normText(r.sales.text).includes(q) ||
+        normText(swapText(r.swap)).includes(q)
+      );
+    }
+    return rows;
+  }
+
+  function renderFiles(fl, uniqueTotal) {
+    const body = $("#files-body");
+    const foot = $("#files-foot");
+    if (!fl.length) {
+      body.innerHTML = `<tr><td colspan="7" class="empty">No files scanned yet.</td></tr>`;
+      foot.innerHTML = "";
+      return;
+    }
+    body.innerHTML = fl.map((f) => {
+      const pill = !f.ok
+        ? `<span class="pill err long" title="${esc(f.issue)}">${esc(f.issue)}</span>`
+        : f.issue
+          ? `<span class="pill warn long" title="${esc(f.issue)}">${esc(f.issue)}</span>`
+          : `<span class="pill ok">OK</span>`;
+      const src = f.source === "Server Excel" ? "ok" : f.source === "Browser Excel" ? "info" : "warn";
+      return `<tr class="file-row${selectedFileKey === f.key ? " selected" : ""}" data-key="${esc(f.key)}">
+        <td class="mono">${esc(f.date)}${f.active ? "" : ' <span class="pill info">older upload</span>'}</td>
+        <td title="${esc(f.fileName)}">${esc(f.fileName || "—")}</td>
+        <td><span class="pill ${src}">${esc(f.source)}</span></td>
+        <td class="num">${(f.rows || 0).toLocaleString()}</td>
+        <td class="num">${(f.res || []).length.toLocaleString()}</td>
+        <td class="num"><b>${matchesFor(f).length.toLocaleString()}</b></td>
+        <td>${pill}</td>
+      </tr>`;
+    }).join("");
+    const sumRows = fl.reduce((s, f) => s + (f.rows || 0), 0);
+    const sumRes = fl.reduce((s, f) => s + (f.res || []).length, 0);
+    const sumMatches = fl.reduce((s, f) => s + matchesFor(f).length, 0);
+    foot.innerHTML = `<tr>
+      <td colspan="3">Total — ${fl.length} file(s) · ${uniqueTotal.toLocaleString()} unique VINs</td>
+      <td class="num">${sumRows.toLocaleString()}</td>
+      <td class="num">${sumRes.toLocaleString()}</td>
+      <td class="num">${sumMatches.toLocaleString()}</td>
+      <td></td>
+    </tr>`;
+  }
+
+  function renderVins(rows) {
+    const body = $("#vins-body");
+    const foot = $("#vins-foot");
+    $("#vin-count").textContent = `(${rows.length.toLocaleString()})`;
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="15" class="empty">No Retail Electronic Sales VINs with Allocation Date in ${esc(monthLabel(allocMonth()))}.</td></tr>`;
+      foot.innerHTML = "";
+      return;
+    }
+    body.innerHTML = rows.map((r, i) => `<tr>
+      <td class="num">${i + 1}</td>
+      <td class="mono"><b>${esc(r.vin)}</b></td>
+      <td>${esc(r.product || "—")}</td>
+      <td>${esc(r.suffix || "—")}</td>
+      <td>${esc(r.year || "—")}</td>
+      <td class="mono">${esc(r.allocKey || "—")}</td>
+      <td class="status-cell"><span class="pill ${STATUS_META[r.status].cls}">${STATUS_META[r.status].text}</span>
+        ${r.status === "in" ? "" : `<div style="margin-top:3px">${esc(r.label)}</div>`}</td>
+      <td title="${esc(placeText(r.current))}">${esc(placeText(r.current) || "—")}</td>
+      <td>${r.sales.kind
+        ? `<span class="pill ${SALES_META[r.sales.kind].cls}">${SALES_META[r.sales.kind].text}</span> <span class="mono">${esc(r.sales.invoiceKey || r.sales.proformaKey || "")}</span>`
+        : "—"}</td>
+      <td class="status-cell">${[
+        r.swap.in ? `<div><span class="pill ok">In</span> from ${esc(r.swap.in.area)} <span class="mono">${esc(r.swap.in.date)}</span></div>` : "",
+        r.swap.out ? `<div><span class="pill err">Out</span> to ${esc(r.swap.out.area)} <span class="mono">${esc(r.swap.out.date)}</span></div>` : ""
+      ].join("") || "—"}</td>
+      <td>${r.display ? `<span class="pill err">Display</span> <span class="mono">row ${r.display.row}</span>` : "—"}</td>
+      <td class="num">${r.fileKeys.size}</td>
+      <td class="mono">${esc(r.dates[0])}</td>
+      <td class="mono">${esc(r.dates[r.dates.length - 1])}</td>
+      <td class="wrap-cell">${r.dates.map((d) => `<span class="date-chip">${esc(d.slice(5))}</span>`).join("")}</td>
+    </tr>`).join("");
+    const appearances = rows.reduce((s, r) => s + r.fileKeys.size, 0);
+    foot.innerHTML = `<tr>
+      <td colspan="11">Total unique VINs: ${rows.length.toLocaleString()}</td>
+      <td class="num">${appearances.toLocaleString()}</td>
+      <td colspan="3"></td>
+    </tr>`;
+  }
+
+  function donutSvg(parts, total) {
+    const r = 46;
+    const c = 2 * Math.PI * r;
+    let offset = 0;
+    const rings = parts.filter((p) => p.value > 0).map((p) => {
+      const len = (p.value / total) * c;
+      const seg = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${p.color}" stroke-width="18"
+        stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"></circle>`;
+      offset += len;
+      return seg;
+    }).join("");
+    return `<circle cx="60" cy="60" r="${r}" fill="none" stroke="#f1efeb" stroke-width="18"></circle>${rings}
+      <text x="60" y="57" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="20" fill="#18191c">${total.toLocaleString()}</text>
+      <text x="60" y="73" text-anchor="middle" font-size="9" fill="#77736c">VINs</text>`;
+  }
+
+  function renderSales(base) {
+    const sub = $("#sales-sub");
+    const legend = $("#sales-legend");
+    const donut = $("#sales-donut");
+    const notRawList = $("#not-raw-list");
+    $("#not-raw-body").innerHTML = "";
+    $("#not-raw-latest").textContent = "";
+    if (!sales.loaded) {
+      sub.textContent = "Loading Sales Raw from Admin Push…";
+      legend.innerHTML = "";
+      donut.innerHTML = "";
+      notRawList.innerHTML = "";
+      $("#not-raw-count").textContent = "0";
+      return;
+    }
+    if (!sales.ok) {
+      sub.innerHTML = `<span class="pill err long">${esc(sales.issue)}</span>`;
+      legend.innerHTML = `<div class="sales-msg">Push the Sales Raw file (slot 4) in Admin Push, then press Reload files.</div>`;
+      donut.innerHTML = "";
+      notRawList.innerHTML = "";
+      $("#not-raw-count").textContent = "—";
+      return;
+    }
+    const cols = `Col P "${sales.headerP || "?"}" · Col V "${sales.headerV || "?"}"`;
+    sub.textContent = `${sales.fileName} (${sales.source.toLowerCase()} copy, sheet "${sales.sheet}") · ${sales.rows.toLocaleString()} VIN rows · ${cols}`;
+
+    const counts = { delivered: 0, proforma: 0, nodate: 0, notraw: 0 };
+    base.forEach((r) => { if (counts[r.sales.kind] != null) counts[r.sales.kind] += 1; });
+    const total = base.length;
+    const inRaw = counts.delivered + counts.proforma + counts.nodate;
+    donut.innerHTML = total
+      ? donutSvg(Object.keys(counts).map((k) => ({ value: counts[k], color: SALES_META[k].color })), total)
+      : "";
+    const pct = (n) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
+    const leg = (k, label) => `<button type="button" class="sales-leg${salesFilter === k ? " active" : ""}" data-sales="${k}">
+        <span><span class="dot" style="background:${SALES_META[k].color}"></span>${label}</span>
+        <span><b>${counts[k].toLocaleString()}</b><small>${pct(counts[k])}</small></span>
+      </button>`;
+    legend.innerHTML = `
+      <button type="button" class="sales-leg${salesFilter === "" ? " active" : ""}" data-sales="">
+        <span>In raw data (mine)</span><span><b>${inRaw.toLocaleString()}</b><small>of ${total.toLocaleString()}</small></span>
+      </button>
+      ${leg("delivered", "Delivered (Col V Invoice Date)")}
+      ${leg("proforma", "Proforma (Col P, no Invoice)")}
+      ${counts.nodate ? leg("nodate", "In raw, no Proforma / Invoice") : ""}
+      ${leg("notraw", "Not in raw data")}`;
+
+    const order = { free: 0, moved: 1, gone: 2 };
+    const notRaw = base.filter((r) => r.sales.kind === "notraw")
+      .sort((a, b) => (order[a.latest.kind] ?? 3) - (order[b.latest.kind] ?? 3) || a.vin.localeCompare(b.vin));
+    const nr = { free: 0, moved: 0, gone: 0 };
+    notRaw.forEach((r) => { if (nr[r.latest.kind] != null) nr[r.latest.kind] += 1; });
+    const latestDate = (notRaw[0] && notRaw[0].latest.date) || (latestOkFile(visibleFiles()) || {}).date || "";
+    $("#not-raw-count").textContent = notRaw.length.toLocaleString();
+    $("#not-raw-latest").textContent = latestDate ? `Checked against the latest RTL file: ${latestDate}` : "";
+    const nrBtn = (key, kind) => `<button type="button" class="sales-leg${salesFilter === key ? " active" : ""}" data-sales="${key}">
+        <span><span class="dot" style="background:${SALES_META[key].color}"></span>${LATEST_META[kind].text}</span>
+        <span><b>${nr[kind].toLocaleString()}</b></span>
+      </button>`;
+    notRawList.innerHTML = notRaw.length
+      ? nrBtn("free", "free") + nrBtn("nr-moved", "moved") + nrBtn("nr-gone", "gone")
+      : `<div class="sales-msg">Every VIN is in Sales Raw.</div>`;
+
+    $("#not-raw-body").innerHTML = notRaw.length
+      ? notRaw.map((r, i) => {
+        const meta = LATEST_META[r.latest.kind] || { text: "—", cls: "info" };
+        return `<tr>
+          <td class="num">${i + 1}</td>
+          <td class="mono"><b>${esc(r.vin)}</b></td>
+          <td>${esc(r.product || "—")}</td>
+          <td>${esc(r.suffix || "—")}</td>
+          <td class="mono">${esc(r.allocKey || "—")}</td>
+          <td>${esc(r.latest.area || "—")}</td>
+          <td>${esc(r.latest.location || "—")}</td>
+          <td><span class="pill ${meta.cls}">${meta.text}</span>${r.latest.kind === "gone" ? ` <span class="mono">last seen ${esc(r.lastSeenDate || "—")}</span>` : ""}</td>
+        </tr>`;
+      }).join("")
+      : `<tr><td colspan="8" class="empty">Every VIN is in Sales Raw.</td></tr>`;
+
+    $("#sales-filter-tag").innerHTML = salesFilter
+      ? `VIN table filtered: ${esc(SALES_META[salesFilter].text)}<button type="button" data-sales="">Show all</button>`
+      : "";
+  }
+
+  /* ---------- Month summary ---------- */
+  let summaryFilter = "";
+  let freeFilter = "all";
+
+  const SUM_COLORS = {
+    delivered: "#047857",
+    proforma: "#1d4ed8",
+    nodate: "#c2410c",
+    notraw: "#a8a29e",
+    out: "#eb0a1e",
+    open: "#d6d3cd",
+    current: "#10b981",
+    older: "#78716c"
+  };
+
+  /** Latest RTL file: Retail Electronic Sales VINs not in Sales Raw, labelled by Allocation Date month. */
+  function freeStockRows() {
+    const lf = latestOkFile(visibleFiles());
+    if (!lf || !sales.ok) return { lf, rows: [] };
+    const mk = allocMonth();
+    const rows = [];
+    lf.byVin.forEach((rec) => {
+      if (!isTargetArea(rec.area) || sales.byVin.has(rec.vin)) return;
+      let label = "other";
+      if (rec.allocKey && rec.allocKey.startsWith(mk)) label = "current";
+      else if (rec.allocKey && rec.allocKey < `${mk}-01`) label = "older";
+      rows.push({ ...rec, label, display: displayInfo(rec.vin) });
+    });
+    const rank = { current: 0, older: 1, other: 2 };
+    rows.sort((a, b) => rank[a.label] - rank[b.label] || (b.allocKey || "").localeCompare(a.allocKey || "") || a.vin.localeCompare(b.vin));
+    return { lf, rows };
+  }
+
+  function modelKey(r) {
+    return `${normText(r.product)}|${normText(r.suffix)}`;
+  }
+
+  /** Pair each moved-out VIN with a moved-in VIN: same product + suffix first, then same product, closest date. */
+  function pairSwaps(base) {
+    const outs = base.filter((r) => r.swap.out).sort((a, b) => a.swap.out.date.localeCompare(b.swap.out.date));
+    const ins = base.filter((r) => r.swap.in);
+    const used = new Set();
+    const pairs = [];
+    const days = (a, b) => Math.abs(new Date(a) - new Date(b)) / 86400000;
+    const pick = (out, test) => {
+      let best = null;
+      ins.forEach((inn) => {
+        if (used.has(inn.vin) || inn.vin === out.vin || !test(inn)) return;
+        if (!best || days(inn.swap.in.date, out.swap.out.date) < days(best.swap.in.date, out.swap.out.date)) best = inn;
+      });
+      return best;
+    };
+    const pendingOut = [];
+    outs.forEach((out) => {
+      const inn = pick(out, (i) => modelKey(i) === modelKey(out));
+      if (inn) { used.add(inn.vin); pairs.push({ match: "Same model + suffix", out, inn }); } else pendingOut.push(out);
+    });
+    pendingOut.forEach((out) => {
+      const inn = out.product ? pick(out, (i) => normText(i.product) === normText(out.product)) : null;
+      if (inn) { used.add(inn.vin); pairs.push({ match: "Same model", out, inn }); } else pairs.push({ match: "Moved out only", out, inn: null });
+    });
+    ins.filter((i) => !used.has(i.vin)).forEach((inn) => pairs.push({ match: "Moved in only", out: null, inn }));
+    return pairs;
+  }
+
+  function summaryMatch(r, key) {
+    const sold = r.sales.kind === "delivered" || r.sales.kind === "proforma";
+    if (key === "delivered") return r.sales.kind === "delivered";
+    if (key === "proforma") return r.sales.kind === "proforma";
+    if (key === "in") return Boolean(r.swap.in);
+    if (key === "in-sold") return Boolean(r.swap.in) && sold;
+    if (key === "out") return Boolean(r.swap.out);
+    return true;
+  }
+
+  function renderSummary(base) {
+    const count = (fn) => base.filter(fn).length;
+    const total = base.length;
+    const k = (kind) => count((r) => r.sales.kind === kind);
+    const delivered = k("delivered");
+    const proforma = k("proforma");
+    const ins = base.filter((r) => r.swap.in);
+    const inDel = ins.filter((r) => r.sales.kind === "delivered").length;
+    const inPro = ins.filter((r) => r.sales.kind === "proforma").length;
+    const outN = count((r) => r.swap.out);
+    const free = freeStockRows();
+    const freeCur = free.rows.filter((r) => r.label === "current").length;
+    const freeOld = free.rows.filter((r) => r.label === "older").length;
+    const freeOther = free.rows.length - freeCur - freeOld;
+
+    const rowsDef = [
+      { key: "", cls: "total", label: "Total VINs (mine this month)", sub: "RES · Allocation Date in month", total,
+        segs: [["delivered", delivered], ["proforma", proforma], ["nodate", k("nodate")], ["notraw", k("notraw")]] },
+      { key: "delivered", label: "Delivered", sub: "Sales Raw Col V Invoice Date", total: delivered, segs: [["delivered", delivered]] },
+      { key: "proforma", label: "Proforma", sub: "Col P date, no Invoice", total: proforma, segs: [["proforma", proforma]] },
+      { key: "in", label: "Moved in (other → me)", sub: "all moved-in VINs", total: ins.length,
+        segs: [["delivered", inDel], ["proforma", inPro], ["open", ins.length - inDel - inPro]] },
+      { key: "in-sold", label: "Moved in + Delivered / Proforma", sub: `${inDel} delivered · ${inPro} proforma`, total: inDel + inPro,
+        segs: [["delivered", inDel], ["proforma", inPro]] },
+      { key: "out", label: "Moved out from me", sub: "RES → other area", total: outN, segs: [["out", outN]] },
+      { key: "free", label: "Free stock", sub: free.lf ? `latest RTL ${free.lf.date} · not in Sales Raw` : "needs RTL + Sales Raw",
+        total: free.rows.length, segs: [["current", freeCur], ["older", freeOld], ["open", freeOther]] }
+    ];
+    const scale = Math.max(1, ...rowsDef.map((d) => d.total));
+    $("#summary-chart").innerHTML = rowsDef.map((d) => {
+      const segs = d.segs.filter(([, n]) => n > 0).map(([c, n]) =>
+        `<span class="sum-seg" style="width:${(n / scale) * 100}%;background:${SUM_COLORS[c]}" title="${n}">${(n / scale) > 0.05 ? n.toLocaleString() : ""}</span>`).join("");
+      return `<button type="button" class="sum-row ${d.cls || ""}${summaryFilter === d.key && d.key ? " active" : ""}" data-sum="${d.key}">
+          <span>${d.label}<small>${esc(d.sub)}</small></span>
+          <span class="sum-track">${segs}</span>
+          <b>${d.total.toLocaleString()}</b>
+        </button>`;
+    }).join("");
+    $("#summary-legend").innerHTML = [
+      ["delivered", "Delivered"], ["proforma", "Proforma"], ["nodate", "In raw, no P/V"], ["notraw", "Not in raw data"],
+      ["out", "Moved out"], ["open", "Not delivered / proforma yet"], ["current", "Free stock · current month"], ["older", "Free stock · older"]
+    ].map(([c, t]) => `<span><i style="background:${SUM_COLORS[c]}"></i>${t}</span>`).join("");
+    const tagText = { delivered: "Delivered", proforma: "Proforma", in: "Moved in", "in-sold": "Moved in + Delivered / Proforma", out: "Moved out" };
+    $("#summary-filter-tag").innerHTML = summaryFilter && tagText[summaryFilter]
+      ? `VIN table filtered: ${tagText[summaryFilter]}<button type="button" data-sum="">Show all</button>`
+      : "";
+
+    renderFreeStock(free, { freeCur, freeOld, freeOther });
+    renderPairs(base);
+  }
+
+  function freeVisible(free) {
+    return freeFilter === "all" ? free.rows : free.rows.filter((r) => r.label === freeFilter);
+  }
+
+  function renderFreeStock(free, n) {
+    document.querySelectorAll("#free-filters [data-free]").forEach((b) => {
+      b.classList.toggle("active", b.getAttribute("data-free") === freeFilter);
+      const key = b.getAttribute("data-free");
+      const num = key === "current" ? n.freeCur : key === "older" ? n.freeOld : free.rows.length;
+      b.textContent = `${key === "current" ? "Current month" : key === "older" ? "Older" : "All"} (${num.toLocaleString()})`;
+    });
+    const body = $("#free-body");
+    if (!sales.ok || !free.lf) {
+      $("#free-count").textContent = "";
+      body.innerHTML = `<tr><td colspan="8" class="empty">${!free.lf ? "No RTL file scanned yet." : "Sales Raw is needed to know which cars are not sold."}</td></tr>`;
+      return;
+    }
+    $("#free-sub").textContent = `Retail Electronic Sales in the latest RTL file (${free.lf.date}) and not in Sales Raw · current month = Allocation Date in ${monthLabel(allocMonth())}`;
+    const rows = freeVisible(free);
+    $("#free-count").textContent = `(${rows.length.toLocaleString()})`;
+    const labelPill = (l) => l === "current"
+      ? `<span class="pill ok">Current month</span>`
+      : l === "older" ? `<span class="pill warn">Older</span>` : `<span class="pill info">No / later date</span>`;
+    body.innerHTML = rows.length
+      ? rows.map((r, i) => `<tr>
+          <td class="num">${i + 1}</td>
+          <td class="mono"><b>${esc(r.vin)}</b></td>
+          <td>${esc(r.product || "—")}</td>
+          <td>${esc(r.suffix || "—")}</td>
+          <td class="mono">${esc(r.allocKey || "—")}</td>
+          <td>${labelPill(r.label)}</td>
+          <td>${esc(r.location || "—")}</td>
+          <td>${r.display ? `<span class="pill err">Display</span>` : "—"}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="8" class="empty">No free stock for this filter.</td></tr>`;
+  }
+
+  function renderPairs(base) {
+    const pairs = pairSwaps(base);
+    const paired = pairs.filter((p) => p.out && p.inn).length;
+    $("#pair-count").textContent = `(${paired} paired · ${pairs.filter((p) => !p.inn).length} out only · ${pairs.filter((p) => !p.out).length} in only)`;
+    const model = (r) => esc([r.product, r.suffix].filter(Boolean).join(" · ") || "—");
+    const salesPill = (r) => r && r.sales.kind ? `<span class="pill ${SALES_META[r.sales.kind].cls}">${SALES_META[r.sales.kind].text}</span>` : "—";
+    const matchCls = { "Same model + suffix": "ok", "Same model": "info", "Moved out only": "err", "Moved in only": "warn" };
+    $("#pair-body").innerHTML = pairs.length
+      ? pairs.map((p, i) => `<tr>
+          <td class="num">${i + 1}</td>
+          <td><span class="pill ${matchCls[p.match]}">${p.match}</span></td>
+          <td class="mono">${p.out ? `<b>${esc(p.out.vin)}</b>` : "—"}</td>
+          <td>${p.out ? model(p.out) : "—"}</td>
+          <td class="mono">${p.out ? esc(p.out.swap.out.date) : "—"}</td>
+          <td>${p.out ? esc(p.out.swap.out.place) : "—"}</td>
+          <td class="pair-arrow">⇄</td>
+          <td class="mono">${p.inn ? `<b>${esc(p.inn.vin)}</b>` : "—"}</td>
+          <td>${p.inn ? model(p.inn) : "—"}</td>
+          <td class="mono">${p.inn ? esc(p.inn.swap.in.date) : "—"}</td>
+          <td>${p.inn ? esc(p.inn.swap.in.place) : "—"}</td>
+          <td>${salesPill(p.inn)}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="12" class="empty">No swaps between the scanned RTL files.</td></tr>`;
+  }
+
+  function exportFreeStock() {
+    const free = freeStockRows();
+    const rows = freeVisible(free);
+    const lines = [["#", "VIN", "Product", "Suffix", "Allocation Date", "Label", "Search Area", "Location", "Display Central 1", "Latest RTL file"].join(",")];
+    rows.forEach((r, i) => {
+      const label = r.label === "current" ? "Current month" : r.label === "older" ? "Older" : "No / later date";
+      const cells = [i + 1, r.vin, r.product, r.suffix, r.allocKey, label, r.area, r.location, r.display ? "Yes" : "No", free.lf ? free.lf.date : ""];
+      lines.push(cells.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","));
+    });
+    lines.push(`"Total","${rows.length}"`);
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `free-stock-${freeFilter}-${allocMonth()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  function areaCounts(rows, pick) {
+    const map = new Map();
+    rows.forEach((r) => {
+      const s = pick(r);
+      if (s) map.set(s.area, (map.get(s.area) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+
+  function renderSwaps(base) {
+    const outN = base.filter((r) => r.swap.out).length;
+    const inN = base.filter((r) => r.swap.in).length;
+    const bothN = base.filter((r) => r.swap.in && r.swap.out).length;
+    const max = Math.max(outN, inN, 1);
+    const bar = (key, label, n, color) => `<button type="button" class="swap-bar${swapFilter === key ? " active" : ""}" data-swap="${key}">
+        <span>${label}</span>
+        <span class="swap-track"><span class="swap-fill" style="display:block;width:${(n / max) * 100}%;background:${color}"></span></span>
+        <b>${n.toLocaleString()}</b>
+      </button>`;
+    const net = inN - outN;
+    $("#swap-bars").innerHTML =
+      bar("out", "Moved out (RES → other)", outN, "#eb0a1e")
+      + bar("in", "Moved in (other → RES)", inN, "#047857")
+      + (bothN ? bar("both", "Both in and out", bothN, "#c2410c") : "")
+      + `<div class="swap-net">Net for me: <b>${net > 0 ? "+" : ""}${net.toLocaleString()}</b> of ${base.length.toLocaleString()} VINs</div>`;
+    const list = (entries) => entries.length
+      ? entries.map(([area, n]) => `<div class="row"><span>${esc(area)}</span><b>${n.toLocaleString()}</b></div>`).join("")
+      : `<div class="sales-msg">None</div>`;
+    $("#swap-out-areas").innerHTML = list(areaCounts(base, (r) => r.swap.out));
+    $("#swap-in-areas").innerHTML = list(areaCounts(base, (r) => r.swap.in));
+    const labels = { out: "Moved out", in: "Moved in", both: "Both in and out" };
+    $("#swap-filter-tag").innerHTML = swapFilter
+      ? `VIN table filtered: ${labels[swapFilter]}<button type="button" data-swap="">Show all</button>`
+      : "";
+  }
+
+  function renderDisplay(base) {
+    const body = $("#display-body");
+    const btn = $("#display-filter-btn");
+    btn.textContent = displayFilter ? "Show all VINs in VIN table" : "Show only display cars in VIN table";
+    btn.classList.toggle("primary", displayFilter);
+    if (!display.loaded) {
+      $("#display-sub").textContent = "Loading Stock E-Sales from Admin Push…";
+      $("#display-count").textContent = "";
+      body.innerHTML = "";
+      return;
+    }
+    if (!display.ok) {
+      $("#display-sub").innerHTML = `<span class="pill err long">${esc(display.issue)}</span>`;
+      $("#display-count").textContent = "";
+      body.innerHTML = `<tr><td colspan="7" class="empty">Push Stock E-Sales (slot 3) in Admin Push, then press Reload files.</td></tr>`;
+      return;
+    }
+    $("#display-sub").textContent = `${display.fileName} (${display.source.toLowerCase()} copy) · sheet "${display.sheet}" · ${display.vins.toLocaleString()} VIN(s) written in the sheet`;
+    const hits = base.filter((r) => r.display);
+    $("#display-count").textContent = `(${hits.length.toLocaleString()} of ${base.length.toLocaleString()})`;
+    body.innerHTML = hits.length
+      ? hits.map((r, i) => `<tr>
+          <td class="num">${i + 1}</td>
+          <td class="mono"><b>${esc(r.vin)}</b></td>
+          <td>${esc(r.product || "—")}</td>
+          <td>${esc(r.suffix || "—")}</td>
+          <td><span class="pill ${STATUS_META[r.status].cls}">${STATUS_META[r.status].text}</span></td>
+          <td>${r.sales.kind ? `<span class="pill ${SALES_META[r.sales.kind].cls}">${SALES_META[r.sales.kind].text}</span>` : "—"}</td>
+          <td class="mono">Row ${r.display.row} · Col ${esc(r.display.col)}${r.display.via === "VIN" ? "" : ` · ${esc(r.display.via)} ${esc(r.display.tail)}`}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="7" class="empty">None of these VINs are written in Display Central 1.</td></tr>`;
+  }
+
+  function render() {
+    const fl = visibleFiles();
+    const allUnique = aggregateVins(fl);
+    renderFiles(fl, allUnique.length);
+    const base = baseVinRows();
+    renderSummary(base);
+    renderSales(base);
+    renderSwaps(base);
+    renderDisplay(base);
+    renderVins(currentVinRows(base));
+
+    $("#k-files").textContent = fl.length.toLocaleString();
+    $("#k-rows").textContent = fl.reduce((s, f) => s + matchesFor(f).length, 0).toLocaleString();
+    $("#rule-month").textContent = monthLabel(allocMonth());
+    $("#k-unique").textContent = allUnique.length.toLocaleString();
+    const countBy = (s) => allUnique.filter((r) => r.status === s).length.toLocaleString();
+    $("#s-all").textContent = allUnique.length.toLocaleString();
+    $("#s-in").textContent = countBy("in");
+    $("#s-moved").textContent = countBy("moved");
+    $("#s-realloc").textContent = countBy("realloc");
+    $("#s-gone").textContent = countBy("gone");
+    document.querySelectorAll(".status-chip").forEach((b) => {
+      b.classList.toggle("active", b.getAttribute("data-status") === statusFilter);
+    });
+    $("#k-issues").textContent = fl.filter((f) => !f.ok || f.issue).length.toLocaleString();
+
+    const sel = selectedFileKey && files.find((f) => f.key === selectedFileKey);
+    $("#file-filter").innerHTML = sel
+      ? `Showing file ${esc(sel.date)}${sel.fileName ? " · " + esc(sel.fileName) : ""}<button type="button" id="clear-file">Show all</button>`
+      : "";
+    $("#vin-sub").textContent = sel
+      ? "VINs matching in the selected file."
+      : "Unique VINs across all scanned files (each VIN listed once).";
+  }
+
+  function exportCsv() {
+    const rows = currentVinRows();
+    const lines = [["#", "VIN", "Product", "Suffix", "Year", "Allocation Date", "Status", "Status detail", "Current place",
+      "Sales Raw", "Proforma Date (P)", "Invoice Date (V)", "Swapped in from", "Swapped in on", "Swapped out to", "Swapped out on", "Display Central 1",
+      "Latest RTL file", "Latest RTL Search Area", "Latest RTL Location", "Free stock (not in raw, still RES)",
+      "Files matched", "First matched", "Last matched", "Matched dates"].join(",")];
+    rows.forEach((r, i) => {
+      const cells = [i + 1, r.vin, r.product, r.suffix, r.year, r.allocKey, STATUS_META[r.status].text, r.label, placeText(r.current),
+        r.sales.kind ? SALES_META[r.sales.kind].text : "", r.sales.proformaKey || "", r.sales.invoiceKey || "",
+        r.swap.in ? r.swap.in.area : "", r.swap.in ? r.swap.in.date : "", r.swap.out ? r.swap.out.area : "", r.swap.out ? r.swap.out.date : "",
+        r.display ? `Yes (row ${r.display.row}, col ${r.display.col})` : "No",
+        r.latest.date || "", r.latest.kind === "gone" ? "Not in latest file" : (r.latest.area || ""), r.latest.location || "",
+        salesFilterMatch(r, "free") ? "Yes" : "No",
+        r.fileKeys.size, r.dates[0], r.dates[r.dates.length - 1], r.dates.join(" ")];
+      lines.push(cells.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","));
+    });
+    lines.push(`"Total","${rows.length}"`);
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `rtl-comparing-res-alloc-${allocMonth()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  async function copyVins() {
+    const text = currentVinRows().map((r) => r.vin).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus(`Copied ${currentVinRows().length} VIN(s) to clipboard.`);
+    } catch {
+      setStatus("Clipboard not available in this browser.", true);
+    }
+  }
+
+  $("#files-body").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr.file-row");
+    if (!tr) return;
+    const key = tr.getAttribute("data-key");
+    selectedFileKey = selectedFileKey === key ? "" : key;
+    render();
+  });
+  $("#file-filter").addEventListener("click", (e) => {
+    if (e.target.id === "clear-file") { selectedFileKey = ""; render(); }
+  });
+  $("#search").addEventListener("input", render);
+  $("#summary-card").addEventListener("click", (e) => {
+    if (e.target.id === "free-export") { exportFreeStock(); return; }
+    const freeBtn = e.target.closest("[data-free]");
+    if (freeBtn) {
+      freeFilter = freeBtn.getAttribute("data-free");
+      render();
+      return;
+    }
+    const row = e.target.closest("[data-sum]");
+    if (!row) return;
+    const key = row.getAttribute("data-sum") || "";
+    if (key === "free") {
+      $("#free-block").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    summaryFilter = summaryFilter === key ? "" : key;
+    render();
+  });
+  $("#display-filter-btn").addEventListener("click", () => {
+    displayFilter = !displayFilter;
+    render();
+  });
+  $("#swap-card").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-swap]");
+    if (!btn) return;
+    const key = btn.getAttribute("data-swap") || "";
+    swapFilter = swapFilter === key ? "" : key;
+    render();
+  });
+  $("#sales-card").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-sales]");
+    if (!btn) return;
+    salesFilter = btn.getAttribute("data-sales") || "";
+    render();
+  });
+  $("#status-strip").addEventListener("click", (e) => {
+    const chip = e.target.closest(".status-chip");
+    if (!chip) return;
+    statusFilter = chip.getAttribute("data-status") || "";
+    render();
+  });
+  $("#alloc-month").value = currentMonthRiyadh();
+  $("#alloc-month").addEventListener("change", render);
+  $("#month").addEventListener("change", () => { selectedFileKey = ""; render(); });
+  $("#mode").addEventListener("change", reload);
+  $("#reload").addEventListener("click", reload);
+  $("#export").addEventListener("click", exportCsv);
+  $("#copy").addEventListener("click", copyVins);
+
+  window.getRtlComparingData = () => ({
+    allocMonth: allocMonth(),
+    files: files.map((f) => ({ date: f.date, fileName: f.fileName, source: f.source, rows: f.rows, res: (f.res || []).length, matches: matchesFor(f).length, issue: f.issue })),
+    uniqueVins: aggregateVins(visibleFiles()).map((r) => ({ vin: r.vin, allocKey: r.allocKey, status: r.status, label: r.label, sales: salesInfo(r.vin).kind, swap: swapText(swapInfo(r.vin, visibleFiles())), display: displayInfo(r.vin), latest: latestInfo(r.vin, latestOkFile(visibleFiles())), dates: r.dates })),
+    display: { ok: display.ok, issue: display.issue, sheet: display.sheet, vins: display.vins },
+    sales: { ok: sales.ok, issue: sales.issue, fileName: sales.fileName, source: sales.source, rows: sales.rows, headerP: sales.headerP, headerV: sales.headerV }
+  });
+
+  reload();
+})();
+  </script>
+</body>
+</html>

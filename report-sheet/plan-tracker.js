@@ -43,15 +43,27 @@
       ? global.normHeader(s)
       : String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   }
-  function normVin(raw) {
+  /** Unique VIN key: string → trim → alnum uppercase. Blank → "". */
+  function normalizeVin(raw) {
     if (typeof global.extractVinValue === "function") {
       const v = global.extractVinValue(raw);
-      if (v) return v;
+      if (v) return String(v).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     }
-    return String(raw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    return String(raw == null ? "" : raw).trim().replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  }
+  /** @deprecated alias */
+  function normVin(raw) {
+    return normalizeVin(raw);
   }
   function parseDate(v) {
-    return typeof global.parseDate === "function" ? global.parseDate(v) : null;
+    if (v instanceof Date && !Number.isNaN(v.getTime())) return v;
+    if (typeof global.parseDate === "function") return global.parseDate(v);
+    if (v == null || v === "") return null;
+    const s = String(v).trim();
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
   }
   function fmtDate(d) {
     if (!d) return "—";
@@ -67,11 +79,18 @@
       return "—";
     }
   }
-  function isTargetArea(desc) {
+  /** RES = Search Area contains "Retail Electronic Sales" (normalized). */
+  function isRES(vehicleOrArea) {
+    const desc = typeof vehicleOrArea === "string"
+      ? vehicleOrArea
+      : (vehicleOrArea && (vehicleOrArea.searchArea || vehicleOrArea.searchAreaDesc)) || "";
     const t = normHeader(TARGET_SEARCH_AREA);
     const s = normHeader(desc || "");
     if (!s || !t) return false;
     return s === t || s.includes(t);
+  }
+  function isTargetArea(desc) {
+    return isRES(desc);
   }
   function daysBetween(a, b) {
     if (!a || !b) return null;
@@ -96,6 +115,11 @@
       && a.getDate() === b.getDate();
   }
 
+  function isAge0(row) {
+    const age = row && row.allocationAge;
+    return age != null && Number.isFinite(age) && Math.floor(age) === 0;
+  }
+
   /**
    * Allocation Date YYYY-MM (empty if unknown).
    */
@@ -108,19 +132,28 @@
   }
 
   /**
-   * Plan schedule / 315 receipt: Retail Electronic Sales + Col J age 0
-   * + Allocation Date on the same calendar day as the RTL day file.
-   * Frozen per day-file — later days do not change a prior day's receipt.
+   * True 315 plan receipt candidate (snapshot rules only — firstArea checked by caller).
+   * RES + Age 0 + Allocation Date === RTL file calendar day.
    */
   function isPlanScheduleReceipt(row, dateKey) {
-    if (!row || !row.isTarget) return false;
-    const age = row.allocationAge;
-    if (age == null || !Number.isFinite(age) || Math.floor(age) !== 0) return false;
+    if (!row || !isRES(row)) return false;
+    if (!isAge0(row)) return false;
     const observeKey = dateKey || row.dateKey || "";
     const fileDate = fileDateFromKey(observeKey);
     if (!fileDate) return false;
     if (!(row.allocationDate instanceof Date) || Number.isNaN(row.allocationDate.getTime())) return false;
     return sameCalendarDay(row.allocationDate, fileDate);
+  }
+
+  /**
+   * Free stock: RES + Age 0 + Allocation Date before the active month.
+   * Independent of 315. Does NOT use age≥1 as a substitute.
+   */
+  function isPriorMonthFreeStock(row, monthKey) {
+    if (!row || !isRES(row) || !monthKey) return false;
+    if (!isAge0(row)) return false;
+    const mk = allocationMonthKey(row);
+    return !!(mk && mk < monthKey);
   }
 
   /** Attach Sales Raw Col P (proforma) / Col V (delivered) onto VIN rows. */
@@ -148,23 +181,10 @@
     });
   }
 
-  /** @deprecated — use isPlanScheduleReceipt */
-  function isThisMonthReceipt(row, monthKey) {
-    if (!row || !row.isTarget || !monthKey) return false;
-    return isPlanScheduleReceipt(row, row.dateKey);
+  /** @deprecated */
+  function isThisMonthReceipt(row) {
+    return isPlanScheduleReceipt(row, row && row.dateKey);
   }
-
-  /**
-   * Prior-month (e.g. last month) RES stock → Free Stock (excluded from 315 progress).
-   */
-  function isPriorMonthFreeStock(row, monthKey) {
-    if (!row || !row.isTarget || !monthKey) return false;
-    if (isPlanScheduleReceipt(row, row.dateKey)) return false;
-    const mk = allocationMonthKey(row);
-    if (mk) return mk < monthKey;
-    return row.allocationAge != null && row.allocationAge >= 1;
-  }
-
   /** @deprecated */
   function isPlanReceipt(row, dateKey) {
     return isPlanScheduleReceipt(row, dateKey);
@@ -200,20 +220,25 @@
       const car = global.mapRtlDailyVehicle(v, dateKey, snapId, i);
       const searchArea = (typeof global.dayVehicleSearchArea === "function"
         ? global.dayVehicleSearchArea(v)
-        : "") || car.searchAreaDesc || "";
-      const agDate = typeof global.dayVehicleAgDate === "function" ? global.dayVehicleAgDate(v) : null;
-      const ageRaw = car.ageing;
-      const age = ageRaw == null || !Number.isFinite(Number(ageRaw)) ? null : Math.floor(Number(ageRaw));
+        : "") || car.searchAreaDesc || car.searchArea || "";
+      const agDate = typeof global.dayVehicleAgDate === "function"
+        ? global.dayVehicleAgDate(v)
+        : (car.allocationDate instanceof Date ? car.allocationDate : parseDate(car.allocationDate || car.agDate));
+      const ageRaw = car.ageing != null ? car.ageing : car.allocationAge;
+      const age = ageRaw == null || ageRaw === "" || !Number.isFinite(Number(ageRaw))
+        ? null
+        : Math.floor(Number(ageRaw));
+      const search = searchArea || "";
       return {
-        vin: normVin(car.vin),
+        vin: normalizeVin(car.vin),
         product: car.product || "—",
         suffix: car.suffix || "—",
         year: car.year || "",
         ext: car.ext || "",
         int: car.int || "",
-        searchArea: searchArea || "",
-        isTarget: isTargetArea(searchArea),
-        allocationDate: agDate,
+        searchArea: search,
+        isTarget: isRES(search),
+        allocationDate: agDate instanceof Date && !Number.isNaN(agDate.getTime()) ? agDate : null,
         allocationAge: age,
         status: car.status || "",
         secondaryStatus: (v && (v.secondaryStatus || v.secondary_status)) || "",
@@ -223,7 +248,34 @@
         dateKey,
       };
     }
-    return null;
+    // Plain-object fallback (tests / offline)
+    if (!v || typeof v !== "object") return null;
+    const search = String(v.searchArea || v.searchAreaDesc || "").trim();
+    const ageRaw = v.allocationAge != null ? v.allocationAge : v.age;
+    const age = ageRaw == null || ageRaw === "" || !Number.isFinite(Number(ageRaw))
+      ? null
+      : Math.floor(Number(ageRaw));
+    const ag = v.allocationDate instanceof Date
+      ? v.allocationDate
+      : parseDate(v.allocationDate || v.agDate || v.AG);
+    return {
+      vin: normalizeVin(v.vin || v.VIN),
+      product: v.product || "—",
+      suffix: v.suffix || v.sfx || "—",
+      year: v.year || "",
+      ext: v.ext || "",
+      int: v.int || "",
+      searchArea: search,
+      isTarget: isRES(search),
+      allocationDate: ag instanceof Date && !Number.isNaN(ag.getTime()) ? ag : null,
+      allocationAge: age,
+      status: v.status || "",
+      secondaryStatus: v.secondaryStatus || "",
+      deliveryStatus: "",
+      location: v.location || "—",
+      usage: v.usage || "",
+      dateKey,
+    };
   }
 
   function snapshotRows(snap, dateKey) {
@@ -233,18 +285,15 @@
       blankVin: 0,
       duplicateVin: 0,
       missingArea: 0,
-      invalidAg: 0,
+      invalidAge: 0,
+      missingAllocationDate: 0,
+      invalidAllocationDate: 0,
       ageMismatch: 0,
+      conflictingRecords: 0,
       multiArea: 0,
     };
-    const seen = new Set();
-    const fileDate = (() => {
-      const parts = String(dateKey).split("-").map(Number);
-      if (parts.length === 3 && parts.every(Number.isFinite)) {
-        return new Date(parts[0], parts[1] - 1, parts[2]);
-      }
-      return null;
-    })();
+    const fileDate = fileDateFromKey(dateKey);
+    const conflictSeen = new Map(); // vin -> first searchArea|age signature
 
     vehicles.forEach((v, i) => {
       const row = mapVehicle(v, dateKey, snap && snap.id, i);
@@ -253,12 +302,22 @@
         quality.blankVin += 1;
         return;
       }
-      if (seen.has(row.vin)) {
+      if (byVin.has(row.vin)) {
         quality.duplicateVin += 1;
-        return; // keep first; flag duplicate
+        const first = byVin.get(row.vin);
+        const sig = `${row.searchArea}|${row.allocationAge}|${allocationMonthKey(row)}`;
+        const firstSig = conflictSeen.get(row.vin) || `${first.searchArea}|${first.allocationAge}|${allocationMonthKey(first)}`;
+        if (sig !== firstSig) quality.conflictingRecords += 1;
+        return; // ONE VIN = ONE VEHICLE — keep first
       }
-      seen.add(row.vin);
+      conflictSeen.set(row.vin, `${row.searchArea}|${row.allocationAge}|${allocationMonthKey(row)}`);
       if (!row.searchArea) quality.missingArea += 1;
+      if (row.allocationAge == null) quality.invalidAge += 1;
+      if (!row.allocationDate) {
+        quality.missingAllocationDate += 1;
+      } else if (!(row.allocationDate instanceof Date) || Number.isNaN(row.allocationDate.getTime())) {
+        quality.invalidAllocationDate += 1;
+      }
       if (row.allocationDate && fileDate) {
         const calc = daysBetween(row.allocationDate, fileDate);
         row.calculatedAge = calc;
@@ -266,8 +325,6 @@
           quality.ageMismatch += 1;
           row.ageMismatch = true;
         }
-      } else if (row.allocationDate == null && v) {
-        // no AG is allowed; count only if details looked broken is hard — skip
       }
       byVin.set(row.vin, row);
     });
@@ -277,6 +334,7 @@
 
   /**
    * Build full movement model from rtl-daily active-month pack.
+   * Daily RES Age 0 ≠ 315 plan receipts — never conflate them.
    */
   function buildModel(pack, opts) {
     const plan = (opts && opts.plan != null) ? Number(opts.plan) : ALLOCATION_PLAN;
@@ -286,65 +344,75 @@
     const monthKey = (pack && pack.month)
       || (ctx && ctx.monthKey)
       || (dateKeys[0] ? String(dateKeys[0]).slice(0, 7) : "");
+
     const daily = [];
     const movements = [];
-    const vinHistory = new Map(); // vin -> observations[]
-    const planAllocated = new Set(); // this-month unique RES receipts → 315
-    const freeStockPrior = new Set(); // prior-month unique RES → free stock
-    const freeStockMeta = new Map(); // vin -> row
-    const everEnteredRes = new Set(); // any VIN that was ever in RES (analytics)
+    const vinHistory = new Map();
+    const planReceiptVins = new Set();
+    const freeStockVins = new Set();
+    const freeStockMeta = new Map();
+    const planReceiptMeta = new Map(); // vin -> row at credit time (frozen)
+    const everEnteredRes = new Set();
     const everSeen = new Set();
     const disappearedEver = new Set();
-    /** First search area seen for each VIN — if not RES, later entry is transfer-in (not "mine"). */
+    const firstSeenDateByVin = new Map();
     const firstAreaByVin = new Map();
+    const firstRecordByVin = new Map();
+
     const qualityTotals = {
       blankVin: 0,
       duplicateVin: 0,
       missingArea: 0,
-      invalidAg: 0,
+      invalidAge: 0,
+      missingAllocationDate: 0,
+      invalidAllocationDate: 0,
       ageMismatch: 0,
+      conflictingRecords: 0,
+      unmatchedProductSfx: 0,
       duplicateSnapshot: 0,
       snapshotCount: dateKeys.length,
     };
     const corridor = new Map();
     const age0ByArea = new Map();
-    let prev = null; // { dateKey, byVin }
+    let prev = null;
     let latestTarget = new Map();
+
+    const noteFirstSeen = (vin, row, dateKey) => {
+      if (!vin || !row) return;
+      if (!firstSeenDateByVin.has(vin)) {
+        firstSeenDateByVin.set(vin, dateKey);
+        firstAreaByVin.set(vin, row.searchArea || "");
+        firstRecordByVin.set(vin, { ...row });
+      }
+    };
 
     const firstAreaWasRes = (vin) => {
       const first = firstAreaByVin.get(vin);
-      if (first == null || first === "") return true;
-      return isTargetArea(first);
-    };
-
-    const noteFirstArea = (vin, row) => {
-      if (!vin || firstAreaByVin.has(vin)) return;
-      firstAreaByVin.set(vin, (row && row.searchArea) || "");
+      if (first == null || first === "") return false;
+      return isRES(first);
     };
 
     /**
-     * Credit "This month received" only when:
-     * - Col M RES + Col J age 0 + AG = file day
-     * - VIN's first appearance was RES (not received from another search area)
-     * Count once; frozen onto that day's planReceipts so later files cannot change it.
+     * Credit plan / free stock once. Transfer-in never credits plan.
+     * Historical freeze: only evaluates the observation row for its own dateKey.
      */
-    const creditResVin = (vin, row, dateKey, dayStats, opts) => {
+    const tryCredit = (vin, row, dateKey, dayStats, creditOpts) => {
       if (!row || !vin) return "";
-      if (opts && opts.fromOtherArea) return "";
-      if (planAllocated.has(vin) || freeStockPrior.has(vin)) return "";
-      const treatAsRes = (opts && opts.wasRes) || row.isTarget;
-      if (!treatAsRes) return "";
-      const asRes = { ...row, isTarget: true };
-      const observeKey = (opts && opts.observeKey) || row.dateKey || dateKey;
+      if (creditOpts && creditOpts.fromOtherArea) return "";
+      if (planReceiptVins.has(vin) || freeStockVins.has(vin)) return "";
+      if (!isRES(row) && !(creditOpts && creditOpts.wasRes)) return "";
+      const asRes = { ...row, isTarget: true, searchArea: row.searchArea || TARGET_SEARCH_AREA };
+      const observeKey = (creditOpts && creditOpts.observeKey) || row.dateKey || dateKey;
 
       if (isPlanScheduleReceipt(asRes, observeKey)) {
         if (!firstAreaWasRes(vin)) return "";
-        planAllocated.add(vin);
+        planReceiptVins.add(vin);
+        planReceiptMeta.set(vin, asRes);
         dayStats.planReceipts.push(asRes);
         return "plan";
       }
       if (isPriorMonthFreeStock(asRes, monthKey)) {
-        freeStockPrior.add(vin);
+        freeStockVins.add(vin);
         freeStockMeta.set(vin, asRes);
         dayStats.freeStock.push(asRes);
         return "free";
@@ -354,47 +422,67 @@
 
     dateKeys.forEach((dateKey) => {
       const snap = days[dateKey];
-      const { byVin, quality, fileDate } = snapshotRows(snap, dateKey);
+      const { byVin, quality } = snapshotRows(snap, dateKey);
       qualityTotals.blankVin += quality.blankVin;
       qualityTotals.duplicateVin += quality.duplicateVin;
       qualityTotals.missingArea += quality.missingArea;
+      qualityTotals.invalidAge += quality.invalidAge;
+      qualityTotals.missingAllocationDate += quality.missingAllocationDate;
+      qualityTotals.invalidAllocationDate += quality.invalidAllocationDate;
       qualityTotals.ageMismatch += quality.ageMismatch;
+      qualityTotals.conflictingRecords += quality.conflictingRecords;
 
+      const fileDate = fileDateFromKey(dateKey);
       const dayStats = {
         dateKey,
         label: fileDate
           ? fileDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
           : dateKey,
-        newRes: [],
-        planReceipts: [],
+        newRes: [],           // first-seen RES appearances (recon: New RES)
+        planReceipts: [],     // true 315 receipts this day (frozen)
         freeStock: [],
         transferIn: [],
         transferOut: [],
         disappeared: [],
         reappeared: [],
         stayed: [],
+        stayedOutside: [],
         carryover: [],
         newVinAny: [],
+        dailyUniqueRESAge0List: [],
         resTotal: 0,
-        age0Target: 0,
+        dailyUniqueRESAge0: 0,
+        age0Target: 0,        // alias of dailyUniqueRESAge0 (UI)
         age0All: 0,
-        /** Frozen Col J=0 RES count from THIS day file only (not recomputed from later days). */
-        age0ResFrozen: 0,
+        age0ResFrozen: 0,     // alias
         prevResTotal: prev ? [...prev.byVin.values()].filter((r) => r.isTarget).length : 0,
+        newPlanAllocations: 0,
+        freeStockCount: 0,
+        cumulativePlanAllocations: 0,
+        remaining: 0,
+        progress: 0,
       };
 
-      // Record first search area before crediting (day-by-day order)
-      byVin.forEach((r) => noteFirstArea(r.vin, r));
-
-      // Age 0 frozen from this snapshot — later uploads do not rewrite prior days
+      // First-seen maps BEFORE crediting (same-day first area can establish RES)
       byVin.forEach((r) => {
-        if (r.allocationAge !== 0) return;
-        dayStats.age0All += 1;
-        if (r.isTarget) {
+        noteFirstSeen(r.vin, r, dateKey);
+        everSeen.add(r.vin);
+      });
+
+      // Daily unique RES Age 0 — independent of 315 rules
+      byVin.forEach((r) => {
+        if (r.allocationAge === 0) dayStats.age0All += 1;
+        if (isRES(r) && isAge0(r)) {
+          dayStats.dailyUniqueRESAge0 += 1;
           dayStats.age0Target += 1;
           dayStats.age0ResFrozen += 1;
+          dayStats.dailyUniqueRESAge0List.push(r);
         }
+        if (r.isTarget) dayStats.resTotal += 1;
+        if (!vinHistory.has(r.vin)) vinHistory.set(r.vin, []);
+        vinHistory.get(r.vin).push({ ...r, snapshotDate: dateKey });
       });
+
       if (dateKey === dateKeys[dateKeys.length - 1]) {
         age0ByArea.clear();
         byVin.forEach((r) => {
@@ -404,22 +492,13 @@
         });
       }
 
-      byVin.forEach((r) => {
-        if (r.isTarget) dayStats.resTotal += 1;
-        if (!vinHistory.has(r.vin)) vinHistory.set(r.vin, []);
-        vinHistory.get(r.vin).push({ ...r, snapshotDate: dateKey });
-      });
-
       if (!prev) {
-        // Opening snapshot: this-month AG → plan; prior-month AG → free stock
         byVin.forEach((r) => {
-          everSeen.add(r.vin);
-          noteFirstArea(r.vin, r);
           if (r.isTarget) {
             everEnteredRes.add(r.vin);
-            const bucket = creditResVin(r.vin, r, dateKey, dayStats);
+            dayStats.newRes.push(r); // opening RES = New RES for recon
+            const bucket = tryCredit(r.vin, r, dateKey, dayStats);
             if (bucket === "plan") {
-              dayStats.newRes.push(r);
               movements.push(makeMovement(dateKey, null, r, "NEW ALLOCATION"));
             } else if (bucket === "free") {
               dayStats.carryover.push(r);
@@ -428,11 +507,12 @@
             } else {
               dayStats.carryover.push(r);
               dayStats.stayed.push(r);
-              movements.push(makeMovement(dateKey, null, r, "CARRYOVER / OPENING"));
+              movements.push(makeMovement(dateKey, null, r, "STAYED IN RES"));
             }
           } else {
             dayStats.newVinAny.push(r);
-            movements.push(makeMovement(dateKey, null, r, "NEW VIN"));
+            dayStats.stayedOutside.push(r);
+            movements.push(makeMovement(dateKey, null, r, "STAYED OUTSIDE RES"));
           }
         });
       } else {
@@ -441,103 +521,154 @@
         allVins.forEach((vin) => {
           const a = prevMap.get(vin) || null;
           const b = byVin.get(vin) || null;
+
           if (!a && b) {
-            const wasGone = disappearedEver.has(vin) || (everSeen.has(vin) && !prevMap.has(vin));
-            everSeen.add(vin);
-            noteFirstArea(vin, b);
+            const wasGone = disappearedEver.has(vin);
+            noteFirstSeen(vin, b, dateKey);
             if (wasGone) {
-              const mt = b.isTarget ? "RE-APPEARED (RES)" : "RE-APPEARED";
               dayStats.reappeared.push(b);
               if (b.isTarget) {
                 everEnteredRes.add(vin);
-                // Re-appeared into RES after leaving — only credit if first area was RES and not yet counted
-                const bucket = creditResVin(vin, b, dateKey, dayStats);
-                if (bucket === "plan") dayStats.newRes.push(b);
-                else if (bucket !== "free") {
+                dayStats.newRes.push(b);
+                const bucket = tryCredit(vin, b, dateKey, dayStats);
+                if (bucket === "plan") {
+                  /* credited */
+                } else if (bucket === "free") {
+                  /* free */
+                } else if (!firstAreaWasRes(vin)) {
                   dayStats.transferIn.push(b);
                   addCorridor(corridor, "(re-appeared)", b.searchArea);
                 }
               }
-              movements.push(makeMovement(dateKey, a, b, mt));
-            } else if (b.isTarget) {
+              movements.push(makeMovement(dateKey, null, b, b.isTarget ? "RE-APPEARED" : "RE-APPEARED"));
+              return;
+            }
+
+            if (b.isTarget) {
               everEnteredRes.add(vin);
-              const bucket = creditResVin(vin, b, dateKey, dayStats);
+              dayStats.newRes.push(b);
+              const bucket = tryCredit(vin, b, dateKey, dayStats);
               if (bucket === "plan") {
-                dayStats.newRes.push(b);
                 movements.push(makeMovement(dateKey, null, b, "NEW ALLOCATION"));
               } else if (bucket === "free") {
                 dayStats.carryover.push(b);
                 movements.push(makeMovement(dateKey, null, b, "FREE STOCK / PRIOR MONTH"));
-              } else {
+              } else if (!firstAreaWasRes(vin)) {
+                // Should not happen for first-seen — first area is this record
                 dayStats.transferIn.push(b);
                 addCorridor(corridor, "(first seen)", b.searchArea);
                 movements.push(makeMovement(dateKey, null, b, "TRANSFERRED INTO RES"));
+              } else {
+                dayStats.stayed.push(b);
+                movements.push(makeMovement(dateKey, null, b, "STAYED IN RES"));
               }
             } else {
               dayStats.newVinAny.push(b);
-              movements.push(makeMovement(dateKey, null, b, "NEW VIN"));
+              dayStats.stayedOutside.push(b);
+              movements.push(makeMovement(dateKey, null, b, "STAYED OUTSIDE RES"));
             }
             return;
           }
+
           if (a && !b) {
             disappearedEver.add(vin);
-            // Still count toward plan / free stock — it came into RES first (frozen from last RES day)
-            if (a.isTarget) {
-              everEnteredRes.add(vin);
-              creditResVin(vin, a, dateKey, dayStats, { wasRes: true, observeKey: a.dateKey });
-            }
+            // Do NOT re-evaluate plan from later days — historical freeze.
+            // Only try credit using the LAST observation's own date (already processed).
             dayStats.disappeared.push(a);
             movements.push(makeMovement(dateKey, a, null, "DISAPPEARED"));
             return;
           }
+
           if (a && b) {
-            everSeen.add(vin);
             if (!a.isTarget && b.isTarget) {
-              // Other search area → RES: Transfers IN only — NOT "This month received"
+              // Transfer into RES — NEVER a plan receipt (firstArea was non-RES)
               everEnteredRes.add(vin);
               dayStats.transferIn.push(b);
               addCorridor(corridor, a.searchArea, b.searchArea);
-              creditResVin(vin, b, dateKey, dayStats, { fromOtherArea: true });
+              tryCredit(vin, b, dateKey, dayStats, { fromOtherArea: true });
               movements.push(makeMovement(dateKey, a, b, "TRANSFERRED INTO RES"));
             } else if (a.isTarget && !b.isTarget) {
-              // Left RES — credit only if last RES day was age 0 + AG same day + first area was RES
               everEnteredRes.add(vin);
-              creditResVin(vin, a, dateKey, dayStats, { wasRes: true, observeKey: a.dateKey });
               dayStats.transferOut.push(b);
               addCorridor(corridor, a.searchArea, b.searchArea);
               movements.push(makeMovement(dateKey, a, b, "TRANSFERRED OUT OF RES"));
             } else if (a.isTarget && b.isTarget) {
               dayStats.stayed.push(b);
-              creditResVin(vin, b, dateKey, dayStats, { wasRes: true });
+              // May still qualify if earlier days missed age-0 same-day (rare); uses TODAY's row
+              tryCredit(vin, b, dateKey, dayStats);
               movements.push(makeMovement(dateKey, a, b, "STAYED IN RES"));
-            } else if (a.searchArea !== b.searchArea) {
-              addCorridor(corridor, a.searchArea, b.searchArea);
-              movements.push(makeMovement(dateKey, a, b, "AREA CHANGE"));
+            } else {
+              dayStats.stayedOutside.push(b);
+              if (a.searchArea !== b.searchArea) {
+                addCorridor(corridor, a.searchArea, b.searchArea);
+              }
+              movements.push(makeMovement(dateKey, a, b, "STAYED OUTSIDE RES"));
             }
           }
         });
       }
 
-      // Reconciliation for target (opening carryover only on first snapshot)
-      const disappearedTarget = dayStats.disappeared.filter((r) => r.isTarget).length;
-      const openingCarry = prev ? 0 : dayStats.carryover.length;
+      // Reconciliation: Expected = Yesterday + New RES + Transfer IN − Transfer OUT − Disappeared RES
+      const disappearedRES = dayStats.disappeared.filter((r) => r.isTarget);
+      const disappearedTarget = disappearedRES.length;
+      const newResCount = dayStats.newRes.length;
       const impliedRes = dayStats.prevResTotal
-        + openingCarry
-        + dayStats.newRes.length
+        + newResCount
         + dayStats.transferIn.length
         - dayStats.transferOut.length
         - disappearedTarget;
+
+      // VIN-level recon reasons when mismatch
+      const reconReasons = [];
+      if (prev) {
+        const expectedSet = new Set();
+        prev.byVin.forEach((r, vin) => {
+          if (r.isTarget) expectedSet.add(vin);
+        });
+        dayStats.newRes.forEach((r) => expectedSet.add(r.vin));
+        dayStats.transferIn.forEach((r) => expectedSet.add(r.vin));
+        dayStats.transferOut.forEach((r) => expectedSet.delete(r.vin));
+        disappearedRES.forEach((r) => expectedSet.delete(r.vin));
+
+        const actualSet = new Set();
+        byVin.forEach((r, vin) => {
+          if (r.isTarget) actualSet.add(vin);
+        });
+        expectedSet.forEach((vin) => {
+          if (!actualSet.has(vin)) {
+            reconReasons.push({ vin, reason: "expected RES but missing from today's RES set" });
+          }
+        });
+        actualSet.forEach((vin) => {
+          if (!expectedSet.has(vin)) {
+            reconReasons.push({ vin, reason: "in today's RES but not explained by yesterday+new+in−out−gone" });
+          }
+        });
+      }
+
       dayStats.disappearedTarget = disappearedTarget;
+      dayStats.disappearedRES = disappearedTarget;
       dayStats.impliedRes = impliedRes;
+      dayStats.expectedRES = impliedRes;
+      dayStats.actualRES = dayStats.resTotal;
       dayStats.reconDiff = dayStats.resTotal - impliedRes;
       dayStats.reconOk = dayStats.reconDiff === 0;
+      dayStats.reconReasons = reconReasons;
+
+      dayStats.newPlanAllocations = dayStats.planReceipts.length;
+      dayStats.freeStockCount = dayStats.freeStock.length;
+      dayStats.cumulativePlanAllocations = planReceiptVins.size;
+      dayStats.remaining = Math.max(0, plan - planReceiptVins.size);
+      dayStats.progress = plan > 0 ? planReceiptVins.size / plan : 0;
+      dayStats.currentRES = dayStats.resTotal;
+      dayStats.transferredIntoRES = dayStats.transferIn.length;
+      dayStats.transferredOutOfRES = dayStats.transferOut.length;
 
       daily.push(dayStats);
       latestTarget = new Map([...byVin].filter(([, r]) => r.isTarget));
       prev = { dateKey, byVin };
     });
 
-    // Age 0 table from latest snapshot
     const latestKey = dateKeys.length ? dateKeys[dateKeys.length - 1] : "";
     const latestSnap = latestKey ? snapshotRows(days[latestKey], latestKey) : null;
     if (latestSnap) {
@@ -550,15 +681,14 @@
     }
 
     const currentRes = latestTarget.size;
-    const allocated = planAllocated.size;
-    const freeStock = freeStockPrior.size;
+    const allocated = planReceiptVins.size;
+    const freeStock = freeStockVins.size;
     const totalReceived = allocated + freeStock;
     const remaining = Math.max(0, plan - allocated);
     const progress = plan > 0 ? allocated / plan : 0;
     const latestDay = daily.length ? daily[daily.length - 1] : null;
     const prevDay = daily.length > 1 ? daily[daily.length - 2] : null;
 
-    // Inventory breakdowns (current RES)
     const byProduct = new Map();
     const bySuffix = new Map();
     const byAge = new Map();
@@ -579,33 +709,38 @@
     const newAllocAll = movements.filter((m) => m.movementType === "NEW ALLOCATION");
 
     const age0Target = latestSnap
-      ? [...latestSnap.byVin.values()].filter((r) => r.isTarget && r.allocationAge === 0).length
+      ? [...latestSnap.byVin.values()].filter((r) => isRES(r) && isAge0(r)).length
       : 0;
     const age0Total = latestSnap
       ? [...latestSnap.byVin.values()].filter((r) => r.allocationAge === 0).length
       : 0;
 
+    // Unmatched product/SFX among plan receipts (for quality)
+    if (typeof global.matchRtlToAllocLeaf === "function") {
+      planReceiptMeta.forEach((r) => {
+        const leaf = global.matchRtlToAllocLeaf({ product: r.product, suffix: r.suffix });
+        if (!leaf) qualityTotals.unmatchedProductSfx += 1;
+      });
+    }
+
     const qualityScore = Math.max(0, Math.min(100, Math.round(
       100 - Math.min(40, qualityTotals.duplicateVin * 2)
         - Math.min(20, qualityTotals.blankVin)
-        - Math.min(20, qualityTotals.missingArea * 0.05)
-        - Math.min(20, qualityTotals.ageMismatch * 0.5)
+        - Math.min(15, qualityTotals.missingArea * 0.05)
+        - Math.min(15, qualityTotals.ageMismatch * 0.5)
+        - Math.min(10, qualityTotals.conflictingRecords * 2)
     )));
 
     const lists = {
-      allocated: [...planAllocated].map((vin) => {
-        const hist = vinHistory.get(vin) || [];
-        const credited = hist.find((h) => h && h.isTarget && h.allocationAge === 0) || hist[hist.length - 1];
-        return credited || { vin };
-      }),
-      freeStock: [...freeStockPrior].map((vin) => freeStockMeta.get(vin) || (vinHistory.get(vin) || []).slice(-1)[0] || { vin }),
+      allocated: [...planReceiptVins].map((vin) => planReceiptMeta.get(vin) || (vinHistory.get(vin) || []).slice(-1)[0] || { vin }),
+      freeStock: [...freeStockVins].map((vin) => freeStockMeta.get(vin) || (vinHistory.get(vin) || []).slice(-1)[0] || { vin }),
       transferIn: transferInAll,
       transferOut: transferOutAll,
       disappeared: disappearedAll,
       newAlloc: newAllocAll,
       current: [...latestTarget.values()],
       age0: latestSnap
-        ? [...latestSnap.byVin.values()].filter((r) => r.isTarget && r.allocationAge === 0)
+        ? [...latestSnap.byVin.values()].filter((r) => isRES(r) && isAge0(r))
         : [],
       everEntered: [...everEnteredRes].map((vin) => {
         const hist = vinHistory.get(vin) || [];
@@ -613,7 +748,6 @@
       }),
     };
 
-    // Sales Raw Col P = Proforma · Col V = Delivered
     enrichRowsWithSalesRaw(lists.allocated);
     enrichRowsWithSalesRaw(lists.freeStock);
     enrichRowsWithSalesRaw(lists.current);
@@ -623,9 +757,33 @@
       enrichRowsWithSalesRaw(d.transferOut);
       enrichRowsWithSalesRaw(d.transferIn);
       enrichRowsWithSalesRaw(d.newRes);
+      enrichRowsWithSalesRaw(d.dailyUniqueRESAge0List);
     });
 
-    return {
+    const planTrackerDebug = daily.map((d) => ({
+      date: d.dateKey,
+      dailyUniqueRESAge0: d.dailyUniqueRESAge0,
+      planReceipts: d.planReceipts.map((r) => r.vin),
+      planReceiptCount: d.planReceipts.length,
+      freeStock: d.freeStock.map((r) => r.vin),
+      freeStockCount: d.freeStock.length,
+      transferredIntoRES: d.transferIn.map((r) => r.vin),
+      transferredOutOfRES: d.transferOut.map((r) => r.vin),
+      disappearedRES: (d.disappeared || []).filter((r) => r.isTarget).map((r) => r.vin),
+      currentRES: d.resTotal,
+      cumulativePlanReceipts: d.cumulativePlanAllocations,
+      remaining: d.remaining,
+      progress: d.progress,
+      reconciliation: {
+        expectedRES: d.expectedRES,
+        actualRES: d.actualRES,
+        difference: d.reconDiff,
+        ok: d.reconOk,
+        reasons: d.reconReasons || [],
+      },
+    }));
+
+    const model = {
       plan,
       target: TARGET_SEARCH_AREA,
       monthKey,
@@ -634,6 +792,11 @@
       daily,
       movements,
       vinHistory,
+      firstSeenDateByVin,
+      firstAreaByVin,
+      firstRecordByVin,
+      planReceiptVins,
+      freeStockVins,
       corridor: [...corridor.entries()].map(([k, n]) => ({ path: k, count: n })).sort((a, b) => b.count - a.count),
       age0ByArea: [...age0ByArea.entries()].map(([area, count]) => ({ area, count })).sort((a, b) => b.count - a.count),
       inventory: {
@@ -654,6 +817,7 @@
         currentRes,
         age0Target,
         age0Total,
+        dailyUniqueRESAge0: age0Target,
         transferIn: transferInAll.length,
         transferOut: transferOutAll.length,
         net: transferInAll.length - transferOutAll.length,
@@ -666,7 +830,28 @@
       quality: qualityTotals,
       qualityScore,
       matrix: buildMatrix(transferInAll, transferOutAll),
+      planTrackerDebug,
     };
+
+    lastModel = model;
+    try {
+      global.planTrackerDebug = planTrackerDebug;
+      global.planTrackerModel = model;
+      if (!(opts && opts.silent) && typeof console !== "undefined" && console.info) {
+        console.info("[PlanTracker] planTrackerDebug", planTrackerDebug);
+        console.info("[PlanTracker] KPIs", {
+          allocated,
+          freeStock,
+          totalReceived,
+          remaining,
+          progress,
+          dailyUniqueRESAge0: age0Target,
+          currentRes,
+        });
+      }
+    } catch (_) { /* ignore */ }
+
+    return model;
   }
 
   function mapToSorted(map, order) {
@@ -689,6 +874,7 @@
   function makeMovement(dateKey, prev, curr, movementType) {
     return {
       snapshotDate: dateKey,
+      date: dateKey,
       vin: (curr && curr.vin) || (prev && prev.vin) || "",
       product: (curr && curr.product) || (prev && prev.product) || "—",
       suffix: (curr && curr.suffix) || (prev && prev.suffix) || "—",
@@ -697,6 +883,10 @@
       int: (curr && curr.int) || (prev && prev.int) || "",
       previousSearchArea: prev ? prev.searchArea : "—",
       currentSearchArea: curr ? curr.searchArea : "—",
+      previousArea: prev ? prev.searchArea : "—",
+      currentArea: curr ? curr.searchArea : "—",
+      previousIsRES: !!(prev && prev.isTarget),
+      currentIsRES: !!(curr && curr.isTarget),
       previousAllocationDate: prev ? prev.allocationDate : null,
       currentAllocationDate: curr ? curr.allocationDate : null,
       previousAllocationAge: prev ? prev.allocationAge : null,
@@ -788,15 +978,15 @@
     const k = model.kpis;
     const items = [
       ["plan", "Allocation Plan", k.plan, `Target ${esc(TARGET_SEARCH_AREA)}`, ""],
-      ["allocated", "This month received", k.allocated, `RES · Col J = 0 · AG = file day · first seen as RES · ${esc(model.monthKey || "month")}`, "ok"],
-      ["freeStock", "Free stock (prior month)", k.freeStock || 0, "Prior AG · still counted if later left RES", "warn"],
-      ["totalReceived", "Total received", k.totalReceived || (k.allocated + (k.freeStock || 0)), "This month + free stock (not transfers in)", "info"],
+      ["allocated", "This month allocated", k.allocated, `True 315 receipts · RES · Age 0 · AG = file day · first seen as RES`, "ok"],
+      ["freeStock", "Free stock (prior month)", k.freeStock || 0, "RES · Age 0 · AG before this month · excluded from 315", "warn"],
+      ["totalReceived", "Total received", k.totalReceived || (k.allocated + (k.freeStock || 0)), "Allocated + free stock (not transfers / daily RES)", "info"],
       ["remaining", "Remaining", k.remaining, `${Math.min(100, Math.round(k.progress * 100))}% of plan`, k.remaining ? "warn" : "ok"],
-      ["current", "RES Current", k.currentRes, "In latest snapshot", "ok"],
-      ["age0", "Age 0 (RES)", k.age0Target, `All areas Age 0: ${num(k.age0Total)}`, "info"],
-      ["newAlloc", "New Allocations", k.newAlloc, "First seen as RES · age 0", "ok"],
-      ["transferIn", "Transfers IN", k.transferIn, "Other area → RES (not counted as received)", "info"],
-      ["transferOut", "Transfers OUT", k.transferOut, "RES → other area (gone from me)", "warn"],
+      ["current", "RES Current", k.currentRes, "Unique RES VINs in latest snapshot", "ok"],
+      ["age0", "Daily RES Age 0", k.age0Target, `Latest snapshot · independent of 315 · all areas Age 0: ${num(k.age0Total)}`, "info"],
+      ["newAlloc", "New Allocations", k.newAlloc, "NEW ALLOCATION movements (true plan receipts)", "ok"],
+      ["transferIn", "Transfers IN", k.transferIn, "Other area → RES (never counted as 315)", "info"],
+      ["transferOut", "Transfers OUT", k.transferOut, "RES → other area", "warn"],
       ["net", "Net Movement", k.net, "IN − OUT", k.net >= 0 ? "ok" : "bad"],
       ["disappeared", "Disappeared", k.disappeared, "Missing from next snapshot", "bad"],
     ];
@@ -1271,8 +1461,8 @@
     }
     const rows = [
       ["RES", prev ? prev.resTotal : "—", cur.resTotal],
-      ["Age 0", prev ? prev.age0Target : "—", cur.age0Target],
-      ["New alloc", prev ? ((prev.planReceipts && prev.planReceipts.length) || prev.newRes.length) : "—", (cur.planReceipts && cur.planReceipts.length) || cur.newRes.length],
+      ["RES Age 0", prev ? (prev.dailyUniqueRESAge0 != null ? prev.dailyUniqueRESAge0 : prev.age0Target) : "—", cur.dailyUniqueRESAge0 != null ? cur.dailyUniqueRESAge0 : cur.age0Target],
+      ["Plan alloc", prev ? (prev.newPlanAllocations != null ? prev.newPlanAllocations : ((prev.planReceipts && prev.planReceipts.length) || 0)) : "—", cur.newPlanAllocations != null ? cur.newPlanAllocations : ((cur.planReceipts && cur.planReceipts.length) || 0)],
       ["IN", prev ? prev.transferIn.length : "—", cur.transferIn.length],
       ["OUT", prev ? prev.transferOut.length : "—", cur.transferOut.length],
       ["Gone", prev ? (prev.disappearedTarget || 0) : "—", cur.disappearedTarget || 0],
@@ -1295,8 +1485,8 @@
         }).join("")}
       </div>
       ${cur.reconOk
-        ? `<p class="foot pt-y-foot"><span class="badge ok">OK</span> · ${num(cur.prevResTotal)} + ${num(cur.newRes.length)} + ${num(cur.transferIn.length)} − ${num(cur.transferOut.length)} − ${num(cur.disappearedTarget || 0)} = ${num(cur.resTotal)}</p>`
-        : `<p class="foot pt-y-foot"><span class="badge bad">ERROR</span> · ${num(cur.impliedRes)} vs ${num(cur.resTotal)} (${cur.reconDiff > 0 ? "+" : ""}${num(cur.reconDiff)})</p>`}`;
+        ? `<p class="foot pt-y-foot"><span class="badge ok">OK</span> · Expected RES = ${num(cur.prevResTotal)} + New ${num(cur.newRes.length)} + IN ${num(cur.transferIn.length)} − OUT ${num(cur.transferOut.length)} − Gone ${num(cur.disappearedTarget || 0)} = ${num(cur.resTotal)}</p>`
+        : `<p class="foot pt-y-foot"><span class="badge bad">ERROR</span> · Expected ${num(cur.expectedRES != null ? cur.expectedRES : cur.impliedRes)} vs Actual ${num(cur.actualRES != null ? cur.actualRES : cur.resTotal)} (${cur.reconDiff > 0 ? "+" : ""}${num(cur.reconDiff)})${(cur.reconReasons || []).length ? ` · ${(cur.reconReasons || []).slice(0, 3).map((r) => esc(r.vin)).join(", ")}` : ""}</p>`}`;
   }
 
   function renderDailyTable(model) {
@@ -1309,20 +1499,37 @@
     }
     el.innerHTML = `<table class="bas-table">
       <thead><tr>
-        <th>Date</th><th class="num">New RES</th><th class="num">Transfers IN</th>
-        <th class="num">Transfers OUT</th><th class="num">Disappeared</th>
-        <th class="num">RES Total</th><th class="num">Age 0</th><th>Recon</th>
+        <th>Date</th>
+        <th class="num" title="Unique RES Age 0 in this day's file (≠ 315)">RES Age 0</th>
+        <th class="num" title="True 315 plan receipts this day">Plan alloc</th>
+        <th class="num">Free stock</th>
+        <th class="num">Transfers IN</th>
+        <th class="num">Transfers OUT</th>
+        <th class="num">Disappeared</th>
+        <th class="num">Current RES</th>
+        <th class="num">Cumulative</th>
+        <th class="num">Remaining</th>
+        <th>Recon</th>
       </tr></thead>
-      <tbody>${rows.map((d) => `<tr>
+      <tbody>${rows.map((d) => {
+        const reconTitle = d.reconOk
+          ? "OK"
+          : `Expected ${d.expectedRES} vs actual ${d.actualRES}`
+            + ((d.reconReasons || []).slice(0, 5).map((r) => `\n${r.vin}: ${r.reason}`).join("") || "");
+        return `<tr>
         <td>${esc(d.label)}<div class="foot">${esc(d.dateKey)}</div></td>
-        <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="newRes">${num((d.planReceipts && d.planReceipts.length) || d.newRes.length)}</button></td>
+        <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="dailyUniqueRESAge0List">${num(d.dailyUniqueRESAge0 != null ? d.dailyUniqueRESAge0 : d.age0Target)}</button></td>
+        <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="planReceipts">${num(d.newPlanAllocations != null ? d.newPlanAllocations : ((d.planReceipts && d.planReceipts.length) || 0))}</button></td>
+        <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="freeStock">${num(d.freeStockCount != null ? d.freeStockCount : ((d.freeStock && d.freeStock.length) || 0))}</button></td>
         <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="transferIn">${num(d.transferIn.length)}</button></td>
         <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="transferOut">${num(d.transferOut.length)}</button></td>
         <td class="num"><button type="button" class="pt-linknum" data-pt-day="${esc(d.dateKey)}" data-pt-bucket="disappeared">${num(d.disappearedTarget || 0)}</button></td>
         <td class="num">${num(d.resTotal)}</td>
-        <td class="num">${num(d.age0Target)}</td>
-        <td>${d.reconOk ? '<span class="badge ok">OK</span>' : `<span class="badge bad">${d.reconDiff > 0 ? "+" : ""}${num(d.reconDiff)}</span>`}</td>
-      </tr>`).join("")}</tbody>
+        <td class="num">${num(d.cumulativePlanAllocations != null ? d.cumulativePlanAllocations : 0)}</td>
+        <td class="num">${num(d.remaining != null ? d.remaining : 0)}</td>
+        <td title="${esc(reconTitle)}">${d.reconOk ? '<span class="badge ok">OK</span>' : `<span class="badge bad">${d.reconDiff > 0 ? "+" : ""}${num(d.reconDiff)}</span>`}</td>
+      </tr>`;
+      }).join("")}</tbody>
     </table>`;
     $$("[data-pt-bucket]", el).forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1441,9 +1648,15 @@
           ["Blank VINs", q.blankVin],
           ["Duplicate VINs", q.duplicateVin],
           ["Missing Search Area", q.missingArea],
+          ["Invalid Age", q.invalidAge],
+          ["Missing AG", q.missingAllocationDate],
+          ["Invalid AG", q.invalidAllocationDate],
           ["Age mismatches", q.ageMismatch],
+          ["Conflicting records", q.conflictingRecords],
+          ["Unmatched Product/SFX", q.unmatchedProductSfx],
         ].map(([lab, n]) => `<div class="status-chip" style="cursor:default"><div class="n">${num(n || 0)}</div><div class="l">${esc(lab)}</div></div>`).join("")}
-      </div>`;
+      </div>
+      <p class="foot">Quality flags never inflate KPI counts — duplicates keep the first VIN only.</p>`;
   }
 
   function renderVinSearch(model) {
@@ -1516,7 +1729,8 @@
       data: {
         labels,
           datasets: [
-          { label: "New RES (plan)", data: daily.map((d) => (d.planReceipts && d.planReceipts.length) || d.newRes.length), backgroundColor: "#0f766e" },
+          { label: "Plan receipts", data: daily.map((d) => (d.planReceipts && d.planReceipts.length) || 0), backgroundColor: "#0f766e" },
+          { label: "RES Age 0", data: daily.map((d) => (d.dailyUniqueRESAge0 != null ? d.dailyUniqueRESAge0 : d.age0Target)), backgroundColor: "#64748b" },
           { label: "Transfer IN", data: daily.map((d) => d.transferIn.length), backgroundColor: "#0284c7" },
           { label: "Transfer OUT", data: daily.map((d) => d.transferOut.length), backgroundColor: "#d97706" },
           { label: "Disappeared", data: daily.map((d) => d.disappearedTarget || 0), backgroundColor: "#eb0a1e" },
@@ -1681,6 +1895,10 @@
     if (exportBtn) {
       exportBtn.addEventListener("click", () => exportExcel());
     }
+    const debugBtn = $("#pt-export-debug");
+    if (debugBtn) {
+      debugBtn.addEventListener("click", () => exportPlanTrackerDebug());
+    }
     const refreshBtn = $("#pt-refresh");
     if (refreshBtn) {
       refreshBtn.addEventListener("click", () => {
@@ -1731,12 +1949,18 @@
     const wb = XLSX.utils.book_new();
     const daily = (lastModel.daily || []).map((d) => ({
       Date: d.dateKey,
-      "New RES": d.newRes.length,
+      "Daily RES Age 0": d.dailyUniqueRESAge0 != null ? d.dailyUniqueRESAge0 : d.age0Target,
+      "Plan Allocations": d.newPlanAllocations != null ? d.newPlanAllocations : ((d.planReceipts && d.planReceipts.length) || 0),
+      "Free Stock": d.freeStockCount != null ? d.freeStockCount : ((d.freeStock && d.freeStock.length) || 0),
       "Transfers IN": d.transferIn.length,
       "Transfers OUT": d.transferOut.length,
-      Disappeared: d.disappearedTarget || 0,
-      "RES Total": d.resTotal,
-      "Age 0": d.age0Target,
+      "Disappeared RES": d.disappearedTarget || 0,
+      "Current RES": d.resTotal,
+      "Cumulative Plan": d.cumulativePlanAllocations != null ? d.cumulativePlanAllocations : 0,
+      Remaining: d.remaining != null ? d.remaining : 0,
+      "Progress %": d.progress != null ? Math.round(d.progress * 1000) / 10 : 0,
+      "Expected RES": d.expectedRES != null ? d.expectedRES : d.impliedRes,
+      "Actual RES": d.actualRES != null ? d.actualRES : d.resTotal,
       ReconDiff: d.reconDiff,
     }));
     const moves = filteredMovements(lastModel).map((r) => ({
@@ -1830,11 +2054,30 @@
     renderAll(model);
   }
 
+  function exportPlanTrackerDebug() {
+    const debug = (lastModel && lastModel.planTrackerDebug) || global.planTrackerDebug || [];
+    const blob = new Blob([JSON.stringify(debug, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `plan-tracker-debug-${(lastModel && lastModel.latestKey) || "export"}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    if (typeof global.setStatus === "function") global.setStatus("planTrackerDebug JSON exported", "ok");
+    return debug;
+  }
+
   global.PlanTracker = {
     TARGET_SEARCH_AREA,
     ALLOCATION_PLAN,
     render,
     buildModel,
+    normalizeVin,
+    isRES,
+    isPlanScheduleReceipt,
+    isPriorMonthFreeStock,
+    exportPlanTrackerDebug,
+    getDebug: () => (lastModel && lastModel.planTrackerDebug) || global.planTrackerDebug || [],
+    getModel: () => lastModel,
     view,
   };
 })(typeof window !== "undefined" ? window : globalThis);

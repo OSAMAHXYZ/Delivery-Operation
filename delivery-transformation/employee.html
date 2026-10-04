@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Transformation — Delivery Employee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="employee.css?v=20261001cc1" />
+</head>
+<body>
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>Delivery Transformation</span>
+        </div>
+      </div>
+      <h1>Sign in</h1>
+      <p>Delivery employee · Live Sheet · your delivery schedule</p>
+      <div class="user-pills" id="login-pills"></div>
+      <div class="field">
+        <label for="login-user">User</label>
+        <select id="login-user"></select>
+      </div>
+      <div class="field">
+        <label for="login-pass">Password</label>
+        <input id="login-pass" type="password" value="1234" autocomplete="current-password" />
+      </div>
+      <button type="button" class="btn-primary" id="login-btn">Enter Delivery Transformation</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+  </div>
+
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>Delivery Transformation</span>
+        </div>
+      </div>
+      <nav class="nav" id="side-nav"></nav>
+      <div class="side-user">
+        <div>
+          <strong id="side-name">—</strong>
+          <span id="side-role">—</span>
+        </div>
+        <button type="button" class="btn-ghost" id="logout-btn">Logout</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Dashboard</h1>
+          <p class="sub" id="page-sub">Delivery Control Tower</p>
+        </div>
+        <div class="top-actions">
+          <div class="raw-status-pill is-empty" id="raw-status-pill" title="Last Sales Raw update (shared by everyone)">
+            <span class="raw-status-label">Sales Raw</span>
+            <strong id="raw-status-time">—</strong>
+          </div>
+          <input type="search" class="top-search" id="global-search" placeholder="Search VIN / order / product…" />
+          <button type="button" class="btn" id="refresh-btn">Refresh</button>
+        </div>
+      </header>
+
+      <div class="month-close-banner hidden" id="month-close-banner" role="alert">
+        <div class="month-close-copy">
+          <strong id="month-close-title">Month archive ready</strong>
+          <p id="month-close-text">Download the Excel archive, then clear PSFU / Claimed / تم التسليم from the Live Sheet.</p>
+        </div>
+        <div class="month-close-actions">
+          <button type="button" class="btn-primary" id="month-close-download">Download Excel</button>
+          <button type="button" class="btn" id="month-close-apply" disabled>Clear Live Sheet</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- DASHBOARD -->
+        <section class="panel active" id="panel-dashboard">
+          <div class="toolbar month-toolbar">
+            <label class="month-filter-label">
+              Month
+              <input type="month" id="dash-month" />
+            </label>
+            <button type="button" class="btn" id="dash-month-all">All months</button>
+            <span class="hint" id="dash-month-hint"></span>
+          </div>
+          <div class="kpi-row" id="dash-kpis"></div>
+          <div class="card">
+            <h2>Employees</h2>
+            <p class="hint">Each employee · how many VINs they got · by sales type · click a card to open their Live Sheet</p>
+            <div class="emp-dash" id="dash-employees"></div>
+          </div>
+          <div class="card">
+            <h2>Delivery pipeline</h2>
+            <p class="hint">Your VINs · Assigned → PSFU → Ready → Delivered / Claimed</p>
+            <div class="pipeline" id="dash-pipeline"></div>
+          </div>
+          <div class="dash-grid">
+            <div class="dash-stack">
+              <div class="card">
+                <h2>Sales type mix</h2>
+                <p class="hint">Your VINs by sales type (cash / bank / …)</p>
+                <div class="status-grid" id="dash-sales-types"></div>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Status counts</h2>
+              <p class="hint">How many of your VINs are in each status · click to open on Live Sheet</p>
+              <div class="status-grid" id="dash-status"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LIVE SHEET -->
+        <section class="panel" id="panel-live">
+          <div class="live-sheet-card">
+            <div class="live-sheet-toolbar">
+              <div class="live-sheet-meta">
+                <span class="live-dot" id="live-dot" title="Live"></span>
+                <span id="live-meta-text">Connecting…</span>
+              </div>
+              <div class="live-sheet-filters">
+                <label class="month-filter-label">
+                  Month
+                  <input type="month" id="live-month" />
+                </label>
+                <input type="search" id="live-q" placeholder="Search VIN / order / product…" />
+                <select id="live-employee">
+                  <option value="">All employees</option>
+                </select>
+                <select id="live-carrier">
+                  <option value="">All الناقل</option>
+                </select>
+                <select id="live-status">
+                  <option value="">All statuses</option>
+                </select>
+                <button type="button" class="btn" id="live-refresh">Refresh now</button>
+              </div>
+            </div>
+            <div class="live-chip-row" id="live-chips"></div>
+            <p class="hint" id="live-edit-hint">You can edit your own VINs directly on this sheet · every change is saved automatically and kept after refresh or logout.</p>
+            <p class="hint live-save-toast" id="live-save-toast" hidden></p>
+            <div class="sel-bar" id="live-sel-bar"></div>
+            <div class="live-copy-bar" id="live-copy-bar">
+              <span class="live-copy-info" id="live-copy-info">Click a cell, drag or Shift+click to select · Ctrl+C copies as a table with headers</span>
+              <button type="button" class="btn live-copy-btn" id="live-copy-btn" disabled>Copy</button>
+              <button type="button" class="btn live-copy-btn" id="live-copy-values" disabled title="Values only, no header row">Copy values</button>
+              <button type="button" class="btn live-copy-btn" id="live-cf-clear" hidden>Clear column filters</button>
+            </div>
+            <datalist id="live-cf-list"></datalist>
+            <div class="table-wrap live-sheet-wrap">
+              <table class="data live-sheet" id="live-table"></table>
+            </div>
+          </div>
+        </section>
+
+        <!-- MY VINS -->
+        <section class="panel" id="panel-my">
+          <div class="kpi-row" id="my-kpis"></div>
+          <div class="card">
+            <h2>My delivery schedule</h2>
+            <p class="hint">All your assigned VINs on one page · edits save automatically and stay after refresh or logout · tick VINs to keep them in view, assign, unassign or remove</p>
+            <div id="my-save-toast" class="save-toast" hidden>Saved ✓</div>
+            <div class="toolbar" id="my-toolbar">
+              <input type="search" id="my-q" placeholder="Search VIN / order / product…" />
+              <select id="my-status"><option value="">All statuses</option></select>
+              <button type="button" class="btn" id="my-clear">Clear</button>
+            </div>
+            <div class="sel-bar" id="my-sel-bar"></div>
+            <div class="table-wrap"><table class="data" id="my-table"></table></div>
+            <div class="pager" id="my-pager"></div>
+          </div>
+        </section>
+
+        <!-- ASSIGNMENT (Hanouf / Admin confirm · Sales Raw uploaders view) -->
+        <section class="panel" id="panel-assignment">
+          <div class="kpi-row" id="asg-kpis"></div>
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2>Today's VINs</h2>
+                <p class="hint" id="asg-hint">
+                  Unique Sales Raw VINs with a <b>Proforma Date (column P)</b> and <b>no Invoice Date (column V)</b>,
+                  that are not already on the system.
+                  The employee is picked automatically so everyone has the <b>same number in each sales type</b>.
+                </p>
+              </div>
+            </div>
+            <div class="toolbar asg-actions" id="asg-actions">
+              <button type="button" class="btn-primary" id="asg-confirm-all" style="width:auto">Assign all automatically</button>
+              <button type="button" class="btn" id="asg-dismiss">Dismiss selected</button>
+            </div>
+            <div class="asg-vin-list" id="asg-table"></div>
+          </div>
+          <div class="card">
+            <h2>Balance by sales type · this month</h2>
+            <p class="hint">
+              VINs per employee in each sales type now <b>→ after</b> confirming today's VINs.
+              Employees on vacation 🌴 get nothing.
+            </p>
+            <div class="table-wrap"><table class="data" id="asg-map-table"></table></div>
+          </div>
+        </section>
+
+        <!-- TEAM TARGETS (Hanouf / Admin) -->
+        <section class="panel" id="panel-targets">
+          <div class="toolbar month-toolbar">
+            <label class="month-filter-label">
+              Month
+              <input type="month" id="tgt-month" />
+            </label>
+            <button type="button" class="btn" id="tgt-month-now">This month</button>
+            <label class="month-filter-label">
+              Ach% based on
+              <select id="tgt-basis">
+                <option value="total">All VINs he got</option>
+                <option value="delivered">Delivered / Claimed only</option>
+              </select>
+            </label>
+            <span class="hint" id="tgt-hint"></span>
+          </div>
+          <div class="kpi-row" id="tgt-kpis"></div>
+          <div class="card">
+            <h2>Team performance vs target</h2>
+            <p class="hint">
+              VINs per employee by <b>Sales Type</b> (by Proforma Date month) · type a <b>Target</b> for each employee
+              and press <b>Save targets</b> · Ach% = count ÷ target.
+            </p>
+            <div id="tgt-save-toast" class="save-toast" hidden>Saved ✓</div>
+            <div class="table-wrap"><table class="data tgt-table" id="tgt-table"></table></div>
+            <div class="toolbar" style="margin-top:12px">
+              <button type="button" class="btn-primary" id="tgt-save" style="width:auto">Save targets</button>
+              <span class="hint" id="tgt-unassigned"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- UPLOAD VINS (Hanouf / Admin) -->
+        <section class="panel" id="panel-upload">
+          <div class="card">
+            <h2>Upload VINs</h2>
+            <p class="hint">
+              Upload the <b>Delivery sheet</b> Excel. Only VINs whose <b>Proforma Date</b> is in
+              <b id="upload-month">this month</b> are added or updated; every other row is skipped.
+              <b>PIC</b> assigns the employee. Existing employee entries (status, dates…) are never overwritten.
+              الناقل is assigned on the Live Sheet by Hanouf or Rasha only — the coordinator's memo uses that company.
+            </p>
+            <div class="raw-status-card">
+              <div class="lbl">Last VIN upload</div>
+              <div class="val" id="upload-last">Not uploaded yet</div>
+            </div>
+            <div class="upload-drop" id="upload-drop">
+              <strong>Drop Delivery sheet here</strong>
+              <p class="hint">or click to browse · .xlsx / .xls</p>
+              <input type="file" id="upload-file" accept=".xlsx,.xls" hidden />
+            </div>
+            <div id="upload-summary" hidden></div>
+          </div>
+        </section>
+
+        <!-- SALES RAW (Hanouf / Admin / Rasha / Ruba) -->
+        <section class="panel" id="panel-sales-raw">
+          <div class="card">
+            <h2>Upload Sales Raw</h2>
+            <p class="hint">
+              Upload <b>Sales Raw Data</b> to refresh vehicle details (Product, Order, Sales Type, S/A, Owner, Customer,
+              GT / Vehicle Location, Phone) on <b>every VIN</b> on the Live Sheet, any month. Everyone sees the update time in the top bar.
+            </p>
+            <div class="raw-status-card">
+              <div class="lbl">Last Sales Raw update</div>
+              <div class="val" id="sales-raw-last">Not uploaded yet</div>
+            </div>
+            <div class="upload-drop" id="sales-raw-drop">
+              <strong>Drop Sales Raw Excel here</strong>
+              <p class="hint">or click to browse · .xlsx / .xls / .csv</p>
+              <input type="file" id="sales-raw-file" accept=".xlsx,.xls,.csv" hidden />
+            </div>
+            <div id="sales-raw-summary" hidden></div>
+          </div>
+        </section>
+
+        <!-- APPOINTMENT (Ruba · Guest Exp = Yes) -->
+        <section class="panel" id="panel-appointment">
+          <div class="kpi-row" id="appt-kpis"></div>
+          <div class="card">
+            <h2>Appointment</h2>
+            <p class="hint">
+              Every VIN marked <b>Guest Exp = Yes</b> by anyone lands here.
+              Set the date, time, and a short note so you can organize your visits.
+              The countdown is shown to everyone on the Live Sheet.
+            </p>
+            <div id="appt-list" class="appt-list"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back" id="vin-drawer-back">
+    <div class="drawer" id="vin-drawer"></div>
+  </div>
+
+  <script src="shared.js?v=20261003scope2"></script>
+  <script src="employee.js?v=20261003scope2"></script>
+</body>
+</html>

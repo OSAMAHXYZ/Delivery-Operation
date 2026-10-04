@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toyota B2C Controller · B2C Orders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="toyota-b2c-controller.css?v=20260930tb1" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+  <script src="../data-store.js?v=20260930lx1"></script>
+  <script src="../lib/bo-order-lookup.js?v=20260915rv3"></script>
+  <script src="toyota-b2c-core.js?v=20260930tb1"></script>
+</head>
+<body>
+  <div class="tbc">
+    <header class="tbc-top">
+      <div class="tbc-brand">
+        <span class="tbc-mark" aria-hidden="true"><svg viewBox="0 0 48 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><ellipse cx="24" cy="16" rx="22" ry="14"/><ellipse cx="24" cy="10.8" rx="12.5" ry="4.9"/><ellipse cx="24" cy="17.6" rx="4.7" ry="11.6"/></svg></span>
+        <div>
+          <strong>TOYOTA B2C CONTROLLER</strong>
+          <span>B2C ORDERS · FOLLOW-UP</span>
+        </div>
+      </div>
+      <div class="tbc-source" id="tbc-source">Waiting for the Admin Push…</div>
+      <div class="tbc-actions">
+        <span class="tbc-live is-off" id="tbc-live"><i></i><b>LIVE</b></span>
+        <label class="tbc-user" title="Saved with every edit and follow-up">
+          <span>Your name</span>
+          <input type="text" id="tbc-user" maxlength="60" placeholder="Enter your name" autocomplete="name" />
+        </label>
+        <button type="button" class="tbc-btn" id="tbc-notify" hidden>Turn on alerts</button>
+        <button type="button" class="tbc-btn" id="tbc-export" disabled>Export Excel</button>
+        <button type="button" class="tbc-btn is-primary" id="tbc-refresh">Refresh</button>
+      </div>
+    </header>
+
+    <div class="tbc-alert" id="tbc-alert" hidden></div>
+
+    <section class="tbc-kpis" id="tbc-kpis"></section>
+
+    <div class="tbc-toolbar">
+      <input type="search" id="tbc-search" placeholder="Search order no, customer, any cell…" aria-label="Search orders" />
+      <div class="tbc-seg" id="tbc-filter" role="tablist"></div>
+      <label class="tbc-check"><input type="checkbox" id="tbc-edited" /> Edited only</label>
+      <button type="button" class="tbc-cf-clear" id="tbc-cf-clear" hidden>Clear column filters</button>
+      <span class="tbc-legend">
+        <span><i class="lg-edit"></i>Edited by user</span>
+        <span><i class="lg-due"></i>Follow-up due (24 h)</span>
+      </span>
+    </div>
+
+    <section class="tbc-book" id="tbc-book">
+      <div class="tbc-formula">
+        <span class="tbc-namebox" id="tbc-namebox">A1</span>
+        <span class="tbc-fx">fx</span>
+        <span class="tbc-fxval" id="tbc-fxval"></span>
+      </div>
+      <div class="tbc-scroll" id="tbc-scroll" tabindex="0" aria-label="Orders sheet · arrow keys move · Enter or F2 edits · Esc cancels">
+        <table class="tbc-grid" id="tbc-grid"></table>
+      </div>
+      <div class="tbc-statusbar">
+        <span class="tbc-sheettab" id="tbc-sheettab">Details</span>
+        <span id="tbc-status">Ready</span>
+        <span class="tbc-selinfo" id="tbc-selinfo"></span>
+        <span class="tbc-status-right" id="tbc-status-right"></span>
+      </div>
+      <datalist id="tbc-cf-list"></datalist>
+      <div class="tbc-empty" id="tbc-empty" hidden></div>
+    </section>
+
+    <div class="tbc-dialog" id="tbc-fu-dialog" hidden>
+      <form class="tbc-dialog-card" id="tbc-fu-form" role="dialog" aria-modal="true" aria-labelledby="tbc-fu-title" novalidate>
+        <header>
+          <strong id="tbc-fu-title">Record follow-up</strong>
+          <span id="tbc-fu-sub"></span>
+        </header>
+        <label class="tbc-dialog-field">
+          <span>Notes <em>required · update before saving</em></span>
+          <textarea id="tbc-fu-note" rows="5" maxlength="4000" dir="auto" placeholder="What did the customer say? What is the next step?"></textarea>
+        </label>
+        <p class="tbc-dialog-hint" id="tbc-fu-hint"></p>
+        <footer>
+          <button type="button" class="tbc-dialog-btn" id="tbc-fu-cancel">Cancel</button>
+          <button type="submit" class="tbc-dialog-btn is-primary" id="tbc-fu-save" disabled>Save follow-up</button>
+        </footer>
+      </form>
+    </div>
+    <div class="tbc-menu" id="tbc-menu" hidden></div>
+    <div class="tbc-toast" id="tbc-toast" hidden></div>
+  </div>
+  <script src="toyota-b2c-controller.js?v=20260930tb1"></script>
+</body>
+</html>

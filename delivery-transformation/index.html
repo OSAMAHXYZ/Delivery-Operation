@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Transformation — Sign in</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div>
+        <strong>TOYOTA</strong>
+        <span>Delivery Transformation</span>
+      </div>
+    </div>
+    <h1>Sign in</h1>
+    <p>Delivery Coordinator · Delivery Employee</p>
+    <div class="user-pills" id="login-pills"></div>
+    <div class="field">
+      <label for="login-user">User</label>
+      <select id="login-user"></select>
+    </div>
+    <div class="field">
+      <label for="login-pass">Password</label>
+      <input id="login-pass" type="password" value="1234" autocomplete="current-password" />
+    </div>
+    <button type="button" class="btn-primary" id="login-btn" style="width:100%">Enter</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+
+  <script src="shared.js?v=20261003scope2"></script>
+  <script>
+    (function () {
+      const { api, esc, setSession, getUser, getToken } = DTX;
+      const PAGE_BY_ROLE = {
+        hanouf: 'employee.html',
+        coordinator: 'coordinator.html',
+        employee: 'employee.html',
+      };
+      const ROLE_LABEL = {
+        hanouf: 'Hanouf · uploads',
+        coordinator: 'Coordinator',
+        employee: 'Employee',
+      };
+
+      function goToRolePage(user) {
+        if (user && (user.id === 'collector' || user.role === 'admin')) {
+          location.href = 'admin.html';
+          return;
+        }
+        location.href = PAGE_BY_ROLE[user.role] || 'index.html';
+      }
+
+      async function boot() {
+        const existing = getUser();
+        if (getToken() && existing) {
+          try {
+            const me = await api('/auth/me');
+            goToRolePage(me.user);
+            return;
+          } catch (_) { /* fall through to login */ }
+        }
+        const meta = await api('/meta');
+        const users = (meta.users || []).filter((u) => u.role !== 'admin' && u.id !== 'admin');
+        const select = document.getElementById('login-user');
+        select.innerHTML = users.map((u) =>
+          `<option value="${esc(u.id)}">${esc(u.name)} (${esc(ROLE_LABEL[u.role] || u.role)})</option>`
+        ).join('');
+        const pills = document.getElementById('login-pills');
+        pills.innerHTML = users.map((u) =>
+          `<button type="button" data-u="${esc(u.id)}">${esc(u.name)}</button>`
+        ).join('');
+        pills.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+          select.value = b.dataset.u;
+          pills.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+        }));
+      }
+
+      async function login() {
+        const err = document.getElementById('login-error');
+        err.textContent = '';
+        try {
+          const data = await api('/auth/login', {
+            method: 'POST',
+            json: {
+              username: document.getElementById('login-user').value,
+              password: document.getElementById('login-pass').value,
+            },
+          });
+          const scope = data.user.role === 'coordinator' ? 'coordinator'
+            : (data.user.role === 'hanouf' || data.user.role === 'employee') ? 'employee'
+              : 'default';
+          DTX.useSessionScope(scope);
+          setSession(data.token, data.user);
+          goToRolePage(data.user);
+        } catch (e) {
+          err.textContent = e.message || 'Login failed';
+        }
+      }
+
+      document.getElementById('login-btn').addEventListener('click', login);
+      document.getElementById('login-pass').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') login();
+      });
+      boot().catch((e) => { document.getElementById('login-error').textContent = e.message; });
+    })();
+  </script>
+</body>
+</html>

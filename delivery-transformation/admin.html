@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Transformation — Data collector</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=20261001cs1" />
+</head>
+<body>
+  <div class="collector-gate" id="collector-gate">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div>
+          <strong>TOYOTA</strong>
+          <span>Delivery Transformation</span>
+        </div>
+      </div>
+      <h1>Data collector</h1>
+      <p>Password only · no user login · live attendance and delivery-note totals</p>
+      <div class="field">
+        <label for="collector-pass">Password</label>
+        <input id="collector-pass" type="password" value="1234" autocomplete="current-password" />
+      </div>
+      <button type="button" class="btn-primary" id="collector-btn" style="width:100%">Open collector</button>
+      <div class="login-error" id="collector-error"></div>
+    </div>
+  </div>
+
+  <div class="collector-app hidden" id="collector-app">
+  <header class="topnav">
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div><strong>TOYOTA</strong><span>Delivery Transformation · Data collector</span></div>
+    </div>
+    <nav class="nav-links">
+      <button type="button" class="tab-btn active" data-tab="dash">VSND</button>
+      <button type="button" class="tab-btn" data-tab="ops">Ops</button>
+      <button type="button" class="tab-btn" data-tab="weights">KPI weights</button>
+      <button type="button" class="tab-btn" data-tab="schedule">SLA</button>
+      <button type="button" class="tab-btn" data-tab="vins">VIN tools</button>
+      <a href="coordinator.html">Coordinator</a>
+      <a href="employee.html">Employee</a>
+      <a href="inventory-managment.html">Inventory</a>
+      <a href="attendance.html" target="_blank" rel="noopener">Attendance</a>
+    </nav>
+    <div class="top-right">
+      <button type="button" class="btn" id="xls-live">Extract Live Sheet</button>
+      <button type="button" class="btn" id="xls-admin">Extract admin Excel</button>
+      <button type="button" class="btn" id="xls-all">Extract all data</button>
+      <button type="button" class="btn" id="xls-all-upload">Upload all data</button>
+      <span class="live-clock" id="live-clock">—</span>
+      <span id="who" class="badge">—</span>
+      <button type="button" class="btn-ghost" id="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <main class="wrap admin-wrap">
+    <section class="panel-tab active vsnd-board" id="tab-dash">
+      <header class="vsnd-dash-head">
+        <div class="vsnd-dash-title">
+          <h1>VSND Dashboard</h1>
+          <p id="vsnd-month-label">—</p>
+        </div>
+        <div class="vsnd-controls">
+          <label class="vsnd-month-pick">
+            <span class="vsnd-cal-ico" aria-hidden="true">📅</span>
+            <input type="month" id="sla-month" />
+          </label>
+          <div class="vsnd-nav">
+            <button type="button" class="vsnd-nav-btn" id="vsnd-prev" title="Previous month">‹</button>
+            <button type="button" class="vsnd-nav-btn" id="vsnd-next" title="Next month">›</button>
+          </div>
+        </div>
+        <div class="vsnd-dash-actions">
+          <span class="vsnd-updated">Last Update <b id="vsnd-updated">—</b></span>
+          <button type="button" class="btn vsnd-refresh" id="vsnd-refresh">↻ Refresh</button>
+        </div>
+      </header>
+
+      <div class="vsnd-top-row">
+        <div class="vsnd-pill vsnd-pill-ok" id="vsnd-kpi-delivered"></div>
+        <div class="vsnd-pill vsnd-pill-bad" id="vsnd-kpi-vsnd"></div>
+        <div class="vsnd-panel" id="vsnd-by-status">
+          <h3>
+            VSND by Status
+            <button type="button" class="btn inv-more vsnd-wide-btn" id="vsnd-status-wide" title="Open wide chart">Wide chart</button>
+          </h3>
+          <div class="vsnd-panel-body vsnd-status-compact" id="vsnd-by-status-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-inventory">
+          <h3>
+            Stock In / Out
+            <button type="button" class="btn inv-more vsnd-wide-btn" id="inv-wide-btn" title="Open wide chart">Wide chart</button>
+          </h3>
+          <div class="vsnd-panel-body vsnd-inv-compact" id="vsnd-last7-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-accuracy">
+          <h3>Entry Accuracy <span class="hint" style="font-weight:600">· /100 · audit + missing fields</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-aging-body"></div>
+        </div>
+      </div>
+
+      <div class="card vsnd-card vsnd-schedule-card" id="vsnd-card">
+        <div class="vsnd-sched-head">
+          <div>
+            <h2 id="vsnd-sched-title">VSND Schedule</h2>
+            <p class="hint">Unique VINs by Proforma date × current status · cell colour from live SLA conditions</p>
+          </div>
+          <div class="vsnd-legend">
+            <span><i class="lg-ok"></i> On Track</span>
+            <span><i class="lg-due"></i> At Risk / Due</span>
+            <span><i class="lg-late"></i> Breached / Late / No Movement</span>
+          </div>
+        </div>
+        <div class="kpi-row sla-kpi-row" id="vsnd-sla-kpis" style="margin-bottom:10px"></div>
+        <div class="vsnd-scroll">
+          <div id="sla-chart" class="vsnd-grid-host" aria-label="VSND Schedule"></div>
+        </div>
+        <div class="vsnd-alerts" id="vsnd-schedule-alerts">
+          <div class="vsnd-alerts-head">
+            <h3>Schedule alerts</h3>
+            <span class="hint" id="vsnd-alerts-meta">Live from VSND schedule · SLA conditions</span>
+          </div>
+          <div class="vsnd-alerts-body" id="vsnd-alerts-body">
+            <p class="chart-empty">No schedule alerts</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="vsnd-bottom-row">
+        <div class="vsnd-panel" id="vsnd-fleet">
+          <h3>Free / Left <span class="hint" style="font-weight:600">· live attendance</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-top5-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-days-sales">
+          <h3>
+            Days to Sales <span class="hint" style="font-weight:600">· assignment → Hanouf</span>
+            <button type="button" class="btn vsnd-wide-btn" id="vsnd-dts-more" title="VIN-level details">More Details</button>
+          </h3>
+          <div class="vsnd-panel-body" id="vsnd-aging-dist-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-display">
+          <h3>Display Counter <span class="hint" style="font-weight:600">· Ruba inventory</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-emp-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-carrier">
+          <h3>الناقل <span class="hint" style="font-weight:600">· كل ما تم تسجيله لكل شركة</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-region-body"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-tab" id="tab-ops">
+      <section class="hero">
+        <h1>Operations</h1>
+        <p>Attendance, delivery notes, employee performance, and backup — kept off the VSND one-screen board.</p>
+      </section>
+
+      <div class="kpi-row" id="dash-kpis"></div>
+      <p class="sync-line">Live · last sync <span id="dash-sync">—</span></p>
+
+      <div class="card backup-card" id="backup-card">
+        <h2>Data backup — employee + coordinator</h2>
+        <p class="hint">One snapshot is saved automatically every 6 hours. Restore replaces Live Sheet, Sales Raw, attendance, and prints on employee.html and coordinator.html with that last scan.</p>
+        <div class="backup-meta" id="backup-meta">Last saved — · next scan —</div>
+        <div class="toolbar" style="margin-top:10px">
+          <button type="button" class="btn" id="backup-save">Save snapshot now</button>
+          <button type="button" class="btn-primary" id="backup-restore">Restore last data</button>
+          <span class="hint" id="backup-hint"></span>
+        </div>
+      </div>
+
+      <div class="card" id="full-excel-card" style="margin-bottom:14px">
+        <h2>Excel — all data</h2>
+        <p class="hint">
+          Extract every Live Sheet VIN (vehicle fields and employee entries), pending assignment,
+          attendance, delivery-note print, audit row, target, vacation, SLA, KPI weight, company, and city.
+          Upload that same file to make employee.html and coordinator.html match it.
+          The other Excel buttons are reports and cannot be uploaded back.
+        </p>
+        <div class="toolbar" style="margin-top:10px">
+          <button type="button" class="btn-primary" id="xls-all-card">Extract all data</button>
+          <button type="button" class="btn" id="xls-all-pick">Upload Excel</button>
+          <input type="file" id="xls-all-file" accept=".xlsx,.xls" hidden />
+          <span class="hint" id="xls-all-hint"></span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h2>1 · Company attendance</h2>
+        <p class="hint">Check-in count updates live. Each delivery note PDF assigns its VIN to the selected company. Click a company for arrive / leave times.</p>
+        <div id="attend-chart" class="chart-list"></div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:14px">
+        <div class="card">
+          <h2>2 · Delivery notes by user</h2>
+          <p class="hint">How many delivery notes each coordinator created in total.</p>
+          <div id="user-chart" class="chart-list"></div>
+        </div>
+        <div class="card">
+          <h2>3 · Companies by city</h2>
+          <p class="hint">Company name + total cars. Click to see the city split and VINs.</p>
+          <div id="city-chart" class="chart-list"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px" id="emp-card">
+        <div id="emp-list-view">
+          <h2>4 · Delivery Employee Performance</h2>
+          <p class="hint">Green = MTD VINs toward target · Red = still needed to hit target · Ach% = MTD ÷ target (can exceed 100%). Click an employee for Overall KPI.</p>
+          <div class="toolbar">
+            <label class="month-filter-label">Month <input type="month" id="emp-month" /></label>
+            <span class="hint" id="emp-month-hint"></span>
+          </div>
+          <div class="kpi-row" id="emp-kpis"></div>
+          <div id="emp-chart" class="chart-list" aria-label="Delivery Employee Performance chart"></div>
+          <div class="table-wrap" style="margin-top:12px">
+            <table class="data" id="emp-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th class="num">Target</th>
+                  <th class="num">MTD Total</th>
+                  <th class="num">To target</th>
+                  <th class="num">Achievement</th>
+                </tr>
+              </thead>
+              <tbody id="emp-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="emp-kpi-view" hidden>
+          <div class="ekpi-toolbar">
+            <button type="button" class="btn" id="ekpi-back">← Employees</button>
+            <label class="month-filter-label">Employee
+              <select id="ekpi-emp"></select>
+            </label>
+            <label class="month-filter-label">Month
+              <input type="month" id="ekpi-month" />
+            </label>
+          </div>
+          <p class="hint" id="ekpi-hint"></p>
+          <button type="button" class="ekpi-overall" id="ekpi-overall" aria-expanded="false">
+            <span class="ekpi-ring" id="ekpi-ring"></span>
+            <span class="ekpi-overall-copy">
+              <strong id="ekpi-overall-val">—</strong>
+              <span>Overall KPI</span>
+              <em id="ekpi-overall-note">Click to see the four KPI components</em>
+            </span>
+          </button>
+          <div class="ekpi-breakdown" id="ekpi-breakdown" hidden></div>
+          <div class="ekpi-detail" id="ekpi-detail" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-tab" id="tab-weights">
+      <section class="hero">
+        <h1>KPI weightage</h1>
+        <p>These weights drive the Overall KPI on the collector dashboard. Total of enabled KPIs must be exactly 100%.</p>
+      </section>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data" id="weight-table">
+            <thead>
+              <tr><th>KPI</th><th>Weight %</th><th>Enabled</th></tr>
+            </thead>
+            <tbody id="weight-body"></tbody>
+            <tfoot>
+              <tr><td><b>Total weight</b></td><td><b id="weight-total">100%</b></td><td></td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="hint" id="weight-error"></p>
+        <div class="toolbar" style="margin-top:12px">
+          <button type="button" class="btn-primary" id="weight-save">Save</button>
+          <span class="hint" id="weight-hint">Dashboard uses the new weights immediately after save.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-tab" id="tab-schedule">
+      <section class="hero">
+        <h1>SLA Control Center</h1>
+        <p>Admin-controlled status &amp; delivery SLAs · live ages from employee.html status history · no hard-coded breach hours.</p>
+      </section>
+
+      <div class="kpi-row sla-kpi-row" id="sla-control-kpis"></div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-head" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div>
+            <h2>SLA Settings</h2>
+            <p class="hint">Warning / Breach / No-movement thresholds in hours · Active rules drive the VSND schedule colours instantly.</p>
+          </div>
+          <button type="button" class="btn-primary" id="sla-add-rule" style="width:auto">+ Add SLA Condition</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Warning</th>
+                <th>Breach</th>
+                <th>No Move Warn</th>
+                <th>No Move Breach</th>
+                <th>Active</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sla-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h2>Delivery 5-day SLA</h2>
+        <p class="hint">Default: Proforma + target days · delivered status = تم التسليم · historical COMPLETED ON TIME / LATE is preserved.</p>
+        <div class="kpi-row" id="sla-delivery-form" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:0"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h2>Save changes</h2>
+        <div class="field">
+          <label for="sla-reason">Reason (required)</label>
+          <input id="sla-reason" placeholder="e.g. Management request" />
+        </div>
+        <p class="hint" id="sla-error"></p>
+        <div class="toolbar" style="margin-top:12px">
+          <button type="button" class="btn-primary" id="sla-save">Save SLA rules</button>
+          <span class="hint" id="sla-hint">Only admin can edit · managers can view.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>SLA Change History</h2>
+        <p class="hint">Every threshold change is logged permanently.</p>
+        <div class="table-wrap" style="max-height:320px">
+          <table class="data">
+            <thead><tr><th>When</th><th>Admin</th><th>Reason</th><th>Changes</th></tr></thead>
+            <tbody id="sla-history-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-tab" id="tab-vins">
+      <section class="hero">
+        <h1>All delivery details</h1>
+        <p>Every VIN with vehicle, customer, and delivery employee entries. Click a VIN to edit or reassign.</p>
+      </section>
+
+      <div class="kpi-row" id="kpis"></div>
+
+      <div class="grid-3" style="margin-bottom:14px">
+        <div class="card"><h2>By status</h2><div id="by-status"></div></div>
+        <div class="card"><h2>By employee</h2><div id="by-employee"></div></div>
+        <div class="card"><h2>By الناقل</h2><div id="by-carrier"></div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h2>Add VIN to Live Sheet</h2>
+        <p class="hint">New VINs appear for the coordinator and the assigned employee.</p>
+        <form id="add-form" class="kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:0">
+          <div class="field"><label>VIN *</label><input name="vin" required /></div>
+          <div class="field"><label>Product</label><input name="product" /></div>
+          <div class="field"><label>Sales Type</label><input name="salesType" /></div>
+          <div class="field"><label>Order</label><input name="salesOrder" /></div>
+          <div class="field"><label>S/A</label><input name="salesAdvisor" /></div>
+          <div class="field"><label>Customer</label><input name="userName" /></div>
+          <div class="field"><label>Phone</label><input name="phone" /></div>
+          <div class="field"><label>GT Loc</label><input name="gtLocation" /></div>
+          <div class="field"><label>Veh Loc</label><input name="vehicleLocation" /></div>
+          <div class="field"><label>Employee</label><select name="assignedEmployeeId" id="add-employee"></select></div>
+          <div class="field" style="align-self:end"><button type="submit" class="btn-primary" style="width:100%">Add VIN</button></div>
+        </form>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <h2>Live Sheet — full details</h2>
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="Search VIN / order / product / employee…" />
+          <button type="button" class="btn" id="refresh-btn">Refresh</button>
+          <span class="hint" id="live-meta"></span>
+        </div>
+        <div class="table-wrap"><table class="data" id="live-table"></table></div>
+      </div>
+
+      <div class="card">
+        <h2>Audit log</h2>
+        <div class="table-wrap" style="max-height:360px"><table class="data" id="audit-table"></table></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="pdf-win" id="pdf-win">
+    <header class="pdf-win-bar">
+      <strong>Cars PDF copy</strong>
+      <div>
+        <button type="button" class="btn-ghost" id="pdf-min" title="Minimize">—</button>
+      </div>
+    </header>
+    <div class="pdf-win-body" id="pdf-win-body">
+      <div class="pdf-tools">
+        <input type="search" id="pdf-search" placeholder="Search VIN / company / city / invoice…" />
+        <button type="button" class="btn-primary" id="pdf-extract-all">Extract PDF</button>
+      </div>
+      <div class="pdf-list" id="pdf-list"></div>
+      <div class="pdf-add">
+        <h3>Add to the list</h3>
+        <form id="add-company-form" class="add-row">
+          <input name="name" placeholder="New company…" required />
+          <button type="submit" class="btn-primary">Add company</button>
+        </form>
+        <form id="add-city-form" class="add-row">
+          <input name="name" placeholder="New city…" required />
+          <button type="submit" class="btn">Add city</button>
+        </form>
+        <p class="hint" id="list-hint">New names appear on attendance and coordinator print.</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="drawer-back" id="detail-back">
+    <div class="drawer wide" id="detail-drawer"></div>
+  </div>
+  </div>
+
+  <script src="../scripts/muthakara-field-layout.js"></script>
+  <script src="../scripts/check-note-field-layout.js"></script>
+  <script src="shared.js?v=20261003scope2"></script>
+  <script src="live.js?v=20260923c14"></script>
+  <script src="admin.js?v=20261004full1"></script>
+</body>
+</html>

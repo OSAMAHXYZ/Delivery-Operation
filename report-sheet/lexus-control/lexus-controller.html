@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lexus Controller · B2C Orders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="lexus-controller.css?v=20260930lx7" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+  <script src="../data-store.js?v=20260930lx1"></script>
+  <script src="../lib/bo-order-lookup.js?v=20260915rv3"></script>
+  <script src="lexus-core.js?v=20260930lx6"></script>
+</head>
+<body>
+  <div class="lxc">
+    <header class="lxc-top">
+      <div class="lxc-brand">
+        <span class="lxc-mark" aria-hidden="true">L</span>
+        <div>
+          <strong>LEXUS CONTROLLER</strong>
+          <span>B2C ORDERS · FOLLOW-UP</span>
+        </div>
+      </div>
+      <div class="lxc-source" id="lxc-source">Waiting for the Admin Push…</div>
+      <div class="lxc-actions">
+        <span class="lxc-live is-off" id="lxc-live"><i></i><b>LIVE</b></span>
+        <label class="lxc-user" title="Saved with every edit and follow-up">
+          <span>Your name</span>
+          <input type="text" id="lxc-user" maxlength="60" placeholder="Enter your name" autocomplete="name" />
+        </label>
+        <button type="button" class="lxc-btn" id="lxc-notify" hidden>Turn on alerts</button>
+        <button type="button" class="lxc-btn" id="lxc-export" disabled>Export Excel</button>
+        <button type="button" class="lxc-btn is-primary" id="lxc-refresh">Refresh</button>
+      </div>
+    </header>
+
+    <div class="lxc-alert" id="lxc-alert" hidden></div>
+
+    <section class="lxc-kpis" id="lxc-kpis"></section>
+
+    <div class="lxc-toolbar">
+      <input type="search" id="lxc-search" placeholder="Search order no, customer, any cell…" aria-label="Search orders" />
+      <div class="lxc-seg" id="lxc-filter" role="tablist"></div>
+      <label class="lxc-check"><input type="checkbox" id="lxc-edited" /> Edited only</label>
+      <button type="button" class="lxc-cf-clear" id="lxc-cf-clear" hidden>Clear column filters</button>
+      <span class="lxc-legend">
+        <span><i class="lg-edit"></i>Edited by user</span>
+        <span><i class="lg-due"></i>Follow-up due (24 h)</span>
+      </span>
+    </div>
+
+    <section class="lxc-book" id="lxc-book">
+      <div class="lxc-formula">
+        <span class="lxc-namebox" id="lxc-namebox">A1</span>
+        <span class="lxc-fx">fx</span>
+        <span class="lxc-fxval" id="lxc-fxval"></span>
+      </div>
+      <div class="lxc-scroll" id="lxc-scroll" tabindex="0" aria-label="Orders sheet · arrow keys move · Enter or F2 edits · Esc cancels">
+        <table class="lxc-grid" id="lxc-grid"></table>
+      </div>
+      <div class="lxc-statusbar">
+        <span class="lxc-sheettab" id="lxc-sheettab">Details</span>
+        <span id="lxc-status">Ready</span>
+        <span class="lxc-selinfo" id="lxc-selinfo"></span>
+        <span class="lxc-status-right" id="lxc-status-right"></span>
+      </div>
+      <datalist id="lxc-cf-list"></datalist>
+      <div class="lxc-empty" id="lxc-empty" hidden></div>
+    </section>
+
+    <div class="lxc-dialog" id="lxc-fu-dialog" hidden>
+      <form class="lxc-dialog-card" id="lxc-fu-form" role="dialog" aria-modal="true" aria-labelledby="lxc-fu-title" novalidate>
+        <header>
+          <strong id="lxc-fu-title">Record follow-up</strong>
+          <span id="lxc-fu-sub"></span>
+        </header>
+        <label class="lxc-dialog-field">
+          <span>Notes <em>required · update before saving</em></span>
+          <textarea id="lxc-fu-note" rows="5" maxlength="4000" dir="auto" placeholder="What did the customer say? What is the next step?"></textarea>
+        </label>
+        <p class="lxc-dialog-hint" id="lxc-fu-hint"></p>
+        <footer>
+          <button type="button" class="lxc-dialog-btn" id="lxc-fu-cancel">Cancel</button>
+          <button type="submit" class="lxc-dialog-btn is-primary" id="lxc-fu-save" disabled>Save follow-up</button>
+        </footer>
+      </form>
+    </div>
+    <div class="lxc-menu" id="lxc-menu" hidden></div>
+    <div class="lxc-toast" id="lxc-toast" hidden></div>
+  </div>
+  <script src="lexus-controller.js?v=20260930lx7"></script>
+</body>
+</html>
