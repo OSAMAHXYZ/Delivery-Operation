@@ -2451,9 +2451,88 @@
     document.body.classList.toggle('vsnd-screen', tab === 'dash');
     if (tab === 'weights') loadWeights().catch((err) => { if ($('weight-error')) $('weight-error').textContent = err.message; });
     if (tab === 'schedule') loadSlaConfig().catch((err) => { if ($('sla-error')) $('sla-error').textContent = err.message; });
+    if (tab === 'assign') loadAutoAssign().catch((err) => { if ($('aa-hint')) $('aa-hint').textContent = err.message; });
+  }
+
+  let autoAssign = null;
+
+  function renderAutoAssign() {
+    const d = autoAssign;
+    if (!d) return;
+    const empHost = $('aa-employees');
+    const typeHost = $('aa-types');
+    if (!empHost || !typeHost) return;
+    const selectedEmp = new Set(d.selectedEmployees || []);
+    const selectedTypes = new Set(d.selectedSalesTypes || []);
+    empHost.innerHTML = (d.employees || []).map((e) =>
+      `<label><input type="checkbox" class="aa-emp" value="${esc(e.id)}" ${selectedEmp.has(e.id) ? 'checked' : ''} /> ${esc(e.name)}</label>`
+    ).join('') || '<span class="hint">No employees</span>';
+    const types = [...new Set([...(d.salesTypes || []), ...(d.selectedSalesTypes || [])])];
+    typeHost.innerHTML = types.map((t) =>
+      `<label><input type="checkbox" class="aa-type" value="${esc(t)}" ${selectedTypes.has(t) ? 'checked' : ''} /> ${esc(t)}</label>`
+    ).join('') || '<span class="hint">No sales types on the sheet yet. Add one below.</span>';
+    const empSel = $('aa-advisor-emp');
+    if (empSel) {
+      empSel.innerHTML = (d.employees || []).map((e) => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+    }
+    const list = $('aa-advisor-list');
+    if (list) list.innerHTML = (d.knownAdvisors || []).map((a) => `<option value="${esc(a)}"></option>`).join('');
+    const body = $('aa-advisor-body');
+    if (body) {
+      body.innerHTML = (d.advisors || []).map((r, i) => `<tr>
+        <td>${esc(r.advisor)}</td>
+        <td>${esc(r.employeeName || r.employeeId)}</td>
+        <td><button type="button" class="btn aa-advisor-x" data-i="${i}">Remove</button></td>
+      </tr>`).join('') || '<tr><td colspan="3">No sales advisor rules yet.</td></tr>';
+      body.querySelectorAll('.aa-advisor-x').forEach((b) => b.addEventListener('click', () => {
+        d.advisors.splice(Number(b.dataset.i), 1);
+        renderAutoAssign();
+      }));
+    }
+  }
+
+  async function loadAutoAssign() {
+    autoAssign = await api('/auto-assign');
+    if (!autoAssign.advisors) autoAssign.advisors = [];
+    renderAutoAssign();
+    if ($('aa-hint')) $('aa-hint').textContent = autoAssign.configured ? 'Saved rules are in use.' : 'Not saved yet · even split uses every employee and every sales type.';
+  }
+
+  async function saveAutoAssign() {
+    const employees = [...document.querySelectorAll('.aa-emp:checked')].map((el) => el.value);
+    const salesTypes = [...document.querySelectorAll('.aa-type:checked')].map((el) => el.value);
+    const advisors = (autoAssign && autoAssign.advisors) || [];
+    await api('/auto-assign', { method: 'PUT', json: { employees, salesTypes, advisors } });
+    toast('Auto assign saved');
+    await loadAutoAssign();
+    if ($('aa-hint')) $('aa-hint').textContent = 'Saved. The next Assignment confirm uses these rules.';
   }
 
   document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  if ($('aa-type-add')) {
+    $('aa-type-add').addEventListener('click', () => {
+      const name = String(($('aa-type-new') && $('aa-type-new').value) || '').trim();
+      if (!name || !autoAssign) return;
+      if (!autoAssign.salesTypes.includes(name)) autoAssign.salesTypes.push(name);
+      if (!autoAssign.selectedSalesTypes.includes(name)) autoAssign.selectedSalesTypes.push(name);
+      $('aa-type-new').value = '';
+      renderAutoAssign();
+    });
+  }
+  if ($('aa-advisor-add')) {
+    $('aa-advisor-add').addEventListener('click', () => {
+      if (!autoAssign) return;
+      const advisor = String(($('aa-advisor') && $('aa-advisor').value) || '').trim();
+      const employeeId = String(($('aa-advisor-emp') && $('aa-advisor-emp').value) || '').trim();
+      const emp = (autoAssign.employees || []).find((e) => e.id === employeeId);
+      if (!advisor || !emp) return;
+      autoAssign.advisors = (autoAssign.advisors || []).filter((r) => r.advisor.toLowerCase() !== advisor.toLowerCase());
+      autoAssign.advisors.push({ advisor, employeeId: emp.id, employeeName: emp.name });
+      $('aa-advisor').value = '';
+      renderAutoAssign();
+    });
+  }
+  if ($('aa-save')) $('aa-save').addEventListener('click', () => saveAutoAssign().catch((err) => alert(err.message)));
   $('detail-back').addEventListener('click', (e) => { if (e.target === $('detail-back')) closeDrawer(); });
   const empMonthInp = $('emp-month');
   if (empMonthInp) {

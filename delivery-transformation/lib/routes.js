@@ -2295,6 +2295,53 @@ function createDeliveryTransformationRouter(opts = {}) {
   });
 
   // ——— Assignment: auto-suggest by sales type, Hanouf confirms ———
+  function advisorKey(name) {
+    return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function readAutoAssign() {
+    const saved = store.data.meta && store.data.meta.autoAssign;
+    const allIds = USERS.filter(isAssignable).map((u) => u.id);
+    if (!saved || typeof saved !== 'object') {
+      return { configured: false, employees: allIds, salesTypes: [], advisors: [] };
+    }
+    const employees = [...new Set((Array.isArray(saved.employees) ? saved.employees : [])
+      .map((id) => findAssignable(id))
+      .filter(Boolean)
+      .map((u) => u.id))];
+    const salesTypes = [...new Set((Array.isArray(saved.salesTypes) ? saved.salesTypes : [])
+      .map((s) => String(s || '').trim())
+      .filter(Boolean))];
+    const advisors = [];
+    const seen = new Set();
+    (Array.isArray(saved.advisors) ? saved.advisors : []).forEach((row) => {
+      const advisor = String((row && row.advisor) || '').trim();
+      const emp = findAssignable(row && row.employeeId);
+      const key = advisorKey(advisor);
+      if (!advisor || !emp || seen.has(key)) return;
+      seen.add(key);
+      advisors.push({ advisor, employeeId: emp.id });
+    });
+    return { configured: true, employees, salesTypes, advisors };
+  }
+
+  function knownAssignLists() {
+    const types = new Set();
+    const advisors = new Set();
+    const take = (raw) => {
+      const t = String((raw && raw.salesType) || '').trim();
+      const a = String((raw && raw.salesAdvisor) || '').trim();
+      if (t) types.add(t);
+      if (a) advisors.add(a);
+    };
+    store.allVehicles().forEach((v) => take(v.raw));
+    Object.values(pendingMap()).forEach((p) => take(p && p.raw));
+    return {
+      salesTypes: [...types].sort((a, b) => a.localeCompare(b)),
+      advisors: [...advisors].sort((a, b) => a.localeCompare(b)),
+    };
+  }
+
   function canViewAssignment(u) {
     return isManager(u && u.role) || canUploadSalesRaw(u);
   }
@@ -2319,7 +2366,14 @@ function createDeliveryTransformationRouter(opts = {}) {
     if (dropped) store.save();
 
     const employees = USERS.filter(isAssignable);
-    const available = employees.filter((u) => !onVacation(u.id));
+    const rules = readAutoAssign();
+    const poolIds = new Set(rules.configured ? rules.employees : employees.map((u) => u.id));
+    const typeAllowed = (t) => {
+      if (!rules.configured) return true;
+      return rules.salesTypes.some((s) => s.toLowerCase() === String(t || '').trim().toLowerCase());
+    };
+    const advisorMap = new Map(rules.advisors.map((r) => [advisorKey(r.advisor), r.employeeId]));
+    const available = employees.filter((u) => !onVacation(u.id) && poolIds.has(u.id));
     const month = currentMonthKey();
     const typeLabel = (t) => String(t || '').trim() || '(blank)';
     const byType = {};
@@ -2338,12 +2392,25 @@ function createDeliveryTransformationRouter(opts = {}) {
       .sort((a, b) => typeLabel(a.raw.salesType).localeCompare(typeLabel(b.raw.salesType)) || a.vin.localeCompare(b.vin))
       .map((p) => {
         const t = typeLabel(p.raw.salesType);
-        const pick = available.reduce((best, u) => {
-          if (!best) return u;
-          const a = byType[u.id][t] || 0;
-          const b = byType[best.id][t] || 0;
-          return a < b || (a === b && total[u.id] < total[best.id]) ? u : best;
-        }, null);
+        const advisor = String((p.raw && p.raw.salesAdvisor) || '').trim();
+        const mappedId = advisorMap.get(advisorKey(advisor));
+        let pick = null;
+        let suggestReason = '';
+        if (mappedId) {
+          const mapped = employees.find((u) => u.id === mappedId);
+          if (mapped && !onVacation(mapped.id)) {
+            pick = mapped;
+            suggestReason = 'advisor';
+          }
+        } else if (typeAllowed(t)) {
+          pick = available.reduce((best, u) => {
+            if (!best) return u;
+            const a = byType[u.id][t] || 0;
+            const b = byType[best.id][t] || 0;
+            return a < b || (a === b && total[u.id] < total[best.id]) ? u : best;
+          }, null);
+          if (pick) suggestReason = 'sales-type';
+        }
         if (pick) {
           byType[pick.id][t] = (byType[pick.id][t] || 0) + 1;
           total[pick.id] += 1;
@@ -2351,9 +2418,11 @@ function createDeliveryTransformationRouter(opts = {}) {
         return {
           vin: p.vin,
           salesType: t,
+          salesAdvisor: advisor,
           proformaDate: p.raw.proformaDate,
           suggestedEmployeeId: pick ? pick.id : '',
           suggestedEmployeeName: pick ? pick.name : '',
+          suggestReason,
         };
       });
 
@@ -2472,6 +2541,58 @@ function createDeliveryTransformationRouter(opts = {}) {
     });
     store.save();
     return res.json({ ok: true, removed, ...buildAssignmentView(), canConfirm: true });
+  });
+
+  router.get('/auto-assign', auth, requireRole('admin'), (_req, res) => {
+    const rules = readAutoAssign();
+    const known = knownAssignLists();
+    const employees = USERS.filter(isAssignable).map((u) => ({ id: u.id, name: u.name }));
+    res.json({
+      configured: rules.configured,
+      employees,
+      selectedEmployees: rules.employees,
+      salesTypes: known.salesTypes,
+      selectedSalesTypes: rules.configured ? rules.salesTypes : known.salesTypes,
+      advisors: rules.advisors.map((r) => ({
+        advisor: r.advisor,
+        employeeId: r.employeeId,
+        employeeName: (employees.find((u) => u.id === r.employeeId) || {}).name || r.employeeId,
+      })),
+      knownAdvisors: known.advisors,
+    });
+  });
+
+  router.put('/auto-assign', auth, requireRole('admin'), (req, res) => {
+    const body = req.body || {};
+    const employees = [...new Set((Array.isArray(body.employees) ? body.employees : [])
+      .map((id) => findAssignable(id))
+      .filter(Boolean)
+      .map((u) => u.id))];
+    const salesTypes = [...new Set((Array.isArray(body.salesTypes) ? body.salesTypes : [])
+      .map((s) => String(s || '').trim())
+      .filter(Boolean))];
+    const advisors = [];
+    const seen = new Set();
+    (Array.isArray(body.advisors) ? body.advisors : []).forEach((row) => {
+      const advisor = String((row && row.advisor) || '').trim();
+      const emp = findAssignable(row && row.employeeId);
+      const key = advisorKey(advisor);
+      if (!advisor || !emp || seen.has(key)) return;
+      seen.add(key);
+      advisors.push({ advisor, employeeId: emp.id });
+    });
+    if (!store.data.meta || typeof store.data.meta !== 'object') store.data.meta = {};
+    store.data.meta.autoAssign = { employees, salesTypes, advisors };
+    store.pushAudit({
+      vin: '',
+      user: req.dtUser.name,
+      action: 'auto_assign_rules',
+      oldValue: '',
+      newValue: `${employees.length} employees · ${salesTypes.length} sales types · ${advisors.length} advisors`,
+    });
+    store.save();
+    const rules = readAutoAssign();
+    return res.json({ ok: true, ...rules });
   });
 
   function monthParam(val) {

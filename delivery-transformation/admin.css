@@ -75,6 +75,8 @@
   color: #fff;
   border-color: var(--navy);
 }
+.aa-checks { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+.aa-checks label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .panel-tab { display: none; }
 .panel-tab.active { display: block; }
 .sync-line {

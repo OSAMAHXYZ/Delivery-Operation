@@ -804,21 +804,25 @@ table.data tr.row-status-claimed td { background: #dbeafe !important; box-shadow
 table.data tr.row-status-psfu td { background: #dcfce7 !important; box-shadow: inset 3px 0 0 #86efac; color: #14532d; }
 table.data tr.row-status-delivered td { background: #fef9c3 !important; box-shadow: inset 3px 0 0 #fde047; color: #713f12; }
 table.data tr.row-status-ready td { background: #ffedd5 !important; box-shadow: inset 3px 0 0 #fdba74; color: #9a3412; }
+table.data tr.row-status-advance td { background: #f3e6d4 !important; box-shadow: inset 3px 0 0 #c4a484; color: #5c4033; }
+table.data tr.row-status-issued td { background: #fce7f3 !important; box-shadow: inset 3px 0 0 #f9a8d4; color: #9d174d; }
 table.data tr.row-status-traffic td { background: #f3f4f6 !important; box-shadow: inset 3px 0 0 #d1d5db; color: #374151; }
 table.data tr.row-status-traffic-return td {
   background: #f3e8ff !important;
   box-shadow: inset 3px 0 0 #d8b4fe;
   color: #6b21a8;
 }
-table.data tr.row-status-pending td { background: #e0f2fe !important; box-shadow: inset 3px 0 0 #7dd3fc; color: #075985; }
+table.data tr.row-status-pending td { background: #ea580c !important; box-shadow: inset 3px 0 0 #9a3412; color: #fff7ed; }
 table.data tr.row-status-cancel td { background: #fee2e2 !important; box-shadow: inset 3px 0 0 #fca5a5; color: #991b1b; }
 table.data tr.row-status-claimed:hover td { background: #bfdbfe !important; }
 table.data tr.row-status-psfu:hover td { background: #bbf7d0 !important; }
 table.data tr.row-status-delivered:hover td { background: #fef08a !important; }
 table.data tr.row-status-ready:hover td { background: #fed7aa !important; }
+table.data tr.row-status-advance:hover td { background: #e7d3b8 !important; }
+table.data tr.row-status-issued:hover td { background: #fbcfe8 !important; }
 table.data tr.row-status-traffic:hover td { background: #e5e7eb !important; color: #111827; }
 table.data tr.row-status-traffic-return:hover td { background: #e9d5ff !important; color: #581c87; }
-table.data tr.row-status-pending:hover td { background: #bae6fd !important; }
+table.data tr.row-status-pending:hover td { background: #c2410c !important; color: #fff7ed; }
 table.data tr.row-status-cancel:hover td { background: #fecaca !important; }
 table.data .num {
   text-align: right;
@@ -874,6 +878,21 @@ table.data .vin-link:hover { text-decoration: underline; }
   background: #ffedd5;
   color: #9a3412;
   border-color: #fdba74;
+}
+.badge.st-advance {
+  background: #f3e6d4;
+  color: #5c4033;
+  border-color: #c4a484;
+}
+.badge.st-issued {
+  background: #fce7f3;
+  color: #9d174d;
+  border-color: #f9a8d4;
+}
+.badge.st-hold {
+  background: #c2410c;
+  color: #fff7ed;
+  border-color: #9a3412;
 }
 .badge.info {
   background: #dbeafe;
@@ -1911,9 +1930,11 @@ table.live-sheet tr.row-status-claimed td { background: #dbeafe; }
 table.live-sheet tr.row-status-psfu td { background: #dcfce7; }
 table.live-sheet tr.row-status-delivered td { background: #fef9c3; }
 table.live-sheet tr.row-status-ready td { background: #ffedd5; }
+table.live-sheet tr.row-status-advance td { background: #f3e6d4; }
+table.live-sheet tr.row-status-issued td { background: #fce7f3; }
 table.live-sheet tr.row-status-traffic td { background: #f3f4f6; }
 table.live-sheet tr.row-status-traffic-return td { background: #f3e8ff; }
-table.live-sheet tr.row-status-pending td { background: #e0f2fe; }
+table.live-sheet tr.row-status-pending td { background: #ea580c; color: #fff7ed; }
 table.live-sheet tr.row-status-cancel td { background: #fee2e2; }
 
 /* Sticky left columns — light status colors */
@@ -1949,6 +1970,22 @@ table.live-sheet tr.row-status-ready td.col-vin {
   color: #9a3412;
   box-shadow: inset 3px 0 0 #fdba74;
 }
+table.live-sheet tr.row-status-advance td.col-num,
+table.live-sheet tr.row-status-advance td.col-employee,
+table.live-sheet tr.row-status-advance td.col-status,
+table.live-sheet tr.row-status-advance td.col-vin {
+  background: #e7d3b8 !important;
+  color: #5c4033;
+  box-shadow: inset 3px 0 0 #c4a484;
+}
+table.live-sheet tr.row-status-issued td.col-num,
+table.live-sheet tr.row-status-issued td.col-employee,
+table.live-sheet tr.row-status-issued td.col-status,
+table.live-sheet tr.row-status-issued td.col-vin {
+  background: #fbcfe8 !important;
+  color: #9d174d;
+  box-shadow: inset 3px 0 0 #f9a8d4;
+}
 table.live-sheet tr.row-status-traffic td.col-num,
 table.live-sheet tr.row-status-traffic td.col-employee,
 table.live-sheet tr.row-status-traffic td.col-status,
@@ -1969,9 +2006,9 @@ table.live-sheet tr.row-status-pending td.col-num,
 table.live-sheet tr.row-status-pending td.col-employee,
 table.live-sheet tr.row-status-pending td.col-status,
 table.live-sheet tr.row-status-pending td.col-vin {
-  background: #bae6fd !important;
-  color: #075985;
-  box-shadow: inset 3px 0 0 #7dd3fc;
+  background: #c2410c !important;
+  color: #fff7ed;
+  box-shadow: inset 3px 0 0 #9a3412;
 }
 table.live-sheet tr.row-status-cancel td.col-num,
 table.live-sheet tr.row-status-cancel td.col-employee,
@@ -2019,6 +2056,18 @@ table.live-sheet tr.row-status-ready td.col-status .cell-edit {
   font-weight: 800;
   color: #9a3412;
 }
+table.live-sheet tr.row-status-advance td.col-status .cell-edit {
+  border-color: #c4a484;
+  background: #f3e6d4;
+  font-weight: 800;
+  color: #5c4033;
+}
+table.live-sheet tr.row-status-issued td.col-status .cell-edit {
+  border-color: #f9a8d4;
+  background: #fdf2f8;
+  font-weight: 800;
+  color: #9d174d;
+}
 table.live-sheet tr.row-status-traffic td.col-status .cell-edit {
   border-color: #d1d5db;
   background: #f9fafb;
@@ -2032,10 +2081,10 @@ table.live-sheet tr.row-status-traffic-return td.col-status .cell-edit {
   color: #6b21a8;
 }
 table.live-sheet tr.row-status-pending td.col-status .cell-edit {
-  border-color: #7dd3fc;
-  background: #f0f9ff;
+  border-color: #9a3412;
+  background: #fff7ed;
   font-weight: 800;
-  color: #075985;
+  color: #9a3412;
 }
 table.live-sheet tr.row-status-cancel td.col-status .cell-edit {
   border-color: #fca5a5;
@@ -2043,10 +2092,10 @@ table.live-sheet tr.row-status-cancel td.col-status .cell-edit {
   font-weight: 800;
   color: #991b1b;
 }
-table.live-sheet tbody tr:hover td.col-num,
-table.live-sheet tbody tr:hover td.col-employee,
-table.live-sheet tbody tr:hover td.col-status,
-table.live-sheet tbody tr:hover td.col-vin {
+table.live-sheet tbody tr:not([class*="row-status-"]):hover td.col-num,
+table.live-sheet tbody tr:not([class*="row-status-"]):hover td.col-employee,
+table.live-sheet tbody tr:not([class*="row-status-"]):hover td.col-status,
+table.live-sheet tbody tr:not([class*="row-status-"]):hover td.col-vin {
   background: #e8f0f8 !important;
 }
 

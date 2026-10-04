@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=20261001cs1" />
+  <link rel="stylesheet" href="admin.css?v=20261004a" />
 </head>
 <body>
   <div class="collector-gate" id="collector-gate">
@@ -41,6 +41,7 @@
       <button type="button" class="tab-btn" data-tab="ops">Ops</button>
       <button type="button" class="tab-btn" data-tab="weights">KPI weights</button>
       <button type="button" class="tab-btn" data-tab="schedule">SLA</button>
+      <button type="button" class="tab-btn" data-tab="assign">Auto assign</button>
       <button type="button" class="tab-btn" data-tab="vins">VIN tools</button>
       <a href="coordinator.html">Coordinator</a>
       <a href="employee.html">Employee</a>
@@ -259,6 +260,47 @@
       </div>
     </section>
 
+    <section class="panel-tab" id="tab-assign">
+      <section class="hero">
+        <h1>Auto assign</h1>
+        <p>Choose which sales types and employees the automatic split may use. A sales advisor rule sends that advisor’s VINs to one employee.</p>
+      </section>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Who can receive auto assign</h2>
+        <p class="hint">Only checked employees are used when VINs are split evenly. A sales advisor rule can still send VINs to someone who is not checked.</p>
+        <div id="aa-employees" class="aa-checks"></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Sales types auto assign may split</h2>
+        <p class="hint">Unchecked sales types stay unassigned unless a sales advisor rule matches.</p>
+        <div id="aa-types" class="aa-checks"></div>
+        <div class="toolbar" style="margin-top:10px">
+          <input id="aa-type-new" placeholder="Add a sales type…" />
+          <button type="button" class="btn" id="aa-type-add">Add</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Sales advisor → employee</h2>
+        <p class="hint">If the VIN’s S/A matches, it goes to that employee instead of the even split.</p>
+        <div class="toolbar">
+          <input id="aa-advisor" list="aa-advisor-list" placeholder="Sales advisor" />
+          <datalist id="aa-advisor-list"></datalist>
+          <select id="aa-advisor-emp"></select>
+          <button type="button" class="btn" id="aa-advisor-add">Add rule</button>
+        </div>
+        <div class="table-wrap" style="margin-top:10px">
+          <table class="data">
+            <thead><tr><th>Sales advisor</th><th>Assign to</th><th></th></tr></thead>
+            <tbody id="aa-advisor-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn-primary" id="aa-save">Save auto assign</button>
+        <span class="hint" id="aa-hint"></span>
+      </div>
+    </section>
+
     <section class="panel-tab" id="tab-weights">
       <section class="hero">
         <h1>KPI weightage</h1>
@@ -435,6 +477,6 @@
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20260923c14"></script>
-  <script src="admin.js?v=20261004full1"></script>
+  <script src="admin.js?v=20261004a"></script>
 </body>
 </html>

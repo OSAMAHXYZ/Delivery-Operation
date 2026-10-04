@@ -172,6 +172,8 @@
     if (v === 'PSFU') return 'row-status-psfu';
     if (v === 'تم التسليم') return 'row-status-delivered';
     if (v === 'جاهز للتسليم') return 'row-status-ready';
+    if (v === 'تسليم متقدم') return 'row-status-advance';
+    if (v === 'صادرة' || v === 'صادر') return 'row-status-issued';
     if (v === 'مرور') return 'row-status-traffic';
     if (v === 'رجوع مرور') return 'row-status-traffic-return';
     if (v === 'معلقة') return 'row-status-pending';
@@ -186,9 +188,11 @@
     if (v === 'PSFU') return `<span class="badge ok">${esc(v)}</span>`;
     if (v === 'تم التسليم') return `<span class="badge yellow">${esc(v)}</span>`;
     if (v === 'جاهز للتسليم') return `<span class="badge orange">${esc(v)}</span>`;
+    if (v === 'تسليم متقدم') return `<span class="badge st-advance">${esc(v)}</span>`;
+    if (v === 'صادرة' || v === 'صادر') return `<span class="badge st-issued">${esc(v)}</span>`;
     if (v === 'مرور') return `<span class="badge">${esc(v)}</span>`;
     if (v === 'رجوع مرور') return `<span class="badge purple">${esc(v)}</span>`;
-    if (v === 'معلقة') return `<span class="badge navy">${esc(v)}</span>`;
+    if (v === 'معلقة') return `<span class="badge st-hold">${esc(v)}</span>`;
     if (v === 'الغاء') return `<span class="badge bad">${esc(v)}</span>`;
     return `<span class="badge warn">${esc(v)}</span>`;
   }
@@ -625,6 +629,7 @@
     return [
       { id: 'dashboard', label: 'Dashboard' },
       { id: 'live', label: 'Live Sheet' },
+      ...(state.user && state.user.id === 'hanouf' ? [{ id: 'mine', label: 'My VINs' }] : []),
       { id: 'my', label: isManager() ? 'All VINs' : 'My VINs' },
       ...(canUploadSalesRaw() ? [{
         id: 'assignment',
@@ -677,7 +682,7 @@
   function refreshViewSilent() {
     if (state.view === 'live') return loadLiveSheet({ silent: true });
     if (state.view === 'dashboard') return loadDashboard();
-    if (state.view === 'my') return loadMy({ silent: true });
+    if (state.view === 'my' || state.view === 'mine') return loadMy({ silent: true });
     if (state.view === 'appointment') return loadAppointments({ silent: true });
     return Promise.resolve();
   }
@@ -685,11 +690,13 @@
   function setView(view) {
     state.view = view;
     stopLivePoll();
-    $$('.panel').forEach((p) => p.classList.toggle('active', p.id === `panel-${view}`));
+    const panel = view === 'mine' ? 'my' : view;
+    $$('.panel').forEach((p) => p.classList.toggle('active', p.id === `panel-${panel}`));
     renderNav();
     const titles = {
       dashboard: ['Dashboard', 'Delivery Control Tower'],
       live: ['Live Sheet', 'All teammates’ schedules · Sales Type (cash / bank)'],
+      mine: ['My VINs', 'VIN numbers assigned to Hanouf'],
       my: isManager()
         ? ['All VINs', 'Every VIN · edit · hand over to an employee']
         : ['My VINs', 'Your schedule · edit your work'],
@@ -710,7 +717,7 @@
     try {
       if (state.view === 'dashboard') await loadDashboard();
       if (state.view === 'live') await loadLiveSheet();
-      if (state.view === 'my') await loadMy();
+      if (state.view === 'my' || state.view === 'mine') await loadMy();
       if (state.view === 'targets') await loadTargets();
       if (state.view === 'assignment') await loadAssignment();
       if (state.view === 'upload' || state.view === 'sales-raw') await loadImportPanels();
@@ -1868,7 +1875,7 @@
     const data = await fetchLive({
       q: state.myFilters.q,
       status: state.myFilters.status,
-      employee: isManager() ? '' : state.user.name,
+      employee: (state.view === 'mine' || !isManager()) ? state.user.name : '',
     });
     const table = $('#my-table');
     const active = document.activeElement;
