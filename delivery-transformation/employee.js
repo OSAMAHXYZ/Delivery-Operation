@@ -229,13 +229,120 @@
     const common = `class="cell-edit" data-vin="${esc(vin)}" data-field="${esc(field)}"`;
     const options = (list, placeholder) => `<option value="">${placeholder}</option>${list.map((s) =>
       `<option value="${esc(s)}" ${v === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}`;
-    if (type === 'status') return `<select ${common}>${options(state.meta.statuses || [], '—')}</select>`;
+    if (type === 'status') return stickyControl(vin, 'opsStatus', v);
     if (type === 'yn') return `<select ${common}>${options(['Yes', 'No'], '—')}</select>`;
     if (type === 'date') return `<input type="date" ${common} value="${esc(v)}" />`;
     if (type === 'city') return `<input list="edit-city-list" ${common} value="${esc(v)}" placeholder="City…" />`;
-    if (type === 'carrier') return `<select ${common}>${options(state.meta.carriers || [], '— الناقل —')}</select>`;
+    if (type === 'carrier') return stickyControl(vin, 'carrier', v);
     if (type === 'notes') return `<input type="text" ${common} value="${esc(v)}" placeholder="Notes…" style="min-width:140px" />`;
     return esc(v || '—');
+  }
+
+  /** Status and الناقل save on the first choice, then stay locked until a double-click. */
+  function stickyField(field) {
+    return field === 'carrier' || field === 'opsStatus';
+  }
+
+  function stickyMeta(field) {
+    if (field === 'opsStatus') {
+      return {
+        title: 'Double-click to change status',
+        placeholder: '—',
+        options: () => (state.meta && state.meta.statuses) || [],
+      };
+    }
+    return {
+      title: 'Double-click to reassign الناقل',
+      placeholder: '— الناقل —',
+      options: () => (state.meta && state.meta.carriers) || [],
+    };
+  }
+
+  function choiceOptionsHtml(field, selected, allowEmpty) {
+    const meta = stickyMeta(field);
+    const blank = allowEmpty ? `<option value="">${esc(meta.placeholder)}</option>` : '';
+    return `${blank}${meta.options().map((s) =>
+      `<option value="${esc(s)}" ${selected === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}`;
+  }
+
+  function stickyControl(vin, field, value) {
+    const v = String(value || '').trim();
+    const meta = stickyMeta(field);
+    if (v) {
+      const label = field === 'opsStatus' ? statusBadge(v) : esc(v);
+      return `<button type="button" class="choice-lock${field === 'carrier' ? ' is-carrier' : ''}" data-vin="${esc(vin)}" data-field="${esc(field)}" data-choice="${esc(v)}" title="${esc(meta.title)}">${label}</button>`;
+    }
+    return `<select class="cell-edit" data-vin="${esc(vin)}" data-field="${esc(field)}">${choiceOptionsHtml(field, '', true)}</select>`;
+  }
+
+  function paintStatusRow(el, value) {
+    const tr = el && el.closest ? el.closest('tr') : null;
+    if (!tr) return;
+    tr.className = tr.className.split(' ').filter((c) => !c.startsWith('row-status-')).join(' ');
+    const cls = statusRowClass(value);
+    if (cls) tr.classList.add(cls);
+  }
+
+  function lockChoiceEl(el, field, value) {
+    const key = field || el.dataset.field || el.dataset.ops;
+    const next = String(value || '').trim();
+    if (!next || !el || !el.parentNode || !stickyField(key)) return;
+    const meta = stickyMeta(key);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `choice-lock is-saved${key === 'carrier' ? ' is-carrier' : ''}`;
+    btn.dataset.vin = el.dataset.vin || '';
+    btn.dataset.field = key;
+    btn.dataset.choice = next;
+    btn.title = meta.title;
+    if (key === 'opsStatus') {
+      paintStatusRow(el, next);
+      btn.innerHTML = statusBadge(next);
+    } else {
+      btn.textContent = next;
+    }
+    el.replaceWith(btn);
+    bindChoiceLock(btn);
+    setTimeout(() => btn.classList.remove('is-saved'), 1200);
+  }
+
+  function openChoiceReassign(btn) {
+    const field = btn.dataset.field || '';
+    const current = String(btn.dataset.choice || '').trim();
+    const sel = document.createElement('select');
+    sel.className = 'cell-edit';
+    sel.dataset.vin = btn.dataset.vin || '';
+    sel.dataset.field = field;
+    sel.innerHTML = choiceOptionsHtml(field, current, false);
+    btn.replaceWith(sel);
+    let done = false;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      const next = String(value || '').trim() || current;
+      if (next && next !== current && sel.dataset.vin) {
+        queueCellEdit(sel, { immediate: true });
+      }
+      if (sel.isConnected) lockChoiceEl(sel, field, next);
+    };
+    sel.addEventListener('change', () => finish(sel.value));
+    sel.addEventListener('blur', () => {
+      setTimeout(() => { if (!done) finish(current); }, 180);
+    });
+    sel.focus();
+    if (typeof sel.showPicker === 'function') {
+      try { sel.showPicker(); } catch { /* picker already opening */ }
+    }
+  }
+
+  function bindChoiceLock(btn) {
+    if (!btn || btn.dataset.lockBound) return;
+    btn.dataset.lockBound = '1';
+    btn.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openChoiceReassign(btn);
+    });
   }
 
   /** Coordinator printed with another company than the الناقل Hanouf / Rasha set — "from ← to" under the cell. */
@@ -396,11 +503,23 @@
     }
   }
 
+  function savedOpsValue(vin, field) {
+    const row = state.rowIndex[vin];
+    if (!row || !row.ops || row.ops[field] == null) return '';
+    return String(row.ops[field]);
+  }
+
+  /** Blank input must not replace a value that is already on the VIN. */
+  function wouldClearSaved(vin, field, value) {
+    return !String(value || '').trim() && !!savedOpsValue(vin, field).trim();
+  }
+
   function queueCellEdit(el, { immediate = false } = {}) {
     const vin = el.dataset.vin;
     const field = el.dataset.field;
     if (!vin || !field) return;
     const value = el.value;
+    if (wouldClearSaved(vin, field, value)) return;
     markPending(vin, field, value);
     const key = pendKey(vin, field);
     if (saveTimers.has(key)) clearTimeout(saveTimers.get(key));
@@ -416,13 +535,17 @@
 
   async function flushPendingOps({ keepalive = false } = {}) {
     if (flushInFlight && !keepalive) return flushInFlight;
-    // Capture in-progress inputs before leaving
+    // Capture in-progress inputs before leaving. Never persist a blank الناقل.
     $$('.cell-edit').forEach((el) => {
-      if (el.dataset.vin && el.dataset.field) markPending(el.dataset.vin, el.dataset.field, el.value);
+      if (!el.dataset.vin || !el.dataset.field) return;
+      if (wouldClearSaved(el.dataset.vin, el.dataset.field, el.value)) return;
+      markPending(el.dataset.vin, el.dataset.field, el.value);
     });
     if (state._drawerVin) {
       $$('#vin-drawer [data-ops]').forEach((el) => {
-        if (el.dataset.ops) markPending(state._drawerVin, el.dataset.ops, el.value);
+        if (!el.dataset.ops) return;
+        if (wouldClearSaved(state._drawerVin, el.dataset.ops, el.value)) return;
+        markPending(state._drawerVin, el.dataset.ops, el.value);
       });
     }
     saveTimers.forEach((t) => clearTimeout(t));
@@ -470,7 +593,17 @@
   }
 
   function bindEditableCells(tableEl) {
+    $$('.choice-lock', tableEl).forEach(bindChoiceLock);
     $$('.cell-edit', tableEl).forEach((el) => {
+      if (stickyField(el.dataset.field)) {
+        el.addEventListener('change', () => {
+          const value = String(el.value || '').trim();
+          if (!value) return;
+          queueCellEdit(el, { immediate: true });
+          lockChoiceEl(el, el.dataset.field, value);
+        });
+        return;
+      }
       const tag = (el.tagName || '').toLowerCase();
       const type = (el.getAttribute('type') || '').toLowerCase();
       const isSelect = tag === 'select';
@@ -1870,7 +2003,6 @@
 
   // ——— VIN drawer ———
   function buildDrawerHtml(v, readOnly) {
-    const statuses = state.meta.statuses || [];
     const cities = state.meta.transferCities || [];
     const ro = (label, val) => `<div class="field"><label>${esc(label)}</label><input value="${esc(na(val))}" readonly /></div>`;
     const yn = (key, label, val) => (readOnly ? ro(label, val)
@@ -1923,7 +2055,11 @@
           ${dt('signatureReceivedDate', 'تاريخ استلام التواقيع من الضيف', v.ops.signatureReceivedDate)}
           ${dt('accountsSentDate', 'تاريخ إرسال الملف للحسابات', v.ops.accountsSentDate)}
           ${dt('accountsApprovalDate', 'تاريخ موافقة الحسابات', v.ops.accountsApprovalDate)}
-          ${sel('opsStatus', 'Status', statuses, v.ops.opsStatus, '—')}
+          ${readOnly
+            ? ro('Status', v.ops.opsStatus)
+            : `<div class="field"><label>Status</label>${String(v.ops.opsStatus || '').trim()
+              ? `${stickyControl(v.vin, 'opsStatus', v.ops.opsStatus)}<p class="hint">Set once. Double-click to change.</p>`
+              : `<select class="cell-edit" data-ops="opsStatus" data-field="opsStatus" data-vin="${esc(v.vin)}">${choiceOptionsHtml('opsStatus', '', true)}</select>`}</div>`}
           ${yn('vin1502', 'Current VIN 1502?', v.ops.vin1502)}
           ${yn('trafficFile', 'ملف المرور', v.ops.trafficFile)}
           ${yn('trafficFeesOps', 'Traffic Fees', v.ops.trafficFeesOps)}
@@ -1934,7 +2070,9 @@
             <datalist id="city-list">${cities.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>
           </div>`}
           ${canAssignCarrier()
-            ? sel('carrier', 'الناقل', (state.meta && state.meta.carriers) || [], v.ops.carrier, '— الناقل —')
+            ? `<div class="field"><label>الناقل</label>${String(v.ops.carrier || '').trim()
+              ? `${stickyControl(v.vin, 'carrier', v.ops.carrier)}<p class="hint">Assigned once. Double-click to reassign.</p>`
+              : `<select class="cell-edit" data-ops="carrier" data-field="carrier" data-vin="${esc(v.vin)}">${choiceOptionsHtml('carrier', '', true)}</select>`}</div>`
             : ro('الناقل', v.ops.carrier)}
           ${carrierChangeNote(v.ops)}
           ${readOnly
@@ -1968,6 +2106,7 @@
     async function savePatch(patch, el) {
       const field = Object.keys(patch)[0];
       const value = patch[field];
+      if (wouldClearSaved(vin, field, value)) return true;
       try {
         markPending(vin, field, value);
         await pushOpsPatch(vin, field, value);
@@ -1990,17 +2129,34 @@
           el.classList.add('is-saved');
           setTimeout(() => el.classList.remove('is-saved'), 1200);
         }
+        return true;
       } catch (err) {
         alert(err.message || 'Save failed — entry kept locally until it syncs');
+        return false;
       }
     }
+    $$('.choice-lock', drawer).forEach(bindChoiceLock);
     $$('[data-ops]', drawer).forEach((el) => {
       const tag = (el.tagName || '').toLowerCase();
       const type = (el.getAttribute('type') || '').toLowerCase();
       const instant = tag === 'select' || type === 'date';
+      if (stickyField(el.dataset.ops)) {
+        el.addEventListener('change', () => {
+          const value = String(el.value || '').trim();
+          if (!value) return;
+          const field = el.dataset.ops;
+          el.dataset.field = field;
+          el.dataset.vin = el.dataset.vin || vin;
+          savePatch({ [field]: value }, el).then((ok) => {
+            if (ok) lockChoiceEl(el, field, value);
+          });
+        });
+        return;
+      }
       el.addEventListener('change', () => savePatch({ [el.dataset.ops]: el.value }, el));
       if (!instant) {
         el.addEventListener('input', () => {
+          if (wouldClearSaved(vin, el.dataset.ops, el.value)) return;
           markPending(vin, el.dataset.ops, el.value);
           const key = pendKey(vin, el.dataset.ops);
           if (saveTimers.has(key)) clearTimeout(saveTimers.get(key));
@@ -2072,9 +2228,12 @@
     bindLiveSheetGrid();
     loadDrafts();
     startGuestTick();
-    if (canEditAnyVin()) {
-      $('#live-edit-hint').textContent = `${state.user.name} can edit every VIN directly on this sheet.`;
-    }
+    const who = canEditAnyVin() ? 'every VIN' : 'your VINs';
+    const lockNote = canAssignCarrier()
+      ? ' Status and الناقل save on the first choice. Double-click either one to change it.'
+      : ' Status saves on the first choice. Double-click it to change.';
+    const hint = $('#live-edit-hint');
+    if (hint) hint.textContent = `${state.user.name} can edit ${who} directly on this sheet.${lockNote}`;
     loadAppointmentBadge().catch(() => {});
     setView('dashboard');
     flushPendingOps().catch(() => {});
@@ -2153,7 +2312,9 @@
   window.addEventListener('beforeunload', () => {
     // Capture + persist drafts synchronously; keepalive fetch runs in pagehide
     $$('.cell-edit').forEach((el) => {
-      if (el.dataset.vin && el.dataset.field) markPending(el.dataset.vin, el.dataset.field, el.value);
+      if (!el.dataset.vin || !el.dataset.field) return;
+      if (wouldClearSaved(el.dataset.vin, el.dataset.field, el.value)) return;
+      markPending(el.dataset.vin, el.dataset.field, el.value);
     });
     persistDrafts();
   });

@@ -2077,18 +2077,22 @@ function createDeliveryTransformationRouter(opts = {}) {
 
     const setOps = (field, next) => {
       const oldVal = v.ops[field] == null ? '' : String(v.ops[field]);
-      const newVal = next == null ? '' : String(next);
+      let newVal = next == null ? '' : String(next);
+      // A blank submit must not wipe a value that was already saved. Changing this
+      // field to a new value does not touch any other field.
+      if (!newVal.trim() && oldVal.trim()) newVal = oldVal;
       if (oldVal === newVal) return;
       v.ops[field] = newVal;
       changes.push({ field, oldVal, newVal });
     };
 
     if (Object.prototype.hasOwnProperty.call(body, 'opsStatus')) {
-      const s = String(body.opsStatus || '').trim();
+      let s = String(body.opsStatus || '').trim();
+      const prevStatus = String(v.ops.opsStatus || '').trim();
+      if (!s && prevStatus) s = prevStatus;
       if (s && !STATUSES.includes(s)) {
         return res.status(400).json({ error: `Invalid status: ${s}` });
       }
-      const prevStatus = String(v.ops.opsStatus || '').trim();
       const nowIso = new Date().toISOString();
       setOps('opsStatus', s);
       if (s && s !== prevStatus) {
@@ -2103,6 +2107,9 @@ function createDeliveryTransformationRouter(opts = {}) {
       if (Object.prototype.hasOwnProperty.call(body, f)) setOps(f, body[f]);
     }
     if (nextCarrier !== null) {
+      const existingCarrier = String(v.ops.carrier || '').trim();
+      // A blank submit must not wipe الناقل — Hanouf assigns once, then reassigns on purpose.
+      if (!nextCarrier && existingCarrier) nextCarrier = existingCarrier;
       const before = changes.length;
       setOps('carrier', nextCarrier);
       if (changes.length > before) {
@@ -2118,11 +2125,6 @@ function createDeliveryTransformationRouter(opts = {}) {
       }
       setOps('guestCenter', s);
       v.ops.guestCenterAuto = '';
-      if (s !== 'Yes') {
-        setOps('guestCollectAt', '');
-        setOps('guestCollectNote', '');
-        setOps('guestCollected', '');
-      }
     }
     for (const f of ['vin1502', 'trafficFile', 'trafficFeesOps', 'insuranceOps']) {
       if (Object.prototype.hasOwnProperty.call(body, f)) {
