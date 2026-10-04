@@ -6,6 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const {
   STATUSES,
+  LAST_MONTH_UPLOAD_STATUSES,
   YES_NO,
   CARRIERS,
   TRANSFER_CITIES,
@@ -575,6 +576,8 @@ function createDeliveryTransformationRouter(opts = {}) {
         })),
       employees: vacationList(),
       currentMonth: currentMonthKey(),
+      previousMonth: monthClose.previousMonthKey(currentMonthKey()),
+      lastMonthUploadStatuses: LAST_MONTH_UPLOAD_STATUSES,
       today: todayKey(),
       imports: store.data.meta.imports || {},
       pendingAssignments: Object.keys(store.data.meta.pendingAssignments || {}).length,
@@ -1361,8 +1364,9 @@ function createDeliveryTransformationRouter(opts = {}) {
   }
 
   /**
-   * Hanouf uploads the delivery sheet — only rows whose proforma date is in the
-   * current month are applied. Existing employee entries are never overwritten.
+   * Hanouf uploads the delivery sheet.
+   * Current month: every VIN. Last month: only فسح / الغاء / بطاقة / صادرة / مرور / رجوع مرور.
+   * Older rows are skipped. Existing employee entries are never overwritten.
    */
   router.post(
     '/upload',
@@ -1383,6 +1387,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       }
 
       const month = currentMonthKey();
+      const prevMonth = monthClose.previousMonthKey(month);
       const now = new Date().toISOString();
       const seen = new Set();
       const summary = {
@@ -1391,12 +1396,15 @@ function createDeliveryTransformationRouter(opts = {}) {
         filename,
         sheet: parsed.sheet,
         month,
+        previousMonth: prevMonth,
         rows: parsed.items.length,
         created: 0,
         updated: 0,
         assigned: 0,
         skippedVacation: 0,
         skippedOtherMonth: 0,
+        skippedLastMonthStatus: 0,
+        keptLastMonth: 0,
         skippedNoDate: 0,
         updatedOtherMonth: 0,
         duplicates: 0,
@@ -1409,29 +1417,38 @@ function createDeliveryTransformationRouter(opts = {}) {
         }
         seen.add(item.vin);
         const proforma = item.raw.proformaDate || item.raw.date || '';
+        const rowMonth = proforma.slice(0, 7);
+        const status = String((item.ops && item.ops.opsStatus) || '').trim();
+        const isCurrent = !!proforma && rowMonth === month;
+        const isLastMonth = !!proforma && rowMonth === prevMonth;
+        const takeLastMonth = isLastMonth && LAST_MONTH_UPLOAD_STATUSES.includes(status);
         let v = store.getVehicle(item.vin);
-        if (v && (!proforma || proforma.slice(0, 7) !== month)) {
-          // Already on the Live Sheet: refresh its details from non-blank cells, never clear or reassign.
-          if (!v.raw) v.raw = emptyRaw();
-          let changed = false;
-          Object.entries(item.raw).forEach(([k, val]) => {
-            if (!val || String(v.raw[k] ?? '') === String(val)) return;
-            v.raw[k] = val;
-            changed = true;
-          });
-          if (changed) {
-            v.rawUpdatedAt = now;
-            store.upsertVehicle(item.vin, v);
-            summary.updated += 1;
-            summary.updatedOtherMonth += 1;
+        if (!isCurrent && !takeLastMonth) {
+          if (v && !isLastMonth) {
+            // Already on the Live Sheet from an older month: refresh non-blank details, never clear or reassign.
+            if (!v.raw) v.raw = emptyRaw();
+            let changed = false;
+            Object.entries(item.raw).forEach(([k, val]) => {
+              if (!val || String(v.raw[k] ?? '') === String(val)) return;
+              v.raw[k] = val;
+              changed = true;
+            });
+            if (changed) {
+              v.rawUpdatedAt = now;
+              store.upsertVehicle(item.vin, v);
+              summary.updated += 1;
+              summary.updatedOtherMonth += 1;
+            }
+            return;
           }
-          return;
-        }
-        if (!proforma) {
-          summary.skippedNoDate += 1;
-          return;
-        }
-        if (proforma.slice(0, 7) !== month) {
+          if (!proforma) {
+            summary.skippedNoDate += 1;
+            return;
+          }
+          if (isLastMonth) {
+            summary.skippedLastMonthStatus += 1;
+            return;
+          }
           summary.skippedOtherMonth += 1;
           return;
         }
@@ -1465,6 +1482,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         store.upsertVehicle(item.vin, v);
         if (isNew) summary.created += 1;
         else summary.updated += 1;
+        if (takeLastMonth) summary.keptLastMonth += 1;
       });
 
       recordImport('lastUpload', summary);
@@ -1473,7 +1491,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         user: req.dtUser.name,
         action: 'upload_vins',
         oldValue: filename,
-        newValue: `${month}: ${summary.created} new · ${summary.updated} updated · ${summary.skippedOtherMonth} other month skipped`,
+        newValue: `${month}: ${summary.created} new · ${summary.updated} updated · last month kept ${summary.keptLastMonth} · last month other status ${summary.skippedLastMonthStatus} · older skipped ${summary.skippedOtherMonth}`,
       });
       store.save();
       return res.json({ ok: true, summary });

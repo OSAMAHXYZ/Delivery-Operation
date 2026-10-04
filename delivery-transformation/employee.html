@@ -248,8 +248,11 @@
           <div class="card">
             <h2>Upload VINs</h2>
             <p class="hint">
-              Upload the <b>Delivery sheet</b> Excel. Only VINs whose <b>Proforma Date</b> is in
-              <b id="upload-month">this month</b> are added or updated; every other row is skipped.
+              Upload the <b>Delivery sheet</b> Excel. VINs whose <b>Proforma Date</b> is in
+              <b id="upload-month">this month</b> are added or updated.
+              From <b id="upload-prev-month">last month</b>, only statuses
+              <b>فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور</b> are taken.
+              Older rows are skipped.
               <b>PIC</b> assigns the employee. Existing employee entries (status, dates…) are never overwritten.
               الناقل is assigned on the Live Sheet by Hanouf or Rasha only — the coordinator's memo uses that company.
             </p>

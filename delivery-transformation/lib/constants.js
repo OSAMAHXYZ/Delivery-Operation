@@ -17,6 +17,16 @@ const STATUSES = Object.freeze([
   'الغاء',
 ]);
 
+/** Last month's Delivery sheet rows are imported only when status is one of these. */
+const LAST_MONTH_UPLOAD_STATUSES = Object.freeze([
+  'فسح',
+  'الغاء',
+  'بطاقة',
+  'صادرة',
+  'مرور',
+  'رجوع مرور',
+]);
+
 const YES_NO = Object.freeze(['Yes', 'No']);
 
 const CARRIERS = Object.freeze([
@@ -219,6 +229,7 @@ const PIC_ALIASES = Object.freeze({
 
 module.exports = {
   STATUSES,
+  LAST_MONTH_UPLOAD_STATUSES,
   YES_NO,
   CARRIERS,
   TRANSFER_CITIES,
