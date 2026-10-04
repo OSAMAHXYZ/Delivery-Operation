@@ -38,11 +38,63 @@ const DELIVERY_CHECK_PREVIEW_IMAGE = path.join(ROOT, 'images', 'delivery-check-n
 const PORT = Number(process.env.PORT) || 3000;
 const DELIVERY_TEAM_PASSWORD = process.env.DELIVERY_TEAM_PASSWORD || process.env.DELIVERY_AGENT_PASSWORD || '1234';
 const DELIVERY_TEAM_DATA = path.join(PERSISTENT_ROOT, 'delivery-team-data.json');
-const {
-  mapCarrierToCoordinatorCompany,
-  mapCoordinatorCompanyToCarrier,
-} = require('./deliveryteam/lib/constants');
-/** Late-bound hooks — filled after hub store helpers exist (router is created early). */
+/**
+ * Delivery Team was removed. Keep الناقل → coordinator company mapping so
+ * existing hub boards still resolve names. The store stays null so sync no-ops.
+ */
+const CARRIER_TO_COORDINATOR_COMPANY = Object.freeze({
+  'طريق الراسي': 'الطريق الراسي',
+  'درب الرياض': 'شركه درب الرياض',
+  'ذكاء جميل': 'ذكاء جميل',
+  'الحسناء': 'شركه الحسناء',
+  'البستان الجميل': 'البستان الجميل',
+  'سعيد البسامي': 'شركه سعيد محي البسامي',
+  'اريكو': 'شركه اريكو ( شركه طارق محمد العريفي )',
+  'وسم الثريا': 'وسم الثريا',
+  'احد الفرسان': 'احد الفرسان',
+});
+const LEGACY_CARRIERS = Object.freeze(Object.keys(CARRIER_TO_COORDINATOR_COMPANY));
+
+function mapCarrierToCoordinatorCompany(carrier) {
+  const key = String(carrier || '').trim();
+  if (!key) return '';
+  return CARRIER_TO_COORDINATOR_COMPANY[key] || key;
+}
+
+function carrierCompanyKey(name) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function mapCoordinatorCompanyToCarrier(company) {
+  const key = String(company || '').trim();
+  if (!key) return '';
+  const kk = carrierCompanyKey(key);
+  if (
+    kk === 'بدون شركة'
+    || kk === 'بدون الشركه'
+    || kk === 'unassigned'
+    || kk === 'no company'
+    || kk === 'none'
+    || kk === '-'
+  ) {
+    return '';
+  }
+  if (kk.includes('مستودع') || kk.includes('عرض الصالة') || kk.includes('showroom')) {
+    return '';
+  }
+  for (const [carrier, full] of Object.entries(CARRIER_TO_COORDINATOR_COMPANY)) {
+    if (carrierCompanyKey(full) === kk || carrierCompanyKey(carrier) === kk) return carrier;
+  }
+  const stripped = kk.replace(/^شركة\s+|^شركه\s+/, '');
+  for (const carrier of LEGACY_CARRIERS) {
+    const ck = carrierCompanyKey(carrier);
+    if (kk === ck || stripped === ck) return carrier;
+    if (kk.includes(ck) || stripped.includes(ck) || ck.includes(stripped)) return carrier;
+  }
+  return key;
+}
+
+/** Late-bound hooks — left in place so hub sync assignments below stay valid. */
 const deliveryTeamHooks = {
   onCarrierAssigned: null,
   onRawUploaded: null,
@@ -53,55 +105,16 @@ const deliveryTeamHooks = {
   getHubTransferStats: null,
   getHubVehicle: null,
 };
-const { createDeliveryTeamRouter } = require('./deliveryteam/lib/routes');
-const deliveryTeam = createDeliveryTeamRouter({
-  filePath: DELIVERY_TEAM_DATA,
-  password: DELIVERY_TEAM_PASSWORD,
-  onCarrierAssigned: (items) => (
-    typeof deliveryTeamHooks.onCarrierAssigned === 'function'
-      ? deliveryTeamHooks.onCarrierAssigned(items)
-      : null
-  ),
-  onRawUploaded: (payload) => (
-    typeof deliveryTeamHooks.onRawUploaded === 'function'
-      ? deliveryTeamHooks.onRawUploaded(payload)
-      : null
-  ),
-  onEnsureDraftCarriers: () => (
-    typeof deliveryTeamHooks.onEnsureDraftCarriers === 'function'
-      ? deliveryTeamHooks.onEnsureDraftCarriers()
-      : null
-  ),
-  onEnsureHubRawOnLiveSheet: () => (
-    typeof deliveryTeamHooks.onEnsureHubRawOnLiveSheet === 'function'
-      ? deliveryTeamHooks.onEnsureHubRawOnLiveSheet()
-      : null
-  ),
-  onSalesRawUpload: (payload) => (
-    typeof deliveryTeamHooks.onSalesRawUpload === 'function'
-      ? deliveryTeamHooks.onSalesRawUpload(payload)
-      : null
-  ),
-  getHubRawStatus: () => (
-    typeof deliveryTeamHooks.getHubRawStatus === 'function'
-      ? deliveryTeamHooks.getHubRawStatus()
-      : null
-  ),
-  getHubTransferStats: () => (
-    typeof deliveryTeamHooks.getHubTransferStats === 'function'
-      ? deliveryTeamHooks.getHubTransferStats()
-      : null
-  ),
-  getHubVehicle: (vin) => (
-    typeof deliveryTeamHooks.getHubVehicle === 'function'
-      ? deliveryTeamHooks.getHubVehicle(vin)
-      : null
-  ),
-});
-const deliveryTeamRouter = deliveryTeam.router;
-const deliveryTeamUpload = deliveryTeam.uploadHandler;
-const deliveryTeamSalesRawUpload = deliveryTeam.salesRawUploadHandler;
-const deliveryTeamStore = deliveryTeam.store;
+const deliveryTeamStore = null;
+function retiredDeliveryTeam(_req, res) {
+  res.status(410).json({
+    error: 'Delivery Team moved to /delivery-transformation/',
+  });
+}
+const deliveryTeamRouter = express.Router();
+deliveryTeamRouter.use(retiredDeliveryTeam);
+const deliveryTeamUpload = retiredDeliveryTeam;
+const deliveryTeamSalesRawUpload = retiredDeliveryTeam;
 
 const AGENTS = new Set(['ياسين', 'الفاضل', 'البراء', 'مستودع', 'warehouse', 'showroom admin', 'سيارات العرض']);
 const AGENT_PASSWORD = process.env.DELIVERY_AGENT_PASSWORD || '1234';
@@ -4570,11 +4583,8 @@ app.use(express.json({ limit: '80mb' }));
 
 // Delivery Team module (Hanouf / employees) — isolated store + auth
 app.use('/api/delivery-team', deliveryTeamRouter);
-app.get('/deliveryteam', (_req, res) => {
-  res.redirect('/deliveryteam/');
-});
-app.get('/deliveryteam/', (_req, res) => {
-  res.sendFile(path.join(ROOT, 'deliveryteam', 'index.html'));
+app.get(['/deliveryteam', '/deliveryteam/'], (_req, res) => {
+  res.redirect(302, '/delivery-transformation/');
 });
 
 // Delivery Transformation — separate store, users, and API (no link to Delivery Team / hub data)
