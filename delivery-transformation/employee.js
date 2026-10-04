@@ -2213,6 +2213,10 @@
     }
   }
 
+  async function extractLiveSheet() {
+    await downloadFile('/export/live-sheet', 'DT-Live-Sheet.xlsx');
+  }
+
   async function downloadMonthClose() {
     await downloadFile('/month-close/download', `DT-Month-Close.xlsx`);
     await refreshMonthClose();
@@ -2235,6 +2239,8 @@
     bindLiveSheetGrid();
     loadDrafts();
     startGuestTick();
+    const extractBtn = $('#extract-live');
+    if (extractBtn) extractBtn.hidden = !(state.user && state.user.id === 'hanouf');
     const who = canEditAnyVin() ? 'every VIN' : 'your VINs';
     const lockNote = canAssignCarrier()
       ? ' Status and الناقل save on the first choice. Double-click either one to change it.'
@@ -2337,6 +2343,11 @@
     flushPendingOps().then(() => refreshView()).catch(() => refreshView());
     refreshMonthClose().catch(() => {});
   });
+  if ($('#extract-live')) {
+    $('#extract-live').addEventListener('click', () => {
+      extractLiveSheet().catch((err) => alert(err.message || 'Could not extract the Live Sheet'));
+    });
+  }
   if ($('#month-close-download')) {
     $('#month-close-download').addEventListener('click', () => {
       downloadMonthClose().catch((err) => alert(err.message || 'Download failed'));

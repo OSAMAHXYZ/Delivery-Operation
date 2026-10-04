@@ -263,7 +263,7 @@
     <section class="panel-tab" id="tab-assign">
       <section class="hero">
         <h1>Auto assign</h1>
-        <p>Choose which sales types and employees the automatic split may use. A sales advisor rule sends that advisor’s VINs to one employee.</p>
+        <p>Sales advisor rules run first. Bank orders stay off the employees you block. Anything still not assigned goes to the leftover employee.</p>
       </section>
       <div class="card" style="margin-bottom:14px">
         <h2>Who can receive auto assign</h2>
@@ -293,6 +293,29 @@
             <thead><tr><th>Sales advisor</th><th>Assign to</th><th></th></tr></thead>
             <tbody id="aa-advisor-body"></tbody>
           </table>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Do not assign this sales type to</h2>
+        <p class="hint">A bank order is not given to a blocked employee, including the leftover employee. Other sales types are not affected.</p>
+        <div class="toolbar">
+          <input id="aa-ex-type" list="aa-type-list" placeholder="Sales type, e.g. bank" />
+          <datalist id="aa-type-list"></datalist>
+          <select id="aa-ex-emp"></select>
+          <button type="button" class="btn" id="aa-ex-add">Block</button>
+        </div>
+        <div class="table-wrap" style="margin-top:10px">
+          <table class="data">
+            <thead><tr><th>Sales type</th><th>Do not assign to</th><th></th></tr></thead>
+            <tbody id="aa-exclude-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>If still not assigned</h2>
+        <p class="hint">VINs that no sales advisor rule and no even split took go straight to this employee.</p>
+        <div class="toolbar">
+          <select id="aa-fallback"></select>
         </div>
       </div>
       <div class="toolbar">
@@ -477,6 +500,6 @@
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20260923c14"></script>
-  <script src="admin.js?v=20261004a"></script>
+  <script src="admin.js?v=20261004b"></script>
 </body>
 </html>

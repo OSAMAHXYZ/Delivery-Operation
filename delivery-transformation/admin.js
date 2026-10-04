@@ -2477,6 +2477,34 @@
     }
     const list = $('aa-advisor-list');
     if (list) list.innerHTML = (d.knownAdvisors || []).map((a) => `<option value="${esc(a)}"></option>`).join('');
+    const typeList = $('aa-type-list');
+    if (typeList) {
+      const typeNames = [...new Set([...(d.salesTypes || []), ...(d.selectedSalesTypes || [])])];
+      typeList.innerHTML = typeNames.map((t) => `<option value="${esc(t)}"></option>`).join('');
+    }
+    const exEmp = $('aa-ex-emp');
+    if (exEmp) {
+      exEmp.innerHTML = (d.employees || []).map((e) => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+    }
+    const fallback = $('aa-fallback');
+    if (fallback) {
+      const cur = d.fallbackEmployeeId || '';
+      fallback.innerHTML = `<option value="">Leave unassigned</option>${(d.employees || []).map((e) =>
+        `<option value="${esc(e.id)}" ${e.id === cur ? 'selected' : ''}>${esc(e.name)}</option>`
+      ).join('')}`;
+    }
+    const exBody = $('aa-exclude-body');
+    if (exBody) {
+      exBody.innerHTML = (d.excludes || []).map((r, i) => `<tr>
+        <td>${esc(r.salesType)}</td>
+        <td>${esc(r.employeeName || r.employeeId)}</td>
+        <td><button type="button" class="btn aa-ex-x" data-i="${i}">Remove</button></td>
+      </tr>`).join('') || '<tr><td colspan="3">No blocked sales types.</td></tr>';
+      exBody.querySelectorAll('.aa-ex-x').forEach((b) => b.addEventListener('click', () => {
+        d.excludes.splice(Number(b.dataset.i), 1);
+        renderAutoAssign();
+      }));
+    }
     const body = $('aa-advisor-body');
     if (body) {
       body.innerHTML = (d.advisors || []).map((r, i) => `<tr>
@@ -2494,15 +2522,18 @@
   async function loadAutoAssign() {
     autoAssign = await api('/auto-assign');
     if (!autoAssign.advisors) autoAssign.advisors = [];
+    if (!autoAssign.excludes) autoAssign.excludes = [];
     renderAutoAssign();
-    if ($('aa-hint')) $('aa-hint').textContent = autoAssign.configured ? 'Saved rules are in use.' : 'Not saved yet · even split uses every employee and every sales type.';
+    if ($('aa-hint')) $('aa-hint').textContent = autoAssign.configured ? 'Saved rules are in use.' : 'Starting rules are shown. Save them to keep your edits.';
   }
 
   async function saveAutoAssign() {
     const employees = [...document.querySelectorAll('.aa-emp:checked')].map((el) => el.value);
     const salesTypes = [...document.querySelectorAll('.aa-type:checked')].map((el) => el.value);
     const advisors = (autoAssign && autoAssign.advisors) || [];
-    await api('/auto-assign', { method: 'PUT', json: { employees, salesTypes, advisors } });
+    const excludes = (autoAssign && autoAssign.excludes) || [];
+    const fallbackEmployeeId = String(($('aa-fallback') && $('aa-fallback').value) || '').trim();
+    await api('/auto-assign', { method: 'PUT', json: { employees, salesTypes, advisors, excludes, fallbackEmployeeId } });
     toast('Auto assign saved');
     await loadAutoAssign();
     if ($('aa-hint')) $('aa-hint').textContent = 'Saved. The next Assignment confirm uses these rules.';
@@ -2530,6 +2561,26 @@
       autoAssign.advisors.push({ advisor, employeeId: emp.id, employeeName: emp.name });
       $('aa-advisor').value = '';
       renderAutoAssign();
+    });
+  }
+  if ($('aa-ex-add')) {
+    $('aa-ex-add').addEventListener('click', () => {
+      if (!autoAssign) return;
+      const salesType = String(($('aa-ex-type') && $('aa-ex-type').value) || '').trim();
+      const employeeId = String(($('aa-ex-emp') && $('aa-ex-emp').value) || '').trim();
+      const emp = (autoAssign.employees || []).find((e) => e.id === employeeId);
+      if (!salesType || !emp) return;
+      autoAssign.excludes = (autoAssign.excludes || []).filter((r) => !(
+        r.salesType.toLowerCase() === salesType.toLowerCase() && r.employeeId === emp.id
+      ));
+      autoAssign.excludes.push({ salesType, employeeId: emp.id, employeeName: emp.name });
+      $('aa-ex-type').value = '';
+      renderAutoAssign();
+    });
+  }
+  if ($('aa-fallback')) {
+    $('aa-fallback').addEventListener('change', () => {
+      if (autoAssign) autoAssign.fallbackEmployeeId = $('aa-fallback').value;
     });
   }
   if ($('aa-save')) $('aa-save').addEventListener('click', () => saveAutoAssign().catch((err) => alert(err.message)));

@@ -198,6 +198,9 @@ const OPS_HEADER_MAP = Object.freeze({
   notes: ['الملاحظات remarks', 'الملاحظات', 'remarks', 'notes'],
   transferCity: ['مدينة الترحيل', 'transfer city', 'city'],
   carrier: ['الناقل', 'carrier', 'transporter'],
+  guestCenter: ['guest exp', 'guest center'],
+  guestCollectAt: ['appointment'],
+  guestCollectNote: ['appointment note'],
 });
 
 /** Sales Raw fixed letter layout (0-based) when column A is S/A instead of VIN */

@@ -66,6 +66,7 @@
             <strong id="raw-status-time">—</strong>
           </div>
           <input type="search" class="top-search" id="global-search" placeholder="Search VIN / order / product…" />
+          <button type="button" class="btn" id="extract-live" hidden>Extract Live Sheet</button>
           <button type="button" class="btn" id="refresh-btn">Refresh</button>
         </div>
       </header>
@@ -190,7 +191,8 @@
                 <p class="hint" id="asg-hint">
                   Unique Sales Raw VINs with a <b>Proforma Date (column P)</b> and <b>no Invoice Date (column V)</b>,
                   that are not already on the system.
-                  The employee is picked automatically so everyone has the <b>same number in each sales type</b>.
+                  Sales advisors set in admin go to that employee. Bank orders stay off the blocked employees.
+                  Anything still not assigned goes to the leftover employee. The rest are split so everyone has the <b>same number in each sales type</b>.
                 </p>
               </div>
             </div>
@@ -254,6 +256,7 @@
               <b>فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور</b> are taken.
               Older rows are skipped.
               <b>PIC</b> assigns the employee. Existing employee entries (status, dates…) are never overwritten.
+              An <b>Extract Live Sheet</b> file can be uploaded here and will be read back.
               الناقل is assigned on the Live Sheet by Hanouf or Rasha only — the coordinator's memo uses that company.
             </p>
             <div class="raw-status-card">
@@ -312,6 +315,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261004a"></script>
+  <script src="employee.js?v=20261004b"></script>
 </body>
 </html>

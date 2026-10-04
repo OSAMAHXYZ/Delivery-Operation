@@ -173,8 +173,10 @@ function opsFromRow(row, idx) {
   const ops = {};
   ['guestSentDate', 'signatureReceivedDate', 'accountsSentDate', 'accountsApprovalDate', 'registrationIssueDate']
     .forEach((f) => { ops[f] = normalizeDate(get(f)); });
-  ['vin1502', 'trafficFile', 'trafficFeesOps', 'insuranceOps']
+  ['vin1502', 'trafficFile', 'trafficFeesOps', 'insuranceOps', 'guestCenter']
     .forEach((f) => { ops[f] = normalizeYesNo(get(f)); });
+  ops.guestCollectAt = cellString(get('guestCollectAt'));
+  ops.guestCollectNote = cellString(get('guestCollectNote'));
   ops.opsStatus = normalizeStatus(get('opsStatus'));
   ops.notes = cellString(get('notes'));
   ops.transferCity = cellString(get('transferCity'));
