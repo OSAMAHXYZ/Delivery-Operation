@@ -715,7 +715,7 @@
       assignment: ['Assignment', 'VIN numbers only · Proforma Date (column P) filled · Invoice Date (column V) empty · no duplicate VINs'],
       targets: ['Team Targets', 'Each employee · VINs by sales type · total · target · Ach%'],
       upload: ['Upload VINs', `Delivery sheet · ${state.meta.currentMonth || 'this month'} all VINs · ${state.meta.previousMonth || 'last month'} only فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور`],
-      'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · everyone sees the update time'],
+      'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · الغاء missing from this file is removed'],
       appointment: ['Appointment', 'Guest Exp = Yes · set date, time, and a timer for everyone'],
     };
     const t = titles[view] || ['Delivery Transformation', ''];
@@ -1128,6 +1128,7 @@
           <div><strong>${s.skippedInvoiced || 0}</strong><span>Skipped · has Invoice Date (V)</span></div>
           <div><strong>${s.skippedOnSystem || 0}</strong><span>Skipped · already on system</span></div>
           <div><strong>${s.duplicates || 0}</strong><span>Duplicate VINs ignored</span></div>
+          <div><strong>${s.removedCancel || 0}</strong><span>الغاء removed · not in this Raw file</span></div>
         </div>
         ${s.assignable ? `<p style="margin-top:10px"><b>${s.assignable}</b> unique VIN(s) with Proforma Date and no Invoice Date
           ${isManager() ? 'are waiting for your confirmation.' : 'were sent to Hanouf to confirm the assignment.'}
@@ -1436,7 +1437,7 @@
       <tbody>${shown.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
         `<td class="col-${c.key}">${c.html(r, i)}</td>`).join('')}</tr>`).join('')
         || `<tr><td colspan="${cols.length}">${state.liveOnlySelected ? 'None of the selected VINs match these filters.' : 'No VINs on the Live Sheet yet.'}</td></tr>`}</tbody>`;
-    $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
+    $$('.vin-link', table).forEach((b) => b.addEventListener('dblclick', () => openVin(b.dataset.vin)));
     bindEditableCells(table);
     bindSelChecks(table, shown);
     afterLiveRender(keepCf);
@@ -1489,9 +1490,11 @@
 
   function liveCellText(td) {
     if (!td) return '';
-    const ctl = td.querySelector('select.cell-edit, input.cell-edit, textarea.cell-edit');
+    const ctl = td.querySelector('select.cell-edit, input.cell-edit, textarea.cell-edit, button.choice-lock, button.vin-link, a.phone-link');
     let s;
-    if (ctl) s = ctl.value;
+    if (ctl && ctl.matches('select, input, textarea')) s = ctl.value;
+    else if (ctl && ctl.matches('button.choice-lock')) s = ctl.dataset.choice || ctl.textContent;
+    else if (ctl) s = ctl.textContent;
     else if (td.classList.contains('col-num')) s = (td.querySelector('.sel-cell span') || td).textContent;
     else s = td.textContent;
     s = String(s || '').replace(/\s+/g, ' ').trim();
@@ -1614,7 +1617,7 @@
     const copyBtn = gCopy();
     const valBtn = gVals();
     if (!b) {
-      if (info && !grid.copyFlash) info.textContent = 'Click a cell, drag or Shift+click to select · Ctrl+C copies as a table with headers';
+      if (info && !grid.copyFlash) info.textContent = 'Click a cell — VIN and entry boxes included — drag or Shift+click · Ctrl+C copies · double-click a VIN to open it';
       if (copyBtn) copyBtn.disabled = true;
       if (valBtn) valBtn.disabled = true;
       return;
@@ -1674,7 +1677,9 @@
     const heads = withHeaders && !single ? cols.map(colPlainLabel) : null;
     const tsvRows = heads ? [heads, ...cells] : cells;
     const text = tsvRows.map((r) => r.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t')).join('\r\n');
-    const asText = (v) => (/^0\d|^\d{11,}$/.test(v) ? ' style="mso-number-format:\'\\@\';border:1px solid #cbd5e1;padding:4px 8px"' : ' style="border:1px solid #cbd5e1;padding:4px 8px"');
+    const asText = (v) => (/^0\d|^\d{11,}$/.test(v) || (v.length >= 11 && /[A-Za-z]/.test(v) && /\d/.test(v))
+      ? ' style="mso-number-format:\'\\@\';border:1px solid #cbd5e1;padding:4px 8px"'
+      : ' style="border:1px solid #cbd5e1;padding:4px 8px"');
     const thStyle = 'background:#1e3a5f;color:#ffffff;font-weight:bold;border:1px solid #94a3b8;padding:5px 8px;text-align:left';
     const html = `<table border="1" cellspacing="0" style="border-collapse:collapse;font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11pt">${
       heads ? `<thead><tr>${heads.map((h) => `<th style="${thStyle}">${esc(h)}</th>`).join('')}</tr></thead>` : ''
@@ -1683,52 +1688,68 @@
   }
 
   let livePendingCopy = null;
+
+  function flashLiveCopy(payload) {
+    const info = gInfo();
+    if (!info || !payload) return;
+    const painted = grid;
+    grid.copyFlash = true;
+    info.textContent = payload.single
+      ? 'Copied ✓'
+      : `Copied ✓ ${payload.rows} row(s) × ${payload.cols} column(s)${payload.withHeaders ? ' as a table with headers' : ' · values only'} — paste into Excel, email or WhatsApp Web`;
+    info.classList.add('is-flash');
+    clearTimeout(grid.copyTimer);
+    grid.copyTimer = setTimeout(() => {
+      painted.copyFlash = false;
+      info.classList.remove('is-flash');
+      const prev = grid;
+      grid = painted;
+      paintLiveSel();
+      grid = prev;
+    }, 2600);
+  }
+
   document.addEventListener('copy', (e) => {
-    if (!livePendingCopy) return;
-    e.clipboardData.setData('text/plain', livePendingCopy.text);
-    if (!livePendingCopy.single) e.clipboardData.setData('text/html', livePendingCopy.html);
+    if (!livePendingCopy || !e.clipboardData) return;
+    const payload = livePendingCopy;
+    e.clipboardData.setData('text/plain', payload.text);
+    if (!payload.single) e.clipboardData.setData('text/html', payload.html);
     e.preventDefault();
+    livePendingCopy = null;
+    flashLiveCopy(payload);
   });
 
-  async function copyLiveSelection(withHeaders = true) {
+  function copyLiveSelection(withHeaders = true) {
     const payload = buildLiveCopy(withHeaders);
     if (!payload) return false;
+    payload.withHeaders = withHeaders;
+    livePendingCopy = payload;
+    const ta = document.createElement('textarea');
+    ta.value = payload.text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+    document.body.appendChild(ta);
+    const back = document.activeElement;
+    ta.focus();
+    ta.select();
     let ok = false;
-    if (navigator.clipboard && window.ClipboardItem) {
-      try {
-        const item = { 'text/plain': new Blob([payload.text], { type: 'text/plain' }) };
-        if (!payload.single) item['text/html'] = new Blob([payload.html], { type: 'text/html' });
-        await navigator.clipboard.write([new ClipboardItem(item)]);
-        ok = true;
-      } catch { ok = false; }
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    if (back && back.focus) {
+      try { back.focus({ preventScroll: true }); } catch { /* ignore */ }
     }
-    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
-      try { await navigator.clipboard.writeText(payload.text); ok = true; } catch { ok = false; }
-    }
-    if (!ok) {
-      livePendingCopy = payload;
-      try { ok = document.execCommand('copy'); } catch { ok = false; }
-      livePendingCopy = null;
+    if (ok) return true;
+    livePendingCopy = null;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(payload.text).then(() => flashLiveCopy(payload)).catch(() => {
+        const info = gInfo();
+        if (info) info.textContent = 'Copy failed — click a cell, then press Ctrl+C';
+      });
+      return true;
     }
     const info = gInfo();
-    if (info) {
-      const painted = grid;
-      grid.copyFlash = true;
-      info.textContent = payload.single
-        ? 'Copied ✓'
-        : `Copied ✓ ${payload.rows} row(s) × ${payload.cols} column(s)${withHeaders ? ' as a table with headers' : ' · values only'} — paste into Excel, email or WhatsApp Web`;
-      info.classList.add('is-flash');
-      clearTimeout(grid.copyTimer);
-      grid.copyTimer = setTimeout(() => {
-        painted.copyFlash = false;
-        info.classList.remove('is-flash');
-        const prev = grid;
-        grid = painted;
-        paintLiveSel();
-        grid = prev;
-      }, 2600);
-    }
-    return ok;
+    if (info) info.textContent = 'Copy failed — click a cell, then press Ctrl+C';
+    return false;
   }
 
   function afterLiveRender(keepCf) {
@@ -1774,12 +1795,16 @@
       }
       const td = e.target.closest('tbody td');
       if (!td || !td.parentElement.dataset.vin) return;
-      if (e.target.closest('input, select, textarea, label')) return;
-      const isLink = !!e.target.closest('a, button');
-      if (!isLink) {
-        e.preventDefault();
-        if (isTypingTarget(document.activeElement)) document.activeElement.blur();
-      }
+      if (e.target.closest('.sel-check, .sel-all, label.sel-cell')) return;
+      const col = grid.cols && grid.cols[td.cellIndex];
+      const sameCell = !!(col && grid.sel
+        && grid.sel.anchor.key === col.key && grid.sel.focus.key === col.key
+        && grid.sel.anchor.vin === td.parentElement.dataset.vin
+        && grid.sel.focus.vin === td.parentElement.dataset.vin);
+      const control = e.target.closest('input.cell-edit, select.cell-edit, textarea.cell-edit');
+      if (control && sameCell && !e.shiftKey) return;
+      if (!e.target.closest('button')) e.preventDefault();
+      if (isTypingTarget(document.activeElement) && !e.target.closest('button')) document.activeElement.blur();
       setLiveSel(td, e.shiftKey);
       dragging = true;
       dragMoved = false;
@@ -2003,7 +2028,7 @@
       <tbody>${w.rows.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
         `<td class="col-${c.key}">${c.html(r, i)}</td>`).join('')}</tr>`).join('')
         || `<tr><td colspan="${cols.length}">${empty}</td></tr>`}</tbody>`;
-    $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
+    $$('.vin-link', table).forEach((b) => b.addEventListener('dblclick', () => openVin(b.dataset.vin)));
     bindEditableCells(table);
     bindSelChecks(table, w.rows);
     $('#my-pager').innerHTML = `<span>${w.assigned} VIN(s) · all on this page</span>`;

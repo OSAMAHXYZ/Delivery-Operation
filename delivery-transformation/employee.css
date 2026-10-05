@@ -2487,6 +2487,7 @@ table.live-sheet thead tr.live-frow th.is-on {
 }
 table.live-sheet tbody td {
   cursor: cell;
+  user-select: none;
 }
 table.live-sheet tbody td.is-range {
   background-image: linear-gradient(rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.16)) !important;

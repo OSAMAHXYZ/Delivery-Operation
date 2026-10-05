@@ -152,8 +152,8 @@ const SHEET_STATUS_ORDER = [
   'تسليم متقدم',
   'صادرة',
   'مرور',
-  'بطاقة',
   'رجوع مرور',
+  'بطاقة',
   'فسح',
   'معلقة',
   'الغاء',
@@ -1494,7 +1494,16 @@ function createDeliveryTransformationRouter(opts = {}) {
         });
         if (!v.raw.proformaDate) v.raw.proformaDate = proforma;
         Object.entries(item.ops).forEach(([k, val]) => {
-          if (k === 'carrier') return;
+          if (k === 'carrier') {
+            const next = String(val || '').trim();
+            if (fromLiveExtract && next && String(v.ops.carrier || '').trim() !== next) {
+              v.ops.carrier = next;
+              v.ops.carrierChangedFrom = '';
+              v.ops.carrierChangedBy = '';
+              v.ops.carrierChangedAt = '';
+            }
+            return;
+          }
           if (val && !String(v.ops[k] || '').trim()) v.ops[k] = val;
         });
         if (v.ops.opsStatus) scheduleEngine.recordStatusEnter(v.ops, v.ops.opsStatus, now);
@@ -1571,8 +1580,10 @@ function createDeliveryTransformationRouter(opts = {}) {
         skippedInvoiced: 0,
         skippedOnSystem: 0,
         duplicates: parsed.duplicates || 0,
+        removedCancel: 0,
       };
       const pending = pendingMap();
+      const rawVins = new Set(parsed.items.map((item) => item.vin));
       parsed.items.forEach((item) => {
         const v = store.getVehicle(item.vin);
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
@@ -1625,6 +1636,13 @@ function createDeliveryTransformationRouter(opts = {}) {
         }
       });
 
+      store.allVehicles().forEach((v) => {
+        const status = String((v.ops && v.ops.opsStatus) || '').trim();
+        if (status !== 'الغاء' || rawVins.has(v.vin)) return;
+        store.deleteVehicle(v.vin);
+        summary.removedCancel += 1;
+      });
+
       recordImport('lastSalesRaw', summary);
       if (companyPerformance.isHanoufUser(req.dtUser)) {
         companyPerformance.recordHanoufSalesRaw(store, parsed.items, {
@@ -1640,7 +1658,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         user: req.dtUser.name,
         action: 'upload_sales_raw',
         oldValue: filename,
-        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment (P filled · V empty)`,
+        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment (P filled · V empty) · الغاء removed ${summary.removedCancel}`,
       });
       store.save();
       summary.pendingTotal = Object.keys(pending).length;
