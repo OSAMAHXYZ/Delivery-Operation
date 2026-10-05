@@ -79,9 +79,35 @@ function countMap(vehicles, pick) {
     .map(([name, count]) => ({ Name: name, Count: count }));
 }
 
-function buildLiveSheetWorkbook(vehicles) {
+function coordinatorDetailRows(prints) {
+  const rows = [];
+  (prints || []).forEach((p) => {
+    const vins = Array.isArray(p.vins) && p.vins.length ? p.vins : [{}];
+    vins.forEach((x) => {
+      const vin = x && typeof x === 'object' ? (x.vin || '') : (x || '');
+      rows.push({
+        Kind: p.kind === 'warehouse' ? 'Warehouse' : (p.label === 'داخلي' ? 'Internal' : 'Delivery note'),
+        Company: p.company || '',
+        City: p.city || '',
+        VIN: vin,
+        Product: (x && x.product) || '',
+        Customer: (x && x.customer) || '',
+        Plate: (x && (x.plate || x.plateNo)) || '',
+        Invoice: p.invoiceNumber || '',
+        Label: p.label || '',
+        'Printed by': p.printedBy || '',
+        At: p.at || '',
+        Note: p.note || p.notes || '',
+      });
+    });
+  });
+  return rows;
+}
+
+function buildLiveSheetWorkbook(vehicles, prints) {
   const wb = XLSX.utils.book_new();
   appendSheet(wb, 'Live Sheet', liveSheetRows(vehicles));
+  appendSheet(wb, 'Coordinator', coordinatorDetailRows(prints));
   return wb;
 }
 

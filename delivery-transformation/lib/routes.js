@@ -782,18 +782,21 @@ function createDeliveryTransformationRouter(opts = {}) {
           const typed = snapshotCars.find((c) => normVin(c && c.chassis) === vin);
           return {
             vin,
-            product: (v && v.raw && v.raw.product) || (typed && String(typed.model || '').trim()) || '',
+            product: (typed && String(typed.model || '').trim()) || (v && v.raw && v.raw.product) || '',
             customer: (v && v.raw && v.raw.userName) || '',
+            plate: (typed && String(typed.plate || '').trim()) || '',
+            remarks: (typed && String(typed.remarks || '').trim()) || '',
           };
         }),
         printedBy: req.dtUser.name,
         attendanceId,
         invoiceNumber: kind === 'warehouse' ? '' : invoiceNumber,
-        snapshot: (req.body && req.body.snapshot && typeof req.body.snapshot === 'object')
-          ? req.body.snapshot
-          : null,
+        snapshot: (() => {
+          const snap = req.body && req.body.snapshot;
+          if (!snap || typeof snap !== 'object') return null;
+          try { return JSON.parse(JSON.stringify(snap)); } catch { return snap; }
+        })(),
       });
-      if (store.data.prints.length > 2000) store.data.prints.length = 2000;
     }
     if (printVins.length || attendanceId) store.save();
     return res.json({ ok: true, vins: marked });
@@ -988,12 +991,8 @@ function createDeliveryTransformationRouter(opts = {}) {
         eq(req.query.carrier, (v) => v.ops && v.ops.carrier);
       }
     }
-    const statusRank = (v) => {
-      const i = STATUSES.indexOf(String((v.ops && v.ops.opsStatus) || ''));
-      return i === -1 ? STATUSES.length : i;
-    };
-    list.sort((a, b) => (isCoordinator ? 0 : statusRank(a) - statusRank(b))
-      || String(a.vin).localeCompare(String(b.vin)));
+    const sheetOrder = (v) => String((v.raw && (v.raw.proformaDate || v.raw.date)) || '');
+    list.sort((a, b) => sheetOrder(a).localeCompare(sheetOrder(b)) || String(a.vin).localeCompare(String(b.vin)));
     const byStatus = {};
     const byEmployee = {};
     const byCarrier = {};
@@ -1459,8 +1458,11 @@ function createDeliveryTransformationRouter(opts = {}) {
           v = { vin: item.vin, raw: { ...emptyRaw(), ...((p && p.raw) || {}), vin: item.vin }, ops: { ...emptyOps() } };
           copyPendingInventory(v.ops, item.vin);
         }
+        const fromLiveExtract = /live\s*sheet/i.test(String(parsed.sheet || ''));
         Object.entries(item.raw).forEach(([k, val]) => {
-          if (val) v.raw[k] = val;
+          if (!val) return;
+          if (fromLiveExtract && String(v.raw[k] || '').trim()) return;
+          v.raw[k] = val;
         });
         if (!v.raw.proformaDate) v.raw.proformaDate = proforma;
         Object.entries(item.ops).forEach(([k, val]) => {
@@ -1759,6 +1761,9 @@ function createDeliveryTransformationRouter(opts = {}) {
           printedAt: (v.ops && v.ops.coordinatorPrintedAt) || '',
           printedBy: (v.ops && v.ops.coordinatorPrintedBy) || '',
           invoice: (v.ops && v.ops.coordinatorPrintInvoice) || '',
+          status: (v.ops && v.ops.opsStatus) || '',
+          proformaDate: (v.raw && v.raw.proformaDate) || '',
+          invoiceDate: (v.raw && v.raw.invoiceDate) || '',
         }));
       return {
         company,
@@ -1781,42 +1786,84 @@ function createDeliveryTransformationRouter(opts = {}) {
       })
       .filter((u) => u.role === 'coordinator' || u.notes > 0);
 
-    const companyCities = companies.map((c) => {
-      const byCity = new Map();
-      c.vins.forEach((row) => {
-        const city = String(row.city || '').trim() || '—';
-        if (!byCity.has(city)) byCity.set(city, { city, count: 0, vins: [] });
-        const g = byCity.get(city);
-        g.count += 1;
-        g.vins.push(row);
+    // Each printed delivery note is frozen. Later Live Sheet / Sales Raw updates do not rewrite it.
+    const noteRows = [];
+    const loggedVins = new Set();
+    (store.data.prints || []).forEach((p) => {
+      if (!p || p.kind === 'warehouse') return;
+      const company = String(p.company || (p.snapshot && p.snapshot.company_rep) || '').trim() || '(blank)';
+      const city = String(p.city || (p.snapshot && p.snapshot.branch_to) || '').trim() || '—';
+      const cars = (p.snapshot && Array.isArray(p.snapshot.cars)) ? p.snapshot.cars : [];
+      (Array.isArray(p.vins) ? p.vins : []).forEach((row) => {
+        const vin = String((row && row.vin) || '').trim();
+        if (!vin) return;
+        loggedVins.add(normVin(vin));
+        const snap = cars.find((c) => normVin(c && c.chassis) === normVin(vin));
+        const vehicle = store.getVehicle(vin);
+        noteRows.push({
+          company,
+          city,
+          vin,
+          product: (snap && String(snap.model || '').trim()) || (row && row.product) || '',
+          customer: (row && row.customer) || (p.snapshot && p.snapshot.customer_name) || '',
+          remarks: (snap && String(snap.remarks || '').trim()) || (row && row.remarks) || '',
+          printedAt: p.at || '',
+          printedBy: p.printedBy || '',
+          invoice: p.invoiceNumber || '',
+          status: (vehicle && vehicle.ops && vehicle.ops.opsStatus) || '',
+          proformaDate: (vehicle && vehicle.raw && vehicle.raw.proformaDate) || '',
+          invoiceDate: (vehicle && vehicle.raw && vehicle.raw.invoiceDate) || '',
+        });
       });
-      return {
-        company: c.company,
-        total: c.notes,
-        cities: [...byCity.values()].sort((a, b) => b.count - a.count),
-      };
-    }).filter((c) => c.total > 0);
+    });
+    printed.forEach((v) => {
+      if (loggedVins.has(normVin(v.vin))) return;
+      noteRows.push({
+        company: String((v.ops && v.ops.coordinatorPrintCompany) || '').trim() || '(blank)',
+        city: String((v.ops && (v.ops.coordinatorPrintCity || v.ops.transferCity)) || '').trim() || '—',
+        vin: v.vin,
+        product: (v.raw && v.raw.product) || '',
+        customer: (v.raw && v.raw.userName) || '',
+        remarks: (v.ops && v.ops.notes) || '',
+        printedAt: (v.ops && v.ops.coordinatorPrintedAt) || '',
+        printedBy: (v.ops && v.ops.coordinatorPrintedBy) || '',
+        invoice: (v.ops && v.ops.coordinatorPrintInvoice) || '',
+        status: (v.ops && v.ops.opsStatus) || '',
+        proformaDate: (v.raw && v.raw.proformaDate) || '',
+        invoiceDate: (v.raw && v.raw.invoiceDate) || '',
+      });
+    });
 
-    // الناقل × مدينة schedule from coordinator.html delivery-note prints
+    const cityGroups = new Map();
+    noteRows.forEach((row) => {
+      if (!cityGroups.has(row.company)) cityGroups.set(row.company, new Map());
+      const byCity = cityGroups.get(row.company);
+      if (!byCity.has(row.city)) byCity.set(row.city, { city: row.city, count: 0, vins: [] });
+      const g = byCity.get(row.city);
+      g.count += 1;
+      g.vins.push(row);
+    });
+    const companyCities = [...cityGroups.entries()].map(([company, byCity]) => {
+      const cities = [...byCity.values()].sort((a, b) => b.count - a.count);
+      return {
+        company,
+        total: cities.reduce((n, c) => n + c.count, 0),
+        cities,
+      };
+    }).filter((c) => c.total > 0)
+      .sort((a, b) => (b.total - a.total) || a.company.localeCompare(b.company, 'ar'));
+
+    // الناقل × مدينة schedule from the saved delivery notes, not the live VIN
     const pivotMap = new Map(); // company -> city -> vins[]
     const citySet = new Set();
-    printed.forEach((v) => {
-      const company = String((v.ops && (v.ops.coordinatorPrintCompany || v.ops.carrier)) || '').trim() || '(blank)';
-      const city = String((v.ops && (v.ops.coordinatorPrintCity || v.ops.transferCity)) || '').trim() || '(blank)';
+    noteRows.forEach((row) => {
+      const company = row.company || '(blank)';
+      const city = row.city || '—';
       citySet.add(city);
       if (!pivotMap.has(company)) pivotMap.set(company, new Map());
       const cities = pivotMap.get(company);
       if (!cities.has(city)) cities.set(city, []);
-      cities.get(city).push({
-        vin: v.vin,
-        product: (v.raw && v.raw.product) || '',
-        customer: (v.raw && v.raw.userName) || '',
-        city,
-        company,
-        printedAt: (v.ops && v.ops.coordinatorPrintedAt) || '',
-        printedBy: (v.ops && v.ops.coordinatorPrintedBy) || '',
-        invoice: (v.ops && v.ops.coordinatorPrintInvoice) || '',
-      });
+      cities.get(city).push(row);
     });
     const pivotCities = [...citySet].sort((a, b) => a.localeCompare(b, 'ar'));
     const carrierPivot = {
@@ -1938,7 +1985,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       companyCities,
       carrierPivot,
       carrierStats,
-      prints: (store.data.prints || []).slice(0, 300),
+      prints: store.data.prints || [],
       carriers: allCarriers(),
       cities: allCities(),
     });
@@ -2372,6 +2419,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         advisors: defaultAdvisors(),
         excludes: defaultExcludes(),
         fallbackEmployeeId: 'hanouf',
+        advisorOnlyIds: ['ruba'],
       };
     }
     const employees = [...new Set((Array.isArray(saved.employees) ? saved.employees : [])
@@ -2392,6 +2440,12 @@ function createDeliveryTransformationRouter(opts = {}) {
     const fallbackEmp = legacy
       ? findAssignable('hanouf')
       : findAssignable(saved.fallbackEmployeeId);
+    const advisorOnlyIds = saved.advisorOnlyIds === undefined
+      ? ['ruba']
+      : [...new Set((Array.isArray(saved.advisorOnlyIds) ? saved.advisorOnlyIds : [])
+        .map((id) => findAssignable(id))
+        .filter(Boolean)
+        .map((u) => u.id))];
     return {
       configured: true,
       employees,
@@ -2399,6 +2453,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       advisors,
       excludes,
       fallbackEmployeeId: fallbackEmp ? fallbackEmp.id : '',
+      advisorOnlyIds,
     };
   }
 
@@ -2450,7 +2505,8 @@ function createDeliveryTransformationRouter(opts = {}) {
       return rules.salesTypes.some((s) => s.toLowerCase() === String(t || '').trim().toLowerCase());
     };
     const advisorMap = new Map(rules.advisors.map((r) => [advisorKey(r.advisor), r.employeeId]));
-    const available = employees.filter((u) => !onVacation(u.id) && poolIds.has(u.id));
+    const advisorOnly = new Set(rules.advisorOnlyIds || []);
+    const available = employees.filter((u) => !onVacation(u.id) && poolIds.has(u.id) && !advisorOnly.has(u.id));
     const month = currentMonthKey();
     const typeLabel = (t) => String(t || '').trim() || '(blank)';
     const byType = {};
@@ -2650,6 +2706,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         employeeName: (employees.find((u) => u.id === r.employeeId) || {}).name || r.employeeId,
       })),
       fallbackEmployeeId: rules.fallbackEmployeeId || '',
+      advisorOnlyIds: rules.advisorOnlyIds || [],
       knownAdvisors: known.advisors,
     });
   });
@@ -2666,6 +2723,10 @@ function createDeliveryTransformationRouter(opts = {}) {
     const advisors = cleanAdvisors(body.advisors);
     const excludes = cleanExcludes(body.excludes);
     const fallback = findAssignable(body.fallbackEmployeeId);
+    const advisorOnlyIds = [...new Set((Array.isArray(body.advisorOnlyIds) ? body.advisorOnlyIds : [])
+      .map((id) => findAssignable(id))
+      .filter(Boolean)
+      .map((u) => u.id))];
     if (!store.data.meta || typeof store.data.meta !== 'object') store.data.meta = {};
     store.data.meta.autoAssign = {
       employees,
@@ -2673,6 +2734,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       advisors,
       excludes,
       fallbackEmployeeId: fallback ? fallback.id : '',
+      advisorOnlyIds,
     };
     store.pushAudit({
       vin: '',
@@ -2765,12 +2827,9 @@ function createDeliveryTransformationRouter(opts = {}) {
     const month = String((req.query && req.query.month) || '').trim().slice(0, 7);
     let list = store.allVehicles();
     if (/^\d{4}-\d{2}$/.test(month)) list = list.filter((v) => inMonth(v, month));
-    const rank = (v) => {
-      const i = STATUSES.indexOf(String((v.ops && v.ops.opsStatus) || ''));
-      return i === -1 ? STATUSES.length : i;
-    };
-    list.sort((a, b) => rank(a) - rank(b) || String(a.vin).localeCompare(String(b.vin)));
-    const wb = exportExcel.buildLiveSheetWorkbook(list);
+    list.sort((a, b) => String((a.raw && (a.raw.proformaDate || a.raw.date)) || '').localeCompare(String((b.raw && (b.raw.proformaDate || b.raw.date)) || ''))
+      || String(a.vin).localeCompare(String(b.vin)));
+    const wb = exportExcel.buildLiveSheetWorkbook(list, store.data.prints || []);
     return sendXlsx(res, wb, `DT-Live-Sheet-${exportExcel.stamp()}.xlsx`);
   });
 

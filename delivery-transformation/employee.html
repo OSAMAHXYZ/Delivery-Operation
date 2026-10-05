@@ -176,7 +176,14 @@
               <button type="button" class="btn" id="my-clear">Clear</button>
             </div>
             <div class="sel-bar" id="my-sel-bar"></div>
-            <div class="table-wrap"><table class="data" id="my-table"></table></div>
+            <div class="live-copy-bar" id="my-copy-bar">
+              <span class="live-copy-info" id="my-copy-info">Click a cell, drag or Shift+click to select · Ctrl+C copies as a table with headers</span>
+              <button type="button" class="btn live-copy-btn" id="my-copy-btn" disabled>Copy</button>
+              <button type="button" class="btn live-copy-btn" id="my-copy-values" disabled title="Values only, no header row">Copy values</button>
+              <button type="button" class="btn live-copy-btn" id="my-cf-clear" hidden>Clear column filters</button>
+            </div>
+            <datalist id="my-cf-list"></datalist>
+            <div class="table-wrap live-sheet-wrap"><table class="data live-sheet" id="my-table"></table></div>
             <div class="pager" id="my-pager"></div>
           </div>
         </section>
@@ -315,6 +322,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261004b"></script>
+  <script src="employee.js?v=20261005a"></script>
 </body>
 </html>

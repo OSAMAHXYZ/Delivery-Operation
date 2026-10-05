@@ -882,8 +882,8 @@
       </div>`, { wide: true });
   }
 
-  function openCompanyCities(name) {
-    const c = (dash.companyCities || []).find((x) => x.company === name);
+  function openCompanyCities(name, source) {
+    const c = source || (dash.companyCities || []).find((x) => x.company === name);
     if (!c) return;
     openDrawer(`
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:12px">
@@ -1270,10 +1270,87 @@
 
     renderEntryAccuracy(a.entryAccuracy);
 
-    if ($('vsnd-top5-body')) renderFleetFreeLeft();
-    if ($('vsnd-aging-dist-body')) renderDaysToSalesPanel();
+    if ($('vsnd-aging-dist-body')) renderBoardCompanyCities();
     if ($('vsnd-emp-body')) renderDisplayCounter();
     if ($('vsnd-region-body')) renderCarrierPanel();
+  }
+
+  function prevYm(ym) {
+    const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    if (!m) return '';
+    let y = Number(m[1]);
+    let mo = Number(m[2]) - 1;
+    if (mo < 1) {
+      mo = 12;
+      y -= 1;
+    }
+    return `${y}-${String(mo).padStart(2, '0')}`;
+  }
+
+  function isVinDelivered(v) {
+    const s = String((v && v.status) || '').trim();
+    return !!String((v && v.invoiceDate) || '').trim() || s === 'Claimed' || s === 'تم التسليم';
+  }
+
+  function boardCompanyCities() {
+    const month = (slaDash && slaDash.month) || empMonth || '';
+    const prev = prevYm(month);
+    return ((dash && dash.companyCities) || []).map((c) => {
+      const cities = (c.cities || []).map((city) => {
+        const vins = (city.vins || []).filter((v) => {
+          const ym = String(v.printedAt || v.proformaDate || '').slice(0, 7);
+          if (!month) return true;
+          if (ym === month) return true;
+          return ym === prev && !isVinDelivered(v);
+        });
+        return { city: city.city, count: vins.length, vins };
+      }).filter((city) => city.count);
+      return {
+        company: c.company,
+        total: cities.reduce((s, city) => s + city.count, 0),
+        cities,
+      };
+    }).filter((c) => c.total);
+  }
+
+  function renderBoardCompanyCities() {
+    const host = $('vsnd-aging-dist-body');
+    if (!host) return;
+    const more = $('vsnd-city-more');
+    if (more) {
+      more.onclick = (e) => {
+        e.stopPropagation();
+        const rows = boardCompanyCities();
+        if (!rows.length) return;
+        openCompanyCities(rows[0].company, rows[0]);
+      };
+    }
+    if (!dash) {
+      host.innerHTML = '<p class="chart-empty" style="margin:0;font-size:.75rem">Loading prints…</p>';
+      return;
+    }
+    const rows = boardCompanyCities();
+    if (!rows.length) {
+      host.innerHTML = '<p class="chart-empty" style="margin:0;font-size:.75rem">No coordinator prints this month. Last month’s undelivered prints stay in this chart.</p>';
+      return;
+    }
+    host.innerHTML = `<div class="vsnd-hbars">${rows.map((c) => {
+      const segs = (c.cities || []).map((city, i) => {
+        const w = (city.count / Math.max(c.total, 1)) * 100;
+        const color = CITY_COLORS[i % CITY_COLORS.length];
+        return `<i style="width:${w}%;background:${color}" title="${esc(city.city)} · ${city.count}"></i>`;
+      }).join('');
+      return `<button type="button" class="vsnd-hbar" data-board-co="${esc(c.company)}" title="${esc(c.company)} · ${c.total} printed">
+        <span class="vsnd-hbar-lbl">${esc(c.company)}</span>
+        <span class="vsnd-hbar-track board-city-track">${segs}</span>
+        <b>${esc(c.total)}</b>
+      </button>`;
+    }).join('')}</div>
+    <p class="hint" style="margin:6px 0 0">Printed by the coordinator this month, plus last month’s VINs that are still not delivered.</p>`;
+    host.querySelectorAll('[data-board-co]').forEach((b) => {
+      const row = rows.find((c) => c.company === b.dataset.boardCo);
+      b.addEventListener('click', () => openCompanyCities(b.dataset.boardCo, row));
+    });
   }
 
   function renderDaysToSalesPanel() {
@@ -2414,7 +2491,7 @@
       renderEmployees();
       renderSchedule();
       renderInventoryPanel();
-      renderFleetFreeLeft();
+      renderBoardCompanyCities();
       renderDisplayCounter();
       renderCarrierPanel();
       renderPrints();
@@ -2467,6 +2544,13 @@
     empHost.innerHTML = (d.employees || []).map((e) =>
       `<label><input type="checkbox" class="aa-emp" value="${esc(e.id)}" ${selectedEmp.has(e.id) ? 'checked' : ''} /> ${esc(e.name)}</label>`
     ).join('') || '<span class="hint">No employees</span>';
+    const onlyHost = $('aa-only');
+    if (onlyHost) {
+      const only = new Set(d.advisorOnlyIds || []);
+      onlyHost.innerHTML = (d.employees || []).map((e) =>
+        `<label><input type="checkbox" class="aa-only" value="${esc(e.id)}" ${only.has(e.id) ? 'checked' : ''} /> ${esc(e.name)}</label>`
+      ).join('');
+    }
     const types = [...new Set([...(d.salesTypes || []), ...(d.selectedSalesTypes || [])])];
     typeHost.innerHTML = types.map((t) =>
       `<label><input type="checkbox" class="aa-type" value="${esc(t)}" ${selectedTypes.has(t) ? 'checked' : ''} /> ${esc(t)}</label>`
@@ -2533,7 +2617,8 @@
     const advisors = (autoAssign && autoAssign.advisors) || [];
     const excludes = (autoAssign && autoAssign.excludes) || [];
     const fallbackEmployeeId = String(($('aa-fallback') && $('aa-fallback').value) || '').trim();
-    await api('/auto-assign', { method: 'PUT', json: { employees, salesTypes, advisors, excludes, fallbackEmployeeId } });
+    const advisorOnlyIds = [...document.querySelectorAll('.aa-only:checked')].map((el) => el.value);
+    await api('/auto-assign', { method: 'PUT', json: { employees, salesTypes, advisors, excludes, fallbackEmployeeId, advisorOnlyIds } });
     toast('Auto assign saved');
     await loadAutoAssign();
     if ($('aa-hint')) $('aa-hint').textContent = 'Saved. The next Assignment confirm uses these rules.';

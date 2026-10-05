@@ -383,6 +383,23 @@ const VSND_ROWS = Object.freeze([
   { status: 'الغاء', label: 'الغاء', tone: 'cancel', icon: '✕' },
 ]);
 
+function previousMonthKey(ym) {
+  const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+  if (!m) return '';
+  let y = Number(m[1]);
+  let mo = Number(m[2]) - 1;
+  if (mo < 1) {
+    mo = 12;
+    y -= 1;
+  }
+  return `${y}-${String(mo).padStart(2, '0')}`;
+}
+
+function isClosedDelivery(status, invoiceDate) {
+  const s = String(status || '').trim();
+  return !!invoiceDate || s === 'Claimed' || s === 'تم التسليم';
+}
+
 function daysInMonth(ym) {
   const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
   if (!m) return 31;
@@ -435,14 +452,17 @@ function computeVsndCalendar({ vehicles, today, month, slaItems, slaControl, now
       }
     }
 
-    const isVsnd = !!(p && p.slice(0, 7) === ym && !inv);
+    const prev = previousMonthKey(ym);
+    const carried = !!(p && p.slice(0, 7) === prev && !isClosedDelivery(status, inv));
+    const isVsnd = !!((p && p.slice(0, 7) === ym && !inv) || carried);
     if (isVsnd && vinKey && !seenVsnd.has(vinKey)) {
       seenVsnd.add(vinKey);
       notDelivered += 1;
     }
 
-    if (!p || p.slice(0, 7) !== ym) return;
-    const day = Number(p.slice(8, 10));
+    if (!p || (p.slice(0, 7) !== ym && !carried)) return;
+    let day = Number(p.slice(8, 10));
+    if (carried && day > days) day = days;
     if (!day || day < 1 || day > days) return;
 
     // Unique VIN once on the schedule grid
@@ -725,8 +745,12 @@ function buildVsndAnalytics({ vehicles, ym, today, todayDay, days, psfuTarget, r
     }
 
     // VSND pool + last-7 VSND bars: Col P in month · Col V empty
-    if (!(p && p.slice(0, 7) === ym && !inv)) return;
-    const day = Number(p.slice(8, 10));
+    // plus last month's VINs that are still not delivered
+    const prev = previousMonthKey(ym);
+    const carried = !!(p && p.slice(0, 7) === prev && !isClosedDelivery(status, inv));
+    if (!((p && p.slice(0, 7) === ym && !inv) || carried)) return;
+    let day = Number(p.slice(8, 10));
+    if (carried && day > days) day = days;
     if (vinKey) {
       if (seenVsnd.has(vinKey)) return;
       seenVsnd.add(vinKey);

@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=20261004a" />
+  <link rel="stylesheet" href="admin.css?v=20261005a" />
 </head>
 <body>
   <div class="collector-gate" id="collector-gate">
@@ -49,7 +49,7 @@
       <a href="attendance.html" target="_blank" rel="noopener">Attendance</a>
     </nav>
     <div class="top-right">
-      <button type="button" class="btn" id="xls-live">Extract Live Sheet</button>
+      <button type="button" class="btn" id="xls-live">Extract Live + coordinator</button>
       <button type="button" class="btn" id="xls-admin">Extract admin Excel</button>
       <button type="button" class="btn" id="xls-all">Extract all data</button>
       <button type="button" class="btn" id="xls-all-upload">Upload all data</button>
@@ -121,26 +121,19 @@
         <div class="vsnd-scroll">
           <div id="sla-chart" class="vsnd-grid-host" aria-label="VSND Schedule"></div>
         </div>
-        <div class="vsnd-alerts" id="vsnd-schedule-alerts">
-          <div class="vsnd-alerts-head">
-            <h3>Schedule alerts</h3>
-            <span class="hint" id="vsnd-alerts-meta">Live from VSND schedule · SLA conditions</span>
-          </div>
-          <div class="vsnd-alerts-body" id="vsnd-alerts-body">
-            <p class="chart-empty">No schedule alerts</p>
-          </div>
-        </div>
       </div>
 
       <div class="vsnd-bottom-row">
         <div class="vsnd-panel" id="vsnd-fleet">
-          <h3>Free / Left <span class="hint" style="font-weight:600">· live attendance</span></h3>
-          <div class="vsnd-panel-body" id="vsnd-top5-body"></div>
+          <h3>Schedule alerts <span class="hint" id="vsnd-alerts-meta" style="font-weight:600">· live SLA</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-alerts-body">
+            <p class="chart-empty">No schedule alerts</p>
+          </div>
         </div>
         <div class="vsnd-panel" id="vsnd-days-sales">
           <h3>
-            Days to Sales <span class="hint" style="font-weight:600">· assignment → Hanouf</span>
-            <button type="button" class="btn vsnd-wide-btn" id="vsnd-dts-more" title="VIN-level details">More Details</button>
+            Company / city <span class="hint" style="font-weight:600">· coordinator prints</span>
+            <button type="button" class="btn vsnd-wide-btn" id="vsnd-city-more" title="Open company cities">More</button>
           </h3>
           <div class="vsnd-panel-body" id="vsnd-aging-dist-body"></div>
         </div>
@@ -267,8 +260,10 @@
       </section>
       <div class="card" style="margin-bottom:14px">
         <h2>Who can receive auto assign</h2>
-        <p class="hint">Only checked employees are used when VINs are split evenly. A sales advisor rule can still send VINs to someone who is not checked.</p>
+        <p class="hint">Only checked employees are used when VINs are split evenly. A sales advisor rule can still send VINs to someone who is not checked. Ruba stays off the even split and only receives the sales advisors listed below.</p>
         <div id="aa-employees" class="aa-checks"></div>
+        <p class="hint" style="margin-top:10px">Only the listed sales advisors — leave the even split out:</p>
+        <div id="aa-only" class="aa-checks"></div>
       </div>
       <div class="card" style="margin-bottom:14px">
         <h2>Sales types auto assign may split</h2>
@@ -500,6 +495,6 @@
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20260923c14"></script>
-  <script src="admin.js?v=20261004b"></script>
+  <script src="admin.js?v=20261005a"></script>
 </body>
 </html>

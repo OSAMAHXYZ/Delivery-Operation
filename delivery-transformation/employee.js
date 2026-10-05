@@ -28,6 +28,18 @@
     liveCopyTimer: null,
   };
 
+  const sheetGrids = {
+    live: { prefix: 'live', cols: [], filters: {}, sel: null, copyFlash: false, cfNote: '', copyTimer: null },
+    my: { prefix: 'my', cols: [], filters: {}, sel: null, copyFlash: false, cfNote: '', copyTimer: null },
+  };
+  let grid = sheetGrids.live;
+  const gTable = () => $(`#${grid.prefix}-table`);
+  const gInfo = () => $(`#${grid.prefix}-copy-info`);
+  const gCopy = () => $(`#${grid.prefix}-copy-btn`);
+  const gVals = () => $(`#${grid.prefix}-copy-values`);
+  const gClear = () => $(`#${grid.prefix}-cf-clear`);
+  const gList = () => $(`#${grid.prefix}-cf-list`);
+
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -1275,6 +1287,7 @@
   }
 
   async function loadLiveSheet({ silent = false } = {}) {
+    grid = sheetGrids.live;
     if (silent && state.liveInFlight) return;
     state.liveInFlight = true;
     const f = state.liveFilters;
@@ -1349,7 +1362,7 @@
     const meta = $('#live-meta-text');
     if (meta) {
       const monthNote = f.month ? ` · ${f.month}` : ' · all months';
-      meta.textContent = `${data.total || 0} VINs${monthNote} · live · last sync ${new Date(data.at || Date.now()).toLocaleTimeString()}${changed && silent ? ' · updated' : ''}${state.liveCfNote || ''}`;
+      meta.textContent = `${data.total || 0} VINs${monthNote} · live · last sync ${new Date(data.at || Date.now()).toLocaleTimeString()}${changed && silent ? ' · updated' : ''}${grid.cfNote || ''}`;
     }
     const dot = $('#live-dot');
     if (dot) {
@@ -1412,8 +1425,9 @@
     const keepCf = active && active.classList && active.classList.contains('live-cf') && table.contains(active)
       ? { key: active.dataset.cf, start: active.selectionStart, end: active.selectionEnd }
       : null;
+    grid.cols = cols;
     state.liveCols = cols;
-    const cf = state.liveColFilters;
+    const cf = grid.filters;
     const cfOn = activeLiveColRules().length;
     const frow = `<tr class="live-frow">${cols.map((c) => (c.key === 'num'
       ? `<th class="col-num">${cfOn ? '<button type="button" class="live-cf-x" data-cf-clear title="Clear column filters">✕</button>' : ''}</th>`
@@ -1436,31 +1450,39 @@
   }
 
   function liveCfStoreKey() {
-    return `dt_live_colfilters_${state.user ? state.user.id : 'anon'}`;
+    const who = state.user ? state.user.id : 'anon';
+    return `dt_${grid.prefix}_colfilters_${who}`;
   }
 
   function loadLiveColFilters() {
-    try {
-      state.liveColFilters = JSON.parse(localStorage.getItem(liveCfStoreKey()) || '{}') || {};
-    } catch {
-      state.liveColFilters = {};
-    }
+    const who = state.user ? state.user.id : 'anon';
+    ['live', 'my'].forEach((prefix) => {
+      const g = sheetGrids[prefix];
+      try {
+        g.filters = JSON.parse(localStorage.getItem(`dt_${prefix}_colfilters_${who}`) || '{}') || {};
+      } catch {
+        g.filters = {};
+      }
+    });
+    state.liveColFilters = sheetGrids.live.filters;
   }
 
   function saveLiveColFilters() {
     const clean = {};
-    Object.entries(state.liveColFilters).forEach(([k, v]) => { if (String(v || '').trim()) clean[k] = v; });
-    state.liveColFilters = clean;
+    Object.entries(grid.filters).forEach(([k, v]) => { if (String(v || '').trim()) clean[k] = v; });
+    grid.filters = clean;
+    if (grid.prefix === 'live') state.liveColFilters = clean;
     try {
-      if (Object.keys(clean).length) localStorage.setItem(liveCfStoreKey(), JSON.stringify(clean));
-      else localStorage.removeItem(liveCfStoreKey());
+      const key = liveCfStoreKey();
+      if (Object.keys(clean).length) localStorage.setItem(key, JSON.stringify(clean));
+      else localStorage.removeItem(key);
     } catch {
       /* ignore quota */
     }
   }
 
   function activeLiveColRules() {
-    return Object.entries(state.liveColFilters || {})
+    return Object.entries(grid.filters || {})
       .map(([key, v]) => ({ key, rule: String(v || '').trim().toLowerCase() }))
       .filter((x) => x.rule);
   }
@@ -1489,7 +1511,7 @@
   }
 
   function liveDataRows() {
-    const table = $('#live-table');
+    const table = gTable();
     const body = table && table.tBodies[0];
     return body ? [...body.rows].filter((tr) => tr.dataset.vin) : [];
   }
@@ -1499,7 +1521,7 @@
   }
 
   function liveColIndex(key) {
-    return (state.liveCols || []).findIndex((c) => c.key === key);
+    return (grid.cols || []).findIndex((c) => c.key === key);
   }
 
   function applyLiveColFilters() {
@@ -1513,11 +1535,11 @@
       tr.style.display = ok ? '' : 'none';
       if (ok) visible += 1;
     });
-    const table = $('#live-table');
+    const table = gTable();
     if (table) {
       $$('thead tr.live-frow th', table).forEach((th, i) => {
-        const col = state.liveCols && state.liveCols[i];
-        if (col && col.key !== 'num') th.classList.toggle('is-on', !!String(state.liveColFilters[col.key] || '').trim());
+        const col = grid.cols && grid.cols[i];
+        if (col && col.key !== 'num') th.classList.toggle('is-on', !!String(grid.filters[col.key] || '').trim());
       });
       const corner = $('thead tr.live-frow th.col-num', table);
       if (corner) {
@@ -1526,14 +1548,14 @@
           : '';
       }
     }
-    const clearBtn = $('#live-cf-clear');
+    const clearBtn = gClear();
     if (clearBtn) {
       clearBtn.hidden = !rules.length;
       clearBtn.textContent = rules.length ? `Clear column filters (${rules.length})` : 'Clear column filters';
     }
-    state.liveCfNote = rules.length ? ` · ${visible} shown by column filters` : '';
-    const meta = $('#live-meta-text');
-    if (meta) meta.textContent = meta.textContent.replace(/ · \d+ shown by column filters$/, '') + state.liveCfNote;
+    grid.cfNote = rules.length ? ` · ${visible} shown by column filters` : '';
+    const meta = grid.prefix === 'live' ? $('#live-meta-text') : null;
+    if (meta) meta.textContent = meta.textContent.replace(/ · \d+ shown by column filters$/, '') + grid.cfNote;
     const sa = table && $('.sel-all', table);
     if (sa) {
       const vis = liveVisibleRows();
@@ -1542,15 +1564,16 @@
   }
 
   function clearLiveColFilters() {
-    state.liveColFilters = {};
+    grid.filters = {};
     saveLiveColFilters();
-    $$('#live-table .live-cf').forEach((el) => { el.value = ''; });
+    const table = gTable();
+    if (table) $$('.live-cf', table).forEach((el) => { el.value = ''; });
     applyLiveColFilters();
     paintLiveSel();
   }
 
   function fillLiveCfList(key) {
-    const list = $('#live-cf-list');
+    const list = gList();
     const idx = liveColIndex(key);
     if (!list || idx < 0) return;
     const seen = new Map();
@@ -1564,7 +1587,7 @@
 
   // ——— Live Sheet · cell selection + copy as table (every user) ———
   function liveSelBounds() {
-    const s = state.liveSel;
+    const s = grid.sel;
     if (!s) return null;
     const rows = liveVisibleRows();
     const r1 = rows.findIndex((tr) => tr.dataset.vin === s.anchor.vin);
@@ -1582,16 +1605,16 @@
   }
 
   function paintLiveSel() {
-    const table = $('#live-table');
+    const table = gTable();
     if (!table) return;
     $$('td.is-range, td.is-sel', table).forEach((td) => td.classList.remove('is-range', 'is-sel'));
     $$('thead th.is-colsel', table).forEach((th) => th.classList.remove('is-colsel'));
     const b = liveSelBounds();
-    const info = $('#live-copy-info');
-    const copyBtn = $('#live-copy-btn');
-    const valBtn = $('#live-copy-values');
+    const info = gInfo();
+    const copyBtn = gCopy();
+    const valBtn = gVals();
     if (!b) {
-      if (info && !state.liveCopyFlash) info.textContent = 'Click a cell, drag or Shift+click to select · Ctrl+C copies as a table with headers';
+      if (info && !grid.copyFlash) info.textContent = 'Click a cell, drag or Shift+click to select · Ctrl+C copies as a table with headers';
       if (copyBtn) copyBtn.disabled = true;
       if (valBtn) valBtn.disabled = true;
       return;
@@ -1608,10 +1631,10 @@
     const head = table.tHead && table.tHead.rows[0];
     if (head) for (let c = b.c1; c <= b.c2; c += 1) if (head.cells[c]) head.cells[c].classList.add('is-colsel');
     const n = b.rows.length * (b.c2 - b.c1 + 1);
-    if (info && !state.liveCopyFlash) {
+    if (info && !grid.copyFlash) {
       info.textContent = multi
         ? `${b.rows.length} row(s) × ${b.c2 - b.c1 + 1} column(s) · ${n} cells · Ctrl+C copies as a table with headers`
-        : `${colPlainLabel(state.liveCols[b.focusC])}: ${liveCellText(ftd) || '(empty)'} · Ctrl+C to copy`;
+        : `${colPlainLabel(grid.cols[b.focusC])}: ${liveCellText(ftd) || '(empty)'} · Ctrl+C to copy`;
     }
     if (copyBtn) {
       copyBtn.disabled = false;
@@ -1622,20 +1645,20 @@
 
   function setLiveSel(td, extend) {
     const tr = td && td.parentElement;
-    const col = state.liveCols && state.liveCols[td.cellIndex];
+    const col = grid.cols && grid.cols[td.cellIndex];
     if (!tr || !tr.dataset.vin || !col) return;
     const point = { vin: tr.dataset.vin, key: col.key };
-    if (extend && state.liveSel) state.liveSel = { anchor: state.liveSel.anchor, focus: point };
-    else state.liveSel = { anchor: point, focus: point };
+    if (extend && grid.sel) grid.sel = { anchor: grid.sel.anchor, focus: point };
+    else grid.sel = { anchor: point, focus: point };
     paintLiveSel();
   }
 
   function selectLiveColumn(idx, extend) {
     const rows = liveVisibleRows();
-    const col = state.liveCols && state.liveCols[idx];
+    const col = grid.cols && grid.cols[idx];
     if (!rows.length || !col) return;
-    const startKey = extend && state.liveSel ? state.liveSel.anchor.key : col.key;
-    state.liveSel = {
+    const startKey = extend && grid.sel ? grid.sel.anchor.key : col.key;
+    grid.sel = {
       anchor: { vin: rows[0].dataset.vin, key: startKey },
       focus: { vin: rows[rows.length - 1].dataset.vin, key: col.key },
     };
@@ -1645,7 +1668,7 @@
   function buildLiveCopy(withHeaders) {
     const b = liveSelBounds();
     if (!b) return null;
-    const cols = state.liveCols.slice(b.c1, b.c2 + 1);
+    const cols = grid.cols.slice(b.c1, b.c2 + 1);
     const grid = b.rows.map((tr) => cols.map((_c, i) => liveCellText(tr.cells[b.c1 + i])));
     const single = grid.length === 1 && cols.length === 1;
     const heads = withHeaders && !single ? cols.map(colPlainLabel) : null;
@@ -1678,25 +1701,29 @@
       navigator.clipboard.writeText(payload.text).catch(() => {});
       ok = true;
     }
-    const info = $('#live-copy-info');
+    const info = gInfo();
     if (info) {
-      state.liveCopyFlash = true;
+      const painted = grid;
+      grid.copyFlash = true;
       info.textContent = payload.single
         ? 'Copied ✓'
         : `Copied ✓ ${payload.rows} row(s) × ${payload.cols} column(s)${withHeaders ? ' as a table with headers' : ' · values only'} — paste into Excel, email or WhatsApp Web`;
       info.classList.add('is-flash');
-      clearTimeout(state.liveCopyTimer);
-      state.liveCopyTimer = setTimeout(() => {
-        state.liveCopyFlash = false;
+      clearTimeout(grid.copyTimer);
+      grid.copyTimer = setTimeout(() => {
+        painted.copyFlash = false;
         info.classList.remove('is-flash');
+        const prev = grid;
+        grid = painted;
         paintLiveSel();
+        grid = prev;
       }, 2600);
     }
     return ok;
   }
 
   function afterLiveRender(keepCf) {
-    const table = $('#live-table');
+    const table = gTable();
     if (!table) return;
     const head = table.tHead && table.tHead.rows[0];
     if (head) table.style.setProperty('--live-ftop', `${head.offsetHeight || 30}px`);
@@ -1717,16 +1744,19 @@
     return tag === 'input' || tag === 'select' || tag === 'textarea' || el.isContentEditable;
   }
 
-  function bindLiveSheetGrid() {
-    const table = $('#live-table');
+  function bindLiveSheetGrid(prefix = 'live') {
+    const g = sheetGrids[prefix] || sheetGrids.live;
+    const table = $(`#${g.prefix}-table`);
     if (!table || table.dataset.gridBound) return;
     table.dataset.gridBound = '1';
+    const use = () => { grid = g; };
     let dragging = false;
     let dragMoved = false;
     let cfTimer = null;
 
     table.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
+      use();
       const th = e.target.closest('thead tr.live-hrow th');
       if (th && !e.target.closest('input, label')) {
         e.preventDefault();
@@ -1747,10 +1777,11 @@
     });
     table.addEventListener('mouseover', (e) => {
       if (!dragging) return;
+      use();
       const td = e.target.closest('tbody td');
       if (!td || !td.parentElement.dataset.vin) return;
-      const col = state.liveCols && state.liveCols[td.cellIndex];
-      const s = state.liveSel;
+      const col = grid.cols && grid.cols[td.cellIndex];
+      const s = grid.sel;
       if (!col || !s) return;
       if (s.focus.vin === td.parentElement.dataset.vin && s.focus.key === col.key) return;
       dragMoved = true;
@@ -1764,43 +1795,59 @@
       }
       dragMoved = false;
       const clr = e.target.closest('[data-cf-clear]');
-      if (clr) clearLiveColFilters();
+      if (clr) {
+        use();
+        clearLiveColFilters();
+      }
     }, true);
 
     table.addEventListener('input', (e) => {
       const el = e.target.closest('.live-cf');
       if (!el) return;
-      state.liveColFilters[el.dataset.cf] = el.value;
+      use();
+      grid.filters[el.dataset.cf] = el.value;
       saveLiveColFilters();
       clearTimeout(cfTimer);
-      cfTimer = setTimeout(() => { applyLiveColFilters(); paintLiveSel(); }, 160);
+      cfTimer = setTimeout(() => {
+        use();
+        applyLiveColFilters();
+        paintLiveSel();
+      }, 160);
     });
     table.addEventListener('focusin', (e) => {
       const el = e.target.closest('.live-cf');
-      if (el) fillLiveCfList(el.dataset.cf);
+      if (!el) return;
+      use();
+      fillLiveCfList(el.dataset.cf);
     });
 
-    document.addEventListener('keydown', (e) => {
-      if (state.view !== 'live' || !state.liveSel) return;
-      const active = document.activeElement;
-      if (isTypingTarget(active)) return;
-      if (document.querySelector('#vin-drawer-back.open')) return;
-      const k = String(e.key || '').toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && k === 'c') {
-        e.preventDefault();
-        copyLiveSelection(true);
-      } else if (k === 'escape') {
-        state.liveSel = null;
-        paintLiveSel();
-      }
-    });
+    if (prefix === 'live') {
+      document.addEventListener('keydown', (e) => {
+        const onMy = state.view === 'my' || state.view === 'mine';
+        const onLive = state.view === 'live';
+        if (!onMy && !onLive) return;
+        grid = onMy ? sheetGrids.my : sheetGrids.live;
+        if (!grid.sel) return;
+        const active = document.activeElement;
+        if (isTypingTarget(active)) return;
+        if (document.querySelector('#vin-drawer-back.open')) return;
+        const k = String(e.key || '').toLowerCase();
+        if ((e.ctrlKey || e.metaKey) && k === 'c') {
+          e.preventDefault();
+          copyLiveSelection(true);
+        } else if (k === 'escape') {
+          grid.sel = null;
+          paintLiveSel();
+        }
+      });
+    }
 
-    const copyBtn = $('#live-copy-btn');
-    if (copyBtn) copyBtn.addEventListener('click', () => copyLiveSelection(true));
-    const valBtn = $('#live-copy-values');
-    if (valBtn) valBtn.addEventListener('click', () => copyLiveSelection(false));
-    const clearBtn = $('#live-cf-clear');
-    if (clearBtn) clearBtn.addEventListener('click', clearLiveColFilters);
+    const copyBtn = $(`#${g.prefix}-copy-btn`);
+    if (copyBtn) copyBtn.addEventListener('click', () => { use(); copyLiveSelection(true); });
+    const valBtn = $(`#${g.prefix}-copy-values`);
+    if (valBtn) valBtn.addEventListener('click', () => { use(); copyLiveSelection(false); });
+    const clearBtn = $(`#${g.prefix}-cf-clear`);
+    if (clearBtn) clearBtn.addEventListener('click', () => { use(); clearLiveColFilters(); });
   }
 
   function bindSelChecks(table, rows) {
@@ -1872,6 +1919,7 @@
         `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
       statusSel.dataset.filled = '1';
     }
+    grid = sheetGrids.my;
     const data = await fetchLive({
       q: state.myFilters.q,
       status: state.myFilters.status,
@@ -1879,7 +1927,8 @@
     });
     const table = $('#my-table');
     const active = document.activeElement;
-    if (silent && table && active && active.classList && active.classList.contains('cell-edit') && table.contains(active)) {
+    if (silent && table && active && table.contains(active) && active.classList
+      && (active.classList.contains('cell-edit') || active.classList.contains('live-cf'))) {
       return;
     }
     const w = myWorkload(data.rows || []);
@@ -1894,21 +1943,63 @@
     ].map(([l, v, c]) => `<article class="kpi ${c}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`).join('');
 
     ensureDatalists();
-    const cols = scheduleColumns();
-    const selected = state.selected;
-    table.innerHTML = `<thead><tr><th><input type="checkbox" class="checkbox sel-all" title="Select all shown" /></th>${cols.map((c) => `<th>${esc(c[0])}</th>`).join('')}</tr></thead>
-      <tbody>${w.rows.map((r) => {
-        const checked = selected.has(r.vin) ? 'checked' : '';
-        return `<tr class="${statusRowClass(r.ops.opsStatus)} ${checked ? 'selected' : ''}" data-vin="${esc(r.vin)}">
-          <td><input class="checkbox sel-check" type="checkbox" data-vin="${esc(r.vin)}" ${checked} /></td>
-          ${cols.map((c) => `<td>${c[1](r)}</td>`).join('')}
-        </tr>`;
-      }).join('') || `<tr><td colspan="${cols.length + 1}">No VINs assigned to you yet.</td></tr>`}</tbody>`;
+    const cols = [
+      {
+        key: 'num',
+        label: '<input type="checkbox" class="checkbox sel-all" title="Select all shown" />',
+        raw: true,
+        html: (r, i) => `<label class="sel-cell"><input type="checkbox" class="checkbox sel-check" data-vin="${esc(r.vin)}" ${state.selected.has(r.vin) ? 'checked' : ''} /><span>${i + 1}</span></label>`,
+      },
+      { key: 'employee', label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` },
+      { key: 'status', label: 'Status', html: (r) => (r.canEdit ? editableControl(r.vin, 'opsStatus', 'status', r.ops.opsStatus) : readOnlyValue('status', r.ops.opsStatus)) },
+      { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>` },
+      { key: 'proforma', label: 'Proforma', html: (r) => esc(na(r.raw.proformaDate)) },
+      { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
+      { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
+      { key: 'salestype', label: 'Sales Type', html: (r) => esc(na(r.raw.salesType)) },
+      { key: 'customer', label: 'Customer', html: (r) => `<span title="${esc(r.raw.userName || '')}">${esc(na(r.raw.userName))}</span>` },
+      { key: 'owner', label: 'Invoice Owner', html: (r) => `<span title="${esc(r.raw.invoiceOwner || '')}">${esc(na(r.raw.invoiceOwner))}</span>` },
+      { key: 'phone', label: 'Phone', html: (r) => (r.raw.phone ? `<a href="tel:${esc(r.raw.phone)}" class="phone-link">${esc(r.raw.phone)}</a>` : 'N/A') },
+      { key: 'sa', label: 'S/A', html: (r) => esc(na(r.raw.salesAdvisor)) },
+      { key: 'guest', label: 'Guest Exp', html: (r) => (r.canEdit ? editableControl(r.vin, 'guestCenter', 'yn', r.ops.guestCenter) : readOnlyValue('yn', r.ops.guestCenter)) },
+      { key: 'appt', label: 'Appointment', html: (r) => (isGuestYes(r) ? guestTimerHtml(r.ops) : '—') },
+      { key: 'gt', label: 'GT Loc', html: (r) => esc(na(r.raw.gtLocation)) },
+      { key: 'veh', label: 'Veh Loc', html: (r) => esc(na(r.raw.vehicleLocation)) },
+      { key: 'guestsent', label: 'إرسال الضيف', html: (r) => (r.canEdit ? editableControl(r.vin, 'guestSentDate', 'date', r.ops.guestSentDate) : readOnlyValue('date', r.ops.guestSentDate)) },
+      { key: 'sig', label: 'استلام التواقيع', html: (r) => (r.canEdit ? editableControl(r.vin, 'signatureReceivedDate', 'date', r.ops.signatureReceivedDate) : readOnlyValue('date', r.ops.signatureReceivedDate)) },
+      { key: 'accsent', label: 'إرسال للحسابات', html: (r) => (r.canEdit ? editableControl(r.vin, 'accountsSentDate', 'date', r.ops.accountsSentDate) : readOnlyValue('date', r.ops.accountsSentDate)) },
+      { key: 'accok', label: 'موافقة الحسابات', html: (r) => (r.canEdit ? editableControl(r.vin, 'accountsApprovalDate', 'date', r.ops.accountsApprovalDate) : readOnlyValue('date', r.ops.accountsApprovalDate)) },
+      { key: 'vin1502', label: 'VIN 1502', html: (r) => (r.canEdit ? editableControl(r.vin, 'vin1502', 'yn', r.ops.vin1502) : readOnlyValue('yn', r.ops.vin1502)) },
+      { key: 'traffic', label: 'ملف المرور', html: (r) => (r.canEdit ? editableControl(r.vin, 'trafficFile', 'yn', r.ops.trafficFile) : readOnlyValue('yn', r.ops.trafficFile)) },
+      { key: 'fees', label: 'Traffic Fees', html: (r) => (r.canEdit ? editableControl(r.vin, 'trafficFeesOps', 'yn', r.ops.trafficFeesOps) : readOnlyValue('yn', r.ops.trafficFeesOps)) },
+      { key: 'ins', label: 'Insurance', html: (r) => (r.canEdit ? editableControl(r.vin, 'insuranceOps', 'yn', r.ops.insuranceOps) : readOnlyValue('yn', r.ops.insuranceOps)) },
+      { key: 'reg', label: 'إصدار الاستمارة', html: (r) => (r.canEdit ? editableControl(r.vin, 'registrationIssueDate', 'date', r.ops.registrationIssueDate) : readOnlyValue('date', r.ops.registrationIssueDate)) },
+      { key: 'city', label: 'مدينة الترحيل', html: (r) => (r.canEdit ? editableControl(r.vin, 'transferCity', 'city', r.ops.transferCity) : readOnlyValue('city', r.ops.transferCity)) },
+      { key: 'carrier', label: 'الناقل', html: (r) => ((r.canEdit && canAssignCarrier()) ? editableControl(r.vin, 'carrier', 'carrier', r.ops.carrier) : readOnlyValue('carrier', r.ops.carrier)) + carrierChangeNote(r.ops) },
+      { key: 'notes', label: 'ملاحظات', html: (r) => (r.canEdit ? editableControl(r.vin, 'notes', 'notes', r.ops.notes) : readOnlyValue('notes', r.ops.notes)) },
+      { key: 'updated', label: 'Updated', html: (r) => esc((r.ops.updatedAt || '').replace('T', ' ').slice(0, 19) || '—') },
+      { key: 'by', label: 'By', html: (r) => esc(na(r.ops.updatedBy)) },
+    ];
+    const keepCf = active && active.classList && active.classList.contains('live-cf') && table && table.contains(active)
+      ? { key: active.dataset.cf, start: active.selectionStart, end: active.selectionEnd }
+      : null;
+    grid.cols = cols;
+    const cf = grid.filters;
+    const cfOn = activeLiveColRules().length;
+    const frow = `<tr class="live-frow">${cols.map((c) => (c.key === 'num'
+      ? `<th class="col-num">${cfOn ? '<button type="button" class="live-cf-x" data-cf-clear title="Clear column filters">✕</button>' : ''}</th>`
+      : `<th class="col-${c.key}${cf[c.key] ? ' is-on' : ''}"><input type="search" class="live-cf" data-cf="${esc(c.key)}" value="${esc(cf[c.key] || '')}" list="my-cf-list" placeholder="Filter…" autocomplete="off" spellcheck="false" title="${esc(`${colPlainLabel(c)}: ${LIVE_CF_HINT}`)}" aria-label="Filter ${esc(colPlainLabel(c))}" /></th>`)).join('')}</tr>`;
+    const empty = isManager() && state.view !== 'mine' ? 'No VINs on the sheet yet.' : 'No VINs assigned to you yet.';
+    table.innerHTML = `<thead><tr class="live-hrow">${cols.map((c) => `<th class="col-${c.key}">${c.raw ? c.label : esc(c.label)}</th>`).join('')}</tr>${frow}</thead>
+      <tbody>${w.rows.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
+        `<td class="col-${c.key}">${c.html(r, i)}</td>`).join('')}</tr>`).join('')
+        || `<tr><td colspan="${cols.length}">${empty}</td></tr>`}</tbody>`;
     $$('.vin-link', table).forEach((b) => b.addEventListener('click', () => openVin(b.dataset.vin)));
     bindEditableCells(table);
     bindSelChecks(table, w.rows);
     $('#my-pager').innerHTML = `<span>${w.assigned} VIN(s) · all on this page</span>`;
     renderSelBars();
+    afterLiveRender(keepCf);
   }
 
   // ——— Appointment (Ruba · Guest Exp = Yes) ———
@@ -2236,7 +2327,8 @@
     $('#app').classList.add('is-on');
     loadSelection();
     loadLiveColFilters();
-    bindLiveSheetGrid();
+    bindLiveSheetGrid('live');
+    bindLiveSheetGrid('my');
     loadDrafts();
     startGuestTick();
     const extractBtn = $('#extract-live');

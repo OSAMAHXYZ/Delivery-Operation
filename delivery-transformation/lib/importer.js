@@ -190,6 +190,7 @@ function opsFromRow(row, idx) {
  */
 function parseDeliverySheet(buffer) {
   let best = { sheet: '', items: [] };
+  let liveSheet = null;
   readSheets(buffer).forEach(({ name, rows }) => {
     const h = findHeaderRow(rows);
     if (h === -1) return;
@@ -204,9 +205,11 @@ function parseDeliverySheet(buffer) {
       if (!looksLikeVin(vin)) return;
       items.push({ vin, raw: rawFromRow(row, rawIdx, HEADER_MAP), ops: opsFromRow(row, opsIdx) });
     });
-    if (items.length > best.items.length) best = { sheet: name, items };
+    const parsed = { sheet: name, items };
+    if (/live\s*sheet/i.test(name) && items.length) liveSheet = parsed;
+    if (items.length > best.items.length) best = parsed;
   });
-  return best;
+  return liveSheet || best;
 }
 
 /** Sales Raw → [{ vin, raw }] (header aliases, or the fixed A/B/C/K/N letter layout). */
