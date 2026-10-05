@@ -1667,19 +1667,19 @@
 
   function buildLiveCopy(withHeaders) {
     const b = liveSelBounds();
-    if (!b) return null;
+    if (!b || !grid.cols) return null;
     const cols = grid.cols.slice(b.c1, b.c2 + 1);
-    const grid = b.rows.map((tr) => cols.map((_c, i) => liveCellText(tr.cells[b.c1 + i])));
-    const single = grid.length === 1 && cols.length === 1;
+    const cells = b.rows.map((tr) => cols.map((_c, i) => liveCellText(tr.cells[b.c1 + i])));
+    const single = cells.length === 1 && cols.length === 1;
     const heads = withHeaders && !single ? cols.map(colPlainLabel) : null;
-    const tsvRows = heads ? [heads, ...grid] : grid;
+    const tsvRows = heads ? [heads, ...cells] : cells;
     const text = tsvRows.map((r) => r.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t')).join('\r\n');
     const asText = (v) => (/^0\d|^\d{11,}$/.test(v) ? ' style="mso-number-format:\'\\@\';border:1px solid #cbd5e1;padding:4px 8px"' : ' style="border:1px solid #cbd5e1;padding:4px 8px"');
     const thStyle = 'background:#1e3a5f;color:#ffffff;font-weight:bold;border:1px solid #94a3b8;padding:5px 8px;text-align:left';
     const html = `<table border="1" cellspacing="0" style="border-collapse:collapse;font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11pt">${
       heads ? `<thead><tr>${heads.map((h) => `<th style="${thStyle}">${esc(h)}</th>`).join('')}</tr></thead>` : ''
-    }<tbody>${grid.map((r) => `<tr>${r.map((v) => `<td dir="auto"${asText(v)}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-    return { text, html, cells: grid.length * cols.length, rows: grid.length, cols: cols.length, single };
+    }<tbody>${cells.map((r) => `<tr>${r.map((v) => `<td dir="auto"${asText(v)}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    return { text, html, cells: cells.length * cols.length, rows: cells.length, cols: cols.length, single };
   }
 
   let livePendingCopy = null;
@@ -1690,16 +1690,25 @@
     e.preventDefault();
   });
 
-  function copyLiveSelection(withHeaders = true) {
+  async function copyLiveSelection(withHeaders = true) {
     const payload = buildLiveCopy(withHeaders);
     if (!payload) return false;
-    livePendingCopy = payload;
     let ok = false;
-    try { ok = document.execCommand('copy'); } catch { ok = false; }
-    livePendingCopy = null;
+    if (navigator.clipboard && window.ClipboardItem) {
+      try {
+        const item = { 'text/plain': new Blob([payload.text], { type: 'text/plain' }) };
+        if (!payload.single) item['text/html'] = new Blob([payload.html], { type: 'text/html' });
+        await navigator.clipboard.write([new ClipboardItem(item)]);
+        ok = true;
+      } catch { ok = false; }
+    }
     if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(payload.text).catch(() => {});
-      ok = true;
+      try { await navigator.clipboard.writeText(payload.text); ok = true; } catch { ok = false; }
+    }
+    if (!ok) {
+      livePendingCopy = payload;
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+      livePendingCopy = null;
     }
     const info = gInfo();
     if (info) {

@@ -143,6 +143,33 @@ function isDelivered(v) {
   return s === 'Claimed' || s === 'تم التسليم';
 }
 
+/** Live Sheet / My VINs row order, top to bottom. */
+const SHEET_STATUS_ORDER = [
+  'Claimed',
+  'PSFU',
+  'تم التسليم',
+  'جاهز للتسليم',
+  'تسليم متقدم',
+  'صادرة',
+  'مرور',
+  'بطاقة',
+  'رجوع مرور',
+  'فسح',
+  'معلقة',
+  'الغاء',
+];
+
+function sheetStatusRank(v) {
+  let s = String((v && v.ops && v.ops.opsStatus) || '').trim();
+  const lower = s.toLowerCase();
+  if (lower === 'claimed') s = 'Claimed';
+  else if (lower === 'psfu') s = 'PSFU';
+  else if (s === 'صادر') s = 'صادرة';
+  else if (s === 'معلقه') s = 'معلقة';
+  const i = SHEET_STATUS_ORDER.indexOf(s);
+  return i === -1 ? SHEET_STATUS_ORDER.length : i;
+}
+
 function findEmployeeByPic(pic) {
   return findAssignable(pic);
 }
@@ -991,8 +1018,9 @@ function createDeliveryTransformationRouter(opts = {}) {
         eq(req.query.carrier, (v) => v.ops && v.ops.carrier);
       }
     }
-    const sheetOrder = (v) => String((v.raw && (v.raw.proformaDate || v.raw.date)) || '');
-    list.sort((a, b) => sheetOrder(a).localeCompare(sheetOrder(b)) || String(a.vin).localeCompare(String(b.vin)));
+    list.sort((a, b) => sheetStatusRank(a) - sheetStatusRank(b)
+      || String((a.raw && (a.raw.proformaDate || a.raw.date)) || '').localeCompare(String((b.raw && (b.raw.proformaDate || b.raw.date)) || ''))
+      || String(a.vin).localeCompare(String(b.vin)));
     const byStatus = {};
     const byEmployee = {};
     const byCarrier = {};
@@ -2827,7 +2855,8 @@ function createDeliveryTransformationRouter(opts = {}) {
     const month = String((req.query && req.query.month) || '').trim().slice(0, 7);
     let list = store.allVehicles();
     if (/^\d{4}-\d{2}$/.test(month)) list = list.filter((v) => inMonth(v, month));
-    list.sort((a, b) => String((a.raw && (a.raw.proformaDate || a.raw.date)) || '').localeCompare(String((b.raw && (b.raw.proformaDate || b.raw.date)) || ''))
+    list.sort((a, b) => sheetStatusRank(a) - sheetStatusRank(b)
+      || String((a.raw && (a.raw.proformaDate || a.raw.date)) || '').localeCompare(String((b.raw && (b.raw.proformaDate || b.raw.date)) || ''))
       || String(a.vin).localeCompare(String(b.vin)));
     const wb = exportExcel.buildLiveSheetWorkbook(list, store.data.prints || []);
     return sendXlsx(res, wb, `DT-Live-Sheet-${exportExcel.stamp()}.xlsx`);
