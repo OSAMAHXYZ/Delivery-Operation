@@ -2552,7 +2552,7 @@ function createDeliveryTransformationRouter(opts = {}) {
     };
     const advisorMap = new Map(rules.advisors.map((r) => [advisorKey(r.advisor), r.employeeId]));
     const advisorOnly = new Set(rules.advisorOnlyIds || []);
-    const available = employees.filter((u) => !onVacation(u.id) && poolIds.has(u.id) && !advisorOnly.has(u.id));
+    const available = employees.filter((u) => !onVacation(u.id) && poolIds.has(u.id) && !advisorOnly.has(u.id) && u.id !== 'hanouf');
     const month = currentMonthKey();
     const typeLabel = (t) => String(t || '').trim() || '(blank)';
     const byType = {};
@@ -2582,21 +2582,27 @@ function createDeliveryTransformationRouter(opts = {}) {
             pick = mapped;
             suggestReason = 'advisor';
           }
-        } else if (typeAllowed(t)) {
-          const pool = available.filter((u) => !blocked.has(u.id));
-          pick = pool.reduce((best, u) => {
-            if (!best) return u;
-            const a = byType[u.id][t] || 0;
-            const b = byType[best.id][t] || 0;
-            return a < b || (a === b && total[u.id] < total[best.id]) ? u : best;
-          }, null);
-          if (pick) suggestReason = 'sales-type';
-        }
-        if (!pick && !mappedId && rules.fallbackEmployeeId && !blocked.has(rules.fallbackEmployeeId)) {
-          const fallback = employees.find((u) => u.id === rules.fallbackEmployeeId);
-          if (fallback && !onVacation(fallback.id)) {
-            pick = fallback;
+        } else {
+          const hanouf = employees.find((u) => u.id === 'hanouf');
+          if (hanouf && !onVacation(hanouf.id) && !blocked.has(hanouf.id)) {
+            pick = hanouf;
             suggestReason = 'fallback';
+          } else if (typeAllowed(t)) {
+            const pool = available.filter((u) => !blocked.has(u.id));
+            pick = pool.reduce((best, u) => {
+              if (!best) return u;
+              const a = byType[u.id][t] || 0;
+              const b = byType[best.id][t] || 0;
+              return a < b || (a === b && total[u.id] < total[best.id]) ? u : best;
+            }, null);
+            if (pick) suggestReason = 'sales-type';
+          }
+          if (!pick && rules.fallbackEmployeeId && rules.fallbackEmployeeId !== 'hanouf' && !blocked.has(rules.fallbackEmployeeId)) {
+            const fallback = employees.find((u) => u.id === rules.fallbackEmployeeId);
+            if (fallback && !onVacation(fallback.id)) {
+              pick = fallback;
+              suggestReason = 'fallback';
+            }
           }
         }
         if (pick) {

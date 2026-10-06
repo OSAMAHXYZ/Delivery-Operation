@@ -256,7 +256,7 @@
     <section class="panel-tab" id="tab-assign">
       <section class="hero">
         <h1>Auto assign</h1>
-        <p>Sales advisor rules run first. Bank orders stay off the employees you block. Anything still not assigned goes to the leftover employee.</p>
+        <p>Sales advisor rules run first. A sales advisor that is not listed goes only to Hanouf. Bank orders stay off the employees you block. Hanouf is not in the even split.</p>
       </section>
       <div class="card" style="margin-bottom:14px">
         <h2>Who can receive auto assign</h2>
@@ -276,7 +276,7 @@
       </div>
       <div class="card" style="margin-bottom:14px">
         <h2>Sales advisor → employee</h2>
-        <p class="hint">If the VIN’s S/A matches, it goes to that employee instead of the even split.</p>
+        <p class="hint">If the VIN’s S/A matches, it goes to that employee. A sales advisor that is not listed goes only to Hanouf.</p>
         <div class="toolbar">
           <input id="aa-advisor" list="aa-advisor-list" placeholder="Sales advisor" />
           <datalist id="aa-advisor-list"></datalist>
@@ -308,7 +308,7 @@
       </div>
       <div class="card" style="margin-bottom:14px">
         <h2>If still not assigned</h2>
-        <p class="hint">VINs that no sales advisor rule and no even split took go straight to this employee.</p>
+        <p class="hint">Hanouf receives every VIN whose sales advisor is not listed. If that sales type is blocked or she is on vacation, the even split runs, then this employee.</p>
         <div class="toolbar">
           <select id="aa-fallback"></select>
         </div>
