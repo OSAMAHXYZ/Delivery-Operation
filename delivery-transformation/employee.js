@@ -248,7 +248,7 @@
     if (type === 'status') return stickyControl(vin, 'opsStatus', v);
     if (type === 'yn') return `<select ${common}>${options(['Yes', 'No'], '—')}</select>`;
     if (type === 'date') return `<input type="date" ${common} value="${esc(v)}" />`;
-    if (type === 'city') return `<input list="edit-city-list" ${common} value="${esc(v)}" placeholder="City…" />`;
+    if (type === 'city') return `<input class="cell-edit city-find" data-vin="${esc(vin)}" data-field="${esc(field)}" value="${esc(v)}" placeholder="ابحث عن مدينة…" autocomplete="off" spellcheck="false" />`;
     if (type === 'carrier') return stickyControl(vin, 'carrier', v);
     if (type === 'notes') return `<input type="text" ${common} value="${esc(v)}" placeholder="Notes…" style="min-width:140px" />`;
     return esc(v || '—');
@@ -379,14 +379,121 @@
     return esc(na(value));
   }
 
-  function ensureDatalists() {
-    if ($('#edit-city-list')) return;
-    const dl = document.createElement('datalist');
-    dl.id = 'edit-city-list';
-    dl.innerHTML = ((state.meta && state.meta.transferCities) || [])
-      .map((c) => `<option value="${esc(c)}"></option>`).join('');
-    document.body.appendChild(dl);
+  function cityNorm(s) {
+    return String(s || '').trim().toLowerCase()
+      .replace(/[أإآا]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/\s+/g, ' ');
   }
+
+  function cityChoices(q) {
+    const all = (state.meta && state.meta.transferCities) || [];
+    const n = cityNorm(q);
+    const hits = n ? all.filter((c) => cityNorm(c).includes(n)) : all;
+    return hits.slice(0, 40);
+  }
+
+  function exactCity(q) {
+    const n = cityNorm(q);
+    if (!n) return '';
+    return ((state.meta && state.meta.transferCities) || []).find((c) => cityNorm(c) === n) || '';
+  }
+
+  let cityMenu = null;
+  let cityMenuInput = null;
+  let cityMenuIndex = 0;
+
+  function ensureCityMenu() {
+    if (cityMenu) return cityMenu;
+    cityMenu = document.createElement('div');
+    cityMenu.className = 'city-menu';
+    cityMenu.hidden = true;
+    cityMenu.addEventListener('mousedown', (e) => e.preventDefault());
+    cityMenu.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-city]');
+      if (!btn || !cityMenuInput) return;
+      chooseCity(cityMenuInput, btn.dataset.city);
+    });
+    document.body.appendChild(cityMenu);
+    return cityMenu;
+  }
+
+  function hideCityMenu() {
+    if (cityMenu) cityMenu.hidden = true;
+    cityMenuInput = null;
+  }
+
+  function chooseCity(input, city) {
+    input.value = city;
+    hideCityMenu();
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function showCityMenu(input) {
+    const menu = ensureCityMenu();
+    cityMenuInput = input;
+    cityMenuIndex = 0;
+    const hits = cityChoices(input.value);
+    menu.innerHTML = hits.length
+      ? hits.map((c, i) => `<button type="button" class="${i === 0 ? 'is-on' : ''}" data-city="${esc(c)}">${esc(c)}</button>`).join('')
+      : '<p class="city-menu-empty">لا توجد مدينة</p>';
+    const r = input.getBoundingClientRect();
+    const width = Math.max(r.width, 200);
+    menu.hidden = false;
+    menu.style.width = `${width}px`;
+    const h = menu.offsetHeight || 220;
+    const below = r.bottom + 4;
+    const top = (below + h > window.innerHeight - 8 && r.top - h - 4 > 8) ? r.top - h - 4 : below;
+    menu.style.top = `${top}px`;
+    menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - width - 8))}px`;
+  }
+
+  function settleCityInput(el, saved) {
+    const match = exactCity(el.value);
+    if (match) {
+      el.value = match;
+      return match;
+    }
+    el.value = saved || '';
+    return '';
+  }
+
+  document.addEventListener('focusin', (e) => {
+    if (e.target.classList && e.target.classList.contains('city-find')) showCityMenu(e.target);
+  });
+  document.addEventListener('input', (e) => {
+    if (e.target.classList && e.target.classList.contains('city-find')) showCityMenu(e.target);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!cityMenuInput || e.target !== cityMenuInput || !cityMenu || cityMenu.hidden) return;
+    const buttons = [...cityMenu.querySelectorAll('button')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!buttons.length) return;
+      cityMenuIndex = e.key === 'ArrowDown'
+        ? Math.min(buttons.length - 1, cityMenuIndex + 1)
+        : Math.max(0, cityMenuIndex - 1);
+      buttons.forEach((b, i) => b.classList.toggle('is-on', i === cityMenuIndex));
+      buttons[cityMenuIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = buttons[cityMenuIndex];
+      if (btn) chooseCity(cityMenuInput, btn.dataset.city);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      hideCityMenu();
+    }
+  }, true);
+  document.addEventListener('focusout', (e) => {
+    if (!e.target.classList || !e.target.classList.contains('city-find')) return;
+    setTimeout(() => {
+      if (document.activeElement !== e.target) hideCityMenu();
+    }, 150);
+  });
 
   /** Pending entry edits — survive refresh/logout until the server acknowledges them */
   const pendingOps = new Map();
@@ -617,6 +724,14 @@
           if (!value) return;
           queueCellEdit(el, { immediate: true });
           lockChoiceEl(el, el.dataset.field, value);
+        });
+        return;
+      }
+      if (el.classList.contains('city-find')) {
+        el.addEventListener('change', () => queueCellEdit(el, { immediate: true }));
+        el.addEventListener('blur', () => {
+          const match = settleCityInput(el, savedOpsValue(el.dataset.vin, el.dataset.field));
+          if (match) queueCellEdit(el, { immediate: true });
         });
         return;
       }
@@ -1378,7 +1493,6 @@
     // Never wipe mid-edit: keep typing / pending drafts on screen
     if (silent && active && active.classList && active.classList.contains('cell-edit') && table.contains(active)) return;
 
-    ensureDatalists();
     const cell = (r, field, type) => (r.canEdit && (field !== 'carrier' || canAssignCarrier())
       ? editableControl(r.vin, field, type, r.ops[field])
       : readOnlyValue(type, r.ops[field]));
@@ -1803,8 +1917,8 @@
         && grid.sel.focus.vin === td.parentElement.dataset.vin);
       const control = e.target.closest('input.cell-edit, select.cell-edit, textarea.cell-edit');
       if (control && sameCell && !e.shiftKey) return;
-      if (!e.target.closest('button')) e.preventDefault();
-      if (isTypingTarget(document.activeElement) && !e.target.closest('button')) document.activeElement.blur();
+      if (!e.target.closest('button, input.city-find')) e.preventDefault();
+      if (isTypingTarget(document.activeElement) && !e.target.closest('button, input.city-find')) document.activeElement.blur();
       setLiveSel(td, e.shiftKey);
       dragging = true;
       dragMoved = false;
@@ -1976,7 +2090,6 @@
       ...typeKpis,
     ].map(([l, v, c]) => `<article class="kpi ${c}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`).join('');
 
-    ensureDatalists();
     const cols = [
       {
         key: 'num',
@@ -2135,7 +2248,6 @@
 
   // ——— VIN drawer ———
   function buildDrawerHtml(v, readOnly) {
-    const cities = state.meta.transferCities || [];
     const ro = (label, val) => `<div class="field"><label>${esc(label)}</label><input value="${esc(na(val))}" readonly /></div>`;
     const yn = (key, label, val) => (readOnly ? ro(label, val)
       : `<div class="field"><label>${esc(label)}</label>
@@ -2198,8 +2310,7 @@
           ${yn('insuranceOps', 'Insurance', v.ops.insuranceOps)}
           ${dt('registrationIssueDate', 'تاريخ إصدار الاستمارة', v.ops.registrationIssueDate)}
           ${readOnly ? ro('مدينة الترحيل', v.ops.transferCity) : `<div class="field"><label>مدينة الترحيل</label>
-            <input list="city-list" data-ops="transferCity" value="${esc(v.ops.transferCity || '')}" placeholder="Search city…" />
-            <datalist id="city-list">${cities.map((c) => `<option value="${esc(c)}"></option>`).join('')}</datalist>
+            <input class="city-find" data-ops="transferCity" value="${esc(v.ops.transferCity || '')}" placeholder="ابحث عن مدينة…" autocomplete="off" spellcheck="false" />
           </div>`}
           ${canAssignCarrier()
             ? `<div class="field"><label>الناقل</label>${String(v.ops.carrier || '').trim()
@@ -2272,6 +2383,14 @@
       const tag = (el.tagName || '').toLowerCase();
       const type = (el.getAttribute('type') || '').toLowerCase();
       const instant = tag === 'select' || type === 'date';
+      if (el.classList.contains('city-find')) {
+        el.addEventListener('change', () => savePatch({ [el.dataset.ops]: el.value }, el));
+        el.addEventListener('blur', () => {
+          const match = settleCityInput(el, String((v.ops && v.ops.transferCity) || ''));
+          if (match) savePatch({ [el.dataset.ops]: match }, el);
+        });
+        return;
+      }
       if (stickyField(el.dataset.ops)) {
         el.addEventListener('change', () => {
           const value = String(el.value || '').trim();
