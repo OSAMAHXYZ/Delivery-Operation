@@ -214,9 +214,16 @@ function createStore(filePath) {
     return Object.values(data.vehicles);
   }
 
-  function getVehicle(vin) {
+  function vehicleKey(vin) {
     const key = String(vin || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    return data.vehicles[key] || null;
+    if (!key) return '';
+    if (data.vehicles[key]) return key;
+    return Object.keys(data.vehicles).find((k) => String(k).toUpperCase().replace(/[^A-Z0-9]/g, '') === key) || '';
+  }
+
+  function getVehicle(vin) {
+    const key = vehicleKey(vin);
+    return key ? data.vehicles[key] : null;
   }
 
   function upsertVehicle(vinKey, vehicle) {
@@ -354,6 +361,7 @@ function createStore(filePath) {
     getSession,
     destroySession,
     allVehicles,
+    vehicleKey,
     getVehicle,
     upsertVehicle,
     deleteVehicle,

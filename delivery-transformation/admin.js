@@ -2563,13 +2563,12 @@
       <td>${esc(r.salesAdvisor || '')}</td>
       <td>${esc(r.proformaDate || '')}</td>
       <td>${esc(r.suggestedEmployeeName || '—')}</td>
-      <td><select class="give-row-emp" data-vin="${esc(r.vin)}">${giveOptions(r.suggestedEmployeeId || '')}</select></td>
-      <td><button type="button" class="btn give-row-go" data-vin="${esc(r.vin)}">Assign</button></td>
-    </tr>`).join('') || '<tr><td colspan="7">No VINs waiting.</td></tr>';
-    body.querySelectorAll('.give-row-go').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const pick = body.querySelector(`.give-row-emp[data-vin="${CSS.escape(btn.dataset.vin)}"]`);
-        assignGiven([btn.dataset.vin], pick && pick.value).catch((err) => alert(err.message || 'Could not assign'));
+      <td><select class="give-row-emp" data-vin="${esc(r.vin)}">${giveOptions('')}</select></td>
+    </tr>`).join('') || '<tr><td colspan="6">No VINs waiting. Type a VIN above to assign it now.</td></tr>';
+    body.querySelectorAll('.give-row-emp').forEach((sel) => {
+      sel.addEventListener('change', () => {
+        if (!sel.value) return;
+        assignGiven([sel.dataset.vin], sel.value).catch((err) => alert(err.message || 'Could not assign'));
       });
     });
   }
@@ -2579,27 +2578,9 @@
     if (!vins.length) throw new Error('Type at least one VIN');
     if (!employeeId) throw new Error('Choose an employee');
     if (hint) hint.textContent = 'Assigning…';
-    const re = await api('/reassign', { method: 'POST', json: { vins, employee: employeeId } });
-    const moved = (re.results || []).filter((r) => r.ok);
-    const missing = (re.results || []).filter((r) => !r.ok && /not found/i.test(r.error || '')).map((r) => r.vin);
-    const skipped = (re.results || []).filter((r) => !r.ok && !missing.includes(r.vin));
-    let added = [];
-    let pendingFail = [];
-    if (missing.length) {
-      const pending = await api('/assignment/confirm', {
-        method: 'POST',
-        json: { items: missing.map((vin) => ({ vin, employeeId })) },
-      });
-      added = (pending.results || []).filter((r) => r.ok);
-      pendingFail = (pending.results || []).filter((r) => !r.ok);
-    }
-    const lines = [
-      moved.length ? `${moved.length} reassigned` : '',
-      added.length ? `${added.length} added to the Live Sheet` : '',
-      ...skipped.map((r) => `${r.vin}: ${r.error}`),
-      ...pendingFail.map((r) => `${r.vin}: ${r.error}`),
-    ].filter(Boolean);
-    const msg = lines.join(' · ') || 'Nothing changed';
+    const res = await api('/assignment/give', { method: 'POST', json: { vins, employeeId } });
+    const ok = (res.results || []).filter((r) => r.ok);
+    const msg = `${ok.length} assigned`;
     if (hint) hint.textContent = msg;
     toast(msg);
     await loadGive();

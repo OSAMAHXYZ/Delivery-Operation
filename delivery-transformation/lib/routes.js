@@ -2318,7 +2318,8 @@ function createDeliveryTransformationRouter(opts = {}) {
     const results = vins.map((vin) => {
       const v = store.getVehicle(vin);
       if (!v) return { vin, ok: false, error: 'VIN not found' };
-      if (v.ops.assignedEmployeeId === emp.id) return { vin, ok: false, error: 'Already assigned' };
+      if (!v.ops) v.ops = emptyOps();
+      if (v.ops.assignedEmployeeId === emp.id) return { vin, ok: true, employee: emp.name };
       const old = v.ops.assignedEmployeeName || '';
       v.ops.assignedEmployeeId = emp.id;
       v.ops.assignedEmployeeName = emp.name;
@@ -2326,7 +2327,8 @@ function createDeliveryTransformationRouter(opts = {}) {
       v.ops.assignedAt = now;
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = now;
-      store.upsertVehicle(vin, v);
+      const key = store.vehicleKey(vin) || vin;
+      store.upsertVehicle(key, v);
       store.pushAudit({
         vin,
         user: req.dtUser.name,
@@ -2681,6 +2683,58 @@ function createDeliveryTransformationRouter(opts = {}) {
     });
     store.save();
     return res.json({ ok: true, ...buildAssignmentView(), canConfirm: true });
+  });
+
+  /** Admin assigns VINs immediately: on the sheet, waiting, or new. */
+  router.post('/assignment/give', auth, requireRole('admin'), (req, res) => {
+    const body = req.body || {};
+    const vins = [...new Set((Array.isArray(body.vins) ? body.vins : []).map(normVin).filter((vin) => vin.length >= 8))];
+    const emp = findAssignable(body.employeeId || body.employee);
+    if (!vins.length) return res.status(400).json({ error: 'Type at least one VIN' });
+    if (!emp) return res.status(400).json({ error: 'Choose an employee' });
+    const now = new Date().toISOString();
+    const pending = pendingMap();
+    const results = vins.map((vin) => {
+      let v = store.getVehicle(vin);
+      const waiting = pending[vin];
+      if (!v) {
+        const raw = { ...emptyRaw(), ...((waiting && waiting.raw) || {}), vin };
+        if (!String(raw.proformaDate || '').trim()) raw.proformaDate = now.slice(0, 10);
+        v = {
+          vin,
+          raw,
+          ops: {
+            ...emptyOps(),
+            inventoryOwnerId: (waiting && waiting.inventoryOwnerId) || '',
+            inventoryOwnerName: (waiting && waiting.inventoryOwnerName) || '',
+            inventoryClaimedAt: (waiting && waiting.inventoryClaimedAt) || '',
+          },
+          createdAt: now,
+          createdBy: req.dtUser.name,
+          rawUpdatedAt: now,
+        };
+      }
+      if (!v.ops) v.ops = { ...emptyOps() };
+      const old = v.ops.assignedEmployeeName || '';
+      v.ops.assignedEmployeeId = emp.id;
+      v.ops.assignedEmployeeName = emp.name;
+      v.ops.assignedBy = req.dtUser.name;
+      v.ops.assignedAt = now;
+      v.ops.updatedBy = req.dtUser.name;
+      v.ops.updatedAt = now;
+      store.upsertVehicle(store.vehicleKey(vin) || vin, v);
+      if (pending[vin]) delete pending[vin];
+      store.pushAudit({
+        vin,
+        user: req.dtUser.name,
+        action: 'assign',
+        oldValue: old || '(unassigned)',
+        newValue: emp.name,
+      });
+      return { vin, ok: true, employee: emp.name };
+    });
+    store.save();
+    return res.json({ ok: true, results });
   });
 
   router.get('/assignment', auth, (req, res) => {
