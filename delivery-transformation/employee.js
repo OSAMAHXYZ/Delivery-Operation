@@ -1530,16 +1530,16 @@
     ];
 
     const shown = state.liveOnlySelected ? rows.filter((r) => state.selected.has(r.vin)) : rows;
-    const keepCf = active && active.classList && active.classList.contains('live-cf') && table.contains(active)
-      ? { key: active.dataset.cf, start: active.selectionStart, end: active.selectionEnd }
-      : null;
+    if (silent && excelMenuOpen()) {
+      state.liveInFlight = false;
+      return;
+    }
     grid.cols = cols;
     state.liveCols = cols;
-    const cf = grid.filters;
     const cfOn = activeLiveColRules().length;
     const frow = `<tr class="live-frow">${cols.map((c) => (c.key === 'num'
       ? `<th class="col-num">${cfOn ? '<button type="button" class="live-cf-x" data-cf-clear title="Clear column filters">✕</button>' : ''}</th>`
-      : `<th class="col-${c.key}${cf[c.key] ? ' is-on' : ''}"><input type="search" class="live-cf" data-cf="${esc(c.key)}" value="${esc(cf[c.key] || '')}" list="live-cf-list" placeholder="Filter…" autocomplete="off" spellcheck="false" title="${esc(`${colPlainLabel(c)}: ${LIVE_CF_HINT}`)}" aria-label="Filter ${esc(colPlainLabel(c))}" /></th>`)).join('')}</tr>`;
+      : colFilterButton(c))).join('')}</tr>`;
     table.innerHTML = `<thead><tr class="live-hrow">${cols.map((c) => `<th class="col-${c.key}">${c.raw ? c.label : esc(c.label)}</th>`).join('')}</tr>${frow}</thead>
       <tbody>${shown.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
         `<td class="col-${c.key}">${c.html(r, i)}</td>`).join('')}</tr>`).join('')
@@ -1547,11 +1547,28 @@
     $$('.vin-link', table).forEach((b) => b.addEventListener('dblclick', () => openVin(b.dataset.vin)));
     bindEditableCells(table);
     bindSelChecks(table, shown);
-    afterLiveRender(keepCf);
+    afterLiveRender(null);
   }
 
   // ——— Live Sheet · column filters (every user) ———
-  const LIVE_CF_HINT = 'text = contains · =text exact · !text excludes · empty / !empty';
+  const LIVE_CF_HINT = 'Tick one or more values in this column, like Excel';
+
+  function cfPicked(key) {
+    const v = grid.filters && grid.filters[key];
+    if (Array.isArray(v)) return v.map((x) => String(x)).filter((x) => x !== '');
+    return [];
+  }
+
+  function colFilterButton(c) {
+    const n = cfPicked(c.key).length;
+    const on = n ? ' is-on' : '';
+    return `<th class="col-${c.key}${on}"><button type="button" class="live-cf-btn${on}" data-cf="${esc(c.key)}" title="${esc(`${colPlainLabel(c)}: ${LIVE_CF_HINT}`)}">${n ? esc(String(n)) : '▾'}</button></th>`;
+  }
+
+  function excelMenuOpen() {
+    const menu = document.getElementById('excel-cf-menu');
+    return !!(menu && !menu.hidden);
+  }
 
   function colPlainLabel(c) {
     return c.key === 'num' ? '#' : c.label;
@@ -1577,7 +1594,11 @@
 
   function saveLiveColFilters() {
     const clean = {};
-    Object.entries(grid.filters).forEach(([k, v]) => { if (String(v || '').trim()) clean[k] = v; });
+    Object.entries(grid.filters).forEach(([k, v]) => {
+      if (Array.isArray(v)) {
+        if (v.length) clean[k] = v;
+      } else if (String(v || '').trim()) clean[k] = v;
+    });
     grid.filters = clean;
     if (grid.prefix === 'live') state.liveColFilters = clean;
     try {
@@ -1591,8 +1612,15 @@
 
   function activeLiveColRules() {
     return Object.entries(grid.filters || {})
-      .map(([key, v]) => ({ key, rule: String(v || '').trim().toLowerCase() }))
-      .filter((x) => x.rule);
+      .map(([key, v]) => {
+        if (Array.isArray(v)) {
+          const values = v.map((x) => String(x)).filter((x) => x !== '');
+          return values.length ? { key, values } : null;
+        }
+        const rule = String(v || '').trim().toLowerCase();
+        return rule ? { key, rule } : null;
+      })
+      .filter(Boolean);
   }
 
   function liveCellText(td) {
@@ -1606,6 +1634,18 @@
     else s = td.textContent;
     s = String(s || '').replace(/\s+/g, ' ').trim();
     return s === 'N/A' || s === '—' || s === '-' ? '' : s;
+  }
+
+  function matchLiveFilter(text, rule) {
+    if (rule.values) {
+      const t = String(text || '').trim().toLowerCase();
+      return rule.values.some((v) => {
+        const want = String(v).trim().toLowerCase();
+        if (want === '(blank)') return !t;
+        return t === want;
+      });
+    }
+    return matchLiveRule(text, rule.rule);
   }
 
   function matchLiveRule(text, rule) {
@@ -1641,7 +1681,7 @@
     let visible = 0;
     const all = liveDataRows();
     all.forEach((tr) => {
-      const ok = rules.every((r) => matchLiveRule(liveCellText(tr.cells[r.idx]), r.rule));
+      const ok = rules.every((r) => matchLiveFilter(liveCellText(tr.cells[r.idx]), r));
       tr.style.display = ok ? '' : 'none';
       if (ok) visible += 1;
     });
@@ -1649,7 +1689,7 @@
     if (table) {
       $$('thead tr.live-frow th', table).forEach((th, i) => {
         const col = grid.cols && grid.cols[i];
-        if (col && col.key !== 'num') th.classList.toggle('is-on', !!String(grid.filters[col.key] || '').trim());
+        if (col && col.key !== 'num') th.classList.toggle('is-on', cfPicked(col.key).length > 0 || !!String(Array.isArray(grid.filters[col.key]) ? '' : (grid.filters[col.key] || '')).trim());
       });
       const corner = $('thead tr.live-frow th.col-num', table);
       if (corner) {
@@ -1675,6 +1715,7 @@
 
   function clearLiveColFilters() {
     grid.filters = {};
+    closeExcelFilter();
     saveLiveColFilters();
     const table = gTable();
     if (table) $$('.live-cf', table).forEach((el) => { el.value = ''; });
@@ -1682,17 +1723,70 @@
     paintLiveSel();
   }
 
-  function fillLiveCfList(key) {
-    const list = gList();
+  function ensureExcelMenu() {
+    let menu = document.getElementById('excel-cf-menu');
+    if (menu) return menu;
+    menu = document.createElement('div');
+    menu.id = 'excel-cf-menu';
+    menu.className = 'excel-cf';
+    menu.hidden = true;
+    menu.innerHTML = '<input type="search" class="excel-cf-q" placeholder="Search this list…" autocomplete="off" /><div class="excel-cf-list"></div>';
+    menu.addEventListener('input', (e) => {
+      const q = String(e.target.value || '').trim().toLowerCase();
+      if (!e.target.classList.contains('excel-cf-q')) return;
+      menu.querySelectorAll('.excel-cf-opt').forEach((row) => {
+        row.hidden = q ? !row.dataset.find.includes(q) : false;
+      });
+    });
+    menu.addEventListener('change', (e) => {
+      const box = e.target.closest('input[type="checkbox"]');
+      if (!box || !menu.dataset.cf) return;
+      const cur = cfPicked(menu.dataset.cf).filter((x) => x.toLowerCase() !== box.value.toLowerCase());
+      if (box.checked) cur.push(box.dataset.label || box.value);
+      if (cur.length) grid.filters[menu.dataset.cf] = cur;
+      else delete grid.filters[menu.dataset.cf];
+      saveLiveColFilters();
+      applyLiveColFilters();
+      const btn = gTable() && gTable().querySelector(`.live-cf-btn[data-cf="${CSS.escape(menu.dataset.cf)}"]`);
+      if (btn) {
+        const n = cur.length;
+        btn.textContent = n ? String(n) : '▾';
+        btn.classList.toggle('is-on', n > 0);
+        if (btn.parentElement) btn.parentElement.classList.toggle('is-on', n > 0);
+      }
+    });
+    document.body.appendChild(menu);
+    return menu;
+  }
+
+  function openExcelFilter(btn) {
+    const table = btn.closest('table');
+    grid = table && table.id === 'my-table' ? sheetGrids.my : sheetGrids.live;
+    const key = btn.dataset.cf;
     const idx = liveColIndex(key);
-    if (!list || idx < 0) return;
+    if (idx < 0) return;
+    const menu = ensureExcelMenu();
     const seen = new Map();
     liveDataRows().forEach((tr) => {
-      const t = liveCellText(tr.cells[idx]);
-      if (t && !seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
+      const t = liveCellText(tr.cells[idx]) || '(blank)';
+      if (!seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
     });
-    list.innerHTML = [...seen.values()].sort((a, b) => a.localeCompare(b)).slice(0, 200)
-      .map((v) => `<option value="${esc(v)}"></option>`).join('');
+    const picked = new Set(cfPicked(key).map((v) => v.toLowerCase()));
+    const values = [...seen.values()].sort((a, b) => a.localeCompare(b));
+    menu.dataset.cf = key;
+    menu.querySelector('.excel-cf-q').value = '';
+    menu.querySelector('.excel-cf-list').innerHTML = values.map((v) => `<label class="excel-cf-opt" data-find="${esc(v.toLowerCase())}"><input type="checkbox" value="${esc(v)}" data-label="${esc(v)}" ${picked.has(v.toLowerCase()) ? 'checked' : ''} /> ${esc(v)}</label>`).join('')
+      || '<p class="excel-cf-empty">No values</p>';
+    const r = btn.getBoundingClientRect();
+    menu.hidden = false;
+    menu.style.top = `${Math.min(r.bottom + 4, window.innerHeight - 280)}px`;
+    menu.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - 220))}px`;
+    menu.querySelector('.excel-cf-q').focus();
+  }
+
+  function closeExcelFilter() {
+    const menu = document.getElementById('excel-cf-menu');
+    if (menu) menu.hidden = true;
   }
 
   // ——— Live Sheet · cell selection + copy as table (every user) ———
@@ -1935,6 +2029,14 @@
         e.stopPropagation();
       }
       dragMoved = false;
+      const cfBtn = e.target.closest('.live-cf-btn');
+      if (cfBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        use();
+        openExcelFilter(cfBtn);
+        return;
+      }
       const clr = e.target.closest('[data-cf-clear]');
       if (clr) {
         use();
@@ -2148,15 +2250,12 @@
       { key: 'updated', label: 'Updated', html: (r) => esc((r.ops.updatedAt || '').replace('T', ' ').slice(0, 19) || '—') },
       { key: 'by', label: 'By', html: (r) => esc(na(r.ops.updatedBy)) },
     ];
-    const keepCf = active && active.classList && active.classList.contains('live-cf') && table && table.contains(active)
-      ? { key: active.dataset.cf, start: active.selectionStart, end: active.selectionEnd }
-      : null;
+    if (silent && excelMenuOpen()) return;
     grid.cols = cols;
-    const cf = grid.filters;
     const cfOn = activeLiveColRules().length;
     const frow = `<tr class="live-frow">${cols.map((c) => (c.key === 'num'
       ? `<th class="col-num">${cfOn ? '<button type="button" class="live-cf-x" data-cf-clear title="Clear column filters">✕</button>' : ''}</th>`
-      : `<th class="col-${c.key}${cf[c.key] ? ' is-on' : ''}"><input type="search" class="live-cf" data-cf="${esc(c.key)}" value="${esc(cf[c.key] || '')}" list="my-cf-list" placeholder="Filter…" autocomplete="off" spellcheck="false" title="${esc(`${colPlainLabel(c)}: ${LIVE_CF_HINT}`)}" aria-label="Filter ${esc(colPlainLabel(c))}" /></th>`)).join('')}</tr>`;
+      : colFilterButton(c))).join('')}</tr>`;
     const empty = isManager() && state.view !== 'mine' ? 'No VINs on the sheet yet.' : 'No VINs assigned to you yet.';
     table.innerHTML = `<thead><tr class="live-hrow">${cols.map((c) => `<th class="col-${c.key}">${c.raw ? c.label : esc(c.label)}</th>`).join('')}</tr>${frow}</thead>
       <tbody>${w.rows.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
@@ -2167,7 +2266,7 @@
     bindSelChecks(table, w.rows);
     $('#my-pager').innerHTML = `<span>${w.assigned} VIN(s) · all on this page</span>`;
     renderSelBars();
-    afterLiveRender(keepCf);
+    afterLiveRender(null);
   }
 
   // ——— Appointment (Ruba · Guest Exp = Yes) ———
@@ -2640,6 +2739,7 @@
   });
   $('#live-month').addEventListener('change', (e) => { state.liveFilters.month = e.target.value; loadLiveSheet(); });
   document.addEventListener('click', (e) => {
+    if (!e.target.closest('.live-cf-btn, #excel-cf-menu')) closeExcelFilter();
     const btn = e.target.closest('.multi-filter-btn');
     if (btn) {
       const menu = btn.parentElement.querySelector('.multi-filter-menu');
