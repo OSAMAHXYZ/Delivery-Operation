@@ -1071,6 +1071,53 @@ function createDeliveryTransformationRouter(opts = {}) {
     return store.data.meta.pendingAssignments;
   }
 
+  function salesRawIndex() {
+    if (!store.data.meta.salesRawByVin || typeof store.data.meta.salesRawByVin !== 'object') {
+      store.data.meta.salesRawByVin = {};
+    }
+    return store.data.meta.salesRawByVin;
+  }
+
+  function rememberSalesRaw(vin, raw, now, by) {
+    const key = normVin(vin);
+    if (!key) return;
+    const map = salesRawIndex();
+    const prev = (map[key] && map[key].raw) || {};
+    const next = { ...emptyRaw(), ...prev };
+    Object.entries(raw || {}).forEach(([k, val]) => {
+      if (val !== '' && val != null) next[k] = val;
+    });
+    next.vin = key;
+    map[key] = { vin: key, raw: next, at: now, by: by || '' };
+  }
+
+  function rawFromSales(vin) {
+    const key = normVin(vin);
+    const saved = salesRawIndex()[key];
+    const waiting = pendingMap()[key];
+    return {
+      ...((saved && saved.raw) || {}),
+      ...((waiting && waiting.raw) || {}),
+      vin: key,
+    };
+  }
+
+  function applyRawFromSales(v) {
+    if (!v) return false;
+    const src = rawFromSales(v.vin);
+    if (!v.raw) v.raw = { ...emptyRaw(), vin: v.vin };
+    let changed = false;
+    Object.entries(src).forEach(([k, val]) => {
+      if (!k || k === 'vin' || val === '' || val == null) return;
+      if (String(v.raw[k] ?? '') !== String(val)) {
+        v.raw[k] = val;
+        changed = true;
+      }
+    });
+    v.raw.vin = v.vin;
+    return changed;
+  }
+
   function inventoryOwnerOf(rec) {
     if (!rec) return { id: '', name: '', at: '' };
     const src = rec.ops || rec;
@@ -1594,6 +1641,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       };
       const pending = pendingMap();
       parsed.items.forEach((item) => {
+        rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name);
         const v = store.getVehicle(item.vin);
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
         const hasInvoice = !!String((item.raw && item.raw.invoiceDate) || '').trim();
@@ -2698,11 +2746,9 @@ function createDeliveryTransformationRouter(opts = {}) {
       let v = store.getVehicle(vin);
       const waiting = pending[vin];
       if (!v) {
-        const raw = { ...emptyRaw(), ...((waiting && waiting.raw) || {}), vin };
-        if (!String(raw.proformaDate || '').trim()) raw.proformaDate = now.slice(0, 10);
         v = {
           vin,
-          raw,
+          raw: { ...emptyRaw(), vin },
           ops: {
             ...emptyOps(),
             inventoryOwnerId: (waiting && waiting.inventoryOwnerId) || '',
@@ -2713,6 +2759,11 @@ function createDeliveryTransformationRouter(opts = {}) {
           createdBy: req.dtUser.name,
           rawUpdatedAt: now,
         };
+      }
+      if (applyRawFromSales(v)) v.rawUpdatedAt = now;
+      if (!String((v.raw && v.raw.proformaDate) || '').trim()) {
+        if (!v.raw) v.raw = { ...emptyRaw(), vin };
+        v.raw.proformaDate = now.slice(0, 10);
       }
       if (!v.ops) v.ops = { ...emptyOps() };
       const old = v.ops.assignedEmployeeName || '';
@@ -2771,9 +2822,9 @@ function createDeliveryTransformationRouter(opts = {}) {
       const emp = findAssignable(it && it.employeeId);
       if (!emp) return { vin, ok: false, error: 'Choose an employee' };
       if (onVacation(emp.id)) return { vin, ok: false, error: `${emp.name} is on vacation` };
-      store.upsertVehicle(vin, {
+      const created = {
         vin,
-        raw: { ...emptyRaw(), ...p.raw, vin },
+        raw: { ...emptyRaw(), ...rawFromSales(vin), ...p.raw, vin },
         ops: {
           ...emptyOps(),
           assignedEmployeeId: emp.id,
@@ -2789,7 +2840,8 @@ function createDeliveryTransformationRouter(opts = {}) {
         createdAt: now,
         createdBy: req.dtUser.name,
         rawUpdatedAt: now,
-      });
+      };
+      store.upsertVehicle(vin, created);
       delete pending[vin];
       store.pushAudit({
         vin, user: req.dtUser.name, action: 'confirm_assignment', oldValue: '(new · sales raw)', newValue: emp.name,
