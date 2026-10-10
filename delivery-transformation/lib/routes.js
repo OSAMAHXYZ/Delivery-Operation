@@ -2697,7 +2697,15 @@ function createDeliveryTransformationRouter(opts = {}) {
         : Array.isArray(req.body && req.body.items) ? req.body.items.map((it) => normVin(it && it.vin)).filter(Boolean)
           : [];
     const pick = new Map(view.rows.map((r) => [r.vin, r.suggestedEmployeeId]));
-    const items = want.map((vin) => ({ vin, employeeId: pick.get(vin) || '' }));
+    const chosen = new Map();
+    if (Array.isArray(req.body && req.body.items)) {
+      req.body.items.forEach((it) => {
+        const vin = normVin(it && it.vin);
+        const id = String((it && (it.employeeId || it.employee)) || '').trim();
+        if (vin && id) chosen.set(vin, id);
+      });
+    }
+    const items = want.map((vin) => ({ vin, employeeId: chosen.get(vin) || pick.get(vin) || '' }));
     if (!items.length) return res.status(400).json({ error: 'Nothing to confirm' });
     const pending = pendingMap();
     const now = new Date().toISOString();

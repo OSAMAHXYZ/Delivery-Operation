@@ -75,6 +75,16 @@
   color: #fff;
   border-color: var(--navy);
 }
+.give-form { display: grid; gap: 10px; max-width: 640px; }
+.give-box {
+  width: 100%;
+  min-height: 120px;
+  box-sizing: border-box;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 .aa-checks { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
 .aa-checks label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .panel-tab { display: none; }

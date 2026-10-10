@@ -2529,6 +2529,80 @@
     if (tab === 'weights') loadWeights().catch((err) => { if ($('weight-error')) $('weight-error').textContent = err.message; });
     if (tab === 'schedule') loadSlaConfig().catch((err) => { if ($('sla-error')) $('sla-error').textContent = err.message; });
     if (tab === 'assign') loadAutoAssign().catch((err) => { if ($('aa-hint')) $('aa-hint').textContent = err.message; });
+    if (tab === 'give') loadGive().catch((err) => { if ($('give-hint')) $('give-hint').textContent = err.message; });
+  }
+
+  let giveEmployees = [];
+
+  function giveVinList(text) {
+    return [...new Set(String(text || '').toUpperCase().split(/[^A-Z0-9]+/).filter((s) => s.length >= 8))];
+  }
+
+  function giveOptions(selected) {
+    return `<option value="">Choose employee</option>${giveEmployees.map((e) =>
+      `<option value="${esc(e.id)}" ${e.id === selected ? 'selected' : ''}>${esc(e.name)}${e.onVacation ? ' · vacation' : ''}</option>`).join('')}`;
+  }
+
+  async function loadGive() {
+    const data = await api('/assignment');
+    giveEmployees = data.employees || [];
+    const sel = $('give-employee');
+    if (sel && !sel.dataset.ready) {
+      sel.innerHTML = giveOptions('');
+      sel.dataset.ready = '1';
+    } else if (sel && ![...sel.options].some((o) => o.value && giveEmployees.some((e) => e.id === o.value))) {
+      const current = sel.value;
+      sel.innerHTML = giveOptions(current);
+    }
+    const body = $('give-pending') && $('give-pending').querySelector('tbody');
+    if (!body) return;
+    const rows = data.rows || [];
+    body.innerHTML = rows.map((r) => `<tr>
+      <td>${esc(r.vin)}</td>
+      <td>${esc(r.salesType || '')}</td>
+      <td>${esc(r.salesAdvisor || '')}</td>
+      <td>${esc(r.proformaDate || '')}</td>
+      <td>${esc(r.suggestedEmployeeName || '—')}</td>
+      <td><select class="give-row-emp" data-vin="${esc(r.vin)}">${giveOptions(r.suggestedEmployeeId || '')}</select></td>
+      <td><button type="button" class="btn give-row-go" data-vin="${esc(r.vin)}">Assign</button></td>
+    </tr>`).join('') || '<tr><td colspan="7">No VINs waiting.</td></tr>';
+    body.querySelectorAll('.give-row-go').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pick = body.querySelector(`.give-row-emp[data-vin="${CSS.escape(btn.dataset.vin)}"]`);
+        assignGiven([btn.dataset.vin], pick && pick.value).catch((err) => alert(err.message || 'Could not assign'));
+      });
+    });
+  }
+
+  async function assignGiven(vins, employeeId) {
+    const hint = $('give-hint');
+    if (!vins.length) throw new Error('Type at least one VIN');
+    if (!employeeId) throw new Error('Choose an employee');
+    if (hint) hint.textContent = 'Assigning…';
+    const re = await api('/reassign', { method: 'POST', json: { vins, employee: employeeId } });
+    const moved = (re.results || []).filter((r) => r.ok);
+    const missing = (re.results || []).filter((r) => !r.ok && /not found/i.test(r.error || '')).map((r) => r.vin);
+    const skipped = (re.results || []).filter((r) => !r.ok && !missing.includes(r.vin));
+    let added = [];
+    let pendingFail = [];
+    if (missing.length) {
+      const pending = await api('/assignment/confirm', {
+        method: 'POST',
+        json: { items: missing.map((vin) => ({ vin, employeeId })) },
+      });
+      added = (pending.results || []).filter((r) => r.ok);
+      pendingFail = (pending.results || []).filter((r) => !r.ok);
+    }
+    const lines = [
+      moved.length ? `${moved.length} reassigned` : '',
+      added.length ? `${added.length} added to the Live Sheet` : '',
+      ...skipped.map((r) => `${r.vin}: ${r.error}`),
+      ...pendingFail.map((r) => `${r.vin}: ${r.error}`),
+    ].filter(Boolean);
+    const msg = lines.join(' · ') || 'Nothing changed';
+    if (hint) hint.textContent = msg;
+    toast(msg);
+    await loadGive();
   }
 
   let autoAssign = null;
@@ -2625,6 +2699,18 @@
   }
 
   document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  if ($('give-form')) {
+    $('give-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const vins = giveVinList($('give-vins').value);
+      assignGiven(vins, $('give-employee').value).then(() => {
+        $('give-vins').value = '';
+      }).catch((err) => {
+        if ($('give-hint')) $('give-hint').textContent = err.message || 'Could not assign';
+        alert(err.message || 'Could not assign');
+      });
+    });
+  }
   if ($('aa-type-add')) {
     $('aa-type-add').addEventListener('click', () => {
       const name = String(($('aa-type-new') && $('aa-type-new').value) || '').trim();
