@@ -158,11 +158,12 @@
       <p class="sync-line">Live · last sync <span id="dash-sync">—</span></p>
 
       <div class="card backup-card" id="backup-card">
-        <h2>Data backup — employee + coordinator</h2>
-        <p class="hint">One snapshot is saved automatically every 6 hours. Restore replaces Live Sheet, Sales Raw, attendance, and prints on employee.html and coordinator.html with that last scan.</p>
+        <h2>Data backup — all program data</h2>
+        <p class="hint">A full snapshot is saved automatically every 10 minutes: Live Sheet, assignments, coordinator prints, attendance, audit, and settings. Download keeps that saved copy. Restore puts that copy back on employee.html and coordinator.html.</p>
         <div class="backup-meta" id="backup-meta">Last saved — · next scan —</div>
         <div class="toolbar" style="margin-top:10px">
           <button type="button" class="btn" id="backup-save">Save snapshot now</button>
+          <button type="button" class="btn" id="backup-download">Download saved snapshot</button>
           <button type="button" class="btn-primary" id="backup-restore">Restore last data</button>
           <span class="hint" id="backup-hint"></span>
         </div>
@@ -505,6 +506,6 @@
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20261010a"></script>
-  <script src="admin.js?v=20261010b"></script>
+  <script src="admin.js?v=20261010c"></script>
 </body>
 </html>

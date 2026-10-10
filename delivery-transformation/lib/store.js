@@ -22,7 +22,7 @@ function emptyStore() {
   };
 }
 
-const BACKUP_MS = 6 * 60 * 60 * 1000;
+const BACKUP_MS = 10 * 60 * 1000;
 const BACKUP_SCAN_MS = 60 * 1000;
 
 function createStore(filePath) {
@@ -312,7 +312,7 @@ function createStore(filePath) {
       ? new Date(lastMs + BACKUP_MS).toISOString()
       : new Date().toISOString();
     return {
-      intervalHours: 6,
+      intervalMinutes: 10,
       lastAt,
       nextAt,
       due: !Number.isFinite(lastMs) || Date.now() - lastMs >= BACKUP_MS,
@@ -358,6 +358,7 @@ function createStore(filePath) {
     upsertVehicle,
     deleteVehicle,
     pushAudit,
+    readLastBackup,
     writeBackup,
     restoreLastBackup,
     backupStatus,

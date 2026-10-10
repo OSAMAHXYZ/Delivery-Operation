@@ -2738,6 +2738,9 @@
     liveQTimer = setTimeout(() => { state.liveFilters.q = e.target.value.trim(); loadLiveSheet(); }, 250);
   });
   $('#live-month').addEventListener('change', (e) => { state.liveFilters.month = e.target.value; loadLiveSheet(); });
+  document.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.live-cf-btn, #excel-cf-menu')) closeExcelFilter();
+  }, true);
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.live-cf-btn, #excel-cf-menu')) closeExcelFilter();
     const btn = e.target.closest('.multi-filter-btn');

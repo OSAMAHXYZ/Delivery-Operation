@@ -1761,6 +1761,19 @@ function createDeliveryTransformationRouter(opts = {}) {
     return res.json({ ok: true, ...status });
   });
 
+  router.get('/backup/download', auth, requireRole('admin'), (req, res) => {
+    const snap = store.readLastBackup();
+    if (!snap) return res.status(400).json({ error: 'No saved snapshot yet' });
+    let wb;
+    try {
+      wb = fullExcel.buildFullWorkbook(snap);
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Could not build the snapshot' });
+    }
+    const stamp = String(snap.savedAt || exportExcel.stamp()).slice(0, 16).replace(/[:T]/g, '-');
+    return sendXlsx(res, wb, `DT-Snapshot-${stamp}.xlsx`);
+  });
+
   router.post('/backup/restore', auth, requireRole('admin'), (req, res) => {
     try {
       const status = store.restoreLastBackup(req.dtUser.name);

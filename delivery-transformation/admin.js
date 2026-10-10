@@ -179,7 +179,7 @@
     const next = backup.nextAt ? fmtWhen(backup.nextAt) : '—';
     const snap = backup.snapshot || {};
     const live = backup.live || {};
-    meta.textContent = `Last saved ${last} · next scan ${next} · snapshot ${snap.vehicles || 0} VINs · live ${live.vehicles || 0} VINs`;
+    meta.textContent = `Last saved ${last} · next scan ${next} · snapshot ${snap.vehicles || 0} VINs, ${snap.prints || 0} prints, ${snap.attendance || 0} attendance · live ${live.vehicles || 0} VINs`;
   }
 
   function renderAttendance() {
@@ -2794,6 +2794,12 @@
       } catch (err) {
         $('backup-hint').textContent = err.message || 'Could not save';
       }
+    });
+  }
+  if ($('backup-download')) {
+    $('backup-download').addEventListener('click', () => {
+      const at = backup && backup.lastAt ? String(backup.lastAt).slice(0, 16).replace(/[:T]/g, '-') : 'latest';
+      runExport('/backup/download', `DT-Snapshot-${at}.xlsx`);
     });
   }
   if ($('backup-restore')) {

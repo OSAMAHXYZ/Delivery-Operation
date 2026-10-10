@@ -2560,6 +2560,7 @@ table.live-sheet thead tr.live-frow th.is-on {
   border-color: #2563eb;
   color: #fff;
 }
+.excel-cf[hidden] { display: none; }
 .excel-cf {
   position: fixed;
   z-index: 90;
