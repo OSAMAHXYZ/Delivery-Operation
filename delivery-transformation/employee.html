@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="employee.css?v=20261006a" />
+  <link rel="stylesheet" href="employee.css?v=20261010a" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -134,15 +134,18 @@
                   <input type="month" id="live-month" />
                 </label>
                 <input type="search" id="live-q" placeholder="Search VIN / order / product…" />
-                <select id="live-employee">
-                  <option value="">All employees</option>
-                </select>
-                <select id="live-carrier">
-                  <option value="">All الناقل</option>
-                </select>
-                <select id="live-status">
-                  <option value="">All statuses</option>
-                </select>
+                <div class="multi-filter" id="live-employee-filter">
+                  <button type="button" class="multi-filter-btn" data-empty="All employees">All employees</button>
+                  <div class="multi-filter-menu" hidden></div>
+                </div>
+                <div class="multi-filter" id="live-carrier-filter">
+                  <button type="button" class="multi-filter-btn" data-empty="All الناقل">All الناقل</button>
+                  <div class="multi-filter-menu" hidden></div>
+                </div>
+                <div class="multi-filter" id="live-status-filter">
+                  <button type="button" class="multi-filter-btn" data-empty="All statuses">All statuses</button>
+                  <div class="multi-filter-menu" hidden></div>
+                </div>
                 <button type="button" class="btn" id="live-refresh">Refresh now</button>
               </div>
             </div>
@@ -172,7 +175,10 @@
             <div id="my-save-toast" class="save-toast" hidden>Saved ✓</div>
             <div class="toolbar" id="my-toolbar">
               <input type="search" id="my-q" placeholder="Search VIN / order / product…" />
-              <select id="my-status"><option value="">All statuses</option></select>
+              <div class="multi-filter" id="my-status-filter">
+                <button type="button" class="multi-filter-btn" data-empty="All statuses">All statuses</button>
+                <div class="multi-filter-menu" hidden></div>
+              </div>
               <button type="button" class="btn" id="my-clear">Clear</button>
             </div>
             <div class="sel-bar" id="my-sel-bar"></div>
@@ -322,6 +328,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261006a"></script>
+  <script src="employee.js?v=20261010a"></script>
 </body>
 </html>

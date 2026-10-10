@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css?v=20261005a" />
+  <link rel="stylesheet" href="admin.css?v=20261010a" />
 </head>
 <body>
   <div class="collector-gate" id="collector-gate">
@@ -425,7 +425,7 @@
 
       <div class="card" style="margin-bottom:14px">
         <h2>Add VIN to Live Sheet</h2>
-        <p class="hint">New VINs appear for the coordinator and the assigned employee.</p>
+        <p class="hint">New VINs appear for the coordinator and the assigned employee. A last-month proforma date can be assigned here, and the VIN stays on the sheet.</p>
         <form id="add-form" class="kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:0">
           <div class="field"><label>VIN *</label><input name="vin" required /></div>
           <div class="field"><label>Product</label><input name="product" /></div>
@@ -436,6 +436,7 @@
           <div class="field"><label>Phone</label><input name="phone" /></div>
           <div class="field"><label>GT Loc</label><input name="gtLocation" /></div>
           <div class="field"><label>Veh Loc</label><input name="vehicleLocation" /></div>
+          <div class="field"><label>Proforma date</label><input name="proformaDate" type="date" title="Use last month’s date when the VIN is from last month" /></div>
           <div class="field"><label>Employee</label><select name="assignedEmployeeId" id="add-employee"></select></div>
           <div class="field" style="align-self:end"><button type="submit" class="btn-primary" style="width:100%">Add VIN</button></div>
         </form>
@@ -445,6 +446,15 @@
         <h2>Live Sheet — full details</h2>
         <div class="toolbar">
           <input type="search" id="search" placeholder="Search VIN / order / product / employee…" />
+          <label class="month-filter-label">Month <input type="month" id="vin-month" title="Leave empty for every month, including last month" /></label>
+          <div class="multi-filter" id="vin-employee-filter">
+            <button type="button" class="multi-filter-btn" data-empty="All employees">All employees</button>
+            <div class="multi-filter-menu" hidden></div>
+          </div>
+          <div class="multi-filter" id="vin-status-filter">
+            <button type="button" class="multi-filter-btn" data-empty="All statuses">All statuses</button>
+            <div class="multi-filter-menu" hidden></div>
+          </div>
           <button type="button" class="btn" id="refresh-btn">Refresh</button>
           <span class="hint" id="live-meta"></span>
         </div>
@@ -494,7 +504,7 @@
   <script src="../scripts/muthakara-field-layout.js"></script>
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="live.js?v=20260923c14"></script>
-  <script src="admin.js?v=20261005a"></script>
+  <script src="live.js?v=20261010a"></script>
+  <script src="admin.js?v=20261010a"></script>
 </body>
 </html>

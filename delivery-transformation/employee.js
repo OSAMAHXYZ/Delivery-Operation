@@ -9,8 +9,8 @@
     meta: null,
     view: 'dashboard',
     monthFilter: '',
-    liveFilters: { q: '', employee: '', status: '', month: '', carrier: '' },
-    myFilters: { q: '', status: '' },
+    liveFilters: { q: '', employee: [], status: [], month: '', carrier: [] },
+    myFilters: { q: '', status: [] },
     liveFingerprint: '',
     liveTimer: null,
     liveInFlight: false,
@@ -830,7 +830,7 @@
       assignment: ['Assignment', 'VIN numbers only · Proforma Date (column P) filled · Invoice Date (column V) empty · no duplicate VINs'],
       targets: ['Team Targets', 'Each employee · VINs by sales type · total · target · Ach%'],
       upload: ['Upload VINs', `Delivery sheet · ${state.meta.currentMonth || 'this month'} all VINs · ${state.meta.previousMonth || 'last month'} only فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور`],
-      'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · الغاء missing from this file is removed'],
+      'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · الغاء VINs stay on the sheet'],
       appointment: ['Appointment', 'Guest Exp = Yes · set date, time, and a timer for everyone'],
     };
     const t = titles[view] || ['Delivery Transformation', ''];
@@ -855,9 +855,18 @@
     }
   }
 
+  function filterList(v) {
+    if (Array.isArray(v)) return v.map((x) => String(x || '').trim()).filter(Boolean);
+    const s = String(v || '').trim();
+    return s ? [s] : [];
+  }
+
   async function fetchLive(params) {
     const qs = new URLSearchParams();
-    Object.entries(params || {}).forEach(([k, v]) => { if (v) qs.set(k, v); });
+    Object.entries(params || {}).forEach(([k, v]) => {
+      const joined = Array.isArray(v) ? v.filter(Boolean).join(',') : v;
+      if (joined) qs.set(k, joined);
+    });
     const data = await api(`/live-sheet${qs.toString() ? `?${qs}` : ''}`);
     renderImports(data.imports);
     applyPendingToRows(data.rows || []);
@@ -1243,11 +1252,11 @@
           <div><strong>${s.skippedInvoiced || 0}</strong><span>Skipped · has Invoice Date (V)</span></div>
           <div><strong>${s.skippedOnSystem || 0}</strong><span>Skipped · already on system</span></div>
           <div><strong>${s.duplicates || 0}</strong><span>Duplicate VINs ignored</span></div>
-          <div><strong>${s.removedCancel || 0}</strong><span>الغاء removed · not in this Raw file</span></div>
         </div>
         ${s.assignable ? `<p style="margin-top:10px"><b>${s.assignable}</b> unique VIN(s) with Proforma Date and no Invoice Date
           ${isManager() ? 'are waiting for your confirmation.' : 'were sent to Hanouf to confirm the assignment.'}
-          <button type="button" class="btn" id="go-assignment">Open Assignment</button></p>` : ''}`;
+          <button type="button" class="btn" id="go-assignment">Open Assignment</button></p>` : ''}
+        <p class="hint" style="margin-top:8px">Existing VINs stay, including الغاء. Blank cells in the file do not clear saved values.</p>`;
       const go = $('#go-assignment');
       if (go) go.addEventListener('click', () => setView('assignment'));
       await loadImportPanels();
@@ -1344,9 +1353,9 @@
       if (!b.dataset.status) return;
       state.liveFilters = {
         ...state.liveFilters,
-        status: b.dataset.status,
+        status: [b.dataset.status],
         month: state.monthFilter || '',
-        employee: isManager() ? '' : state.user.name,
+        employee: isManager() ? [] : [state.user.name],
       };
       setView('live');
     }));
@@ -1392,7 +1401,7 @@
       ? `<div class="emp-card is-empty"><strong>Unassigned</strong><div class="emp-card-got"><b>${unassigned}</b><span>VIN(s)</span></div></div>`
       : '');
     $$('#dash-employees .emp-card[data-emp]').forEach((b) => b.addEventListener('click', () => {
-      state.liveFilters = { ...state.liveFilters, employee: b.dataset.emp, month: state.monthFilter || '', status: '' };
+      state.liveFilters = { ...state.liveFilters, employee: [b.dataset.emp], month: state.monthFilter || '', status: [] };
       setView('live');
     }));
   }
@@ -1420,34 +1429,18 @@
     const changed = fingerprint !== state.liveFingerprint;
     state.liveFingerprint = fingerprint;
 
-    const empSel = $('#live-employee');
-    if (empSel && !empSel.dataset.filled) {
-      empSel.innerHTML = `<option value="">All employees</option>${employeeNames().map((s) =>
-        `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
-      empSel.dataset.filled = '1';
-    }
-    if (empSel) empSel.value = f.employee || '';
-
-    const statusSel = $('#live-status');
-    if (statusSel && !statusSel.dataset.filled) {
-      statusSel.innerHTML = `<option value="">All statuses</option>${(state.meta.statuses || []).map((s) =>
-        `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
-      statusSel.dataset.filled = '1';
-    }
-    if (statusSel) statusSel.value = f.status || '';
-
     const monthInp = $('#live-month');
     if (monthInp && monthInp.value !== (f.month || '')) monthInp.value = f.month || '';
 
-    const carrierSel = $('#live-carrier');
-    if (carrierSel && document.activeElement !== carrierSel) {
-      const byCar = data.byCarrier || {};
-      const all = [...new Set([...(state.meta.carriers || []),
-        ...Object.keys(byCar).filter((k) => k && k !== '(empty)')])];
-      carrierSel.innerHTML = `<option value="">All الناقل</option>
-        <option value="__empty__"${f.carrier === '__empty__' ? ' selected' : ''}>بدون ناقل (فارغ)</option>
-        ${all.map((c) => `<option value="${esc(c)}"${f.carrier === c ? ' selected' : ''}>${esc(c)}${byCar[c] != null ? ` (${byCar[c]})` : ''}</option>`).join('')}`;
-    }
+    const byCar = data.byCarrier || {};
+    const carrierNames = [...new Set([...(state.meta.carriers || []),
+      ...Object.keys(byCar).filter((k) => k && k !== '(empty)')])];
+    paintMultiFilter('live-employee-filter', employeeNames().map((s) => ({ value: s, label: s })), f.employee, (value, on) => setFilterValue('employee', value, on));
+    paintMultiFilter('live-status-filter', (state.meta.statuses || []).map((s) => ({ value: s, label: s })), f.status, (value, on) => setFilterValue('status', value, on));
+    paintMultiFilter('live-carrier-filter', [
+      { value: '__empty__', label: 'بدون ناقل' },
+      ...carrierNames.map((c) => ({ value: c, label: c })),
+    ], f.carrier, (value, on) => setFilterValue('carrier', value, on));
 
     const chips = $('#live-chips');
     if (chips) {
@@ -1456,19 +1449,19 @@
       const byCar = data.byCarrier || {};
       chips.innerHTML = [
         `<span class="live-chip"><b>${data.total || 0}</b> VINs</span>`,
-        ...Object.keys(byEmp).map((k) => `<button type="button" class="live-chip emp-filter ${f.employee === k ? 'active' : ''}" data-emp="${esc(k)}">${esc(k)} <b>${byEmp[k]}</b></button>`),
+        ...Object.keys(byEmp).map((k) => `<button type="button" class="live-chip emp-filter ${filterList(f.employee).includes(k) ? 'active' : ''}" data-emp="${esc(k)}">${esc(k)} <b>${byEmp[k]}</b></button>`),
         ...Object.entries(byCar).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, n]) => {
           const key = k === '(empty)' ? '__empty__' : k;
-          return `<button type="button" class="live-chip carrier-filter ${f.carrier === key ? 'active' : ''}" data-carrier="${esc(key)}">${esc(k === '(empty)' ? 'بدون ناقل' : k)} <b>${n}</b></button>`;
+          return `<button type="button" class="live-chip carrier-filter ${filterList(f.carrier).includes(key) ? 'active' : ''}" data-carrier="${esc(key)}">${esc(k === '(empty)' ? 'بدون ناقل' : k)} <b>${n}</b></button>`;
         }),
         ...Object.entries(data.bySalesType || {}).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, n]) =>
           `<span class="live-chip">${esc(k)} <b>${n}</b></span>`),
         ...Object.keys(bySt).filter((k) => k !== '(blank)').slice(0, 8).map((k) =>
-          `<button type="button" class="live-chip status-filter ${f.status === k ? 'active' : ''}" data-status="${esc(k)}">${esc(k)} <b>${bySt[k]}</b></button>`),
+          `<button type="button" class="live-chip status-filter ${filterList(f.status).includes(k) ? 'active' : ''}" data-status="${esc(k)}">${esc(k)} <b>${bySt[k]}</b></button>`),
       ].join('');
       const toggle = (key, val) => {
-        state.liveFilters[key] = state.liveFilters[key] === val ? '' : val;
-        loadLiveSheet().catch((e) => alert(e.message));
+        const cur = filterList(state.liveFilters[key]);
+        setFilterValue(key, val, !cur.includes(val));
       };
       $$('.status-filter', chips).forEach((b) => b.addEventListener('click', () => toggle('status', b.dataset.status)));
       $$('.emp-filter', chips).forEach((b) => b.addEventListener('click', () => toggle('employee', b.dataset.emp)));
@@ -1573,11 +1566,11 @@
     const who = state.user ? state.user.id : 'anon';
     ['live', 'my'].forEach((prefix) => {
       const g = sheetGrids[prefix];
-      try {
+    try {
         g.filters = JSON.parse(localStorage.getItem(`dt_${prefix}_colfilters_${who}`) || '{}') || {};
-      } catch {
+    } catch {
         g.filters = {};
-      }
+    }
     });
     state.liveColFilters = sheetGrids.live.filters;
   }
@@ -1970,24 +1963,24 @@
     });
 
     if (prefix === 'live') {
-      document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', (e) => {
         const onMy = state.view === 'my' || state.view === 'mine';
         const onLive = state.view === 'live';
         if (!onMy && !onLive) return;
         grid = onMy ? sheetGrids.my : sheetGrids.live;
         if (!grid.sel) return;
-        const active = document.activeElement;
-        if (isTypingTarget(active)) return;
-        if (document.querySelector('#vin-drawer-back.open')) return;
-        const k = String(e.key || '').toLowerCase();
-        if ((e.ctrlKey || e.metaKey) && k === 'c') {
-          e.preventDefault();
-          copyLiveSelection(true);
-        } else if (k === 'escape') {
+      const active = document.activeElement;
+      if (isTypingTarget(active)) return;
+      if (document.querySelector('#vin-drawer-back.open')) return;
+      const k = String(e.key || '').toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && k === 'c') {
+        e.preventDefault();
+        copyLiveSelection(true);
+      } else if (k === 'escape') {
           grid.sel = null;
-          paintLiveSel();
-        }
-      });
+        paintLiveSel();
+      }
+    });
     }
 
     const copyBtn = $(`#${g.prefix}-copy-btn`);
@@ -2060,13 +2053,41 @@
     ];
   }
 
-  async function loadMy({ silent = false } = {}) {
-    const statusSel = $('#my-status');
-    if (statusSel && !statusSel.dataset.filled) {
-      statusSel.innerHTML = `<option value="">All statuses</option>${(state.meta.statuses || []).map((s) =>
-        `<option value="${esc(s)}">${esc(s)}</option>`).join('')}`;
-      statusSel.dataset.filled = '1';
+  function setFilterValue(key, value, on) {
+    const cur = filterList(state.liveFilters[key]).filter((x) => x !== value);
+    if (on) cur.push(value);
+    state.liveFilters[key] = cur;
+    loadLiveSheet().catch((e) => alert(e.message));
+  }
+
+  function paintMultiFilter(id, options, selected, onToggle) {
+    const root = document.getElementById(id);
+    if (!root) return;
+    const btn = root.querySelector('.multi-filter-btn');
+    const menu = root.querySelector('.multi-filter-menu');
+    const picked = filterList(selected);
+    if (btn) {
+      btn.textContent = picked.length ? picked.map((v) => {
+        const hit = options.find((o) => o.value === v);
+        return hit ? hit.label : v;
+      }).join(' · ') : (btn.dataset.empty || 'All');
+      btn.classList.toggle('is-on', picked.length > 0);
     }
+    if (!menu || menu.dataset.open === '1') return;
+    menu.innerHTML = options.map((o) => `<label class="multi-filter-opt"><input type="checkbox" value="${esc(o.value)}" ${picked.includes(o.value) ? 'checked' : ''} /> ${esc(o.label)}</label>`).join('')
+      || '<span class="hint">No choices</span>';
+    menu.querySelectorAll('input').forEach((el) => {
+      el.addEventListener('change', () => onToggle(el.value, el.checked));
+    });
+  }
+
+  async function loadMy({ silent = false } = {}) {
+    paintMultiFilter('my-status-filter', (state.meta.statuses || []).map((s) => ({ value: s, label: s })), state.myFilters.status, (value, on) => {
+      const cur = filterList(state.myFilters.status).filter((x) => x !== value);
+      if (on) cur.push(value);
+      state.myFilters.status = cur;
+      loadMy().catch((e) => alert(e.message));
+    });
     grid = sheetGrids.my;
     const data = await fetchLive({
       q: state.myFilters.q,
@@ -2618,9 +2639,21 @@
     liveQTimer = setTimeout(() => { state.liveFilters.q = e.target.value.trim(); loadLiveSheet(); }, 250);
   });
   $('#live-month').addEventListener('change', (e) => { state.liveFilters.month = e.target.value; loadLiveSheet(); });
-  $('#live-employee').addEventListener('change', (e) => { state.liveFilters.employee = e.target.value; loadLiveSheet(); });
-  $('#live-status').addEventListener('change', (e) => { state.liveFilters.status = e.target.value; loadLiveSheet(); });
-  $('#live-carrier').addEventListener('change', (e) => { state.liveFilters.carrier = e.target.value; loadLiveSheet(); });
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.multi-filter-btn');
+    if (btn) {
+      const menu = btn.parentElement.querySelector('.multi-filter-menu');
+      const open = menu && menu.dataset.open === '1';
+      $$('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+      if (menu && !open) {
+        menu.hidden = false;
+        menu.dataset.open = '1';
+      }
+      return;
+    }
+    if (e.target.closest('.multi-filter')) return;
+    $$('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+  });
   $('#live-refresh').addEventListener('click', () => loadLiveSheet());
 
   let myQTimer;
@@ -2628,11 +2661,9 @@
     clearTimeout(myQTimer);
     myQTimer = setTimeout(() => { state.myFilters.q = e.target.value.trim(); loadMy(); }, 250);
   });
-  $('#my-status').addEventListener('change', (e) => { state.myFilters.status = e.target.value; loadMy(); });
   $('#my-clear').addEventListener('click', () => {
-    state.myFilters = { q: '', status: '' };
+    state.myFilters = { q: '', status: [] };
     $('#my-q').value = '';
-    $('#my-status').value = '';
     loadMy();
   });
   const fail = (err) => alert(err.message || 'Failed');

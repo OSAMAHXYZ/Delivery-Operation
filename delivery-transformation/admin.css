@@ -1863,3 +1863,33 @@ body.vsnd-screen .vsnd-total-btn {
 .cs-status--internal { background: #e2e8f0; color: #334155; }
 .cs-status--changed_out { background: #ffedd5; color: #c2410c; }
 .cs-chg-note { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; font-size: .68rem; font-weight: 800; white-space: nowrap; }
+.multi-filter { position: relative; }
+.multi-filter-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 6px 9px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.multi-filter-btn.is-on { border-color: #2563eb; background: #eff6ff; }
+.multi-filter-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  min-width: 180px;
+  max-height: 260px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+}
+.multi-filter-opt { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 0.78rem; cursor: pointer; }

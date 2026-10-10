@@ -74,7 +74,14 @@
       ...(showPii ? PII_COLS.map(([k, label]) => ({ label, html: (r) => esc(na(r.raw[k])) })) : []),
     ];
     if (showOps) {
-      cols.push({ label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` });
+      const employees = meta.employees || [];
+      cols.push({
+        label: 'Employee',
+        html: (r) => (mode === 'admin'
+          ? `<select class="cell-edit" data-vin="${esc(r.vin)}" data-field="assignedEmployeeId" title="Assign this VIN, including last month"><option value="">— Unassigned —</option>${employees.map((e) =>
+            `<option value="${esc(e.id)}" ${r.ops.assignedEmployeeId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select>`
+          : `<b>${esc(na(r.ops.assignedEmployeeName))}</b>`),
+      });
       OPS_COLS.forEach(([k, label, type]) => cols.push({
         label,
         html: (r) => (r.canEdit && type !== 'carrier' ? control(r.vin, k, type, r.ops[k]) : display(type, r.ops[k])),

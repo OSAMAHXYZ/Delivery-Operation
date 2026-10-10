@@ -628,23 +628,60 @@ Average: ${avg == null ? '—' : avg + ' days'}">
       o(r).assignedEmployeeName, o(r).opsStatus, o(r).transferCity, o(r).carrier, o(r).carrierChangedFrom, o(r).coordinatorPrintLabel,
     ].join(' ').toUpperCase().replace(/\s+/g, '');
     table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c[0]}</th>`).join('')}</tr></thead>
-      <tbody>${list.map((r, i) => `<tr data-vin="${esc(r.vin)}" data-hay="${esc(hay(r))}"${o(r).coordinatorPrintedAt ? ' class="is-printed"' : ''}>${cols.map((c) => `<td>${c[1](r, i)}</td>`).join('')}</tr>`).join('')
+      <tbody>${list.map((r, i) => `<tr data-vin="${esc(r.vin)}" data-hay="${esc(hay(r))}" data-employee="${esc(o(r).assignedEmployeeName || '')}" data-status="${esc(o(r).opsStatus || '')}"${o(r).coordinatorPrintedAt ? ' class="is-printed"' : ''}>${cols.map((c) => `<td>${c[1](r, i)}</td>`).join('')}</tr>`).join('')
         || `<tr><td colspan="${cols.length}">لا توجد شاسيهات على Live Sheet</td></tr>`}</tbody>`;
+    paintCoordFilters(list);
     filterLiveSheet();
+  }
+
+  const coordFilters = { employee: [], status: [] };
+
+  function paintCoordFilters(list) {
+    const employees = [...new Set((list || []).map((r) => String((r.ops && r.ops.assignedEmployeeName) || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const statuses = [...new Set((list || []).map((r) => String((r.ops && r.ops.opsStatus) || '').trim()).filter(Boolean))];
+    const paint = (id, options, selected, key) => {
+      const root = document.getElementById(id);
+      if (!root) return;
+      const btn = root.querySelector('.multi-filter-btn');
+      const menu = root.querySelector('.multi-filter-menu');
+      const picked = coordFilters[key];
+      if (btn) {
+        btn.textContent = picked.length ? picked.join(' · ') : (btn.dataset.empty || 'All');
+        btn.classList.toggle('is-on', picked.length > 0);
+      }
+      if (!menu || menu.dataset.open === '1') return;
+      menu.innerHTML = options.map((name) => `<label class="multi-filter-opt"><input type="checkbox" value="${esc(name)}" ${picked.includes(name) ? 'checked' : ''} /> ${esc(name)}</label>`).join('')
+        || '<span class="hint">—</span>';
+      menu.querySelectorAll('input').forEach((el) => {
+        el.addEventListener('change', () => {
+          const cur = coordFilters[key].filter((x) => x !== el.value);
+          if (el.checked) cur.push(el.value);
+          coordFilters[key] = cur;
+          paintCoordFilters(sheetRows);
+          filterLiveSheet();
+        });
+      });
+    };
+    paint('co-employee-filter', employees, coordFilters.employee, 'employee');
+    paint('co-status-filter', statuses, coordFilters.status, 'status');
   }
 
   function filterLiveSheet() {
     const input = $('liveSheetSearch');
     const countEl = $('liveSheetSearchCount');
     const q = String((input && input.value) || '').trim().toUpperCase().replace(/\s+/g, '');
+    const emps = coordFilters.employee;
+    const sts = coordFilters.status;
     const trs = [...$('coordLiveTable').querySelectorAll('tbody tr[data-vin]')];
     let visible = 0;
     trs.forEach((tr) => {
-      const match = !q || String(tr.dataset.hay || '').includes(q);
+      const match = (!q || String(tr.dataset.hay || '').includes(q))
+        && (!emps.length || emps.includes(tr.dataset.employee || ''))
+        && (!sts.length || sts.includes(tr.dataset.status || ''));
       tr.style.display = match ? '' : 'none';
       if (match) visible += 1;
     });
-    if (countEl) countEl.textContent = q ? `${visible} نتيجة` : `${trs.length} شاسيه`;
+    if (countEl) countEl.textContent = (q || emps.length || sts.length) ? `${visible} نتيجة` : `${trs.length} شاسيه`;
   }
 
   function fill(id, val) {
@@ -1861,6 +1898,21 @@ Average: ${avg == null ? '—' : avg + ' days'}">
     $('tabFleet').addEventListener('click', () => setViewTab('fleet'));
     $('tabLiveSheet').addEventListener('click', () => setViewTab('live'));
     $('liveSheetSearch').addEventListener('input', filterLiveSheet);
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.multi-filter-btn');
+      if (btn) {
+        const menu = btn.parentElement.querySelector('.multi-filter-menu');
+        const open = menu && menu.dataset.open === '1';
+        document.querySelectorAll('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+        if (menu && !open) {
+          menu.hidden = false;
+          menu.dataset.open = '1';
+        }
+        return;
+      }
+      if (e.target.closest('.multi-filter')) return;
+      document.querySelectorAll('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+    });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && poll) refreshWorkspace();
     });

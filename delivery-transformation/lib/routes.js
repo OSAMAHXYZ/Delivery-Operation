@@ -1005,17 +1005,20 @@ function createDeliveryTransformationRouter(opts = {}) {
       list = list.filter((v) => inMonth(v, month));
     }
     if (!isCoordinator) {
-      const eq = (val, pick) => {
-        const want = String(val || '').trim().toLowerCase();
-        if (!want) return;
-        list = list.filter((v) => String(pick(v) || '').trim().toLowerCase() === want);
+      const wants = (val) => String(val || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+      const anyOf = (val, pick) => {
+        const need = wants(val);
+        if (!need.length) return;
+        list = list.filter((v) => need.includes(String(pick(v) || '').trim().toLowerCase()));
       };
-      eq(req.query.employee, (v) => v.ops && v.ops.assignedEmployeeName);
-      eq(req.query.status, (v) => v.ops && v.ops.opsStatus);
-      if (req.query.carrier === '__empty__') {
-        list = list.filter((v) => !String((v.ops && v.ops.carrier) || '').trim());
-      } else {
-        eq(req.query.carrier, (v) => v.ops && v.ops.carrier);
+      anyOf(req.query.employee, (v) => v.ops && v.ops.assignedEmployeeName);
+      anyOf(req.query.status, (v) => v.ops && v.ops.opsStatus);
+      const carrierNeed = wants(req.query.carrier);
+      if (carrierNeed.length) {
+        list = list.filter((v) => {
+          const car = String((v.ops && v.ops.carrier) || '').trim().toLowerCase();
+          return carrierNeed.some((w) => (w === '__empty__' ? !car : car === w));
+        });
       }
     }
     list.sort((a, b) => sheetStatusRank(a) - sheetStatusRank(b)
@@ -1489,7 +1492,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         const fromLiveExtract = /live\s*sheet/i.test(String(parsed.sheet || ''));
         Object.entries(item.raw).forEach(([k, val]) => {
           if (!val) return;
-          if (fromLiveExtract && String(v.raw[k] || '').trim()) return;
+          if (String(v.raw[k] || '').trim()) return;
           v.raw[k] = val;
         });
         if (!v.raw.proformaDate) v.raw.proformaDate = proforma;
@@ -1583,7 +1586,6 @@ function createDeliveryTransformationRouter(opts = {}) {
         removedCancel: 0,
       };
       const pending = pendingMap();
-      const rawVins = new Set(parsed.items.map((item) => item.vin));
       parsed.items.forEach((item) => {
         const v = store.getVehicle(item.vin);
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
@@ -1636,13 +1638,6 @@ function createDeliveryTransformationRouter(opts = {}) {
         }
       });
 
-      store.allVehicles().forEach((v) => {
-        const status = String((v.ops && v.ops.opsStatus) || '').trim();
-        if (status !== 'الغاء' || rawVins.has(v.vin)) return;
-        store.deleteVehicle(v.vin);
-        summary.removedCancel += 1;
-      });
-
       recordImport('lastSalesRaw', summary);
       if (companyPerformance.isHanoufUser(req.dtUser)) {
         companyPerformance.recordHanoufSalesRaw(store, parsed.items, {
@@ -1658,7 +1653,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         user: req.dtUser.name,
         action: 'upload_sales_raw',
         oldValue: filename,
-        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment (P filled · V empty) · الغاء removed ${summary.removedCancel}`,
+        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment (P filled · V empty) · existing VINs kept`,
       });
       store.save();
       summary.pendingTotal = Object.keys(pending).length;
@@ -2252,7 +2247,8 @@ function createDeliveryTransformationRouter(opts = {}) {
       ]) {
         if (Object.prototype.hasOwnProperty.call(body, f)) {
           const oldVal = v.raw[f] == null ? '' : String(v.raw[f]);
-          const newVal = String(body[f] == null ? '' : body[f]).trim();
+          let newVal = String(body[f] == null ? '' : body[f]).trim();
+          if (!newVal && oldVal.trim()) newVal = oldVal;
           if (oldVal !== newVal) {
             v.raw[f] = newVal;
             changes.push({ field: `raw.${f}`, oldVal, newVal });

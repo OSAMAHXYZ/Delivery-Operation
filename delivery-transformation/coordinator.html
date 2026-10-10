@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../delivery-hub/delivery-user-ui.css?v=20260906a" />
-  <link rel="stylesheet" href="coordinator.css?v=20261001cc3" />
+  <link rel="stylesheet" href="coordinator.css?v=20261010a" />
 </head>
 <body class="user-ui">
   <div id="gateLogin">
@@ -151,6 +151,14 @@
           <input type="search" id="liveSheetSearch" class="fleet-search"
             placeholder="ابحث في Live Sheet… شاسيه، عميل، موظف، ناقل، مدينة"
             autocomplete="off" spellcheck="false" inputmode="search" />
+          <div class="multi-filter" id="co-employee-filter">
+            <button type="button" class="multi-filter-btn" data-empty="كل الموظفين">كل الموظفين</button>
+            <div class="multi-filter-menu" hidden></div>
+          </div>
+          <div class="multi-filter" id="co-status-filter">
+            <button type="button" class="multi-filter-btn" data-empty="كل الحالات">كل الحالات</button>
+            <div class="multi-filter-menu" hidden></div>
+          </div>
           <span class="fleet-search-count" id="liveSheetSearchCount"></span>
           <span class="co-live-pulse" id="liveSheetPulse" title="تحديث مباشر"><i></i> مباشر</span>
         </div>
@@ -414,6 +422,6 @@
   <script src="../scripts/muthakara-field-layout.js"></script>
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="coordinator.js?v=20261003scope2"></script>
+  <script src="coordinator.js?v=20261010a"></script>
 </body>
 </html>

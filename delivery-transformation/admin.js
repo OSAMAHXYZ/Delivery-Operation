@@ -2915,10 +2915,65 @@
         </div>`).join('') || '<span class="hint">—</span>';
     }
 
+    const vinFilters = { employee: [], status: [], month: '' };
+
+    function filterList(v) {
+      return (Array.isArray(v) ? v : []).map((x) => String(x || '').trim()).filter(Boolean);
+    }
+
+    function paintVinFilter(id, options, selected, onToggle) {
+      const root = document.getElementById(id);
+      if (!root) return;
+      const btn = root.querySelector('.multi-filter-btn');
+      const menu = root.querySelector('.multi-filter-menu');
+      const picked = filterList(selected);
+      if (btn) {
+        btn.textContent = picked.length ? picked.map((v) => {
+          const hit = options.find((o) => o.value === v);
+          return hit ? hit.label : v;
+        }).join(' · ') : (btn.dataset.empty || 'All');
+        btn.classList.toggle('is-on', picked.length > 0);
+      }
+      if (!menu || menu.dataset.open === '1') return;
+      menu.innerHTML = options.map((o) => `<label class="multi-filter-opt"><input type="checkbox" value="${esc(o.value)}" ${picked.includes(o.value) ? 'checked' : ''} /> ${esc(o.label)}</label>`).join('')
+        || '<span class="hint">No choices</span>';
+      menu.querySelectorAll('input').forEach((el) => {
+        el.addEventListener('change', () => onToggle(el.value, el.checked));
+      });
+    }
+
+    function setVinFilter(key, value, on) {
+      const cur = filterList(vinFilters[key]).filter((x) => x !== value);
+      if (on) cur.push(value);
+      vinFilters[key] = cur;
+      loadAll();
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.multi-filter-btn');
+      if (btn) {
+        const menu = btn.parentElement.querySelector('.multi-filter-menu');
+        const open = menu && menu.dataset.open === '1';
+        document.querySelectorAll('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+        if (menu && !open) {
+          menu.hidden = false;
+          menu.dataset.open = '1';
+        }
+        return;
+      }
+      if (e.target.closest('.multi-filter')) return;
+      document.querySelectorAll('.multi-filter-menu').forEach((m) => { m.hidden = true; m.dataset.open = ''; });
+    });
+
     async function loadAll() {
       const q = $('search').value.trim();
+      const qs = new URLSearchParams();
+      if (q) qs.set('q', q);
+      if (vinFilters.month) qs.set('month', vinFilters.month);
+      if (vinFilters.employee.length) qs.set('employee', vinFilters.employee.join(','));
+      if (vinFilters.status.length) qs.set('status', vinFilters.status.join(','));
       const [live, audit] = await Promise.all([
-        api(`/live-sheet${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+        api(`/live-sheet${qs.toString() ? `?${qs}` : ''}`),
         api('/audit?limit=100'),
       ]);
       const rows = live.rows || [];
@@ -2933,7 +2988,9 @@
       bars($('by-status'), live.byStatus);
       bars($('by-employee'), live.byEmployee);
       bars($('by-carrier'), live.byCarrier);
-      $('live-meta').textContent = `${live.total} VINs · synced ${new Date(live.at).toLocaleTimeString()}`;
+      $('live-meta').textContent = `${live.total} VINs · synced ${new Date(live.at).toLocaleTimeString()} · assign any month from the Employee column`;
+      paintVinFilter('vin-employee-filter', (meta.employees || []).map((e) => ({ value: e.name, label: e.name })), vinFilters.employee, (value, on) => setVinFilter('employee', value, on));
+      paintVinFilter('vin-status-filter', (meta.statuses || []).map((s) => ({ value: s, label: s })), vinFilters.status, (value, on) => setVinFilter('status', value, on));
       DTXLive.renderTable($('live-table'), rows, {
         mode: 'admin',
         onOpen: (vin) => DTXLive.openDrawer(vin, { mode: 'admin', onSaved: loadAll }),
@@ -2964,6 +3021,8 @@
       t = setTimeout(loadAll, 250);
     });
     $('refresh-btn').addEventListener('click', loadAll);
+    const vinMonth = $('vin-month');
+    if (vinMonth) vinMonth.addEventListener('change', (e) => { vinFilters.month = e.target.value; loadAll(); });
     loadAll().catch((e) => console.error(e));
   }());
 

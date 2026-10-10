@@ -965,3 +965,35 @@ body.display-form-mode .hero h1 { color: #7e22ce; }
 body.display-form-mode .preview-card h2 { color: #7e22ce; }
 #attachmentsDisplay .attach-opt:has(input:checked) { border-color: #9333ea; background: #faf5ff; color: #7e22ce; }
 #attachmentsDisplay .attach-opt input { accent-color: #9333ea; }
+.multi-filter { position: relative; }
+.multi-filter-btn {
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.multi-filter-btn.is-on { border-color: #60a5fa; background: rgba(37, 99, 235, 0.35); }
+.multi-filter-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  min-width: 180px;
+  max-height: 260px;
+  overflow: auto;
+  background: #0f172a;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  padding: 6px;
+}
+.multi-filter-opt { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 0.8rem; cursor: pointer; }
