@@ -192,6 +192,7 @@ function parseDeliverySheet(buffer) {
   let best = { sheet: '', items: [] };
   let liveSheet = null;
   readSheets(buffer).forEach(({ name, rows }) => {
+    if (/^(printed vins|assignments)$/i.test(String(name || '').trim())) return;
     const h = findHeaderRow(rows);
     if (h === -1) return;
     const headers = rows[h].map(cellString);
@@ -216,6 +217,7 @@ function parseDeliverySheet(buffer) {
 function parseSalesRaw(buffer) {
   let best = { sheet: '', layout: '', items: [], duplicates: 0 };
   readSheets(buffer).forEach(({ name, rows }) => {
+    if (/^(printed vins|assignments|live sheet)$/i.test(String(name || '').trim())) return;
     let items = [];
     let layout = '';
     if (isSalesRawLetterLayout(rows)) {
@@ -266,10 +268,36 @@ function parseSalesRaw(buffer) {
   return best;
 }
 
+function readNamedSheet(wb, re) {
+  const name = (wb.SheetNames || []).find((n) => re.test(String(n || '').trim()));
+  if (!name) return null;
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', raw: false });
+  return rows.filter((row) => Object.values(row).some((v) => String(v == null ? '' : v).trim() !== ''));
+}
+
+/** Printed VINs + Live Sheet + Assignments extract. Null when this is the full-data file. */
+function parseReadableWorkbook(buffer) {
+  if (!buffer || !buffer.length) return null;
+  let wb;
+  try {
+    wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+  } catch {
+    return null;
+  }
+  if ((wb.SheetNames || []).some((n) => /^manifest$/i.test(String(n || '').trim()))) return null;
+  const live = readNamedSheet(wb, /^live sheet$/i);
+  const printed = readNamedSheet(wb, /^printed vins$/i);
+  const assignments = readNamedSheet(wb, /^assignments$/i);
+  if (!live && !printed && !assignments) return null;
+  return { live: live || [], printed: printed || [], assignments: assignments || [] };
+}
+
 module.exports = {
   normVin,
   normalizeDate,
+  normalizeStatus,
   parseLeadTime,
   parseDeliverySheet,
   parseSalesRaw,
+  parseReadableWorkbook,
 };

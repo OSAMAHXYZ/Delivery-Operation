@@ -1,6 +1,7 @@
 'use strict';
 
 const XLSX = require('xlsx');
+const exportExcel = require('./export-excel');
 
 const FORMAT = 'dt-full-v1';
 const SHEETS = ['Vehicles', 'Attendance', 'Prints', 'Audit', 'Meta'];
@@ -142,6 +143,10 @@ function buildFullWorkbook(data) {
   writeSheet(wb, 'Prints', printRows, ['id', 'at', 'kind', 'company', 'city']);
   writeSheet(wb, 'Audit', auditRows, ['id', 'at', 'user', 'action', 'vin']);
   writeSheet(wb, 'Meta', metaRows, ['Key', 'Value']);
+  const vehicleList = Object.keys(vehicles).sort().map((key) => vehicles[key]);
+  exportExcel.appendSheet(wb, 'Printed VINs', exportExcel.printedVinRows(prints));
+  exportExcel.appendSheet(wb, 'Live Sheet', exportExcel.liveSheetRows(vehicleList));
+  exportExcel.appendSheet(wb, 'Assignments', exportExcel.assignmentRows(vehicleList, meta.pendingAssignments));
   return wb;
 }
 

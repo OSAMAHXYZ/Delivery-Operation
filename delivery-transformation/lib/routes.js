@@ -17,7 +17,14 @@ const {
   emptyRaw,
 } = require('./constants');
 const { createStore } = require('./store');
-const { parseDeliverySheet, parseSalesRaw } = require('./importer');
+const {
+  parseDeliverySheet,
+  parseSalesRaw,
+  parseReadableWorkbook,
+  normalizeDate,
+  normalizeStatus,
+  parseLeadTime,
+} = require('./importer');
 const kpiEngine = require('./kpi');
 const exportExcel = require('./export-excel');
 const fullExcel = require('./full-excel');
@@ -2871,6 +2878,182 @@ function createDeliveryTransformationRouter(opts = {}) {
     return res.send(buf);
   }
 
+  function textCell(row, key) {
+    return String(row && row[key] != null ? row[key] : '').trim();
+  }
+
+  function putField(obj, key, val) {
+    if (val == null || String(val).trim() === '') return false;
+    if (String(obj[key] ?? '') === String(val)) return false;
+    obj[key] = val;
+    return true;
+  }
+
+  const LIVE_UPLOAD_FIELDS = [
+    ['Proforma Date', 'raw', 'proformaDate', 'date'],
+    ['Sales Order', 'raw', 'salesOrder'],
+    ['Product', 'raw', 'product'],
+    ['Sales Type', 'raw', 'salesType'],
+    ['Customer', 'raw', 'userName'],
+    ['Invoice Owner', 'raw', 'invoiceOwner'],
+    ['Phone', 'raw', 'phone'],
+    ['S/A', 'raw', 'salesAdvisor'],
+    ['GT Location', 'raw', 'gtLocation'],
+    ['Vehicle Location', 'raw', 'vehicleLocation'],
+    ['Lead Time', 'raw', 'leadTime', 'lead'],
+    ['Status', 'ops', 'opsStatus', 'status'],
+    ['Guest Exp', 'ops', 'guestCenter'],
+    ['Appointment', 'ops', 'guestCollectAt'],
+    ['Appointment Note', 'ops', 'guestCollectNote'],
+    ['تاريخ إرسال الضيف', 'ops', 'guestSentDate', 'date'],
+    ['تاريخ استلام التواقيع من الضيف', 'ops', 'signatureReceivedDate', 'date'],
+    ['تاريخ إرسال الملف للحسابات', 'ops', 'accountsSentDate', 'date'],
+    ['تاريخ موافقة الحسابات', 'ops', 'accountsApprovalDate', 'date'],
+    ['VIN 1502', 'ops', 'vin1502'],
+    ['ملف المرور', 'ops', 'trafficFile'],
+    ['Traffic Fees', 'ops', 'trafficFeesOps'],
+    ['Insurance', 'ops', 'insuranceOps'],
+    ['تاريخ إصدار الاستمارة', 'ops', 'registrationIssueDate', 'date'],
+    ['مدينة الترحيل', 'ops', 'transferCity'],
+    ['الناقل', 'ops', 'carrier'],
+    ['الملاحظات', 'ops', 'notes'],
+  ];
+
+  function applyReadableWorkbook(parsed, userName) {
+    const now = new Date().toISOString();
+    const summary = { live: 0, created: 0, assignments: 0, pending: 0, prints: 0 };
+    (parsed.live || []).forEach((row) => {
+      const vin = normVin(textCell(row, 'VIN'));
+      if (!vin) return;
+      let v = store.getVehicle(vin);
+      const isNew = !v;
+      if (isNew) {
+        v = { vin, raw: { ...emptyRaw(), vin }, ops: { ...emptyOps() }, createdAt: now, createdBy: userName };
+      }
+      if (!v.raw) v.raw = { ...emptyRaw(), vin };
+      if (!v.ops) v.ops = { ...emptyOps() };
+      let changed = isNew;
+      LIVE_UPLOAD_FIELDS.forEach(([col, bag, key, kind]) => {
+        let val = textCell(row, col);
+        if (!val) return;
+        if (kind === 'date') val = normalizeDate(val) || val;
+        else if (kind === 'status') val = normalizeStatus(val) || val;
+        else if (kind === 'lead') {
+          const lead = parseLeadTime(val);
+          if (lead === '') return;
+          val = lead;
+        }
+        if (putField(v[bag], key, val)) changed = true;
+      });
+      const emp = findAssignable(textCell(row, 'Employee'));
+      if (emp && v.ops.assignedEmployeeId !== emp.id) {
+        v.ops.assignedEmployeeId = emp.id;
+        v.ops.assignedEmployeeName = emp.name;
+        v.ops.assignedBy = userName;
+        v.ops.assignedAt = now;
+        changed = true;
+        summary.assignments += 1;
+      }
+      if (!changed) return;
+      v.raw.vin = vin;
+      v.ops.updatedAt = now;
+      v.ops.updatedBy = userName;
+      v.rawUpdatedAt = now;
+      store.upsertVehicle(vin, v);
+      summary.live += 1;
+      if (isNew) summary.created += 1;
+    });
+
+    (parsed.assignments || []).forEach((row) => {
+      const vin = normVin(textCell(row, 'VIN'));
+      if (!vin) return;
+      if (textCell(row, 'Source').toLowerCase() === 'pending') {
+        if (store.getVehicle(vin)) return;
+        const pending = pendingMap();
+        if (!pending[vin]) pending[vin] = { vin, raw: { ...emptyRaw(), vin }, uploadedBy: userName, uploadedAt: now };
+        const raw = pending[vin].raw || { ...emptyRaw(), vin };
+        pending[vin].raw = raw;
+        [
+          ['Sales Type', 'salesType'],
+          ['S/A', 'salesAdvisor'],
+          ['Proforma Date', 'proformaDate'],
+          ['Invoice Date', 'invoiceDate'],
+          ['Customer', 'userName'],
+          ['Product', 'product'],
+        ].forEach(([col, key]) => {
+          let val = textCell(row, col);
+          if (!val) return;
+          if (key === 'proformaDate' || key === 'invoiceDate') val = normalizeDate(val) || val;
+          raw[key] = val;
+        });
+        raw.vin = vin;
+        summary.pending += 1;
+        return;
+      }
+      const v = store.getVehicle(vin);
+      const emp = findAssignable(textCell(row, 'Employee') || textCell(row, 'Employee Id'));
+      if (!v || !emp || (v.ops && v.ops.assignedEmployeeId === emp.id)) return;
+      if (!v.ops) v.ops = { ...emptyOps() };
+      v.ops.assignedEmployeeId = emp.id;
+      v.ops.assignedEmployeeName = emp.name;
+      v.ops.assignedBy = userName;
+      v.ops.assignedAt = now;
+      v.ops.updatedAt = now;
+      v.ops.updatedBy = userName;
+      store.upsertVehicle(vin, v);
+      summary.assignments += 1;
+    });
+
+    (parsed.printed || []).forEach((row) => {
+      const id = textCell(row, 'Print id');
+      if (!id || !Array.isArray(store.data.prints)) return;
+      const print = store.data.prints.find((p) => p.id === id);
+      if (!print) return;
+      let changed = false;
+      [
+        ['Company', 'company'],
+        ['City', 'city'],
+        ['Invoice', 'invoiceNumber'],
+        ['Printed by', 'printedBy'],
+        ['Label', 'label'],
+        ['Note', 'note'],
+      ].forEach(([col, key]) => {
+        const val = textCell(row, col);
+        if (!val || String(print[key] || '') === val) return;
+        print[key] = val;
+        changed = true;
+      });
+      const vin = normVin(textCell(row, 'VIN'));
+      if (vin && Array.isArray(print.vins)) {
+        const item = print.vins.find((x) => normVin(x && x.vin) === vin);
+        if (item && typeof item === 'object') {
+          [
+            ['Product', 'product'],
+            ['Customer', 'customer'],
+            ['Plate', 'plate'],
+            ['Remarks', 'remarks'],
+          ].forEach(([col, key]) => {
+            const val = textCell(row, col);
+            if (!val || String(item[key] || '') === val) return;
+            item[key] = val;
+            changed = true;
+          });
+        }
+      }
+      if (changed) summary.prints += 1;
+    });
+    return summary;
+  }
+
+  router.get('/export/data', auth, requireRole('admin'), (req, res) => {
+    const list = store.allVehicles().slice().sort((a, b) => sheetStatusRank(a) - sheetStatusRank(b)
+      || String((a.raw && (a.raw.proformaDate || a.raw.date)) || '').localeCompare(String((b.raw && (b.raw.proformaDate || b.raw.date)) || ''))
+      || String(a.vin).localeCompare(String(b.vin)));
+    const pending = (store.data.meta && store.data.meta.pendingAssignments) || {};
+    const wb = exportExcel.buildDataWorkbook(list, store.data.prints || [], pending);
+    return sendXlsx(res, wb, `DT-Printed-Live-Assignments-${exportExcel.stamp()}.xlsx`);
+  });
+
   router.get('/export/live-sheet', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const month = String((req.query && req.query.month) || '').trim().slice(0, 7);
     let list = store.allVehicles();
@@ -2903,7 +3086,25 @@ function createDeliveryTransformationRouter(opts = {}) {
       try {
         parsed = fullExcel.parseFullWorkbook(buf);
       } catch (err) {
-        return res.status(400).json({ error: err.message || 'Could not read the Excel file' });
+        const readable = parseReadableWorkbook(buf);
+        if (!readable) return res.status(400).json({ error: err.message || 'Could not read the Excel file' });
+        const summary = applyReadableWorkbook(readable, req.dtUser.name);
+        store.pushAudit({
+          vin: '',
+          user: req.dtUser.name,
+          action: 'import_readable_excel',
+          oldValue: filename,
+          newValue: `live ${summary.live} · new ${summary.created} · assignments ${summary.assignments} · pending ${summary.pending} · prints ${summary.prints}`,
+        });
+        store.save();
+        return res.json({
+          ok: true,
+          filename,
+          readable: true,
+          summary,
+          vehicles: Object.keys(store.data.vehicles || {}).length,
+          pending: Object.keys((store.data.meta && store.data.meta.pendingAssignments) || {}).length,
+        });
       }
       const live = store.data;
       live.vehicles = parsed.vehicles;

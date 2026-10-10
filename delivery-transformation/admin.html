@@ -49,7 +49,7 @@
       <a href="attendance.html" target="_blank" rel="noopener">Attendance</a>
     </nav>
     <div class="top-right">
-      <button type="button" class="btn" id="xls-live">Extract Live + coordinator</button>
+      <button type="button" class="btn" id="xls-live">Extract printed + sheet + assignments</button>
       <button type="button" class="btn" id="xls-admin">Extract admin Excel</button>
       <button type="button" class="btn" id="xls-all">Extract all data</button>
       <button type="button" class="btn" id="xls-all-upload">Upload all data</button>
@@ -169,15 +169,15 @@
       </div>
 
       <div class="card" id="full-excel-card" style="margin-bottom:14px">
-        <h2>Excel — all data</h2>
+        <h2>Excel — printed VINs, Live Sheet, assignments</h2>
         <p class="hint">
-          Extract every Live Sheet VIN (vehicle fields and employee entries), pending assignment,
-          attendance, delivery-note print, audit row, target, vacation, SLA, KPI weight, company, and city.
-          Upload that same file to make employee.html and coordinator.html match it.
-          The other Excel buttons are reports and cannot be uploaded back.
+          Extract three sheets Excel can open: printed VIN details from the coordinator, the Live Sheet, and assignments
+          (who has each VIN, plus VINs still pending). Extract all data saves every record.
+          Upload either file and the system reads it. A blank cell does not clear a saved value.
         </p>
         <div class="toolbar" style="margin-top:10px">
-          <button type="button" class="btn-primary" id="xls-all-card">Extract all data</button>
+          <button type="button" class="btn-primary" id="xls-data">Extract printed + sheet + assignments</button>
+          <button type="button" class="btn" id="xls-all-card">Extract all data</button>
           <button type="button" class="btn" id="xls-all-pick">Upload Excel</button>
           <input type="file" id="xls-all-file" accept=".xlsx,.xls" hidden />
           <span class="hint" id="xls-all-hint"></span>
@@ -505,6 +505,6 @@
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20261010a"></script>
-  <script src="admin.js?v=20261010a"></script>
+  <script src="admin.js?v=20261010b"></script>
 </body>
 </html>

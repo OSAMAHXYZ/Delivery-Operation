@@ -2728,7 +2728,7 @@
     }
   }
   if ($('xls-live')) {
-    $('xls-live').addEventListener('click', () => runExport('/export/live-sheet', 'DT-Live-Sheet.xlsx'));
+    $('xls-live').addEventListener('click', () => runExport('/export/data', 'DT-Printed-Live-Assignments.xlsx'));
   }
   if ($('xls-admin')) {
     $('xls-admin').addEventListener('click', () => {
@@ -2740,7 +2740,7 @@
   async function uploadFullExcel(file) {
     const hint = $('xls-all-hint');
     if (!file) return;
-    if (!confirm('Replace all Delivery Transformation data with this Excel? Live Sheet, attendance, prints, targets, SLA, and KPI settings will match the file.')) return;
+    if (!confirm('Read this Excel into Delivery Transformation? Extract all data replaces the saved records. The printed VINs, Live Sheet, and assignments file updates those sheets and leaves a blank cell as it is.')) return;
     if (hint) hint.textContent = `Uploading ${file.name}…`;
     try {
       const res = await fetch(`${window.DTX.API}/import/full`, {
@@ -2755,7 +2755,10 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || res.statusText || 'Upload failed');
       const c = data.counts || {};
-      const msg = `Matched the file · ${c.Vehicles || 0} VINs · ${data.pending || 0} pending · ${c.Attendance || 0} attendance · ${c.Prints || 0} prints · ${c.Audit || 0} audit · ${c.Meta || 0} settings`;
+      const s = data.summary || {};
+      const msg = data.readable
+        ? `Read the Excel · ${s.live || 0} live rows · ${s.created || 0} new · ${s.assignments || 0} assignments · ${s.pending || 0} pending · ${s.prints || 0} printed rows`
+        : `Matched the file · ${c.Vehicles || 0} VINs · ${data.pending || 0} pending · ${c.Attendance || 0} attendance · ${c.Prints || 0} prints · ${c.Audit || 0} audit · ${c.Meta || 0} settings`;
       if (hint) hint.textContent = msg;
       toast('All data matched');
       if (typeof loadDash === 'function') loadDash().catch(() => {});
@@ -2768,6 +2771,7 @@
     const input = $('xls-all-file');
     if (input) input.click();
   }
+  if ($('xls-data')) $('xls-data').addEventListener('click', () => runExport('/export/data', 'DT-Printed-Live-Assignments.xlsx'));
   if ($('xls-all')) $('xls-all').addEventListener('click', () => runExport('/export/full', 'DT-All-Data.xlsx'));
   if ($('xls-all-card')) $('xls-all-card').addEventListener('click', () => runExport('/export/full', 'DT-All-Data.xlsx'));
   if ($('xls-all-upload')) $('xls-all-upload').addEventListener('click', pickFullExcel);

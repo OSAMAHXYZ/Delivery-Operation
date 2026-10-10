@@ -104,10 +104,93 @@ function coordinatorDetailRows(prints) {
   return rows;
 }
 
+function printedVinRows(prints) {
+  const rows = [];
+  (prints || []).forEach((p) => {
+    const cars = p.snapshot && Array.isArray(p.snapshot.cars) ? p.snapshot.cars : [];
+    const vins = Array.isArray(p.vins) && p.vins.length ? p.vins : [{}];
+    vins.forEach((x) => {
+      const vin = x && typeof x === 'object' ? (x.vin || '') : (x || '');
+      const car = cars.find((c) => String((c && c.chassis) || '').trim().toUpperCase() === String(vin).trim().toUpperCase()) || {};
+      const kind = p.kind === 'warehouse'
+        ? 'Warehouse'
+        : (p.kind === 'display' ? (p.label === 'داخلي' ? 'Internal' : 'Display') : 'Delivery note');
+      rows.push({
+        'Print id': p.id || '',
+        Kind: kind,
+        Label: p.label || '',
+        Company: p.company || '',
+        City: p.city || '',
+        Invoice: p.invoiceNumber || '',
+        VIN: vin,
+        Product: (x && x.product) || car.model || '',
+        Customer: (x && x.customer) || '',
+        Plate: (x && (x.plate || x.plateNo)) || car.plate || '',
+        Remarks: (x && x.remarks) || car.remarks || '',
+        'Printed by': p.printedBy || '',
+        At: p.at || '',
+        Note: p.note || p.notes || '',
+      });
+    });
+  });
+  return rows;
+}
+
+function assignmentRows(vehicles, pending) {
+  const rows = [];
+  (vehicles || []).forEach((v) => {
+    const ops = v.ops || {};
+    const raw = v.raw || {};
+    rows.push({
+      Source: 'Live Sheet',
+      VIN: v.vin || '',
+      Employee: ops.assignedEmployeeName || '',
+      'Employee Id': ops.assignedEmployeeId || '',
+      Status: ops.opsStatus || '',
+      'Sales Type': raw.salesType || '',
+      'S/A': raw.salesAdvisor || '',
+      'Proforma Date': raw.proformaDate || '',
+      'Invoice Date': raw.invoiceDate || '',
+      Customer: raw.userName || '',
+      Product: raw.product || '',
+      'Assigned at': ops.assignedAt || '',
+      'Assigned by': ops.assignedBy || '',
+    });
+  });
+  const waiting = pending && typeof pending === 'object' ? Object.values(pending) : [];
+  waiting.forEach((p) => {
+    const raw = (p && p.raw) || {};
+    rows.push({
+      Source: 'Pending',
+      VIN: (p && p.vin) || raw.vin || '',
+      Employee: '',
+      'Employee Id': '',
+      Status: 'Pending',
+      'Sales Type': raw.salesType || '',
+      'S/A': raw.salesAdvisor || '',
+      'Proforma Date': raw.proformaDate || '',
+      'Invoice Date': raw.invoiceDate || '',
+      Customer: raw.userName || '',
+      Product: raw.product || '',
+      'Assigned at': '',
+      'Assigned by': (p && p.uploadedBy) || '',
+    });
+  });
+  return rows;
+}
+
 function buildLiveSheetWorkbook(vehicles, prints) {
   const wb = XLSX.utils.book_new();
   appendSheet(wb, 'Live Sheet', liveSheetRows(vehicles));
   appendSheet(wb, 'Coordinator', coordinatorDetailRows(prints));
+  return wb;
+}
+
+function buildDataWorkbook(vehicles, prints, pending) {
+  const wb = XLSX.utils.book_new();
+  appendSheet(wb, 'Printed VINs', printedVinRows(prints));
+  appendSheet(wb, 'Live Sheet', liveSheetRows(vehicles));
+  appendSheet(wb, 'Assignments', assignmentRows(vehicles, pending));
   return wb;
 }
 
@@ -272,6 +355,10 @@ module.exports = {
   stamp,
   writeBuffer,
   appendSheet,
+  liveSheetRows,
+  printedVinRows,
+  assignmentRows,
   buildLiveSheetWorkbook,
+  buildDataWorkbook,
   buildAdminWorkbook,
 };
