@@ -1654,8 +1654,7 @@ Average: ${avg == null ? '—' : avg + ' days'}">
       const city = live ? String((live.ops && live.ops.transferCity) || '').trim() : cityFromSalesRaw(row.raw);
       fill('branch_to', city);
       setBranchEditable(!live || !city);
-      const d = toIsoDate(row.raw && row.raw.proformaDate);
-      if (d) fill('doc_date', d);
+      fill('doc_date', getSaudiTodayIso());
     }
     closeVinModal();
     syncCarCount();
@@ -1785,8 +1784,7 @@ Average: ${avg == null ? '—' : avg + ' days'}">
     resetPrintForm();
     setPrintMode('sheet');
     const today = fillTodayTimes();
-    const docDate = toIsoDate(v.raw.proformaDate) || today;
-    fill('doc_date', docDate);
+    fill('doc_date', today);
     fill('company_rep', '');
     fill('customer_name', '');
     const city = String((v.ops && v.ops.transferCity) || '').trim();
