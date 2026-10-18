@@ -1229,7 +1229,7 @@
         <div>
           <span class="vsnd-pill-lbl">Delivered · تم التسليم</span>
           <strong>${esc(cal.delivered || 0)}</strong>
-          <em>Current Month · Col V</em>
+          <em>Current Month · Col V or CLAIMED / PSFU / تم التسليم</em>
         </div>`;
     }
     if (vsndEl) {
@@ -1289,7 +1289,8 @@
 
   function isVinDelivered(v) {
     const s = String((v && v.status) || '').trim();
-    return !!String((v && v.invoiceDate) || '').trim() || s === 'Claimed' || s === 'تم التسليم';
+    const lower = s.toLowerCase();
+    return !!String((v && v.invoiceDate) || '').trim() || lower === 'claimed' || lower === 'psfu' || s === 'تم التسليم';
   }
 
   function boardCompanyCities() {

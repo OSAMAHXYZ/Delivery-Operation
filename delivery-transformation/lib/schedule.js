@@ -395,9 +395,14 @@ function previousMonthKey(ym) {
   return `${y}-${String(mo).padStart(2, '0')}`;
 }
 
-function isClosedDelivery(status, invoiceDate) {
+function isDeliveredOpsStatus(status) {
   const s = String(status || '').trim();
-  return !!invoiceDate || s === 'Claimed' || s === 'تم التسليم';
+  const lower = s.toLowerCase();
+  return lower === 'claimed' || lower === 'psfu' || s === 'تم التسليم';
+}
+
+function isClosedDelivery(status, invoiceDate) {
+  return !!invoiceDate || isDeliveredOpsStatus(status);
 }
 
 function daysInMonth(ym) {
@@ -445,7 +450,8 @@ function computeVsndCalendar({ vehicles, today, month, slaItems, slaControl, now
     const inv = dayKey(v.raw && v.raw.invoiceDate);
     const status = String((v.ops && v.ops.opsStatus) || '').trim();
 
-    if (inv && inv.slice(0, 7) === ym) {
+    const statusDelivered = isDeliveredOpsStatus(status) && p && p.slice(0, 7) === ym;
+    if ((inv && inv.slice(0, 7) === ym) || statusDelivered) {
       if (vinKey && !seenDelivered.has(vinKey)) {
         seenDelivered.add(vinKey);
         delivered += 1;
@@ -454,7 +460,7 @@ function computeVsndCalendar({ vehicles, today, month, slaItems, slaControl, now
 
     const prev = previousMonthKey(ym);
     const carried = !!(p && p.slice(0, 7) === prev && !isClosedDelivery(status, inv));
-    const isVsnd = !!((p && p.slice(0, 7) === ym && !inv) || carried);
+    const isVsnd = !!((p && p.slice(0, 7) === ym && !inv && !isDeliveredOpsStatus(status)) || carried);
     if (isVsnd && vinKey && !seenVsnd.has(vinKey)) {
       seenVsnd.add(vinKey);
       notDelivered += 1;
@@ -483,7 +489,7 @@ function computeVsndCalendar({ vehicles, today, month, slaItems, slaControl, now
       product: (v.raw && v.raw.product) || '',
       city: String((v.ops && (v.ops.transferCity || v.ops.coordinatorPrintCity)) || '').trim(),
       isVsnd,
-      isDelivered: !!inv,
+      isDelivered: !!inv || isDeliveredOpsStatus(status),
       statusChangedAt: evalRow.statusChangedAt,
       statusAgeHours: evalRow.statusAgeHours,
       slaWarning: evalRow.slaWarning,
@@ -735,20 +741,20 @@ function buildVsndAnalytics({ vehicles, ym, today, todayDay, days, psfuTarget, r
     const city = String((v.ops && (v.ops.transferCity || v.ops.coordinatorPrintCity)) || '').trim() || 'Other';
     const employee = String((v.ops && v.ops.assignedEmployeeName) || '').trim() || 'Unassigned';
 
-    // Last-7 delivered bars: Col V day in month
-    if (inv && inv.slice(0, 7) === ym) {
-      const d = Number(inv.slice(8, 10));
-      if (d && (!vinKey || !seenDel.has(`${vinKey}:${d}`))) {
-        if (vinKey) seenDel.add(`${vinKey}:${d}`);
-        deliveredByDay.set(d, (deliveredByDay.get(d) || 0) + 1);
-      }
+    // Last-7 delivered bars: Col V day in month, or CLAIMED / PSFU / تم التسليم on the proforma day
+    const deliveredDay = (inv && inv.slice(0, 7) === ym)
+      ? Number(inv.slice(8, 10))
+      : (isDeliveredOpsStatus(status) && p && p.slice(0, 7) === ym ? Number(p.slice(8, 10)) : 0);
+    if (deliveredDay && (!vinKey || !seenDel.has(`${vinKey}:${deliveredDay}`))) {
+      if (vinKey) seenDel.add(`${vinKey}:${deliveredDay}`);
+      deliveredByDay.set(deliveredDay, (deliveredByDay.get(deliveredDay) || 0) + 1);
     }
 
-    // VSND pool + last-7 VSND bars: Col P in month · Col V empty
+    // VSND pool + last-7 VSND bars: Col P in month · Col V empty · not CLAIMED / PSFU / تم التسليم
     // plus last month's VINs that are still not delivered
     const prev = previousMonthKey(ym);
     const carried = !!(p && p.slice(0, 7) === prev && !isClosedDelivery(status, inv));
-    if (!((p && p.slice(0, 7) === ym && !inv) || carried)) return;
+    if (!((p && p.slice(0, 7) === ym && !inv && !isDeliveredOpsStatus(status)) || carried)) return;
     let day = Number(p.slice(8, 10));
     if (carried && day > days) day = days;
     if (vinKey) {
