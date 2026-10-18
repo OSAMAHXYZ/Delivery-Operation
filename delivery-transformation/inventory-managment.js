@@ -14,6 +14,8 @@
   const state = {
     view: 'all',
     q: '',
+    stock: '',
+    location: '',
     pool: [],
     selected: new Set(),
     poll: null,
@@ -136,6 +138,12 @@
       ...extras,
       ...(data.users || []).map((u) => kpi(u.name, u.stockIn != null ? u.stockIn : (Array.isArray(u.stock) ? u.stock.length : (u.stock || 0)))),
     ].join('');
+    const loc = $('filter-location');
+    if (loc) {
+      const current = state.location;
+      const names = [...new Set(state.pool.map((r) => r.location).filter(Boolean))].sort();
+      loc.innerHTML = `<option value="">All locations</option>${names.map((name) => `<option${name === current ? ' selected' : ''}>${esc(name)}</option>`).join('')}`;
+    }
     render();
   }
 
@@ -156,8 +164,10 @@
       if (state.view === 'open' && r.stockOwnerId) return false;
       if (state.view === 'display' && r.label !== 'display') return false;
       if (state.view === 'delivery' && r.label !== 'delivery') return false;
+      if (state.stock && r.stockClass !== state.stock) return false;
+      if (state.location && r.location !== state.location) return false;
       if (!q) return true;
-      const hay = [r.vin, r.product, r.salesType, r.customer, r.employee, r.stockOwner, r.source, r.label]
+      const hay = [r.vin, r.product, r.salesType, r.customer, r.employee, r.stockOwner, r.source, r.label, r.location, r.stockClass, r.searchArea]
         .join(' ').toLowerCase();
       return hay.includes(q);
     });
@@ -189,18 +199,20 @@
         action = `
           <button type="button" class="row-btn claim" data-act="claim" data-label="display" data-vin="${esc(r.vin)}">Display</button>
           <button type="button" class="row-btn claim" data-act="claim" data-label="delivery" data-vin="${esc(r.vin)}">Delivery</button>`;
-      } else {
+      } else if (!r.stockClass || r.stockClass === 'STOCK IN') {
         action = `<button type="button" class="row-btn claim" data-act="claim" data-vin="${esc(r.vin)}">To my stock</button>`;
       }
       return `<tr class="${mine ? 'mine' : ''}">
         <td class="chk"><input type="checkbox" data-vin="${esc(r.vin)}"${checked} /></td>
-        <td><strong>${esc(r.vin)}</strong></td>
+        <td><strong data-act="detail" data-vin="${esc(r.vin)}" title="${esc(r.stockReason || '')}">${esc(r.vin)}</strong></td>
         <td>${esc(r.product || '—')}</td>
         <td>${esc(r.salesType || '—')}</td>
         <td>${esc(r.proformaDate || '—')}</td>
         <td>${esc(r.customer || '—')}</td>
         <td>${esc(r.employee || '—')}</td>
-        <td><span class="badge ${r.source === 'raw' ? 'warn' : 'info'}">${r.source === 'raw' ? 'Sales Raw' : 'Live Sheet'}</span></td>
+        <td>${esc(r.location || '—')}</td>
+        <td>${esc(r.stockClass || '—')}</td>
+        <td><span class="badge ${r.source === 'raw' ? 'warn' : 'info'}">${r.source === 'raw' ? 'Sales Raw' : r.source === 'rtl' ? 'RTL' : 'Live Sheet'}</span></td>
         <td>${r.stockOwner ? `<span class="badge ok">${esc(r.stockOwner)}</span>` : '<span class="badge">Open</span>'}</td>
         <td>${labelBadge(r.label)}</td>
         <td class="acts">${action}</td>
@@ -327,6 +339,18 @@
       state.q = $('search').value;
       render();
     });
+    if ($('filter-stock')) {
+      $('filter-stock').addEventListener('change', () => {
+        state.stock = $('filter-stock').value;
+        render();
+      });
+    }
+    if ($('filter-location')) {
+      $('filter-location').addEventListener('change', () => {
+        state.location = $('filter-location').value;
+        render();
+      });
+    }
     $('view-tabs').addEventListener('click', (e) => {
       const btn = e.target.closest('.tab');
       if (!btn) return;
@@ -412,6 +436,16 @@
       }
     });
     $('rows').addEventListener('click', (e) => {
+      const detail = e.target.closest('[data-act="detail"]');
+      if (detail) {
+        const row = state.pool.find((r) => r.vin === detail.dataset.vin);
+        const box = $('vin-detail');
+        if (box) {
+          box.textContent = row
+            ? `${row.vin}: ${row.stockReason || row.stockClass || 'No extra status on this VIN.'}`
+            : '';
+        }
+      }
       const btn = e.target.closest('button[data-act]');
       if (!btn) return;
       const vin = btn.dataset.vin;

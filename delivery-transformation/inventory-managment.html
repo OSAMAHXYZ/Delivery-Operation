@@ -58,7 +58,21 @@
       <p class="hint">Selecting a VIN puts it in your stock. It is <strong>not</strong> removed from this list until منسق التسليم generates a PDF in coordinator.html. <strong>Ruba</strong> must label each car as <strong>Display</strong> or <strong>Delivery</strong>.</p>
 
       <div class="toolbar">
-        <input type="search" id="search" placeholder="Search VIN / product / customer / stock owner…" />
+        <input type="search" id="search" placeholder="Search VIN / product / location / customer / stock owner…" />
+        <select id="filter-stock">
+          <option value="">All stock status</option>
+          <option>STOCK IN</option>
+          <option>WITH DELIVERY NOTE</option>
+          <option>SWAPPED IN</option>
+          <option>SWAPPED OUT</option>
+          <option>FREE IN MY STOCK</option>
+          <option>NEW ALLOCATION</option>
+          <option>MISSING FROM RTL</option>
+          <option>UNDEFINED</option>
+        </select>
+        <select id="filter-location">
+          <option value="">All locations</option>
+        </select>
         <div class="tabs" id="view-tabs">
           <button type="button" class="tab active" data-view="all">All VINs</button>
           <button type="button" class="tab" data-view="mine">My stock</button>
@@ -90,6 +104,8 @@
               <th>Proforma</th>
               <th>Customer</th>
               <th>Employee</th>
+              <th>Location</th>
+              <th>Stock status</th>
               <th>Source</th>
               <th>Stock</th>
               <th>Label</th>
@@ -100,6 +116,7 @@
         </table>
       </div>
       <p class="empty hidden" id="empty">No VINs match this view.</p>
+      <p class="hint" id="vin-detail"></p>
     </div>
   </div>
 
@@ -117,6 +134,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="inventory-managment.js?v=20261003scope2"></script>
+  <script src="inventory-managment.js?v=20261019a"></script>
 </body>
 </html>

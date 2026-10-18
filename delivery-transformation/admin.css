@@ -1888,6 +1888,19 @@ body.vsnd-screen .vsnd-total-btn {
   white-space: nowrap;
 }
 .multi-filter-btn.is-on { border-color: #2563eb; background: #eff6ff; }
+#tab-org .card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+#tab-org label { display: grid; gap: 4px; font-size: 0.85rem; }
+#tab-org input, #tab-org select { width: 100%; }
+#tab-org .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+#tab-org .table-wrap { margin-bottom: 14px; }
+
 .multi-filter-menu {
   position: absolute;
   z-index: 30;

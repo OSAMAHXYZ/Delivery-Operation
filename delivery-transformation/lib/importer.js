@@ -214,6 +214,32 @@ function parseDeliverySheet(buffer) {
 }
 
 /** Sales Raw → [{ vin, raw }] (header aliases, or the fixed A/B/C/K/N letter layout). */
+function chooseSalesRawDuplicates(items) {
+  const groups = new Map();
+  (items || []).forEach((item, index) => {
+    const list = groups.get(item.vin) || [];
+    list.push({ item, index });
+    groups.set(item.vin, list);
+  });
+  const unique = [];
+  let duplicates = 0;
+  let invalidDates = 0;
+  groups.forEach((list) => {
+    if (list.length > 1) duplicates += list.length - 1;
+    const valid = list.filter((row) => /^\d{4}-\d{2}-\d{2}$/.test(String(row.item.raw && row.item.raw.proformaDate || '')));
+    if (list.length > 1) invalidDates += list.length - valid.length;
+    const pool = valid.length ? valid : list;
+    pool.sort((a, b) => {
+      const da = String(a.item.raw && a.item.raw.proformaDate || '');
+      const db = String(b.item.raw && b.item.raw.proformaDate || '');
+      if (da !== db) return da < db ? -1 : 1;
+      return a.index - b.index;
+    });
+    unique.push(pool[pool.length - 1].item);
+  });
+  return { unique, duplicates, invalidDates };
+}
+
 function parseSalesRaw(buffer) {
   let best = { sheet: '', layout: '', items: [], duplicates: 0 };
   readSheets(buffer).forEach(({ name, rows }) => {
@@ -254,16 +280,10 @@ function parseSalesRaw(buffer) {
         items.push({ vin, raw });
       });
     }
-    const unique = [];
-    const seen = new Set();
-    for (let i = items.length - 1; i >= 0; i -= 1) {
-      if (seen.has(items[i].vin)) continue;
-      seen.add(items[i].vin);
-      unique.push(items[i]);
+    const picked = chooseSalesRawDuplicates(items);
+    if (picked.unique.length > best.items.length) {
+      best = { sheet: name, layout, items: picked.unique, duplicates: picked.duplicates, invalidDates: picked.invalidDates };
     }
-    unique.reverse();
-    const dupes = items.length - unique.length;
-    if (unique.length > best.items.length) best = { sheet: name, layout, items: unique, duplicates: dupes };
   });
   return best;
 }
@@ -300,4 +320,5 @@ module.exports = {
   parseDeliverySheet,
   parseSalesRaw,
   parseReadableWorkbook,
+  chooseSalesRawDuplicates,
 };

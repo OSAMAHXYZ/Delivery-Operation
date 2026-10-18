@@ -2530,6 +2530,78 @@
     if (tab === 'schedule') loadSlaConfig().catch((err) => { if ($('sla-error')) $('sla-error').textContent = err.message; });
     if (tab === 'assign') loadAutoAssign().catch((err) => { if ($('aa-hint')) $('aa-hint').textContent = err.message; });
     if (tab === 'give') loadGive().catch((err) => { if ($('give-hint')) $('give-hint').textContent = err.message; });
+    if (tab === 'org') loadOrg().catch((err) => { if ($('org-hint')) $('org-hint').textContent = err.message; });
+  }
+
+  let orgData = { cities: [], companies: [] };
+
+  function orgActive(row) {
+    return row && row.active !== false;
+  }
+
+  function renderOrg() {
+    const q = String(($('org-search') && $('org-search').value) || '').trim().toLowerCase();
+    const status = ($('org-status') && $('org-status').value) || '';
+    const match = (row) => {
+      if (status === 'active' && !orgActive(row)) return false;
+      if (status === 'inactive' && orgActive(row)) return false;
+      if (!q) return true;
+      return [row.name, row.country, row.code].join(' ').toLowerCase().includes(q);
+    };
+    const cities = (orgData.cities || []).filter(match);
+    const cityName = (id) => (orgData.cities.find((c) => c.id === id) || {}).name || '';
+    $('org-cities').innerHTML = `<thead><tr><th>City</th><th>Country</th><th>Status</th><th></th></tr></thead><tbody>${
+      cities.map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.country || '')}</td><td>${orgActive(c) ? 'Active' : 'Inactive'}</td><td><button type="button" class="btn" data-org-edit="city" data-id="${esc(c.id)}">Edit</button></td></tr>`).join('')
+    }</tbody>`;
+    const companies = (orgData.companies || []).filter((c) => match({ ...c, country: cityName(c.cityId) }));
+    $('org-companies').innerHTML = `<thead><tr><th>Company</th><th>Code</th><th>City</th><th>Status</th><th></th></tr></thead><tbody>${
+      companies.map((c) => `<tr><td>${esc(c.name)}</td><td>${esc(c.code || '')}</td><td>${esc(cityName(c.cityId) || '—')}</td><td>${orgActive(c) ? 'Active' : 'Inactive'}</td><td><button type="button" class="btn" data-org-edit="company" data-id="${esc(c.id)}">Edit</button></td></tr>`).join('')
+    }</tbody>`;
+    const sel = $('org-city-select');
+    if (sel) {
+      const current = sel.value;
+      sel.innerHTML = `<option value="">No city</option>${(orgData.cities || []).filter(orgActive).map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}`;
+      sel.value = current;
+    }
+  }
+
+  async function loadOrg() {
+    orgData = await api('/org');
+    renderOrg();
+  }
+
+  function fillOrgForm(kind, id) {
+    const form = $(kind === 'city' ? 'org-city-form' : 'org-company-form');
+    const row = (kind === 'city' ? orgData.cities : orgData.companies).find((item) => item.id === id);
+    if (!form || !row) return;
+    form.elements.id.value = row.id;
+    form.elements.name.value = row.name || '';
+    if (form.elements.country) form.elements.country.value = row.country || 'Saudi Arabia';
+    if (form.elements.code) form.elements.code.value = row.code || '';
+    if (form.elements.cityId) form.elements.cityId.value = row.cityId || '';
+    form.elements.active.value = row.active === false ? 'false' : 'true';
+  }
+
+  async function saveOrg(kind, form) {
+    const body = {
+      id: form.elements.id.value,
+      name: form.elements.name.value,
+      active: form.elements.active.value !== 'false',
+    };
+    if (kind === 'city') body.country = form.elements.country.value;
+    if (kind === 'company') {
+      body.code = form.elements.code.value;
+      body.cityId = form.elements.cityId.value;
+    }
+    if (body.id && body.active === false && !window.confirm('Deactivate this record? History stays.')) return;
+    const data = await api(kind === 'city' ? '/org/cities' : '/org/companies', { method: 'POST', json: body });
+    orgData = { cities: data.cities || [], companies: data.companies || [] };
+    form.reset();
+    form.elements.id.value = '';
+    if (form.elements.country) form.elements.country.value = 'Saudi Arabia';
+    if (form.elements.active) form.elements.active.value = 'true';
+    renderOrg();
+    if ($('org-hint')) $('org-hint').textContent = 'Saved. Stock eligibility is unchanged.';
   }
 
   let giveEmployees = [];
@@ -2680,6 +2752,33 @@
   }
 
   document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  if ($('org-city-form')) {
+    $('org-city-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveOrg('city', e.target).catch((err) => { if ($('org-hint')) $('org-hint').textContent = err.message; });
+    });
+  }
+  if ($('org-company-form')) {
+    $('org-company-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveOrg('company', e.target).catch((err) => { if ($('org-hint')) $('org-hint').textContent = err.message; });
+    });
+  }
+  if ($('org-search')) $('org-search').addEventListener('input', renderOrg);
+  if ($('org-status')) $('org-status').addEventListener('change', renderOrg);
+  if ($('org-retry')) {
+    $('org-retry').addEventListener('click', () => {
+      api('/rtl-sync/retry', { method: 'POST', json: {} }).then((data) => {
+        const s = data.summary || {};
+        if ($('org-hint')) $('org-hint').textContent = s.skipped ? 'That RTL snapshot was already synced.' : `Synced ${s.unique || 0} VINs.`;
+      }).catch((err) => { if ($('org-hint')) $('org-hint').textContent = err.message; });
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-org-edit]');
+    if (!btn) return;
+    fillOrgForm(btn.dataset.orgEdit, btn.dataset.id);
+  });
   if ($('give-form')) {
     $('give-form').addEventListener('submit', (e) => {
       e.preventDefault();

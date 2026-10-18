@@ -1018,8 +1018,17 @@
         return;
       }
       const srOk = dataStamp.hasSales;
-      const rtlNote = server && server.rtlDaily
-        ? ` · RTL archive ${server.rtlDaily.id || server.rtlDaily.date} (${server.rtlDaily.count} VINs${server.rtlDaily.excelSaved ? " +xlsx" : ""})`
+      const rtlDaily = server && server.rtlDaily;
+      const sync = rtlDaily && rtlDaily.deliverySync;
+      const syncNote = !sync
+        ? ""
+        : sync.ok === false
+          ? ` · inventory sync failed: ${sync.error || "error"}`
+          : sync.skipped
+            ? " · inventory already synced"
+            : ` · inventory ${sync.unique || 0} VINs, ${sync.duplicate || 0} duplicate, ${sync.rejected || 0} rejected`;
+      const rtlNote = rtlDaily
+        ? ` · RTL archive ${rtlDaily.id || rtlDaily.date} (${rtlDaily.count} VINs${rtlDaily.excelSaved ? " +xlsx" : ""})${syncNote}`
         : "";
       const serverNote = server
         ? ""

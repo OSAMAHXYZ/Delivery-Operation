@@ -954,6 +954,7 @@ function sanitizeRtlVehicle(raw) {
     secondaryStatus: String(raw?.secondaryStatus || '').trim(),
     location: String(raw?.location || '').trim(),
     vehicleSearchArea: String(raw?.vehicleSearchArea || raw?.searchAreaDesc || '').trim(),
+    allocationDate: String(raw?.allocationDate || '').trim(),
     details
   };
 }
@@ -1088,7 +1089,11 @@ function scanRtlStockBuffer(buffer) {
   const idxSearch = rtlResolveCol(headers, [
     (n) => n === 'vehicle search area' || n === 'search area desc' || n === 'search area',
     (n) => n.includes('vehicle search') || n.includes('search area')
-  ], 'P');
+  ], 'M');
+  const idxAllocation = rtlResolveCol(headers, [
+    (n) => n === 'allocation date' || n === 'alloc date',
+    (n) => n.includes('allocation date')
+  ], 'AG');
 
   const seen = new Set();
   const vehicles = [];
@@ -1116,6 +1121,7 @@ function scanRtlStockBuffer(buffer) {
       secondaryStatus: rtlCellToString(line[idxSecondary]),
       location: rtlCellToString(line[idxLocation]),
       vehicleSearchArea: rtlCellToString(line[idxSearch]),
+      allocationDate: rtlCellToString(line[idxAllocation]),
       details
     });
     if (v) vehicles.push(v);
@@ -4592,6 +4598,11 @@ const { createDeliveryTransformationRouter } = require('./delivery-transformatio
 const deliveryTransformation = createDeliveryTransformationRouter({
   dataFile: path.join(PERSISTENT_ROOT, 'delivery-transformation-data.json'),
   password: DELIVERY_TEAM_PASSWORD,
+  loadLatestRtl: () => {
+    const index = loadRtlDailyIndex();
+    const first = (index.snapshots || [])[0];
+    return first ? loadRtlDailySnapshot(first.id) : null;
+  },
 });
 app.use('/api/delivery-transformation', deliveryTransformation.router);
 
@@ -4896,6 +4907,18 @@ app.post('/api/report-sheet/push', (req, res) => {
             excelBuffer: buf,
             at
           });
+          try {
+            const { applyRtlPush } = require('./delivery-transformation/lib/rtl-sync');
+            rtlSnapshot.deliverySync = applyRtlPush(deliveryTransformation.store, rtlSnapshot.vehicles, {
+              id: rtlSnapshot.id,
+              at: rtlSnapshot.at,
+              fileName: name,
+              date: rtlSnapshot.date,
+            });
+          } catch (syncErr) {
+            console.error('[delivery-transformation] rtl sync', syncErr);
+            rtlSnapshot.deliverySync = { ok: false, error: syncErr.message || 'Sync failed' };
+          }
         } catch (snapErr) {
           console.error('[report-sheet/push] RTL snapshot', snapErr);
         }
@@ -4943,7 +4966,8 @@ app.post('/api/report-sheet/push', (req, res) => {
           date: rtlSnapshot.date,
           count: rtlSnapshot.count,
           at: rtlSnapshot.at,
-          excelSaved: rtlSnapshot.excelSaved
+          excelSaved: rtlSnapshot.excelSaved,
+          deliverySync: rtlSnapshot.deliverySync || null
         }
         : null
     });

@@ -17,6 +17,8 @@ const {
   emptyRaw,
 } = require('./constants');
 const { createStore } = require('./store');
+const { applyRtlPush, markDeliveryNote, locationRuleApplies } = require('./rtl-sync');
+const { listOrg, saveCity, saveCompany } = require('./org');
 const {
   parseDeliverySheet,
   parseSalesRaw,
@@ -761,6 +763,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       if (!v.ops) v.ops = emptyOps();
       if (kind !== 'warehouse') applyCoordinatorCarrier(v, printCompany, req.dtUser.name, now);
       v.ops.coordinatorPrintedAt = now;
+      markDeliveryNote(store, v.vin);
       v.ops.coordinatorPrintedBy = req.dtUser.name;
       v.ops.coordinatorPrintKind = kind;
       v.ops.coordinatorPrintLabel = label;
@@ -1217,7 +1220,38 @@ function createDeliveryTransformationRouter(opts = {}) {
       stockOwner: owner.name,
       claimedAt: owner.at,
       label: label || '',
+      location: '',
+      stockClass: '',
+      stockReason: '',
+      searchArea: '',
+      rtlUpdatedAt: '',
     };
+  }
+
+  function mergeRtlInventory(pool) {
+    const stock = (store.data.meta && store.data.meta.rtlStock) || {};
+    pool.forEach((row) => {
+      const saved = stock[row.vin];
+      if (!saved) return;
+      row.location = saved.location || '';
+      row.stockClass = saved.stockClass || '';
+      row.stockReason = saved.reason || '';
+      row.searchArea = saved.searchArea || '';
+      row.rtlUpdatedAt = saved.updatedAt || '';
+    });
+    Object.values(stock).forEach((saved) => {
+      if (!saved || !saved.vin || pool.some((row) => row.vin === saved.vin)) return;
+      if (!['STOCK IN', 'SWAPPED IN', 'SWAPPED OUT', 'WITH DELIVERY NOTE', 'MISSING FROM RTL'].includes(saved.stockClass)) return;
+      const owner = { id: saved.stockOwnerId || '', name: saved.stockOwnerName || '', at: saved.claimedAt || '' };
+      const row = inventoryRow(saved.vin, { product: saved.product }, owner, 'rtl', '', '');
+      row.location = saved.location || '';
+      row.stockClass = saved.stockClass || '';
+      row.stockReason = saved.reason || '';
+      row.searchArea = saved.searchArea || '';
+      row.rtlUpdatedAt = saved.updatedAt || '';
+      pool.push(row);
+    });
+    pool.sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
   }
 
   function buildInventoryPayload(viewer) {
@@ -1238,6 +1272,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       ));
     });
     const pool = [...byVin.values()].sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    if (locationRuleApplies(viewer)) mergeRtlInventory(pool);
     const me = viewer && viewer.userId;
 
     const releasedByUser = {};
@@ -1286,6 +1321,8 @@ function createDeliveryTransformationRouter(opts = {}) {
       pool,
       stock: pool.filter((r) => r.stockOwnerId === me),
       users,
+      rtlSync: (store.data.meta && store.data.meta.rtlSync && store.data.meta.rtlSync.last) || null,
+      locationRule: locationRuleApplies(viewer),
     };
   }
 
@@ -1341,6 +1378,25 @@ function createDeliveryTransformationRouter(opts = {}) {
       }
       const p = pendingMap()[vin];
       if (!p) {
+        const rtl = store.data.meta && store.data.meta.rtlStock && store.data.meta.rtlStock[vin];
+        if (rtl && locationRuleApplies(user) && rtl.stockClass === 'STOCK IN') {
+          if (release && rtl.stockOwnerId && rtl.stockOwnerId !== user.userId) {
+            blocked.push(vin);
+            return;
+          }
+          rtl.stockOwnerId = release ? '' : user.userId;
+          rtl.stockOwnerName = release ? '' : user.name;
+          rtl.claimedAt = release ? '' : now;
+          claimed.push(vin);
+          store.pushAudit({
+            vin,
+            user: user.name,
+            action: release ? 'inventory_release' : 'inventory_claim',
+            oldValue: release ? user.name : 'rtl',
+            newValue: release ? '' : user.name,
+          });
+          return;
+        }
         missing.push(vin);
         return;
       }
@@ -3545,6 +3601,46 @@ function createDeliveryTransformationRouter(opts = {}) {
     }));
     if (changes.length) store.save();
     return res.json({ ok: true, month, targets: current, changed: changes.length });
+  });
+
+  router.get('/org', auth, (req, res) => {
+    res.json(listOrg(store.data.meta));
+  });
+
+  router.post('/org/cities', auth, requireRole('admin'), (req, res) => {
+    const result = saveCity(store.data.meta, req.body || {});
+    if (result.error) return res.status(400).json(result);
+    store.pushAudit({ vin: '', user: req.dtUser.name, action: 'org_city', oldValue: '', newValue: result.city.name });
+    store.save();
+    return res.json({ ok: true, ...result, ...listOrg(store.data.meta) });
+  });
+
+  router.post('/org/companies', auth, requireRole('admin'), (req, res) => {
+    const result = saveCompany(store.data.meta, req.body || {});
+    if (result.error) return res.status(400).json(result);
+    store.pushAudit({ vin: '', user: req.dtUser.name, action: 'org_company', oldValue: '', newValue: result.company.name });
+    store.save();
+    return res.json({ ok: true, ...result, ...listOrg(store.data.meta) });
+  });
+
+  router.post('/rtl-sync/retry', auth, requireRole('admin'), (req, res) => {
+    if (typeof opts.loadLatestRtl !== 'function') {
+      return res.status(400).json({ error: 'RTL archive is not available on this server' });
+    }
+    let snap = null;
+    try {
+      snap = opts.loadLatestRtl();
+    } catch (err) {
+      return res.status(500).json({ error: err.message || 'Could not read the RTL archive' });
+    }
+    if (!snap) return res.status(404).json({ error: 'No RTL snapshot to retry' });
+    const summary = applyRtlPush(store, snap.vehicles || [], {
+      id: snap.id,
+      at: snap.at,
+      fileName: snap.fileName,
+      date: snap.date || snap.asOfDate,
+    });
+    return res.json({ ok: summary.ok !== false, summary });
   });
 
   router.get('/audit', auth, requireRole('admin'), (req, res) => {
