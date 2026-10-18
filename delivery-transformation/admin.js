@@ -300,7 +300,7 @@
     const team = empGap(t);
     if (kpis) {
       kpis.innerHTML = `
-        <div class="kpi"><strong>${esc(team.target || 0)}</strong><span>Team target</span></div>
+        <div class="kpi"><strong>${esc(team.target || 0)}</strong><span>Total target</span></div>
         <div class="kpi"><strong class="stay">${esc(team.mtd || 0)}</strong><span>MTD total</span></div>
         <div class="kpi"><strong class="sla-late-n">${esc(team.remaining || 0)}</strong><span>Still to target</span></div>
         <div class="kpi"><strong>${esc(achText(t.achPct))}</strong><span>Team Ach%</span></div>`;
@@ -326,7 +326,7 @@
       </button>`;
     }).join('') + `
       <div class="chart-row sla-row" style="cursor:default">
-        <span class="name">Team<small>Target ${team.target || '—'}</small></span>
+        <span class="name">Total target<small>${team.target || '—'}</small></span>
         <span class="bar" title="${team.mtd} MTD · ${team.remaining} to target">
           <i class="present" style="width:${(team.mtd / max) * 100}%"></i>
           <i class="sla-late" style="width:${(team.remaining / max) * 100}%"></i>
@@ -349,7 +349,7 @@
         </tr>`;
       }).join('') + `
         <tr class="emp-table-team">
-          <td><b>Team</b></td>
+          <td><b>Total target</b></td>
           <td class="num">${team.target || '—'}</td>
           <td class="num">${team.mtd}</td>
           <td class="num">${team.remaining}</td>

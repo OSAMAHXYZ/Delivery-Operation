@@ -17,12 +17,13 @@ const {
   emptyRaw,
 } = require('./constants');
 const { createStore } = require('./store');
-const { applyRtlPush, markDeliveryNote, locationRuleApplies } = require('./rtl-sync');
+const { applyRtlPush, markDeliveryNote, locationRuleApplies, isSpecialStockLocation } = require('./rtl-sync');
 const { listOrg, saveCity, saveCompany } = require('./org');
 const {
   parseDeliverySheet,
   parseSalesRaw,
   parseReadableWorkbook,
+  parseCoordinatorNotes,
   normalizeDate,
   normalizeStatus,
   parseLeadTime,
@@ -225,6 +226,7 @@ function publicVehicle(v, viewer, opts = {}) {
     ops = { ...src };
   }
   return {
+    id: v.storeKey || v.vin,
     vin: v.vin,
     raw,
     ops,
@@ -986,10 +988,9 @@ function createDeliveryTransformationRouter(opts = {}) {
   router.get('/live-sheet', auth, (req, res) => {
     const q = String((req.query && req.query.q) || '').trim().toLowerCase();
     const isCoordinator = req.dtUser.role === 'coordinator';
-    // view=sheet: coordinator's read-only copy of the full Live Sheet (printed VINs included)
     const sheetView = isCoordinator && String((req.query && req.query.view) || '') === 'sheet';
     let list = store.allVehicles();
-    if (isCoordinator && !sheetView) {
+    if (isCoordinator) {
       list = list.filter((v) => !isCoordinatorPrinted(v));
     }
     if (q) {
@@ -1081,10 +1082,21 @@ function createDeliveryTransformationRouter(opts = {}) {
     return store.data.meta.salesRawByVin;
   }
 
-  function rememberSalesRaw(vin, raw, now, by) {
+  function rememberSalesRaw(vin, raw, now, by, opts = {}) {
     const key = normVin(vin);
-    if (!key) return;
+    if (!key) return { added: false, invoiceFilled: false };
     const map = salesRawIndex();
+    if (opts.onlyAdd && map[key]) {
+      const invoice = String((raw && raw.invoiceDate) || '').trim();
+      const hadInvoice = String((map[key].raw && map[key].raw.invoiceDate) || '').trim();
+      if (invoice && !hadInvoice) {
+        if (!map[key].raw) map[key].raw = { ...emptyRaw(), vin: key };
+        map[key].raw.invoiceDate = invoice;
+        return { added: false, invoiceFilled: true };
+      }
+      return { added: false, invoiceFilled: false };
+    }
+    const existed = !!map[key];
     const prev = (map[key] && map[key].raw) || {};
     const next = { ...emptyRaw(), ...prev };
     Object.entries(raw || {}).forEach(([k, val]) => {
@@ -1092,6 +1104,7 @@ function createDeliveryTransformationRouter(opts = {}) {
     });
     next.vin = key;
     map[key] = { vin: key, raw: next, at: now, by: by || '' };
+    return { added: !existed, invoiceFilled: false };
   }
 
   function rawFromSales(vin) {
@@ -1213,6 +1226,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       customer: String((raw && (raw.userName || raw.customer)) || '').trim(),
       color: String((raw && raw.color) || '').trim(),
       proformaDate: String((raw && raw.proformaDate) || '').trim(),
+      invoiceDate: String((raw && raw.invoiceDate) || '').trim(),
       salesOrder: String((raw && raw.salesOrder) || '').trim(),
       employee: employee || '',
       source,
@@ -1254,56 +1268,121 @@ function createDeliveryTransformationRouter(opts = {}) {
     pool.sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
   }
 
+  function viewerId(viewer) {
+    return String((viewer && (viewer.userId || viewer.id)) || '').trim();
+  }
+
+  function savedInvoiceDate(vin, raw) {
+    const saved = salesRawIndex()[normVin(vin)];
+    return String((saved && saved.raw && saved.raw.invoiceDate) || (raw && raw.invoiceDate) || '').trim();
+  }
+
   function buildInventoryPayload(viewer) {
     const byVin = new Map();
-    Object.values(pendingMap()).forEach((p) => {
-      if (!p || !p.vin) return;
-      byVin.set(p.vin, inventoryRow(p.vin, p.raw, inventoryOwnerOf(p), 'raw', '', inventoryLabelOf(p)));
+    const who = viewerId(viewer);
+    const rtlUsers = who === 'alfadel' || who === 'albara';
+    Object.values(salesRawIndex()).forEach((saved) => {
+      if (!saved || !saved.vin) return;
+      const pending = pendingMap()[saved.vin];
+      const vehicle = store.getVehicle(saved.vin);
+      const ownerSrc = vehicle && vehicle.ops && vehicle.ops.inventoryOwnerId ? vehicle : (pending || {});
+      const labelSrc = vehicle && inventoryLabelOf(vehicle) ? vehicle : (pending || {});
+      const row = inventoryRow(
+        saved.vin,
+        saved.raw,
+        inventoryOwnerOf(ownerSrc),
+        vehicle ? 'live' : 'raw',
+        (vehicle && vehicle.ops && vehicle.ops.assignedEmployeeName) || '',
+        inventoryLabelOf(labelSrc),
+      );
+      if (saved.removed) {
+        row.stockClass = 'REMOVED';
+        row.stockReason = saved.replacedBy
+          ? `Removed. ${saved.replacedBy} is the replacement for this VIN.`
+          : 'Removed.';
+      }
+      byVin.set(saved.vin, row);
     });
-    store.allVehicles().forEach((v) => {
-      if (isCoordinatorPrinted(v)) return;
-      byVin.set(v.vin, inventoryRow(
-        v.vin,
-        v.raw,
-        inventoryOwnerOf(v),
-        'live',
-        (v.ops && v.ops.assignedEmployeeName) || '',
-        inventoryLabelOf(v),
-      ));
+    const rtl = (store.data.meta && store.data.meta.rtlStock) || {};
+    Object.values(rtl).forEach((saved) => {
+      if (!saved || !saved.vin || !isSpecialStockLocation(saved.location)) return;
+      let row = byVin.get(saved.vin);
+      if (!row) {
+        if (!rtlUsers) return;
+        row = inventoryRow(saved.vin, { product: saved.product }, {
+          id: saved.stockOwnerId || '',
+          name: saved.stockOwnerName || '',
+          at: saved.claimedAt || '',
+        }, 'rtl', '', '');
+        byVin.set(saved.vin, row);
+      }
+      row.location = saved.location || '';
+      row.rtlUpdatedAt = saved.updatedAt || '';
     });
     const pool = [...byVin.values()].sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
-    if (locationRuleApplies(viewer)) mergeRtlInventory(pool);
+    const stockOutVins = new Set();
+    const rubaOut = new Set();
+    const rtlIn = new Set();
+    const rtlOut = new Set();
+    pool.forEach((row) => {
+      if (row.stockClass === 'REMOVED') return;
+      const vehicle = store.getVehicle(row.vin);
+      const printed = !!(vehicle && isCoordinatorPrinted(vehicle)
+        && String((vehicle.ops && vehicle.ops.coordinatorPrintKind) || '') !== 'warehouse');
+      const invoice = savedInvoiceDate(row.vin, row);
+      row.invoiceDate = invoice;
+      const special = isSpecialStockLocation(row.location);
+      if (row.label === 'delivery' && row.stockOwnerId === 'ruba' && invoice) {
+        row.stockClass = 'STOCK OUT';
+        row.stockReason = 'Ruba marked Delivery and Sales Raw column V has an invoice date.';
+        stockOutVins.add(row.vin);
+        rubaOut.add(row.vin);
+        return;
+      }
+      if (printed) {
+        row.stockClass = 'STOCK OUT';
+        row.stockReason = special
+          ? 'Delivery note saved. This car was in 7022 Telesales North or 7277 eCommerce Sales - Retail.'
+          : 'A delivery note is saved.';
+        stockOutVins.add(row.vin);
+        if (special) rtlOut.add(row.vin);
+        return;
+      }
+      if (special) {
+        row.stockClass = 'STOCK IN';
+        row.stockReason = 'Current location is 7022 Telesales North or 7277 eCommerce Sales - Retail.';
+        rtlIn.add(row.vin);
+      }
+    });
     const me = viewer && viewer.userId;
 
-    const releasedByUser = {};
     const claimedByUser = {};
     (store.data.audit || []).forEach((a) => {
       if (!a) return;
       const who = String(a.user || '').trim();
       if (!who) return;
-      if (a.action === 'inventory_release') {
-        releasedByUser[who] = (releasedByUser[who] || 0) + 1;
-      }
       if (a.action === 'inventory_claim') {
         claimedByUser[who] = (claimedByUser[who] || 0) + 1;
       }
     });
 
     const users = USERS.filter((u) => u.canInventory).map((u) => {
-      const stock = pool.filter((r) => r.stockOwnerId === u.id);
+      const stock = pool.filter((r) => r.stockOwnerId === u.id && !stockOutVins.has(r.vin));
+      const rtlPerson = u.id === 'alfadel' || u.id === 'albara';
       return {
         id: u.id,
         name: u.name,
-        stockIn: stock.length,
-        stockOut: releasedByUser[u.name] || 0,
+        stockIn: rtlPerson ? rtlIn.size : stock.length,
+        stockOut: u.id === 'ruba' ? rubaOut.size : (rtlPerson ? rtlOut.size : 0),
         claims: claimedByUser[u.name] || 0,
         display: stock.filter((r) => r.label === 'display').length,
         delivery: stock.filter((r) => r.label === 'delivery').length,
         stock,
       };
     });
-    const stockIn = users.reduce((s, u) => s + u.stockIn, 0);
-    const stockOut = users.reduce((s, u) => s + u.stockOut, 0);
+    const rubaIn = pool.filter((r) => r.stockOwnerId === 'ruba' && !stockOutVins.has(r.vin)).length;
+    const stockIn = rubaIn + rtlIn.size;
+    const stockOut = stockOutVins.size;
     const displayRows = pool.filter((r) => r.label === 'display');
     const deliveryRows = pool.filter((r) => r.label === 'delivery');
 
@@ -1498,15 +1577,172 @@ function createDeliveryTransformationRouter(opts = {}) {
     }));
   }
 
+  function personKey(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function applyCancelReplacements(items, userName, now) {
+    const byOrder = new Map();
+    (items || []).forEach((item) => {
+      const order = String((item.raw && item.raw.salesOrder) || '').trim();
+      if (!order) return;
+      const list = byOrder.get(order) || [];
+      list.push(item);
+      byOrder.set(order, list);
+    });
+    const replacements = [];
+    store.allVehicles().slice().forEach((old) => {
+      if (!old || !old.ops || String(old.ops.opsStatus || '').trim() !== 'الغاء') return;
+      const order = String((old.raw && old.raw.salesOrder) || '').trim();
+      const oldCustomer = personKey(old.raw && old.raw.userName);
+      if (!order || !oldCustomer) return;
+      const candidates = (byOrder.get(order) || []).filter((item) => {
+        if (!item || normVin(item.vin) === normVin(old.vin)) return false;
+        const customer = personKey(item.raw && item.raw.userName);
+        return customer && customer !== oldCustomer;
+      });
+      if (!candidates.length) return;
+      const item = candidates[candidates.length - 1];
+      const vin = normVin(item.vin);
+      let neu = store.getVehicle(vin);
+      if (!neu) {
+        neu = { vin, raw: { ...emptyRaw(), vin }, ops: { ...emptyOps() } };
+      }
+      if (!neu.raw) neu.raw = { ...emptyRaw(), vin };
+      if (!neu.ops) neu.ops = emptyOps();
+      Object.entries(item.raw || {}).forEach(([k, val]) => {
+        if (val !== '' && val != null) neu.raw[k] = val;
+      });
+      neu.raw.vin = vin;
+      neu.vin = vin;
+      neu.ops.replacementOf = old.vin;
+      neu.ops.replacementNote = `Replacement for ${old.vin} removed`;
+      neu.ops.updatedAt = now;
+      neu.ops.updatedBy = userName;
+      store.upsertVehicle(neu.storeKey || vin, neu);
+      const waiting = pendingMap();
+      if (waiting[vin]) delete waiting[vin];
+      const index = salesRawIndex();
+      const oldKey = normVin(old.vin);
+      if (index[oldKey]) {
+        index[oldKey].removed = true;
+        index[oldKey].replacedBy = vin;
+      }
+      store.deleteVehicle(old.storeKey || oldKey);
+      store.pushAudit({
+        vin: old.vin,
+        user: userName,
+        action: 'cancel_replaced',
+        oldValue: `${old.vin} · ${old.raw && old.raw.userName || ''}`,
+        newValue: `${vin} is a replacement for ${old.vin} removed`,
+      });
+      replacements.push({
+        removed: old.vin,
+        removedCustomer: (old.raw && old.raw.userName) || '',
+        newVin: vin,
+        newCustomer: (item.raw && item.raw.userName) || '',
+        salesOrder: order,
+      });
+    });
+    return replacements;
+  }
+
   function recordImport(kind, summary) {
     if (!store.data.meta.imports) store.data.meta.imports = {};
     store.data.meta.imports[kind] = summary;
   }
 
   /**
+   * Delivery notes read from the coordinator sheet in Hanouf's upload.
+   * Admin sees one note per company. The coordinator no longer sees those cars.
+   */
+  function applyUploadedCoordinatorNotes(rows, userName, now) {
+    if (!Array.isArray(store.data.prints)) store.data.prints = [];
+    const known = new Set();
+    store.data.prints.forEach((print) => {
+      (print.vins || []).forEach((item) => {
+        known.add(`${normVin(item && item.vin)}|${String(print.company || '').trim()}|${String(print.invoiceNumber || '').trim()}`);
+      });
+    });
+    const groups = new Map();
+    let notes = 0;
+    (rows || []).forEach((row) => {
+      const vin = normVin(row && row.vin);
+      if (!vin) return;
+      let vehicle = store.getVehicle(vin);
+      if (!vehicle) {
+        vehicle = { vin, raw: { ...emptyRaw(), vin }, ops: { ...emptyOps() } };
+      }
+      if (!vehicle.ops) vehicle.ops = emptyOps();
+      if (!vehicle.raw) vehicle.raw = { ...emptyRaw(), vin };
+      const company = String(row.company || '').trim();
+      const city = String(row.city || '').trim();
+      const invoice = String(row.invoice || '').trim();
+      if (!String(vehicle.ops.coordinatorPrintedAt || '').trim()) {
+        vehicle.ops.coordinatorPrintedAt = row.printedAt || now;
+      }
+      if (!vehicle.ops.coordinatorPrintedBy && row.printedBy) vehicle.ops.coordinatorPrintedBy = row.printedBy;
+      if (!vehicle.ops.coordinatorPrintKind) vehicle.ops.coordinatorPrintKind = 'memo';
+      if (company && !vehicle.ops.coordinatorPrintCompany) vehicle.ops.coordinatorPrintCompany = company;
+      if (city && !vehicle.ops.coordinatorPrintCity) vehicle.ops.coordinatorPrintCity = city;
+      if (invoice && !vehicle.ops.coordinatorPrintInvoice) vehicle.ops.coordinatorPrintInvoice = invoice;
+      if (company && !vehicle.ops.carrier) vehicle.ops.carrier = company;
+      if (row.product && !vehicle.raw.product) vehicle.raw.product = row.product;
+      if (row.customer && !vehicle.raw.userName) vehicle.raw.userName = row.customer;
+      markDeliveryNote(store, vin);
+      store.upsertVehicle(vehicle.storeKey || vin, vehicle);
+      notes += 1;
+      const identity = `${vin}|${company}|${invoice}`;
+      if (known.has(identity)) return;
+      known.add(identity);
+      const groupKey = `${company}|${city}|${invoice}|${row.printedAt || ''}`;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          company,
+          city,
+          invoice,
+          printedAt: row.printedAt || now,
+          printedBy: row.printedBy || userName,
+          vins: [],
+        });
+      }
+      groups.get(groupKey).vins.push({
+        vin,
+        product: row.product || '',
+        customer: row.customer || '',
+        plate: row.plate || '',
+        remarks: row.remarks || '',
+      });
+    });
+    groups.forEach((group) => {
+      if (!group.vins.length) return;
+      store.data.prints.unshift({
+        id: `prn_up_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        at: group.printedAt,
+        kind: 'memo',
+        label: '',
+        company: group.company,
+        city: group.city,
+        vins: group.vins,
+        printedBy: group.printedBy,
+        attendanceId: '',
+        invoiceNumber: group.invoice,
+        snapshot: null,
+        source: 'hanouf-upload',
+      });
+    });
+    return {
+      notes,
+      companies: new Set([...groups.values()].map((group) => group.company).filter(Boolean)).size,
+    };
+  }
+
+  /**
    * Hanouf uploads the delivery sheet.
-   * Current month: every VIN. Last month: only فسح / الغاء / بطاقة / صادرة / مرور / رجوع مرور.
-   * Older rows are skipped. Existing employee entries are never overwritten.
+   * This month and last month: every proforma row is uploaded.
+   * A second sale of the same VIN is kept. Older rows are skipped.
+   * A coordinator sheet in the same file becomes a delivery note per company.
+   * Existing employee entries are never overwritten.
    */
   router.post(
     '/upload',
@@ -1516,13 +1752,14 @@ function createDeliveryTransformationRouter(opts = {}) {
     (req, res) => {
       const { buf, filename } = uploadedFile(req);
       if (!buf || !buf.length) return res.status(400).json({ error: 'Upload an Excel file' });
-      let parsed;
+      const coordinatorRows = parseCoordinatorNotes(buf);
+      let parsed = { sheet: '', items: [] };
       try {
         parsed = parseDeliverySheet(buf);
       } catch (err) {
-        return res.status(400).json({ error: `Could not read the file: ${err.message}` });
+        if (!coordinatorRows.length) return res.status(400).json({ error: `Could not read the file: ${err.message}` });
       }
-      if (!parsed.items.length) {
+      if (!parsed.items.length && !coordinatorRows.length) {
         return res.status(400).json({ error: 'No VIN column / VIN rows found in this file' });
       }
 
@@ -1545,24 +1782,41 @@ function createDeliveryTransformationRouter(opts = {}) {
         skippedOtherMonth: 0,
         skippedLastMonthStatus: 0,
         keptLastMonth: 0,
+        coordinatorNotes: 0,
+        coordinatorCompanies: 0,
         skippedNoDate: 0,
         updatedOtherMonth: 0,
         duplicates: 0,
       };
 
       parsed.items.forEach((item) => {
-        if (seen.has(item.vin)) {
+        const proforma = item.raw.proformaDate || item.raw.date || '';
+        const saleOrder = String((item.raw && item.raw.salesOrder) || '').trim();
+        const saleIdentity = `${item.vin}|${proforma}|${saleOrder}`;
+        if (seen.has(saleIdentity)) {
           summary.duplicates += 1;
           return;
         }
-        seen.add(item.vin);
-        const proforma = item.raw.proformaDate || item.raw.date || '';
+        seen.add(saleIdentity);
         const rowMonth = proforma.slice(0, 7);
-        const status = String((item.ops && item.ops.opsStatus) || '').trim();
         const isCurrent = !!proforma && rowMonth === month;
         const isLastMonth = !!proforma && rowMonth === prevMonth;
-        const takeLastMonth = isLastMonth && LAST_MONTH_UPLOAD_STATUSES.includes(status);
-        let v = store.getVehicle(item.vin);
+        const takeLastMonth = isLastMonth;
+        const sameSale = store.allVehicles().find((row) => row
+          && row.vin === item.vin
+          && String((row.raw && (row.raw.proformaDate || row.raw.date)) || '').slice(0, 10) === proforma.slice(0, 10)
+          && String((row.raw && row.raw.salesOrder) || '').trim() === saleOrder);
+        let storeKey = sameSale && sameSale.storeKey ? sameSale.storeKey : item.vin;
+        let v = sameSale || null;
+        if (!v && store.getVehicle(item.vin)) {
+          const held = store.getVehicle(item.vin);
+          const heldProforma = String((held.raw && (held.raw.proformaDate || held.raw.date)) || '').slice(0, 10);
+          const heldOrder = String((held.raw && held.raw.salesOrder) || '').trim();
+          if (heldProforma !== proforma.slice(0, 10) || heldOrder !== saleOrder) {
+            storeKey = `${item.vin}${proforma.replace(/[^0-9]/g, '')}${saleOrder.replace(/[^A-Z0-9]/gi, '')}`;
+            v = store.getVehicle(storeKey);
+          }
+        }
         if (!isCurrent && !takeLastMonth) {
           if (v && !isLastMonth) {
             // Already on the Live Sheet from an older month: refresh non-blank details, never clear or reassign.
@@ -1575,7 +1829,7 @@ function createDeliveryTransformationRouter(opts = {}) {
             });
             if (changed) {
               v.rawUpdatedAt = now;
-              store.upsertVehicle(item.vin, v);
+              store.upsertVehicle(v.storeKey || storeKey, v);
               summary.updated += 1;
               summary.updatedOtherMonth += 1;
             }
@@ -1585,10 +1839,6 @@ function createDeliveryTransformationRouter(opts = {}) {
             summary.skippedNoDate += 1;
             return;
           }
-          if (isLastMonth) {
-            summary.skippedLastMonthStatus += 1;
-            return;
-          }
           summary.skippedOtherMonth += 1;
           return;
         }
@@ -1596,9 +1846,11 @@ function createDeliveryTransformationRouter(opts = {}) {
         const isNew = !v;
         if (isNew) {
           const p = pendingMap()[item.vin];
-          v = { vin: item.vin, raw: { ...emptyRaw(), ...((p && p.raw) || {}), vin: item.vin }, ops: { ...emptyOps() } };
+          v = { vin: item.vin, storeKey, raw: { ...emptyRaw(), ...((p && p.raw) || {}), vin: item.vin }, ops: { ...emptyOps() } };
           copyPendingInventory(v.ops, item.vin);
         }
+        v.storeKey = storeKey;
+        v.vin = item.vin;
         const fromLiveExtract = /live\s*sheet/i.test(String(parsed.sheet || ''));
         Object.entries(item.raw).forEach(([k, val]) => {
           if (!val) return;
@@ -1631,19 +1883,22 @@ function createDeliveryTransformationRouter(opts = {}) {
         }
         v.ops.updatedAt = now;
         v.ops.updatedBy = req.dtUser.name;
-        store.upsertVehicle(item.vin, v);
+        store.upsertVehicle(storeKey, v);
         if (isNew) summary.created += 1;
         else summary.updated += 1;
         if (takeLastMonth) summary.keptLastMonth += 1;
       });
 
+      const noteSummary = applyUploadedCoordinatorNotes(coordinatorRows, req.dtUser.name, now);
+      summary.coordinatorNotes = noteSummary.notes;
+      summary.coordinatorCompanies = noteSummary.companies;
       recordImport('lastUpload', summary);
       store.pushAudit({
         vin: '',
         user: req.dtUser.name,
         action: 'upload_vins',
         oldValue: filename,
-        newValue: `${month}: ${summary.created} new · ${summary.updated} updated · last month kept ${summary.keptLastMonth} · last month other status ${summary.skippedLastMonthStatus} · older skipped ${summary.skippedOtherMonth}`,
+        newValue: `${month}: ${summary.created} new · ${summary.updated} updated · last month kept ${summary.keptLastMonth} · delivery notes ${summary.coordinatorNotes} · companies ${summary.coordinatorCompanies} · older skipped ${summary.skippedOtherMonth}`,
       });
       store.save();
       return res.json({ ok: true, summary });
@@ -1696,9 +1951,22 @@ function createDeliveryTransformationRouter(opts = {}) {
         removedCancel: 0,
       };
       const pending = pendingMap();
+      const hanoufUpload = companyPerformance.isHanoufUser(req.dtUser);
       parsed.items.forEach((item) => {
-        rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name);
+        const remembered = rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name, { onlyAdd: hanoufUpload });
         const v = store.getVehicle(item.vin);
+        if (hanoufUpload && remembered && !remembered.added) {
+          if (remembered.invoiceFilled && v && item.raw.invoiceDate) {
+            if (!v.raw) v.raw = emptyRaw();
+            if (!String(v.raw.invoiceDate || '').trim()) {
+              v.raw.invoiceDate = item.raw.invoiceDate;
+              store.upsertVehicle(v.storeKey || v.vin, v);
+              summary.updated += 1;
+            }
+          }
+          summary.matched += 1;
+          return;
+        }
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
         const hasInvoice = !!String((item.raw && item.raw.invoiceDate) || '').trim();
         const canAssign = hasProforma && !hasInvoice;
@@ -1748,6 +2016,9 @@ function createDeliveryTransformationRouter(opts = {}) {
           summary.updated += 1;
         }
       });
+
+      summary.replacements = applyCancelReplacements(parsed.items, req.dtUser.name, now);
+      summary.removedCancel = summary.replacements.length;
 
       recordImport('lastSalesRaw', summary);
       if (companyPerformance.isHanoufUser(req.dtUser)) {

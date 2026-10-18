@@ -133,6 +133,8 @@
       : [];
     $('kpi-row').innerHTML = [
       kpi('Open VINs', data.total || 0),
+      kpi('Stock In', data.stockIn || 0),
+      kpi('Stock Out', data.stockOut || 0),
       kpi('Unclaimed', data.unclaimed || 0),
       kpi('My stock', data.mine || 0),
       ...extras,
@@ -208,6 +210,7 @@
         <td>${esc(r.product || '—')}</td>
         <td>${esc(r.salesType || '—')}</td>
         <td>${esc(r.proformaDate || '—')}</td>
+        <td>${esc(r.invoiceDate || '—')}</td>
         <td>${esc(r.customer || '—')}</td>
         <td>${esc(r.employee || '—')}</td>
         <td>${esc(r.location || '—')}</td>

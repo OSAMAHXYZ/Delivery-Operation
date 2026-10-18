@@ -179,6 +179,14 @@
     return String((r && r.ops && r.ops.carrier) || '').trim();
   }
 
+  function isWarehouseCarrier(name) {
+    return String(name || '').trim() === 'المستودع';
+  }
+
+  function carrierLabel(name) {
+    return isWarehouseCarrier(name) ? 'التسليم في المستودع' : name;
+  }
+
   function carrierChangeBadge(ops) {
     const from = String((ops && ops.carrierChangedFrom) || '').trim();
     const to = String((ops && ops.carrier) || '').trim();
@@ -226,7 +234,7 @@
       const changed = items.filter((r) => carrierChangeBadge(r.ops)).length;
       return `<div class="fleet-company-group co-carrier-group${open ? ' is-expanded' : ''}" data-type="${esc(company)}">
         <button type="button" class="fleet-company-head" data-fold-type="${esc(company)}" aria-expanded="${open ? 'true' : 'false'}">
-          <span class="fleet-company-name"><span class="co-carrier-ico" aria-hidden="true">🚚</span>${esc(company)}${changed ? `<span class="co-carrier-changed">${changed} تغيّر</span>` : ''}</span>
+          <span class="fleet-company-name"><span class="co-carrier-ico" aria-hidden="true">${isWarehouseCarrier(company) ? '🏭' : '🚚'}</span>${esc(carrierLabel(company))}${changed ? `<span class="co-carrier-changed">${changed} تغيّر</span>` : ''}</span>
           <span class="fleet-fold-meta">
             <span class="fleet-company-count">${items.length} سيارة</span>
             <span class="fleet-chevron" aria-hidden="true"></span>
@@ -1781,6 +1789,10 @@ Average: ${avg == null ? '—' : avg + ' days'}">
 
   async function openDetail(vin) {
     const { vehicle: v } = await api(`/vehicles/${encodeURIComponent(vin)}`);
+    if (isWarehouseCarrier(v.ops && v.ops.carrier)) {
+      await openWarehouseDetail(vin);
+      return;
+    }
     resetPrintForm();
     setPrintMode('sheet');
     const today = fillTodayTimes();

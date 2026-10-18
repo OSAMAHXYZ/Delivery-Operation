@@ -222,6 +222,8 @@ function createStore(filePath) {
   }
 
   function getVehicle(vin) {
+    const raw = String(vin || '').trim();
+    if (raw && data.vehicles[raw]) return data.vehicles[raw];
     const key = vehicleKey(vin);
     return key ? data.vehicles[key] : null;
   }

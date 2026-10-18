@@ -1083,8 +1083,9 @@ function scanRtlStockBuffer(buffer) {
     (n) => n.includes('secondary status')
   ], 'L');
   const idxLocation = rtlResolveCol(headers, [
+    (n) => n === 'current location',
     (n) => n === 'allocated location' || n === 'location' || n === 'loc',
-    (n) => n.includes('allocated location') || (n.includes('location') && !n.includes('search'))
+    (n) => n.includes('current location') || n.includes('allocated location') || (n.includes('location') && !n.includes('search'))
   ], 'Q');
   const idxSearch = rtlResolveCol(headers, [
     (n) => n === 'vehicle search area' || n === 'search area desc' || n === 'search area',

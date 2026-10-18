@@ -295,6 +295,56 @@ function readNamedSheet(wb, re) {
   return rows.filter((row) => Object.values(row).some((v) => String(v == null ? '' : v).trim() !== ''));
 }
 
+function coordinatorCell(row, names) {
+  const keys = Object.keys(row || {});
+  const want = names.map((name) => normalizeHeader(name));
+  const hit = keys.find((key) => want.includes(normalizeHeader(key)));
+  return hit ? row[hit] : '';
+}
+
+/** Coordinator / printed delivery-note sheet inside Hanouf's upload. */
+function parseCoordinatorNotes(buffer) {
+  if (!buffer || !buffer.length) return [];
+  let wb;
+  try {
+    wb = XLSX.read(buffer, { type: 'buffer', cellDates: false });
+  } catch {
+    return [];
+  }
+  const notes = [];
+  const seen = new Set();
+  (wb.SheetNames || []).forEach((name) => {
+    if (!/printed\s*vins|coordinator|companies by city|delivery note|مذكرة/i.test(String(name || '').trim())) return;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', raw: false });
+    rows.forEach((row) => {
+      const vin = normVin(coordinatorCell(row, ['VIN', 'Chassis', 'Chassis No']));
+      if (!looksLikeVin(vin)) return;
+      const company = cellString(coordinatorCell(row, ['Company', 'الناقل', 'Carrier']));
+      const city = cellString(coordinatorCell(row, ['City', 'مدينة', 'مدينة الترحيل']));
+      const invoice = cellString(coordinatorCell(row, ['Invoice', 'Invoice Number', 'رقم']));
+      const identity = `${vin}|${company}|${invoice}`;
+      if (seen.has(identity)) return;
+      seen.add(identity);
+      const kind = cellString(coordinatorCell(row, ['Kind']));
+      if (/warehouse/i.test(kind)) return;
+      notes.push({
+        vin,
+        company,
+        city,
+        invoice,
+        product: cellString(coordinatorCell(row, ['Product', 'Model'])),
+        customer: cellString(coordinatorCell(row, ['Customer'])),
+        plate: cellString(coordinatorCell(row, ['Plate'])),
+        remarks: cellString(coordinatorCell(row, ['Remarks', 'Note'])),
+        printedBy: cellString(coordinatorCell(row, ['Printed by'])),
+        printedAt: normalizeDate(coordinatorCell(row, ['At', 'Printed at'])) || cellString(coordinatorCell(row, ['At', 'Printed at'])),
+        printId: cellString(coordinatorCell(row, ['Print id'])),
+      });
+    });
+  });
+  return notes;
+}
+
 /** Printed VINs + Live Sheet + Assignments extract. Null when this is the full-data file. */
 function parseReadableWorkbook(buffer) {
   if (!buffer || !buffer.length) return null;
@@ -320,5 +370,6 @@ module.exports = {
   parseDeliverySheet,
   parseSalesRaw,
   parseReadableWorkbook,
+  parseCoordinatorNotes,
   chooseSalesRawDuplicates,
 };

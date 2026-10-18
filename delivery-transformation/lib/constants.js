@@ -39,6 +39,7 @@ const CARRIERS = Object.freeze([
   'اريكو',
   'وسم الثريا',
   'احد الفرسان',
+  'المستودع',
 ]);
 
 const TRANSFER_CITIES = Object.freeze([

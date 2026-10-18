@@ -263,10 +263,10 @@
           <div class="card">
             <h2>Upload VINs</h2>
             <p class="hint">
-              Upload the <b>Delivery sheet</b> Excel. VINs whose <b>Proforma Date</b> is in
-              <b id="upload-month">this month</b> are added or updated.
-              From <b id="upload-prev-month">last month</b>, only statuses
-              <b>فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور</b> are taken.
+              Upload the <b>Delivery sheet</b> Excel. Every VIN whose <b>Proforma Date</b> is in
+              <b id="upload-month">this month</b> or <b id="upload-prev-month">last month</b> is added.
+              Last month’s proforma is not skipped. A second sale of the same VIN is kept, so the total matches the file.
+              A <b>Printed VINs / coordinator</b> sheet in the same file is read as delivery notes. Admin sees them by company, and the coordinator no longer sees those cars.
               Older rows are skipped.
               <b>PIC</b> assigns the employee. Existing employee entries (status, dates…) are never overwritten.
               An <b>Extract Live Sheet</b> file can be uploaded here and will be read back.
@@ -328,6 +328,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261010c"></script>
+  <script src="employee.js?v=20261019g"></script>
 </body>
 </html>

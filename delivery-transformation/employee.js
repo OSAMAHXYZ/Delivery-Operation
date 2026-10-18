@@ -829,7 +829,7 @@
         : ['My VINs', 'Your schedule · edit your work'],
       assignment: ['Assignment', 'VIN numbers only · Proforma Date (column P) filled · Invoice Date (column V) empty · no duplicate VINs'],
       targets: ['Team Targets', 'Each employee · VINs by sales type · total · target · Ach%'],
-      upload: ['Upload VINs', `Delivery sheet · ${state.meta.currentMonth || 'this month'} all VINs · ${state.meta.previousMonth || 'last month'} only فسح، الغاء، بطاقة، صادرة، مرور، رجوع مرور`],
+      upload: ['Upload VINs', `Delivery sheet · ${state.meta.currentMonth || 'this month'} and ${state.meta.previousMonth || 'last month'} proformas are all uploaded`],
       'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · الغاء VINs stay on the sheet'],
       appointment: ['Appointment', 'Guest Exp = Yes · set date, time, and a timer for everyone'],
     };
@@ -870,7 +870,7 @@
     const data = await api(`/live-sheet${qs.toString() ? `?${qs}` : ''}`);
     renderImports(data.imports);
     applyPendingToRows(data.rows || []);
-    (data.rows || []).forEach((r) => { state.rowIndex[r.vin] = r; });
+    (data.rows || []).forEach((r) => { state.rowIndex[r.id || r.vin] = r; });
     rememberSelInfo(data.rows || []);
     return data;
   }
@@ -1222,8 +1222,8 @@
           <div><strong>${s.updatedOtherMonth || 0}</strong><span>Existing VINs refreshed · other month</span></div>
           <div><strong>${s.assigned}</strong><span>Assigned from PIC</span></div>
           <div><strong>${s.skippedVacation || 0}</strong><span>Not assigned · PIC on vacation</span></div>
-          <div><strong>${s.keptLastMonth || 0}</strong><span>Last month kept · فسح / الغاء / بطاقة / صادرة / مرور / رجوع مرور</span></div>
-          <div><strong>${s.skippedLastMonthStatus || 0}</strong><span>Last month skipped · other status</span></div>
+          <div><strong>${s.keptLastMonth || 0}</strong><span>Last month proforma uploaded</span></div>
+          <div><strong>${s.coordinatorNotes || 0}</strong><span>Delivery notes · ${s.coordinatorCompanies || 0} companies</span></div>
           <div><strong>${s.skippedOtherMonth}</strong><span>Skipped · older than last month</span></div>
           <div><strong>${s.skippedNoDate}</strong><span>New VINs skipped · no proforma date</span></div>
         </div>
@@ -1256,7 +1256,8 @@
         ${s.assignable ? `<p style="margin-top:10px"><b>${s.assignable}</b> unique VIN(s) with Proforma Date and no Invoice Date
           ${isManager() ? 'are waiting for your confirmation.' : 'were sent to Hanouf to confirm the assignment.'}
           <button type="button" class="btn" id="go-assignment">Open Assignment</button></p>` : ''}
-        <p class="hint" style="margin-top:8px">Existing VINs stay, including الغاء. Blank cells in the file do not clear saved values.</p>`;
+        ${(s.replacements || []).map((r) => `<p><b>${esc(r.removed)}</b> removed · <b>${esc(r.newVin)}</b> is a replacement for ${esc(r.removed)}</p>`).join('')}
+        <p class="hint" style="margin-top:8px">A الغاء VIN is removed when the new file has the same sales order with a different VIN and a different customer. Blank cells do not clear saved values.</p>`;
       const go = $('#go-assignment');
       if (go) go.addEventListener('click', () => setView('assignment'));
       await loadImportPanels();
@@ -1318,12 +1319,25 @@
 
     const data = await fetchLive({ month });
     const w = myWorkload(data.rows || []);
+    const targetsById = {};
+    let totalTarget = 0;
+    if (isManager()) {
+      const targetMonth = month || (state.meta && state.meta.currentMonth) || '';
+      if (targetMonth) {
+        try {
+          const perf = await api(`/team-performance?month=${encodeURIComponent(targetMonth)}`);
+          (perf.rows || []).forEach((r) => { targetsById[r.id] = Number(r.target) || 0; });
+          totalTarget = Number(perf.totals && perf.totals.target) || 0;
+        } catch (_) { /* targets stay blank if the month call fails */ }
+      }
+    }
     const kpis = [
       [isManager() ? 'All VINs' : 'Assigned to me', w.assigned, ''],
       ['Completed (Claimed)', w.completed, 'ok'],
       ['Remaining', w.remaining, 'warn'],
       ['Progress %', `${w.progress}%`, 'info'],
     ];
+    if (isManager()) kpis.push(['Total target', totalTarget, 'info']);
     $('#dash-kpis').innerHTML = kpis.map(([l, v, cls]) =>
       `<article class="kpi ${cls}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`
     ).join('');
@@ -1392,7 +1406,7 @@
           ${e.onVacation ? `<span class="badge warn">Vacation${e.vacationUntil ? ` · ${esc(e.vacationUntil)}` : ''}</span>` : ''}
         </div>
         <div class="emp-card-got"><b>${e.total}</b><span>VIN(s) got</span></div>
-        <div class="emp-card-meta">${e.delivered} delivered · ${e.total - e.delivered} remaining</div>
+        <div class="emp-card-meta">${e.delivered} delivered · ${e.total - e.delivered} remaining${isManager() ? ` · target ${targetsById[e.id] || 0}` : ''}</div>
         <div class="emp-card-types">${types.length
           ? types.map(([t, n]) => `<span><b>${n}</b> ${esc(t)}</span>`).join('')
           : '<span class="hint">No VINs</span>'}</div>
@@ -1486,8 +1500,9 @@
     // Never wipe mid-edit: keep typing / pending drafts on screen
     if (silent && active && active.classList && active.classList.contains('cell-edit') && table.contains(active)) return;
 
+    const rowKey = (r) => (r && (r.id || r.vin)) || '';
     const cell = (r, field, type) => (r.canEdit && (field !== 'carrier' || canAssignCarrier())
-      ? editableControl(r.vin, field, type, r.ops[field])
+      ? editableControl(rowKey(r), field, type, r.ops[field])
       : readOnlyValue(type, r.ops[field]));
 
     const cols = [
@@ -1495,11 +1510,11 @@
         key: 'num',
         label: '<input type="checkbox" class="checkbox sel-all" title="Select all shown" />',
         raw: true,
-        html: (r, i) => `<label class="sel-cell"><input type="checkbox" class="checkbox sel-check" data-vin="${esc(r.vin)}" ${state.selected.has(r.vin) ? 'checked' : ''} /><span>${i + 1}</span></label>`,
+        html: (r, i) => `<label class="sel-cell"><input type="checkbox" class="checkbox sel-check" data-vin="${esc(rowKey(r))}" ${state.selected.has(rowKey(r)) ? 'checked' : ''} /><span>${i + 1}</span></label>`,
       },
       { key: 'employee', label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` },
       { key: 'status', label: 'Status', html: (r) => cell(r, 'opsStatus', 'status') },
-      { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>` },
+      { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(rowKey(r))}">${esc(r.vin)}</button>${r.ops && r.ops.replacementOf ? `<div class="hint">Replacement for ${esc(r.ops.replacementOf)} removed</div>` : ''}` },
       { key: 'proforma', label: 'Proforma', html: (r) => esc(na(r.raw.proformaDate)) },
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
@@ -1529,7 +1544,7 @@
       { key: 'by', label: 'By', html: (r) => esc(na(r.ops.updatedBy)) },
     ];
 
-    const shown = state.liveOnlySelected ? rows.filter((r) => state.selected.has(r.vin)) : rows;
+    const shown = state.liveOnlySelected ? rows.filter((r) => state.selected.has(rowKey(r))) : rows;
     if (silent && excelMenuOpen()) {
       state.liveInFlight = false;
       return;
@@ -1541,7 +1556,7 @@
       ? `<th class="col-num">${cfOn ? '<button type="button" class="live-cf-x" data-cf-clear title="Clear column filters">✕</button>' : ''}</th>`
       : colFilterButton(c))).join('')}</tr>`;
     table.innerHTML = `<thead><tr class="live-hrow">${cols.map((c) => `<th class="col-${c.key}">${c.raw ? c.label : esc(c.label)}</th>`).join('')}</tr>${frow}</thead>
-      <tbody>${shown.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(r.vin) ? ' selected' : ''}" data-vin="${esc(r.vin)}">${cols.map((c) =>
+      <tbody>${shown.map((r, i) => `<tr class="${statusRowClass(r.ops.opsStatus)}${isGuestYes(r) ? ' row-guest-exp' : ''}${state.selected.has(rowKey(r)) ? ' selected' : ''}" data-vin="${esc(rowKey(r))}">${cols.map((c) =>
         `<td class="col-${c.key}">${c.html(r, i)}</td>`).join('')}</tr>`).join('')
         || `<tr><td colspan="${cols.length}">${state.liveOnlySelected ? 'None of the selected VINs match these filters.' : 'No VINs on the Live Sheet yet.'}</td></tr>`}</tbody>`;
     $$('.vin-link', table).forEach((b) => b.addEventListener('dblclick', () => openVin(b.dataset.vin)));
@@ -2222,7 +2237,7 @@
       },
       { key: 'employee', label: 'Employee', html: (r) => `<b>${esc(na(r.ops.assignedEmployeeName))}</b>` },
       { key: 'status', label: 'Status', html: (r) => (r.canEdit ? editableControl(r.vin, 'opsStatus', 'status', r.ops.opsStatus) : readOnlyValue('status', r.ops.opsStatus)) },
-      { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>` },
+      { key: 'vin', label: 'VIN', html: (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>${r.ops && r.ops.replacementOf ? `<div class="hint">Replacement for ${esc(r.ops.replacementOf)} removed</div>` : ''}` },
       { key: 'proforma', label: 'Proforma', html: (r) => esc(na(r.raw.proformaDate)) },
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
