@@ -1107,10 +1107,11 @@ function createDeliveryTransformationRouter(opts = {}) {
     return { added: !existed, invoiceFilled: false };
   }
 
-  function rawFromSales(vin) {
+  function rawFromSales(vin, storeKey) {
     const key = normVin(vin);
-    const saved = salesRawIndex()[key];
-    const waiting = pendingMap()[key];
+    const ownKey = storeKey && storeKey !== key ? storeKey : '';
+    const saved = (ownKey && salesRawIndex()[ownKey]) || salesRawIndex()[key];
+    const waiting = (ownKey && pendingMap()[ownKey]) || pendingMap()[key];
     return {
       ...((saved && saved.raw) || {}),
       ...((waiting && waiting.raw) || {}),
@@ -1120,7 +1121,7 @@ function createDeliveryTransformationRouter(opts = {}) {
 
   function applyRawFromSales(v) {
     if (!v) return false;
-    const src = rawFromSales(v.vin);
+    const src = rawFromSales(v.vin, v.storeKey);
     if (!v.raw) v.raw = { ...emptyRaw(), vin: v.vin };
     let changed = false;
     Object.entries(src).forEach(([k, val]) => {
@@ -1581,70 +1582,87 @@ function createDeliveryTransformationRouter(opts = {}) {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
-  function applyCancelReplacements(items, userName, now) {
-    const byOrder = new Map();
-    (items || []).forEach((item) => {
-      const order = String((item.raw && item.raw.salesOrder) || '').trim();
-      if (!order) return;
-      const list = byOrder.get(order) || [];
-      list.push(item);
-      byOrder.set(order, list);
+  function isCancelStatus(v) {
+    return String((v && v.ops && v.ops.opsStatus) || '').trim() === 'الغاء';
+  }
+
+  function vehiclesWithVin(vin) {
+    const key = normVin(vin);
+    return store.allVehicles().filter((v) => normVin(v && v.vin) === key);
+  }
+
+  function applyImportedRaw(v, incoming, now) {
+    if (!v.raw) v.raw = { ...emptyRaw(), vin: v.vin };
+    let changed = false;
+    Object.entries(incoming || {}).forEach(([k, val]) => {
+      if (val === '' || val == null) return;
+      if (String(v.raw[k] ?? '') !== String(val)) {
+        v.raw[k] = val;
+        changed = true;
+      }
     });
-    const replacements = [];
-    store.allVehicles().slice().forEach((old) => {
-      if (!old || !old.ops || String(old.ops.opsStatus || '').trim() !== 'الغاء') return;
-      const order = String((old.raw && old.raw.salesOrder) || '').trim();
-      const oldCustomer = personKey(old.raw && old.raw.userName);
-      if (!order || !oldCustomer) return;
-      const candidates = (byOrder.get(order) || []).filter((item) => {
-        if (!item || normVin(item.vin) === normVin(old.vin)) return false;
-        const customer = personKey(item.raw && item.raw.userName);
-        return customer && customer !== oldCustomer;
-      });
-      if (!candidates.length) return;
-      const item = candidates[candidates.length - 1];
-      const vin = normVin(item.vin);
-      let neu = store.getVehicle(vin);
-      if (!neu) {
-        neu = { vin, raw: { ...emptyRaw(), vin }, ops: { ...emptyOps() } };
-      }
-      if (!neu.raw) neu.raw = { ...emptyRaw(), vin };
-      if (!neu.ops) neu.ops = emptyOps();
-      Object.entries(item.raw || {}).forEach(([k, val]) => {
-        if (val !== '' && val != null) neu.raw[k] = val;
-      });
-      neu.raw.vin = vin;
-      neu.vin = vin;
-      neu.ops.replacementOf = old.vin;
-      neu.ops.replacementNote = `Replacement for ${old.vin} removed`;
-      neu.ops.updatedAt = now;
-      neu.ops.updatedBy = userName;
-      store.upsertVehicle(neu.storeKey || vin, neu);
-      const waiting = pendingMap();
-      if (waiting[vin]) delete waiting[vin];
-      const index = salesRawIndex();
-      const oldKey = normVin(old.vin);
-      if (index[oldKey]) {
-        index[oldKey].removed = true;
-        index[oldKey].replacedBy = vin;
-      }
-      store.deleteVehicle(old.storeKey || oldKey);
+    v.raw.vin = v.vin;
+    if (changed) v.rawUpdatedAt = now;
+    return changed;
+  }
+
+  function clearImportedColumns(v, now, userName) {
+    const vin = v.vin;
+    v.raw = { ...emptyRaw(), vin };
+    v.rawUpdatedAt = now;
+    if (!v.ops) v.ops = { ...emptyOps() };
+    v.ops.updatedAt = now;
+    v.ops.updatedBy = userName;
+    v.ops.importedClearedAt = now;
+    store.upsertVehicle(v.storeKey || vin, v);
+    const index = salesRawIndex();
+    const key = normVin(vin);
+    if (index[key]) {
+      index[key].raw = { ...emptyRaw(), vin: key };
+      index[key].cleared = true;
+      index[key].at = now;
+      index[key].by = userName || '';
+    }
+  }
+
+  function cancelPendingId(item) {
+    const vin = normVin(item && item.vin);
+    const proforma = String((item.raw && item.raw.proformaDate) || '').replace(/\D/g, '');
+    const order = String((item.raw && item.raw.salesOrder) || '').replace(/[^A-Za-z0-9]/g, '');
+    const customer = personKey(item.raw && item.raw.userName).replace(/\s+/g, '');
+    return `${vin}__${proforma}__${order}__${customer}`;
+  }
+
+  function findOtherSale(vin, raw) {
+    const customer = personKey(raw && raw.userName);
+    const order = String((raw && raw.salesOrder) || '').trim();
+    if (!customer) return null;
+    return vehiclesWithVin(vin).find((v) => {
+      if (isCancelStatus(v)) return false;
+      if (personKey(v.raw && v.raw.userName) !== customer) return false;
+      const existingOrder = String((v.raw && v.raw.salesOrder) || '').trim();
+      return !order || !existingOrder || existingOrder === order;
+    }) || null;
+  }
+
+  /** A الغاء VIN missing from this Sales Raw file loses its imported columns. */
+  function clearMissingCancelRows(fileVins, userName, now) {
+    const cleared = [];
+    store.allVehicles().slice().forEach((v) => {
+      if (!isCancelStatus(v) || fileVins.has(normVin(v.vin))) return;
+      const hasData = Object.entries(v.raw || {}).some(([k, val]) => k !== 'vin' && String(val || '').trim());
+      if (!hasData) return;
+      clearImportedColumns(v, now, userName);
       store.pushAudit({
-        vin: old.vin,
+        vin: v.vin,
         user: userName,
-        action: 'cancel_replaced',
-        oldValue: `${old.vin} · ${old.raw && old.raw.userName || ''}`,
-        newValue: `${vin} is a replacement for ${old.vin} removed`,
+        action: 'cancel_cleared',
+        oldValue: 'الغاء',
+        newValue: 'Imported columns cleared · VIN removed from Sales Raw',
       });
-      replacements.push({
-        removed: old.vin,
-        removedCustomer: (old.raw && old.raw.userName) || '',
-        newVin: vin,
-        newCustomer: (item.raw && item.raw.userName) || '',
-        salesOrder: order,
-      });
+      cleared.push(v.vin);
     });
-    return replacements;
+    return cleared;
   }
 
   function recordImport(kind, summary) {
@@ -1949,24 +1967,72 @@ function createDeliveryTransformationRouter(opts = {}) {
         skippedOnSystem: 0,
         duplicates: parsed.duplicates || 0,
         removedCancel: 0,
+        clearedCancel: 0,
+        cancelReview: 0,
+        cancelReviews: [],
       };
       const pending = pendingMap();
-      const hanoufUpload = companyPerformance.isHanoufUser(req.dtUser);
       parsed.items.forEach((item) => {
-        const remembered = rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name, { onlyAdd: hanoufUpload });
-        const v = store.getVehicle(item.vin);
-        if (hanoufUpload && remembered && !remembered.added) {
-          if (remembered.invoiceFilled && v && item.raw.invoiceDate) {
-            if (!v.raw) v.raw = emptyRaw();
-            if (!String(v.raw.invoiceDate || '').trim()) {
-              v.raw.invoiceDate = item.raw.invoiceDate;
-              store.upsertVehicle(v.storeKey || v.vin, v);
+        const vin = normVin(item.vin);
+        const nextCustomer = personKey(item.raw && item.raw.userName);
+        const cancelled = vehiclesWithVin(vin).find((v) => isCancelStatus(v) && personKey(v.raw && v.raw.userName));
+        const previousCustomer = cancelled ? personKey(cancelled.raw && cancelled.raw.userName) : '';
+        if (cancelled && nextCustomer && previousCustomer !== nextCustomer) {
+          const other = findOtherSale(vin, item.raw);
+          if (other) {
+            if (applyImportedRaw(other, item.raw, now)) {
+              store.upsertVehicle(other.storeKey || other.vin, other);
               summary.updated += 1;
             }
+            const otherKey = other.storeKey && other.storeKey !== vin ? other.storeKey : '';
+            if (otherKey) {
+              salesRawIndex()[otherKey] = {
+                vin,
+                raw: { ...emptyRaw(), ...(other.raw || {}), vin },
+                at: now,
+                by: req.dtUser.name,
+              };
+            }
+            summary.matched += 1;
+            return;
           }
-          summary.matched += 1;
+          const id = cancelPendingId(item);
+          const prev = pending[id] || {};
+          const raw = { ...emptyRaw(), ...(prev.raw || {}) };
+          Object.entries(item.raw || {}).forEach(([k, val]) => {
+            if (val === '' || val == null) return;
+            raw[k] = val;
+          });
+          raw.vin = vin;
+          const was = (cancelled.raw && cancelled.raw.userName) || '';
+          const nowName = raw.userName || '';
+          pending[id] = {
+            ...prev,
+            id,
+            vin,
+            raw,
+            cancelChanged: true,
+            cancelFromCustomer: was,
+            cancelNote: `Status الغاء changed. Was ${was || '—'}. Now ${nowName || '—'}. Review, then assign separately.`,
+            uploadedBy: req.dtUser.name,
+            uploadedAt: now,
+            firstUploadedAt: prev.firstUploadedAt || prev.uploadedAt || now,
+            filename,
+            inventoryOwnerId: prev.inventoryOwnerId || '',
+            inventoryOwnerName: prev.inventoryOwnerName || '',
+            inventoryClaimedAt: prev.inventoryClaimedAt || '',
+          };
+          summary.cancelReview += 1;
+          summary.cancelReviews.push({
+            vin,
+            was,
+            now: nowName,
+            salesOrder: raw.salesOrder || '',
+          });
           return;
         }
+        rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name);
+        const v = store.getVehicle(item.vin);
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
         const hasInvoice = !!String((item.raw && item.raw.invoiceDate) || '').trim();
         const canAssign = hasProforma && !hasInvoice;
@@ -2012,13 +2078,19 @@ function createDeliveryTransformationRouter(opts = {}) {
         });
         if (changed) {
           v.rawUpdatedAt = now;
-          store.upsertVehicle(item.vin, v);
+          store.upsertVehicle(v.storeKey || v.vin, v);
           summary.updated += 1;
         }
       });
 
-      summary.replacements = applyCancelReplacements(parsed.items, req.dtUser.name, now);
-      summary.removedCancel = summary.replacements.length;
+      summary.clearedCancels = clearMissingCancelRows(
+        new Set(parsed.items.map((item) => normVin(item.vin))),
+        req.dtUser.name,
+        now,
+      );
+      summary.clearedCancel = summary.clearedCancels.length;
+      summary.replacements = [];
+      summary.removedCancel = 0;
 
       recordImport('lastSalesRaw', summary);
       if (companyPerformance.isHanoufUser(req.dtUser)) {
@@ -2035,7 +2107,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         user: req.dtUser.name,
         action: 'upload_sales_raw',
         oldValue: filename,
-        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment (P filled · V empty) · existing VINs kept`,
+        newValue: `${summary.matched} matched · ${summary.updated} updated · ${summary.assignable} to Assignment · ${summary.clearedCancel} الغاء cleared · ${summary.cancelReview} الغاء changed for review`,
       });
       store.save();
       summary.pendingTotal = Object.keys(pending).length;
@@ -2925,12 +2997,15 @@ function createDeliveryTransformationRouter(opts = {}) {
     const today = todayKey();
     const pending = pendingMap();
     let dropped = false;
-    Object.keys(pending).forEach((vin) => {
-      const raw = pending[vin].raw || {};
+    Object.keys(pending).forEach((key) => {
+      const row = pending[key];
+      const raw = (row && row.raw) || {};
       const hasProforma = !!String(raw.proformaDate || '').trim();
       const hasInvoice = !!String(raw.invoiceDate || '').trim();
+      const vin = (row && row.vin) || key;
+      if (row && row.cancelChanged) return;
       if (store.getVehicle(vin) || !hasProforma || hasInvoice) {
-        delete pending[vin];
+        delete pending[key];
         dropped = true;
       }
     });
@@ -2998,15 +3073,22 @@ function createDeliveryTransformationRouter(opts = {}) {
             }
           }
         }
-        if (pick) {
+        if (pick && !p.cancelChanged) {
           byType[pick.id][t] = (byType[pick.id][t] || 0) + 1;
           total[pick.id] += 1;
         }
         return {
+          id: p.id || p.vin,
           vin: p.vin,
+          customer: String((p.raw && p.raw.userName) || '').trim(),
+          product: String((p.raw && p.raw.product) || '').trim(),
+          salesOrder: String((p.raw && p.raw.salesOrder) || '').trim(),
           salesType: t,
           salesAdvisor: advisor,
           proformaDate: p.raw.proformaDate,
+          cancelChanged: !!p.cancelChanged,
+          cancelFromCustomer: p.cancelFromCustomer || '',
+          cancelNote: p.cancelNote || '',
           suggestedEmployeeId: pick ? pick.id : '',
           suggestedEmployeeName: pick ? pick.name : '',
           suggestReason,
@@ -3123,16 +3205,22 @@ function createDeliveryTransformationRouter(opts = {}) {
   /** Hanouf confirms the automatic split. { all: true } or { vins: [...] } uses the even-by-sales-type pick. */
   router.post('/assignment/confirm', auth, requireRole('admin', 'hanouf'), (req, res) => {
     const view = buildAssignmentView();
+    const tokenOf = (value) => {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (raw.includes('__')) return raw;
+      return normVin(raw);
+    };
     const want = req.body && req.body.all
-      ? view.rows.map((r) => r.vin)
-      : Array.isArray(req.body && req.body.vins) ? req.body.vins.map(normVin).filter(Boolean)
-        : Array.isArray(req.body && req.body.items) ? req.body.items.map((it) => normVin(it && it.vin)).filter(Boolean)
+      ? view.rows.filter((r) => !r.cancelChanged).map((r) => r.id || r.vin)
+      : Array.isArray(req.body && req.body.vins) ? req.body.vins.map(tokenOf).filter(Boolean)
+        : Array.isArray(req.body && req.body.items) ? req.body.items.map((it) => tokenOf((it && (it.id || it.vin)))).filter(Boolean)
           : [];
-    const pick = new Map(view.rows.map((r) => [r.vin, r.suggestedEmployeeId]));
+    const pick = new Map(view.rows.map((r) => [r.id || r.vin, r.suggestedEmployeeId]));
     const chosen = new Map();
     if (Array.isArray(req.body && req.body.items)) {
       req.body.items.forEach((it) => {
-        const vin = normVin(it && it.vin);
+        const vin = tokenOf(it && (it.id || it.vin));
         const id = String((it && (it.employeeId || it.employee)) || '').trim();
         if (vin && id) chosen.set(vin, id);
       });
@@ -3142,16 +3230,29 @@ function createDeliveryTransformationRouter(opts = {}) {
     const pending = pendingMap();
     const now = new Date().toISOString();
     const results = items.map((it) => {
-      const vin = normVin(it && it.vin);
-      const p = pending[vin];
+      const token = tokenOf(it && it.vin);
+      const vinKey = pending[token] ? token : normVin(token);
+      const p = pending[vinKey];
+      const vin = p ? p.vin : normVin(token);
       if (!p) return { vin, ok: false, error: 'Not pending' };
-      if (store.getVehicle(vin)) { delete pending[vin]; return { vin, ok: false, error: 'Already on the system' }; }
+      const storeKey = p.cancelChanged ? (p.id || vinKey) : vin;
+      if (!p.cancelChanged && store.getVehicle(vin)) {
+        delete pending[vinKey];
+        return { vin, ok: false, error: 'Already on the system' };
+      }
+      if (p.cancelChanged && store.getVehicle(storeKey)) {
+        delete pending[vinKey];
+        return { vin, ok: false, error: 'Already on the system' };
+      }
       const emp = findAssignable(it && it.employeeId);
       if (!emp) return { vin, ok: false, error: 'Choose an employee' };
       if (onVacation(emp.id)) return { vin, ok: false, error: `${emp.name} is on vacation` };
       const created = {
         vin,
-        raw: { ...emptyRaw(), ...rawFromSales(vin), ...p.raw, vin },
+        storeKey,
+        raw: p.cancelChanged
+          ? { ...emptyRaw(), ...p.raw, vin }
+          : { ...emptyRaw(), ...rawFromSales(vin), ...p.raw, vin },
         ops: {
           ...emptyOps(),
           assignedEmployeeId: emp.id,
@@ -3168,8 +3269,16 @@ function createDeliveryTransformationRouter(opts = {}) {
         createdBy: req.dtUser.name,
         rawUpdatedAt: now,
       };
-      store.upsertVehicle(vin, created);
-      delete pending[vin];
+      store.upsertVehicle(storeKey, created);
+      if (p.cancelChanged) {
+        salesRawIndex()[storeKey] = {
+          vin,
+          raw: { ...created.raw },
+          at: now,
+          by: req.dtUser.name,
+        };
+      }
+      delete pending[vinKey];
       store.pushAudit({
         vin, user: req.dtUser.name, action: 'confirm_assignment', oldValue: '(new · sales raw)', newValue: emp.name,
       });
@@ -3180,13 +3289,17 @@ function createDeliveryTransformationRouter(opts = {}) {
   });
 
   router.post('/assignment/dismiss', auth, requireRole('admin', 'hanouf'), (req, res) => {
-    const vins = selectedVins(req);
-    if (!vins.length) return res.status(400).json({ error: 'Select at least one VIN' });
+    const tokens = Array.isArray(req.body && req.body.vins)
+      ? [...new Set(req.body.vins.map((v) => String(v || '').trim()).filter(Boolean))]
+      : [];
+    if (!tokens.length) return res.status(400).json({ error: 'Select at least one VIN' });
     const pending = pendingMap();
     let removed = 0;
-    vins.forEach((vin) => {
-      if (!pending[vin]) return;
-      delete pending[vin];
+    tokens.forEach((token) => {
+      const key = pending[token] ? token : (pending[normVin(token)] ? normVin(token) : '');
+      if (!key) return;
+      const vin = (pending[key] && pending[key].vin) || normVin(token);
+      delete pending[key];
       removed += 1;
       store.pushAudit({ vin, user: req.dtUser.name, action: 'dismiss_assignment', oldValue: 'pending', newValue: '' });
     });

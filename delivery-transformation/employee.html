@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="employee.css?v=20261010c" />
+  <link rel="stylesheet" href="employee.css?v=20261020a" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -211,8 +211,10 @@
             </div>
             <div class="toolbar asg-actions" id="asg-actions">
               <button type="button" class="btn-primary" id="asg-confirm-all" style="width:auto">Assign all automatically</button>
+              <button type="button" class="btn" id="asg-confirm-cancel">Assign reviewed الغاء</button>
               <button type="button" class="btn" id="asg-dismiss">Dismiss selected</button>
             </div>
+            <div id="asg-review"></div>
             <div class="asg-vin-list" id="asg-table"></div>
           </div>
           <div class="card">
@@ -291,7 +293,8 @@
             <h2>Upload Sales Raw</h2>
             <p class="hint">
               Upload <b>Sales Raw Data</b> to refresh vehicle details (Product, Order, Sales Type, S/A, Owner, Customer,
-              GT / Vehicle Location, Phone) on <b>every VIN</b> on the Live Sheet, any month. Everyone sees the update time in the top bar.
+              GT / Vehicle Location, Phone) on <b>every VIN</b>, any month. A الغاء VIN that is gone from the file has its imported columns cleared.
+              A الغاء VIN that changed to another customer stays for review on Assignment, then you assign it the same way. Duplicate VIN numbers are kept when the data is different.
             </p>
             <div class="raw-status-card">
               <div class="lbl">Last Sales Raw update</div>
@@ -328,6 +331,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261019i"></script>
+  <script src="employee.js?v=20261020a"></script>
 </body>
 </html>

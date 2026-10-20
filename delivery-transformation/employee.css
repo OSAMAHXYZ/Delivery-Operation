@@ -1579,6 +1579,9 @@ table.live-sheet tr.selected td.col-num { box-shadow: inset 4px 0 0 var(--red) !
 }
 .asg-vin:hover { border-color: var(--navy); }
 .asg-vin.selected { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+.asg-vin.is-cancel { border-color: #f0b429; background: #fffbeb; }
+.asg-vin small { display: block; margin-top: 4px; font-family: inherit; font-weight: 650; letter-spacing: 0; white-space: normal; max-width: 280px; }
+.asg-review-note { margin: 0 0 8px; }
 .asg-after { color: var(--green); font-weight: 800; }
 #asg-map-table td.num { text-align: center; }
 #asg-map-table tr.is-vacation td { background: #fffbeb; color: var(--muted); }

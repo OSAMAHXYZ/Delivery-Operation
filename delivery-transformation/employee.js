@@ -828,10 +828,10 @@
       my: isManager()
         ? ['All VINs', 'Every VIN · edit · hand over to an employee']
         : ['My VINs', 'Your schedule · edit your work'],
-      assignment: ['Assignment', 'VIN numbers only · Proforma Date (column P) filled · Invoice Date (column V) empty · no duplicate VINs'],
+      assignment: ['Assignment', 'Proforma Date filled · Invoice Date empty · الغاء changes are reviewed, then assigned the same way'],
       targets: ['Team Targets', 'Each employee · VINs by sales type · total · target · Ach%'],
       upload: ['Upload VINs', `Delivery sheet · ${state.meta.currentMonth || 'this month'} and ${state.meta.previousMonth || 'last month'} proformas are all uploaded`],
-      'sales-raw': ['Sales Raw', 'Refreshes vehicle details on every VIN · الغاء VINs stay on the sheet'],
+      'sales-raw': ['Sales Raw', 'Updates location and imported data on every VIN · a removed الغاء VIN is cleared'],
       appointment: ['Appointment', 'Guest Exp = Yes · set date, time, and a timer for everyone'],
     };
     const t = titles[view] || ['Delivery Transformation', ''];
@@ -1037,7 +1037,8 @@
     const d = data || await api('/assignment');
     state.asg = d;
     if (!state.asgSel) state.asgSel = new Set();
-    const live = new Set(d.rows.map((r) => r.vin));
+    const rowId = (r) => r.id || r.vin;
+    const live = new Set(d.rows.map(rowId));
     [...state.asgSel].forEach((v) => { if (!live.has(v)) state.asgSel.delete(v); });
     state.meta.pendingAssignments = d.rows.length;
     renderNav();
@@ -1047,20 +1048,37 @@
     if (state.meta.employees) {
       state.meta.employees = state.meta.employees.map((e) => ({ ...e, onVacation: away.has(e.id) }));
     }
+    const review = d.rows.filter((r) => r.cancelChanged);
+    const normal = d.rows.filter((r) => !r.cancelChanged);
     $('#asg-kpis').innerHTML = [
-      ['Ready to assign', d.rows.length, d.rows.length ? 'warn' : 'ok'],
-      ['Unique VINs', d.rows.length, ''],
+      ['Ready to assign', normal.length, normal.length ? 'warn' : 'ok'],
+      ['الغاء changed', review.length, review.length ? 'bad' : ''],
     ].map(([l, v, c]) => `<article class="kpi ${c}"><div class="lbl">${esc(l)}</div><div class="val">${esc(v)}</div></article>`).join('');
 
     $('#asg-actions').style.display = can && d.rows.length ? '' : 'none';
+    const cancelBtn = $('#asg-confirm-cancel');
+    if (cancelBtn) cancelBtn.style.display = can && review.length ? '' : 'none';
+    const chip = (r) => {
+      const id = rowId(r);
+      const note = r.cancelChanged
+        ? `<small>الغاء changed · was ${esc(r.cancelFromCustomer || '—')} · now ${esc(r.customer || '—')}${r.suggestedEmployeeName ? ` · ${esc(r.suggestedEmployeeName)}` : ''}</small>`
+        : '';
+      return `<button type="button" class="asg-vin ${r.cancelChanged ? 'is-cancel' : ''} ${state.asgSel.has(id) ? 'selected' : ''}" data-id="${esc(id)}">${esc(r.vin)}${note}</button>`;
+    };
+    const reviewHost = $('#asg-review');
+    if (reviewHost) {
+      reviewHost.innerHTML = review.length
+        ? `<p class="hint asg-review-note"><b>Review before assign.</b> These VINs were الغاء and the customer changed. The data is different, so the same VIN number can be assigned again. Assign them separately, the same way as the other VINs.</p><div class="asg-vin-list">${review.map(chip).join('')}</div>`
+        : '';
+    }
     const list = $('#asg-table');
-    list.innerHTML = d.rows.length
-      ? d.rows.map((r) => `<button type="button" class="asg-vin ${state.asgSel.has(r.vin) ? 'selected' : ''}" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>`).join('')
+    list.innerHTML = normal.length
+      ? normal.map(chip).join('')
       : '<p class="hint">No unique VINs with Proforma Date (column P) filled and Invoice Date (column V) empty.</p>';
-    $$('.asg-vin', list).forEach((b) => b.addEventListener('click', () => {
+    $$('.asg-vin').forEach((b) => b.addEventListener('click', () => {
       if (!can) return;
-      if (state.asgSel.has(b.dataset.vin)) state.asgSel.delete(b.dataset.vin);
-      else state.asgSel.add(b.dataset.vin);
+      if (state.asgSel.has(b.dataset.id)) state.asgSel.delete(b.dataset.id);
+      else state.asgSel.add(b.dataset.id);
       b.classList.toggle('selected');
     }));
     renderAssignmentBalance();
@@ -1106,13 +1124,28 @@
   }
 
   async function confirmAssignments() {
-    if (!state.asg.rows.length) return alert('Nothing to assign');
-    if (!confirm(`Assign ${state.asg.rows.length} VIN(s) automatically so each employee has the same number in every sales type?`)) return;
-    const res = await api('/assignment/confirm', { method: 'POST', json: { all: true } });
+    const rows = (state.asg.rows || []).filter((r) => !r.cancelChanged);
+    if (!rows.length) return alert('Nothing to assign. الغاء changes are assigned separately.');
+    if (!confirm(`Assign ${rows.length} VIN(s) automatically so each employee has the same number in every sales type?`)) return;
+    const res = await api('/assignment/confirm', { method: 'POST', json: { vins: rows.map((r) => r.id || r.vin) } });
     const ok = (res.results || []).filter((r) => r.ok);
     const fail = (res.results || []).filter((r) => !r.ok);
     state.asgSel.clear();
     alert(`${ok.length} VIN(s) assigned and added to the Live Sheet${fail.length
+      ? `\n${fail.length} skipped:\n${fail.map((f) => `${f.vin} — ${f.error}`).join('\n')}` : ''}`);
+    await loadAssignment(res);
+  }
+
+  async function confirmCancelAssignments() {
+    const rows = (state.asg.rows || []).filter((r) => r.cancelChanged);
+    if (!rows.length) return alert('No الغاء VIN changed');
+    const lines = rows.map((r) => `${r.vin} · was ${r.cancelFromCustomer || '—'} · now ${r.customer || '—'}`).join('\n');
+    if (!confirm(`These VINs were الغاء and the customer changed. Review them, then assign separately the same way?\n\n${lines}`)) return;
+    const res = await api('/assignment/confirm', { method: 'POST', json: { vins: rows.map((r) => r.id || r.vin) } });
+    const ok = (res.results || []).filter((r) => r.ok);
+    const fail = (res.results || []).filter((r) => !r.ok);
+    state.asgSel.clear();
+    alert(`${ok.length} changed الغاء VIN(s) assigned${fail.length
       ? `\n${fail.length} skipped:\n${fail.map((f) => `${f.vin} — ${f.error}`).join('\n')}` : ''}`);
     await loadAssignment(res);
   }
@@ -1252,18 +1285,25 @@
           <div><strong>${s.assignable || 0}</strong><span>To Assignment · P filled · V empty</span></div>
           <div><strong>${s.skippedInvoiced || 0}</strong><span>Skipped · has Invoice Date (V)</span></div>
           <div><strong>${s.skippedOnSystem || 0}</strong><span>Skipped · already on system</span></div>
-          <div><strong>${s.duplicates || 0}</strong><span>Duplicate VINs ignored</span></div>
+          <div><strong>${s.duplicates || 0}</strong><span>Duplicate VINs in the file collapsed</span></div>
+          <div><strong>${s.clearedCancel || 0}</strong><span>الغاء removed · columns cleared</span></div>
+          <div><strong>${s.cancelReview || 0}</strong><span>الغاء changed · review then assign</span></div>
         </div>
         ${s.assignable ? `<p style="margin-top:10px"><b>${s.assignable}</b> unique VIN(s) with Proforma Date and no Invoice Date
           ${isManager() ? 'are waiting for your confirmation.' : 'were sent to Hanouf to confirm the assignment.'}
           <button type="button" class="btn" id="go-assignment">Open Assignment</button></p>` : ''}
-        ${(s.replacements || []).map((r) => `<p><b>${esc(r.removed)}</b> removed · <b>${esc(r.newVin)}</b> is a replacement for ${esc(r.removed)}</p>`).join('')}
-        <p class="hint" style="margin-top:8px">A الغاء VIN is removed when the new file has the same sales order with a different VIN and a different customer. Blank cells do not clear saved values.</p>`;
+        ${(s.cancelReviews || []).map((r) => `<p><b>${esc(r.vin)}</b> was الغاء for ${esc(r.was || '—')}. It changed to ${esc(r.now || '—')}. Review it, then assign it separately.</p>`).join('')}
+        ${(s.clearedCancels || []).length ? `<p>${(s.clearedCancels || []).map((vin) => `<b>${esc(vin)}</b>`).join(', ')} removed from Sales Raw · imported columns cleared.</p>` : ''}
+        <p class="hint" style="margin-top:8px">Location and the other imported fields are updated on every VIN. A blank cell does not clear a saved value. A الغاء VIN missing from the file is cleared. A الغاء VIN for another customer is kept as its own row.</p>`;
       const go = $('#go-assignment');
       if (go) go.addEventListener('click', () => setView('assignment'));
       await loadImportPanels();
       renderNav();
-      if (s.assignable && isManager()
+      if (isManager() && s.cancelReview) {
+        const lines = (s.cancelReviews || []).map((r) => `${r.vin} · was ${r.was || '—'} · now ${r.now || '—'}`).join('\n');
+        alert(`${s.cancelReview} VIN(s) were الغاء and the customer changed.\nReview them on Assignment, then assign them separately.\n\n${lines}`);
+        setView('assignment');
+      } else if (s.assignable && isManager()
         && confirm(`${s.assignable} unique VIN(s) have a Proforma Date and no Invoice Date (column V).\n\nReview and assign them now?`)) {
         setView('assignment');
       }
@@ -2787,6 +2827,8 @@
   });
   const fail = (err) => alert(err.message || 'Failed');
   $('#asg-confirm-all').addEventListener('click', () => confirmAssignments().catch(fail));
+  const cancelAssignBtn = $('#asg-confirm-cancel');
+  if (cancelAssignBtn) cancelAssignBtn.addEventListener('click', () => confirmCancelAssignments().catch(fail));
   $('#asg-dismiss').addEventListener('click', () => dismissAssignments().catch(fail));
   $('#tgt-month').addEventListener('change', (e) => {
     state.targetMonth = e.target.value || state.meta.currentMonth;
