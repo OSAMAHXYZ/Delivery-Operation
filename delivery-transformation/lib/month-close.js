@@ -9,8 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const exportExcel = require('./export-excel');
 
-/** Statuses removed after manager downloads the month archive */
-const PURGE_STATUSES = Object.freeze(['PSFU', 'Claimed', 'تم التسليم']);
+/** These statuses stay in the month they were filed. Every other status moves to the next month. */
+const STAY_STATUSES = Object.freeze(['PSFU', 'Claimed', 'تم التسليم']);
+const PURGE_STATUSES = STAY_STATUSES;
 
 function riyadhParts(now = new Date()) {
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -41,9 +42,65 @@ function previousMonthKey(ym) {
   return `${y}-${String(mo).padStart(2, '0')}`;
 }
 
+function isStayStatus(status) {
+  const s = String(status || '').trim();
+  const lower = s.toLowerCase();
+  return lower === 'psfu' || lower === 'claimed' || s === 'تم التسليم';
+}
+
 function shouldKeepVin(vehicle) {
-  const status = String((vehicle && vehicle.ops && vehicle.ops.opsStatus) || '').trim();
-  return !PURGE_STATUSES.includes(status);
+  return !isStayStatus(vehicle && vehicle.ops && vehicle.ops.opsStatus);
+}
+
+function proformaMonth(vehicle) {
+  const d = String((vehicle && vehicle.raw && (vehicle.raw.proformaDate || vehicle.raw.date)) || '').slice(0, 7);
+  return /^\d{4}-\d{2}$/.test(d) ? d : '';
+}
+
+/**
+ * File the live sheet by month.
+ * The first run saves the current VINs as last month, then moves every VIN
+ * whose status is not PSFU, Claimed, or تم التسليم into the current month.
+ * Later months do the same for VINs still sitting in an older month.
+ */
+function rollSheetMonths(store) {
+  const now = riyadhParts();
+  const nowYm = now.ym;
+  const prevYm = previousMonthKey(nowYm);
+  if (!store.data.meta || typeof store.data.meta !== 'object') store.data.meta = {};
+  const first = !store.data.meta.sheetMonthRoll;
+  let changed = 0;
+  store.allVehicles().forEach((v) => {
+    if (!v.ops) v.ops = {};
+    const stay = isStayStatus(v.ops.opsStatus);
+    if (!/^\d{4}-\d{2}$/.test(String(v.ops.sheetMonth || ''))) {
+      const fromProforma = proformaMonth(v);
+      if (first) v.ops.sheetMonth = prevYm || nowYm;
+      else if (stay && fromProforma) v.ops.sheetMonth = fromProforma;
+      else v.ops.sheetMonth = nowYm;
+      changed += 1;
+    }
+    if (!stay && String(v.ops.sheetMonth) < nowYm) {
+      v.ops.sheetMonthFrom = v.ops.sheetMonth;
+      v.ops.sheetMonth = nowYm;
+      changed += 1;
+    }
+  });
+  if (store.data.meta.sheetMonthRoll !== nowYm) {
+    store.data.meta.sheetMonthRoll = nowYm;
+    store.data.meta.sheetMonthPrevious = prevYm;
+    changed += 1;
+  }
+  if (!changed) return { month: nowYm, previousMonth: prevYm, changed: 0 };
+  store.pushAudit({
+    vin: '',
+    user: 'System',
+    action: 'sheet_month_roll',
+    oldValue: prevYm,
+    newValue: `${nowYm} · other statuses moved here · PSFU / Claimed / تم التسليم stay in their month`,
+  });
+  store.save();
+  return { month: nowYm, previousMonth: prevYm, changed };
 }
 
 function archivePathFor(dataFile, forMonth) {
@@ -58,8 +115,8 @@ function buildMonthCloseWorkbook(vehicles, forMonth) {
     { Field: 'Closed month', Value: forMonth },
     { Field: 'Prepared (UTC)', Value: new Date().toISOString() },
     { Field: 'Total VINs archived', Value: list.length },
-    { Field: 'Will keep (not PSFU/Claimed/تم التسليم)', Value: list.filter(shouldKeepVin).length },
-    { Field: 'Will remove (PSFU/Claimed/تم التسليم)', Value: list.filter((v) => !shouldKeepVin(v)).length },
+    { Field: 'Stay in this month (PSFU / Claimed / تم التسليم)', Value: list.filter((v) => isStayStatus(v && v.ops && v.ops.opsStatus)).length },
+    { Field: 'Move to next month (other statuses)', Value: list.filter(shouldKeepVin).length },
   ];
   exportExcel.appendSheet(wb, 'Month Close', summary);
   return wb;
@@ -70,6 +127,9 @@ function buildMonthCloseWorkbook(vehicles, forMonth) {
  * Does not purge until manager downloads + confirms.
  */
 function scanMonthClose(store) {
+  try { rollSheetMonths(store); } catch (err) {
+    console.error('[delivery-transformation] sheet month roll failed:', err.message);
+  }
   const now = riyadhParts();
   if (now.day !== 1) return store.data.meta && store.data.meta.monthClose;
 
@@ -160,47 +220,21 @@ function markDownloaded(store, by) {
 }
 
 function applyMonthClosePurge(store, by) {
+  const rolled = rollSheetMonths(store);
   const mc = store.data.meta && store.data.meta.monthClose;
-  if (!mc || mc.purgedAt) {
-    throw new Error(mc && mc.purgedAt ? 'Month close already applied' : 'No month archive ready');
+  if (mc && !mc.purgedAt) {
+    mc.purgedAt = new Date().toISOString();
+    mc.purgedBy = by || '';
+    mc.kept = store.allVehicles().length;
+    mc.removed = 0;
+    store.save();
   }
-  if (!mc.downloadedAt) {
-    throw new Error('Download the Excel archive first');
-  }
-
-  const all = store.allVehicles();
-  let kept = 0;
-  let removed = 0;
-  all.forEach((v) => {
-    if (shouldKeepVin(v)) {
-      kept += 1;
-      return;
-    }
-    const key = String(v.vin || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    store.deleteVehicle(key);
-    removed += 1;
-    store.pushAudit({
-      vin: v.vin,
-      user: by || 'Manager',
-      action: 'month_close_purge',
-      oldValue: String((v.ops && v.ops.opsStatus) || ''),
-      newValue: 'removed',
-    });
-  });
-
-  mc.purgedAt = new Date().toISOString();
-  mc.purgedBy = by || '';
-  mc.kept = kept;
-  mc.removed = removed;
-  store.pushAudit({
-    vin: '',
-    user: by || 'Manager',
-    action: 'month_close_applied',
-    oldValue: mc.forMonth || '',
-    newValue: `kept ${kept} · removed ${removed}`,
-  });
-  store.save();
-  return { kept, removed, forMonth: mc.forMonth };
+  return {
+    kept: store.allVehicles().length,
+    removed: 0,
+    forMonth: (mc && mc.forMonth) || rolled.previousMonth,
+    note: 'VINs stay on the sheet. PSFU, Claimed, and تم التسليم stay in their month. Other statuses are in the current month.',
+  };
 }
 
 function forcePrepare(store, by) {
@@ -256,9 +290,12 @@ function startMonthCloseScanner(store) {
 
 module.exports = {
   PURGE_STATUSES,
+  STAY_STATUSES,
   riyadhParts,
   previousMonthKey,
   shouldKeepVin,
+  isStayStatus,
+  rollSheetMonths,
   scanMonthClose,
   monthCloseStatus,
   markDownloaded,

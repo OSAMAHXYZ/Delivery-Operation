@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="employee.css?v=20261020a" />
+  <link rel="stylesheet" href="employee.css?v=20261101b" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -74,11 +74,11 @@
       <div class="month-close-banner hidden" id="month-close-banner" role="alert">
         <div class="month-close-copy">
           <strong id="month-close-title">Month archive ready</strong>
-          <p id="month-close-text">Download the Excel archive, then clear PSFU / Claimed / تم التسليم from the Live Sheet.</p>
+          <p id="month-close-text">PSFU, Claimed, and تم التسليم stay in last month. Other statuses move to this month.</p>
         </div>
         <div class="month-close-actions">
           <button type="button" class="btn-primary" id="month-close-download">Download Excel</button>
-          <button type="button" class="btn" id="month-close-apply" disabled>Clear Live Sheet</button>
+          <button type="button" class="btn" id="month-close-apply" hidden>Clear Live Sheet</button>
         </div>
       </div>
 
@@ -131,7 +131,7 @@
               <div class="live-sheet-filters">
                 <label class="month-filter-label">
                   Month
-                  <input type="month" id="live-month" />
+                  <input type="month" id="live-month" title="PSFU, Claimed, and تم التسليم stay in their month. Other statuses are in this month." />
                 </label>
                 <input type="search" id="live-q" placeholder="Search VIN / order / product…" />
                 <div class="multi-filter" id="live-employee-filter">
@@ -331,6 +331,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261020a"></script>
+  <script src="employee.js?v=20261101b"></script>
 </body>
 </html>

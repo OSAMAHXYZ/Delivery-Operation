@@ -2612,6 +2612,10 @@ table.live-sheet tbody td {
   cursor: cell;
   user-select: none;
 }
+table.live-sheet.is-dragging,
+table.live-sheet.is-dragging * {
+  cursor: cell !important;
+}
 table.live-sheet tbody td.is-range {
   background-image: linear-gradient(rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.16)) !important;
 }

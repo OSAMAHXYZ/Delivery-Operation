@@ -63,7 +63,7 @@
    */
   function renderTable(tableEl, rows, { mode, onOpen }) {
     const showOps = mode !== 'coordinator';
-    const showPii = mode === 'admin';
+    const showPii = false;
     const cols = [
       { label: '#', html: (_r, i) => i + 1 },
       {
@@ -129,7 +129,7 @@
     const showOps = mode !== 'coordinator';
     const row = (label, html) => `<div class="row"><label>${esc(label)}</label><div>${html}</div></div>`;
 
-    const rawFields = [...RAW_COLS, ...(isAdmin || mode === 'coordinator' ? PII_COLS : [])];
+    const rawFields = [...RAW_COLS];
     const rawHtml = rawFields.map(([k, label]) => row(label, isAdmin
       ? `<input class="cell-edit" data-field="${esc(k)}" value="${esc(v.raw[k] || '')}" />`
       : esc(na(v.raw[k])))).join('');

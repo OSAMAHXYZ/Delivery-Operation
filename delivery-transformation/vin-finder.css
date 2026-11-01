@@ -23,7 +23,7 @@ body {
     linear-gradient(180deg, #f3f7fb 0%, var(--bg) 40%, #e4ebf3 100%);
 }
 
-.wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 48px; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 28px 16px 48px; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
 .brand-mark {
   width: 36px; height: 36px; border-radius: 9px;
@@ -77,6 +77,14 @@ h1 { margin: 0 0 6px; font-size: 1.7rem; color: var(--navy); }
   grid-template-columns: 1fr 1fr;
   gap: 10px 16px;
 }
+.card h3 {
+  margin: 14px 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.grid.raw strong { font-weight: 650; word-break: break-word; }
 .grid div span {
   display: block;
   font-size: 0.7rem;

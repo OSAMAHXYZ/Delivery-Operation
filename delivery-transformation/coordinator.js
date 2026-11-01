@@ -619,8 +619,6 @@ Average: ${avg == null ? '—' : avg + ' days'}">
       ['Order', (r) => esc(na(r.raw.salesOrder))],
       ['Product', (r) => esc(na(r.raw.product))],
       ['Sales Type', (r) => esc(na(r.raw.salesType))],
-      ['Customer', (r) => esc(na(r.raw.userName))],
-      ['Phone', (r) => (r.raw.phone ? `<a class="phone-link" href="tel:${esc(r.raw.phone)}">${esc(r.raw.phone)}</a>` : '—')],
       ['S/A', (r) => esc(na(r.raw.salesAdvisor))],
       ['GT Loc', (r) => esc(na(r.raw.gtLocation))],
       ['Veh Loc', (r) => esc(na(r.raw.vehicleLocation))],

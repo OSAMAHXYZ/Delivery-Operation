@@ -19,13 +19,21 @@
 
   function card(row) {
     const status = row.status || '—';
+    const fields = Array.isArray(row.raw) && row.raw.length
+      ? row.raw
+      : [
+        { label: 'VIN', value: row.vin },
+        { label: 'Sales Order', value: row.order },
+      ];
     return `<article class="card">
       <h2>${esc(row.vin)}</h2>
-      <div class="grid">
-        <div><span>VIN number</span><strong>${esc(row.vin)}</strong></div>
-        <div><span>Order number</span><strong>${esc(row.order || '—')}</strong></div>
+      <div class="grid meta">
         <div><span>Current status</span><strong><span class="badge ${statusClass(status)}">${esc(status)}</span></strong></div>
         <div><span>Employee</span><strong>${esc(row.employee || '—')}</strong></div>
+      </div>
+      <h3>Sales Raw</h3>
+      <div class="grid raw">
+        ${fields.map((field) => `<div><span>${esc(field.label)}</span><strong>${esc(field.value || '—')}</strong></div>`).join('')}
       </div>
     </article>`;
   }
@@ -47,8 +55,8 @@
       if (!res.ok) throw new Error(data.error || res.statusText);
       const rows = data.rows || [];
       hint.textContent = rows.length
-        ? `${rows.length} match${rows.length === 1 ? '' : 'es'} on Live Sheet`
-        : 'No VIN or order found on Live Sheet.';
+        ? `${rows.length} Sales Raw row${rows.length === 1 ? '' : 's'}`
+        : 'No VIN or order found in the uploaded Sales Raw.';
       host.innerHTML = rows.length
         ? rows.map(card).join('')
         : '<p class="empty">No car matches this VIN or order number.</p>';

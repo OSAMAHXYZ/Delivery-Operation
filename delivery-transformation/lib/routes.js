@@ -141,6 +141,8 @@ function todayKey() {
 }
 
 function inMonth(v, month) {
+  const sheet = String((v && v.ops && v.ops.sheetMonth) || '').slice(0, 7);
+  if (/^\d{4}-\d{2}$/.test(sheet)) return sheet === month;
   return [
     v.raw && v.raw.proformaDate,
     v.raw && v.raw.date,
@@ -928,33 +930,96 @@ function createDeliveryTransformationRouter(opts = {}) {
     return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
 
-  /** Public Live Sheet lookup — VIN / order only. No customer or phone. */
+  const FINDER_RAW_FIELDS = [
+    ['salesAdvisor', 'S/A'],
+    ['product', 'Product'],
+    ['vin', 'VIN'],
+    ['salesOrder', 'Sales Order'],
+    ['gtLocation', 'GT Location'],
+    ['vehicleLocation', 'Vehicle Location'],
+    ['salesType', 'Sales Type'],
+    ['invoiceOwner', 'Invoice Owner'],
+    ['userName', 'Customer'],
+    ['proformaDate', 'Proforma Date'],
+    ['invoiceDate', 'Invoice Date'],
+    ['leadTime', 'Lead Time'],
+    ['phone', 'Phone'],
+    ['pic', 'PIC'],
+    ['date', 'Date'],
+  ];
+
+  function finderRawPayload(raw, ops) {
+    const src = raw || {};
+    const vin = String(src.vin || '').trim();
+    const order = String(src.salesOrder || '').trim();
+    return {
+      vin,
+      order,
+      status: String((ops && ops.opsStatus) || '').trim(),
+      employee: String((ops && ops.assignedEmployeeName) || '').trim(),
+      raw: FINDER_RAW_FIELDS.map(([key, label]) => ({
+        key,
+        label,
+        value: String(src[key] != null ? src[key] : '').trim(),
+      })),
+    };
+  }
+
+  function collectFinderRows(q) {
+    const seen = new Set();
+    const rows = [];
+    const push = (raw, ops) => {
+      const vin = String((raw && raw.vin) || '').trim();
+      const order = String((raw && raw.salesOrder) || '').trim();
+      const vinKey = finderKey(vin);
+      const orderKey = finderKey(order);
+      if (!vinKey.includes(q) && !orderKey.includes(q)) return;
+      const id = [
+        vinKey,
+        orderKey,
+        finderKey(raw && raw.userName),
+        finderKey(raw && raw.proformaDate),
+      ].join('|');
+      if (seen.has(id)) return;
+      seen.add(id);
+      const row = finderRawPayload({ ...(raw || {}), vin: vin || (raw && raw.vin) || '' }, ops);
+      row.exact = vinKey === q || orderKey === q;
+      rows.push(row);
+    };
+    const index = salesRawIndex();
+    store.allVehicles().forEach((v) => {
+      const saved = index[v.storeKey] || index[normVin(v.vin)];
+      const merged = { ...(v.raw || {}) };
+      if (saved && saved.raw) {
+        Object.entries(saved.raw).forEach(([k, val]) => {
+          if (val !== '' && val != null) merged[k] = val;
+        });
+      }
+      merged.vin = v.vin;
+      push(merged, v.ops);
+    });
+    Object.values(index).forEach((saved) => {
+      if (!saved || !saved.raw) return;
+      push({ ...saved.raw, vin: saved.vin || saved.raw.vin }, null);
+    });
+    Object.values(pendingMap()).forEach((pending) => {
+      if (!pending || !pending.raw) return;
+      push({ ...pending.raw, vin: pending.vin || pending.raw.vin }, null);
+    });
+    return rows
+      .sort((a, b) => Number(b.exact) - Number(a.exact) || String(a.vin).localeCompare(String(b.vin)))
+      .slice(0, 20)
+      .map(({ exact, ...row }) => row);
+  }
+
+  /** VIN Finder — full Sales Raw row uploaded from employee.html. */
   router.get('/vin-finder', (req, res) => {
     const rawQ = String((req.query && (req.query.q || req.query.vin || req.query.order)) || '').trim();
     const q = finderKey(rawQ);
     if (q.length < 4) {
       return res.status(400).json({ error: 'Type at least 4 characters of the VIN or order number' });
     }
-    const rows = store.allVehicles()
-      .map((v) => {
-        const vin = finderKey(v.vin);
-        const order = finderKey(v.raw && v.raw.salesOrder);
-        const vinHit = vin.includes(q);
-        const orderHit = order.includes(q);
-        if (!vinHit && !orderHit) return null;
-        const exact = vin === q || order === q;
-        return {
-          vin: v.vin,
-          order: String((v.raw && v.raw.salesOrder) || '').trim(),
-          status: String((v.ops && v.ops.opsStatus) || '').trim(),
-          employee: String((v.ops && v.ops.assignedEmployeeName) || '').trim(),
-          exact,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => Number(b.exact) - Number(a.exact) || String(a.vin).localeCompare(String(b.vin)))
-      .slice(0, 20)
-      .map(({ exact, ...row }) => row);
+    const rows = collectFinderRows(q);
     return res.json({ q: rawQ, total: rows.length, rows });
   });
 
@@ -986,6 +1051,7 @@ function createDeliveryTransformationRouter(opts = {}) {
 
   /** Live Sheet — every role can list; edit only admin/employee via PATCH */
   router.get('/live-sheet', auth, (req, res) => {
+    monthClose.rollSheetMonths(store);
     const q = String((req.query && req.query.q) || '').trim().toLowerCase();
     const isCoordinator = req.dtUser.role === 'coordinator';
     const sheetView = isCoordinator && String((req.query && req.query.view) || '') === 'sheet';

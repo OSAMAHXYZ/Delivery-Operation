@@ -1560,10 +1560,6 @@
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
       { key: 'salestype', label: 'Sales Type', html: (r) => esc(na(r.raw.salesType)) },
-      { key: 'customer', label: 'Customer', html: (r) => `<span title="${esc(r.raw.userName || '')}">${esc(na(r.raw.userName))}</span>` },
-      { key: 'owner', label: 'Invoice Owner', html: (r) => `<span title="${esc(r.raw.invoiceOwner || '')}">${esc(na(r.raw.invoiceOwner))}</span>` },
-      { key: 'phone', label: 'Phone', html: (r) => (r.raw.phone
-        ? `<a href="tel:${esc(r.raw.phone)}" class="phone-link">${esc(r.raw.phone)}</a>` : 'N/A') },
       { key: 'sa', label: 'S/A', html: (r) => esc(na(r.raw.salesAdvisor)) },
       { key: 'guest', label: 'Guest Exp', html: (r) => cell(r, 'guestCenter', 'yn') },
       { key: 'appt', label: 'Appointment', html: (r) => (isGuestYes(r) ? guestTimerHtml(r.ops) : '—') },
@@ -1864,43 +1860,119 @@
     };
   }
 
+  let sheetDrag = null;
+  let sheetDragMoved = false;
+
+  function clearPaintedSel() {
+    const painted = grid.selPaint;
+    if (!painted) return;
+    painted.range.forEach((td) => td.classList.remove('is-range', 'is-sel'));
+    if (painted.focus) painted.focus.classList.remove('is-range', 'is-sel');
+    painted.heads.forEach((th) => th.classList.remove('is-colsel'));
+    grid.selPaint = null;
+  }
+
   function paintLiveSel() {
     const table = gTable();
     if (!table) return;
-    $$('td.is-range, td.is-sel', table).forEach((td) => td.classList.remove('is-range', 'is-sel'));
-    $$('thead th.is-colsel', table).forEach((th) => th.classList.remove('is-colsel'));
     const b = liveSelBounds();
     const info = gInfo();
     const copyBtn = gCopy();
     const valBtn = gVals();
+    const dragging = !!(sheetDrag && sheetDrag.active);
     if (!b) {
-      if (info && !grid.copyFlash) info.textContent = 'Click a cell — VIN and entry boxes included — drag or Shift+click · Ctrl+C copies · double-click a VIN to open it';
+      clearPaintedSel();
+      if (info && !grid.copyFlash && !dragging) info.textContent = 'Click a cell — VIN and entry boxes included — drag or Shift+click · Ctrl+C copies · double-click a VIN to open it';
       if (copyBtn) copyBtn.disabled = true;
       if (valBtn) valBtn.disabled = true;
       return;
     }
     const multi = b.rows.length > 1 || b.c1 !== b.c2;
-    b.rows.forEach((tr) => {
-      for (let c = b.c1; c <= b.c2; c += 1) {
-        const td = tr.cells[c];
-        if (td && multi) td.classList.add('is-range');
-      }
+    const nextRange = new Set();
+    if (multi) {
+      b.rows.forEach((tr) => {
+        for (let c = b.c1; c <= b.c2; c += 1) {
+          const td = tr.cells[c];
+          if (td) nextRange.add(td);
+        }
+      });
+    }
+    const focus = (b.focusTr && b.focusTr.cells[b.focusC]) || null;
+    if (focus) nextRange.delete(focus);
+    const prev = grid.selPaint || { range: new Set(), focus: null, heads: [] };
+    prev.range.forEach((td) => {
+      if (!nextRange.has(td)) td.classList.remove('is-range', 'is-sel');
     });
-    const ftd = b.focusTr.cells[b.focusC];
-    if (ftd) ftd.classList.add('is-sel');
+    nextRange.forEach((td) => {
+      if (!prev.range.has(td)) td.classList.add('is-range');
+    });
+    if (prev.focus && prev.focus !== focus) prev.focus.classList.remove('is-sel', 'is-range');
+    if (focus) {
+      focus.classList.remove('is-range');
+      focus.classList.add('is-sel');
+    }
     const head = table.tHead && table.tHead.rows[0];
-    if (head) for (let c = b.c1; c <= b.c2; c += 1) if (head.cells[c]) head.cells[c].classList.add('is-colsel');
+    const nextHeads = [];
+    if (head) {
+      for (let c = b.c1; c <= b.c2; c += 1) if (head.cells[c]) nextHeads.push(head.cells[c]);
+    }
+    prev.heads.forEach((th) => {
+      if (!nextHeads.includes(th)) th.classList.remove('is-colsel');
+    });
+    nextHeads.forEach((th) => {
+      if (!prev.heads.includes(th)) th.classList.add('is-colsel');
+    });
+    grid.selPaint = { range: nextRange, focus, heads: nextHeads };
+    if (dragging) return;
     const n = b.rows.length * (b.c2 - b.c1 + 1);
     if (info && !grid.copyFlash) {
       info.textContent = multi
         ? `${b.rows.length} row(s) × ${b.c2 - b.c1 + 1} column(s) · ${n} cells · Ctrl+C copies as a table with headers`
-        : `${colPlainLabel(grid.cols[b.focusC])}: ${liveCellText(ftd) || '(empty)'} · Ctrl+C to copy`;
+        : `${colPlainLabel(grid.cols[b.focusC])}: ${liveCellText(focus) || '(empty)'} · Ctrl+C to copy`;
     }
     if (copyBtn) {
       copyBtn.disabled = false;
       copyBtn.textContent = multi ? `Copy ${n} cells` : 'Copy';
     }
     if (valBtn) valBtn.disabled = !multi;
+  }
+
+  function sheetScrollParent(node) {
+    let el = node && node.parentElement;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      if (/(auto|scroll)/.test(style.overflowY) || /(auto|scroll)/.test(style.overflowX)) {
+        if (el.scrollHeight > el.clientHeight + 4 || el.scrollWidth > el.clientWidth + 4) return el;
+      }
+      el = el.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+
+  function moveSheetDrag(x, y) {
+    if (!sheetDrag || !sheetDrag.active) return;
+    const scroller = sheetDrag.scroller;
+    if (scroller) {
+      const box = scroller.getBoundingClientRect();
+      const edge = 48;
+      let dx = 0;
+      let dy = 0;
+      if (y < box.top + edge) dy = Math.round((y - (box.top + edge)) * 0.45);
+      else if (y > box.bottom - edge) dy = Math.round((y - (box.bottom - edge)) * 0.45);
+      if (x < box.left + edge) dx = Math.round((x - (box.left + edge)) * 0.45);
+      else if (x > box.right - edge) dx = Math.round((x - (box.right - edge)) * 0.45);
+      if (dx || dy) scroller.scrollBy(dx, dy);
+    }
+    const hit = document.elementFromPoint(x, y);
+    const td = hit && hit.closest && hit.closest('tbody td');
+    if (!td || !sheetDrag.table.contains(td) || !td.parentElement.dataset.vin) return;
+    grid = sheetDrag.grid;
+    const col = grid.cols && grid.cols[td.cellIndex];
+    const sel = grid.sel;
+    if (!col || !sel) return;
+    if (sel.focus.vin === td.parentElement.dataset.vin && sel.focus.key === col.key) return;
+    sheetDrag.moved = true;
+    setLiveSel(td, true);
   }
 
   function setLiveSel(td, extend) {
@@ -2037,8 +2109,6 @@
     if (!table || table.dataset.gridBound) return;
     table.dataset.gridBound = '1';
     const use = () => { grid = g; };
-    let dragging = false;
-    let dragMoved = false;
     let cfTimer = null;
 
     table.addEventListener('mousedown', (e) => {
@@ -2063,28 +2133,50 @@
       if (!e.target.closest('button, input.city-find')) e.preventDefault();
       if (isTypingTarget(document.activeElement) && !e.target.closest('button, input.city-find')) document.activeElement.blur();
       setLiveSel(td, e.shiftKey);
-      dragging = true;
-      dragMoved = false;
+      sheetDragMoved = false;
+      sheetDrag = {
+        active: true,
+        moved: false,
+        grid: g,
+        table,
+        scroller: sheetScrollParent(table),
+        x: e.clientX,
+        y: e.clientY,
+        frame: 0,
+      };
+      table.classList.add('is-dragging');
     });
-    table.addEventListener('mouseover', (e) => {
-      if (!dragging) return;
-      use();
-      const td = e.target.closest('tbody td');
-      if (!td || !td.parentElement.dataset.vin) return;
-      const col = grid.cols && grid.cols[td.cellIndex];
-      const s = grid.sel;
-      if (!col || !s) return;
-      if (s.focus.vin === td.parentElement.dataset.vin && s.focus.key === col.key) return;
-      dragMoved = true;
-      setLiveSel(td, true);
-    });
-    document.addEventListener('mouseup', () => { dragging = false; });
+    if (!window.__dtxSheetDrag) {
+      window.__dtxSheetDrag = true;
+      document.addEventListener('pointermove', (e) => {
+        if (!sheetDrag || !sheetDrag.active) return;
+        if (e.buttons === 0) return;
+        sheetDrag.x = e.clientX;
+        sheetDrag.y = e.clientY;
+        if (sheetDrag.frame) return;
+        sheetDrag.frame = requestAnimationFrame(() => {
+          if (!sheetDrag) return;
+          sheetDrag.frame = 0;
+          moveSheetDrag(sheetDrag.x, sheetDrag.y);
+        });
+      });
+      document.addEventListener('mouseup', () => {
+        if (!sheetDrag) return;
+        const dragged = sheetDrag;
+        sheetDrag = null;
+        if (dragged.frame) cancelAnimationFrame(dragged.frame);
+        dragged.table.classList.remove('is-dragging');
+        sheetDragMoved = dragged.moved;
+        grid = dragged.grid;
+        paintLiveSel();
+        setTimeout(() => { sheetDragMoved = false; }, 0);
+      });
+    }
     table.addEventListener('click', (e) => {
-      if (dragMoved && e.target.closest('a, button')) {
+      if (sheetDragMoved && e.target.closest('a, button')) {
         e.preventDefault();
         e.stopPropagation();
       }
-      dragMoved = false;
       const cfBtn = e.target.closest('.live-cf-btn');
       if (cfBtn) {
         e.preventDefault();
@@ -2183,9 +2275,6 @@
       ['Order', (r) => esc(na(r.raw.salesOrder))],
       ['VIN', (r) => `<button type="button" class="vin-link" data-vin="${esc(r.vin)}">${esc(r.vin)}</button>`],
       ['Sales Type', (r) => esc(na(r.raw.salesType))],
-      ['Customer', (r) => esc(na(r.raw.userName))],
-      ['Invoice Owner', (r) => esc(na(r.raw.invoiceOwner))],
-      ['Phone', (r) => (r.raw.phone ? `<a href="tel:${esc(r.raw.phone)}" class="phone-link">${esc(r.raw.phone)}</a>` : 'N/A')],
       ['Product', (r) => esc(na(r.raw.product))],
       ['S/A', (r) => esc(na(r.raw.salesAdvisor))],
       ['GT Loc', (r) => esc(na(r.raw.gtLocation))],
@@ -2283,9 +2372,6 @@
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
       { key: 'salestype', label: 'Sales Type', html: (r) => esc(na(r.raw.salesType)) },
-      { key: 'customer', label: 'Customer', html: (r) => `<span title="${esc(r.raw.userName || '')}">${esc(na(r.raw.userName))}</span>` },
-      { key: 'owner', label: 'Invoice Owner', html: (r) => `<span title="${esc(r.raw.invoiceOwner || '')}">${esc(na(r.raw.invoiceOwner))}</span>` },
-      { key: 'phone', label: 'Phone', html: (r) => (r.raw.phone ? `<a href="tel:${esc(r.raw.phone)}" class="phone-link">${esc(r.raw.phone)}</a>` : 'N/A') },
       { key: 'sa', label: 'S/A', html: (r) => esc(na(r.raw.salesAdvisor)) },
       { key: 'guest', label: 'Guest Exp', html: (r) => (r.canEdit ? editableControl(r.vin, 'guestCenter', 'yn', r.ops.guestCenter) : readOnlyValue('yn', r.ops.guestCenter)) },
       { key: 'appt', label: 'Appointment', html: (r) => (isGuestYes(r) ? guestTimerHtml(r.ops) : '—') },
@@ -2459,8 +2545,6 @@
           ${[
             ['Proforma Date', v.raw.proformaDate], ['Sales Order', v.raw.salesOrder],
             ['Sales Type', v.raw.salesType], ['S/A', v.raw.salesAdvisor],
-            ['Customer Name', v.raw.userName], ['Invoice Owner', v.raw.invoiceOwner],
-            ['Phone', v.raw.phone],
             ['GT Location', v.raw.gtLocation], ['Vehicle Location', v.raw.vehicleLocation],
             ['PIC', v.raw.pic],
           ].map(([l, val]) => ro(l, val)).join('')}
@@ -2614,13 +2698,11 @@
     const title = $('#month-close-title');
     const text = $('#month-close-text');
     const applyBtn = $('#month-close-apply');
-    if (title) title.textContent = `Month ${mc.forMonth || ''} archive ready`;
+    if (title) title.textContent = `Last month ${mc.forMonth || ''} is saved`;
     if (text) {
-      text.textContent = mc.downloaded
-        ? `Excel downloaded · click Clear Live Sheet to remove ${mc.willRemove || 0} VIN(s) with status PSFU / Claimed / تم التسليم (keep ${mc.willKeep || 0}).`
-        : `Day-1 archive · download Excel first (${mc.total || 0} VINs). Then clear PSFU / Claimed / تم التسليم from the Live Sheet (keep other statuses).`;
+      text.textContent = `PSFU, Claimed, and تم التسليم stay in ${mc.forMonth || 'last month'}. Every other status is in this month. Open the Live Sheet and pick the month.`;
     }
-    if (applyBtn) applyBtn.disabled = !mc.downloaded;
+    if (applyBtn) applyBtn.hidden = true;
   }
 
   async function refreshMonthClose() {
@@ -2668,6 +2750,9 @@
       : ' Status saves on the first choice. Double-click it to change.';
     const hint = $('#live-edit-hint');
     if (hint) hint.textContent = `${state.user.name} can edit ${who} directly on this sheet.${lockNote}`;
+    if (!state.liveFilters.month && state.meta && state.meta.currentMonth) {
+      state.liveFilters.month = state.meta.currentMonth;
+    }
     loadAppointmentBadge().catch(() => {});
     setView('dashboard');
     flushPendingOps().catch(() => {});
