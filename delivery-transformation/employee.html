@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="employee.css?v=20261101b" />
+  <link rel="stylesheet" href="employee.css?v=20261101e" />
 </head>
 <body>
   <div class="login-screen" id="login-screen">
@@ -66,6 +66,10 @@
             <strong id="raw-status-time">—</strong>
           </div>
           <input type="search" class="top-search" id="global-search" placeholder="Search VIN / order / product…" />
+          <label class="pii-toggle" id="pii-toggle" hidden>
+            <input type="checkbox" id="pii-show" />
+            <span>Customer · Invoice owner · Phone</span>
+          </label>
           <button type="button" class="btn" id="extract-live" hidden>Extract Live Sheet</button>
           <button type="button" class="btn" id="refresh-btn">Refresh</button>
         </div>
@@ -101,7 +105,7 @@
           </div>
           <div class="card">
             <h2>Delivery pipeline</h2>
-            <p class="hint">Your VINs · Assigned → PSFU → Ready → Delivered / Claimed</p>
+            <p class="hint">Assigned → PSFU → Ready → Delivered. Delivered is PSFU + Claimed + تم التسليم.</p>
             <div class="pipeline" id="dash-pipeline"></div>
           </div>
           <div class="dash-grid">
@@ -239,7 +243,7 @@
               Ach% based on
               <select id="tgt-basis">
                 <option value="total">All VINs he got</option>
-                <option value="delivered">Delivered / Claimed only</option>
+                <option value="delivered">Delivered · PSFU + Claimed + تم التسليم</option>
               </select>
             </label>
             <span class="hint" id="tgt-hint"></span>
@@ -309,6 +313,24 @@
           </div>
         </section>
 
+        <!-- PASSWORDS (Hanouf) -->
+        <section class="panel" id="panel-passwords">
+          <div class="card">
+            <h2>User passwords</h2>
+            <p class="hint">Choose a user and set the password they use to sign in. This replaces the shared password for that user only.</p>
+            <div class="toolbar">
+              <label class="month-filter-label">User
+                <select id="pw-user"></select>
+              </label>
+              <label class="month-filter-label">New password
+                <input id="pw-value" type="text" autocomplete="off" placeholder="At least 4 characters" />
+              </label>
+              <button type="button" class="btn-primary" id="pw-save" style="width:auto">Save password</button>
+            </div>
+            <p class="hint" id="pw-hint"></p>
+          </div>
+        </section>
+
         <!-- APPOINTMENT (Ruba · Guest Exp = Yes) -->
         <section class="panel" id="panel-appointment">
           <div class="kpi-row" id="appt-kpis"></div>
@@ -331,6 +353,6 @@
   </div>
 
   <script src="shared.js?v=20261003scope2"></script>
-  <script src="employee.js?v=20261101b"></script>
+  <script src="employee.js?v=20261101e"></script>
 </body>
 </html>

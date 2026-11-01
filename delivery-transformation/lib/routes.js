@@ -41,8 +41,15 @@ function normVin(v) {
   return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
-function isManager(role) {
-  return role === 'admin' || role === 'hanouf';
+function isManager(roleOrUser) {
+  if (roleOrUser && typeof roleOrUser === 'object') {
+    if (roleOrUser.role === 'admin' || roleOrUser.role === 'hanouf') return true;
+    const id = String(roleOrUser.userId || roleOrUser.id || '').trim().toLowerCase();
+    if (id === 'hanouf' || id === 'rasha') return true;
+    const rec = userRecord(roleOrUser);
+    return !!(rec && rec.canManage);
+  }
+  return roleOrUser === 'admin' || roleOrUser === 'hanouf';
 }
 
 /** Employees + Hanouf can receive VINs. */
@@ -111,6 +118,7 @@ function publicUserFlags(sessionUser) {
     canCoordinate: canCoordinate(sessionUser),
     canInventory: canInventory(sessionUser),
     canAssignCarrier: canAssignCarrier(sessionUser),
+    canManage: isManager(sessionUser),
   };
 }
 
@@ -151,8 +159,9 @@ function inMonth(v, month) {
 }
 
 function isDelivered(v) {
-  const s = v && v.ops && v.ops.opsStatus;
-  return s === 'Claimed' || s === 'تم التسليم';
+  const s = String((v && v.ops && v.ops.opsStatus) || '').trim();
+  const lower = s.toLowerCase();
+  return lower === 'psfu' || lower === 'claimed' || s === 'تم التسليم';
 }
 
 /** Live Sheet / My VINs row order, top to bottom. */
@@ -362,11 +371,23 @@ function createDeliveryTransformationRouter(opts = {}) {
 
   function requireRole(...roles) {
     return (req, res, next) => {
-      if (!req.dtUser || !roles.includes(req.dtUser.role)) {
-        return res.status(403).json({ error: 'Forbidden for this role' });
-      }
-      return next();
+      if (!req.dtUser) return res.status(403).json({ error: 'Forbidden for this role' });
+      if (roles.includes(req.dtUser.role)) return next();
+      if (roles.includes('hanouf') && isManager(req.dtUser)) return next();
+      return res.status(403).json({ error: 'Forbidden for this role' });
     };
+  }
+
+  function userPasswordMap() {
+    if (!store.data.meta.userPasswords || typeof store.data.meta.userPasswords !== 'object') {
+      store.data.meta.userPasswords = {};
+    }
+    return store.data.meta.userPasswords;
+  }
+
+  function passwordFor(userId) {
+    const own = String(userPasswordMap()[userId] || '').trim();
+    return own || password;
   }
 
   function normalizePhone(value) {
@@ -689,7 +710,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       return res.status(401).json({ error: 'Unknown user' });
     }
     const pass = String((req.body && req.body.password) || '').trim();
-    if (pass !== password) return res.status(401).json({ error: 'Invalid password' });
+    if (pass !== passwordFor(user.id)) return res.status(401).json({ error: 'Invalid password' });
     const token = store.createSession(user);
     return res.json({
       ok: true,
@@ -701,6 +722,28 @@ function createDeliveryTransformationRouter(opts = {}) {
         ...publicUserFlags({ userId: user.id, role: user.role }),
       },
     });
+  });
+
+  router.get('/users/passwords', auth, (req, res) => {
+    if (req.dtUser.userId !== 'hanouf') return res.status(403).json({ error: 'Forbidden' });
+    const map = userPasswordMap();
+    return res.json({
+      users: USERS
+        .filter((u) => u.role !== 'admin' && u.id !== 'admin')
+        .map((u) => ({ id: u.id, name: u.name, custom: !!String(map[u.id] || '').trim() })),
+    });
+  });
+
+  router.put('/users/password', auth, (req, res) => {
+    if (req.dtUser.userId !== 'hanouf') return res.status(403).json({ error: 'Forbidden' });
+    const userId = String((req.body && req.body.userId) || '').trim().toLowerCase();
+    const next = String((req.body && req.body.password) || '').trim();
+    const user = USERS.find((u) => u.id === userId && u.role !== 'admin');
+    if (!user) return res.status(400).json({ error: 'Choose a user' });
+    if (next.length < 4) return res.status(400).json({ error: 'Use at least 4 characters' });
+    userPasswordMap()[userId] = next;
+    store.save();
+    return res.json({ ok: true, userId, name: user.name });
   });
 
   router.post('/auth/logout', auth, (req, res) => {
@@ -3316,7 +3359,7 @@ function createDeliveryTransformationRouter(opts = {}) {
 
   router.get('/assignment', auth, (req, res) => {
     if (!canViewAssignment(req.dtUser)) return res.status(403).json({ error: 'Forbidden for this role' });
-    return res.json({ ...buildAssignmentView(), canConfirm: isManager(req.dtUser.role) });
+    return res.json({ ...buildAssignmentView(), canConfirm: isManager(req.dtUser) });
   });
 
   /** Hanouf confirms the automatic split. { all: true } or { vins: [...] } uses the even-by-sales-type pick. */

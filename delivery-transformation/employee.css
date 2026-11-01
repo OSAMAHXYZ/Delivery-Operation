@@ -219,6 +219,21 @@ textarea:focus-visible {
   align-items: center;
   justify-content: flex-end;
 }
+.pii-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+  user-select: none;
+}
+.pii-toggle input { margin: 0; }
 .top-search {
   width: min(260px, 36vw);
   min-width: 140px;

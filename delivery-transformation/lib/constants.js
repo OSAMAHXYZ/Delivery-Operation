@@ -674,7 +674,7 @@ const USERS = Object.freeze([
   // canEditAnyVin: may edit every Live Sheet VIN, not only assigned ones
   // canCoordinate: may sign in on coordinator.html (print) without losing employee.html
   // canInventory: delivery-transformation/inventory-managment.html (Ruba / الفاضل / البراء)
-  { id: 'rasha', name: 'Rasha', role: 'employee', canUploadSalesRaw: true, canEditAnyVin: true },
+  { id: 'rasha', name: 'Rasha', role: 'employee', canUploadSalesRaw: true, canEditAnyVin: true, canManage: true },
   { id: 'ruba', name: 'Ruba', role: 'employee', canUploadSalesRaw: true, canCoordinate: true, canInventory: true },
   { id: 'ibrahim', name: 'Ibrahim', role: 'employee' },
   { id: 'abdullah', name: 'Abdullah', role: 'employee' },

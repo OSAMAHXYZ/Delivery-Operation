@@ -52,9 +52,31 @@
     return !!(state.user && state.user.role === 'admin');
   }
 
-  /** Admin + Hanouf: see and edit every VIN, upload VINs and Sales Raw. */
+  /** Admin, Hanouf, and Rasha: same manager page. */
   function isManager() {
-    return !!(state.user && (state.user.role === 'admin' || state.user.role === 'hanouf'));
+    return !!(state.user && (
+      state.user.role === 'admin'
+      || state.user.role === 'hanouf'
+      || state.user.canManage
+      || state.user.id === 'rasha'
+    ));
+  }
+
+  function canChangePasswords() {
+    return !!(state.user && state.user.id === 'hanouf');
+  }
+
+  function showCustomerFields() {
+    return !!(state.user && state.user.id === 'hanouf' && state.showCustomer);
+  }
+
+  function customerColumns() {
+    if (!showCustomerFields()) return [];
+    return [
+      { key: 'customer', label: 'Customer', html: (r) => esc(na(r.raw.userName)) },
+      { key: 'owner', label: 'Invoice Owner', html: (r) => esc(na(r.raw.invoiceOwner)) },
+      { key: 'phone', label: 'Phone', html: (r) => esc(na(r.raw.phone)) },
+    ];
   }
 
   function canUploadSalesRaw() {
@@ -231,8 +253,9 @@
   }
 
   function isDone(r) {
-    const s = r && r.ops && r.ops.opsStatus;
-    return s === 'Claimed' || s === 'تم التسليم';
+    const s = String((r && r.ops && r.ops.opsStatus) || '').trim();
+    const lower = s.toLowerCase();
+    return lower === 'psfu' || lower === 'claimed' || s === 'تم التسليم';
   }
 
   function employeeNames() {
@@ -757,7 +780,7 @@
     return [
       { id: 'dashboard', label: 'Dashboard' },
       { id: 'live', label: 'Live Sheet' },
-      ...(state.user && state.user.id === 'hanouf' ? [{ id: 'mine', label: 'My VINs' }] : []),
+      ...(state.user && (state.user.id === 'hanouf' || state.user.id === 'rasha') ? [{ id: 'mine', label: 'My VINs' }] : []),
       { id: 'my', label: isManager() ? 'All VINs' : 'My VINs' },
       ...(canUploadSalesRaw() ? [{
         id: 'assignment',
@@ -774,6 +797,7 @@
           ? `Appointment (${(state.appointmentOpen || 0) + (state.appointmentDue || 0)})`
           : 'Appointment',
       }] : []),
+      ...(canChangePasswords() ? [{ id: 'passwords', label: 'Passwords' }] : []),
       ...(canUseInventory() ? [{ href: 'inventory-managment.html', label: 'Inventory' }] : []),
     ];
   }
@@ -824,7 +848,8 @@
     const titles = {
       dashboard: ['Dashboard', 'Delivery Control Tower'],
       live: ['Live Sheet', 'All teammates’ schedules · Sales Type (cash / bank)'],
-      mine: ['My VINs', 'VIN numbers assigned to Hanouf'],
+      mine: ['My VINs', 'VIN numbers assigned to you'],
+      passwords: ['Passwords', 'Set the sign-in password for any user'],
       my: isManager()
         ? ['All VINs', 'Every VIN · edit · hand over to an employee']
         : ['My VINs', 'Your schedule · edit your work'],
@@ -850,6 +875,7 @@
       if (state.view === 'assignment') await loadAssignment();
       if (state.view === 'upload' || state.view === 'sales-raw') await loadImportPanels();
       if (state.view === 'appointment') await loadAppointments();
+      if (state.view === 'passwords') await loadPasswords();
     } catch (err) {
       console.error(err);
       alert(err.message || 'Failed to load');
@@ -1180,7 +1206,7 @@
 
     $('#tgt-kpis').innerHTML = [
       ['Team VINs', t.total, ''],
-      ['Delivered / Claimed', t.delivered, 'ok'],
+      ['Delivered', t.delivered, 'ok'],
       ['Team target', t.target || '—', 'info'],
       ['Team Ach%', t[pctKey] == null ? '—' : `${t[pctKey]}%`,
         t[pctKey] == null ? '' : t[pctKey] >= 100 ? 'ok' : t[pctKey] >= 70 ? 'warn' : 'bad'],
@@ -1374,7 +1400,7 @@
     }
     const kpis = [
       [isManager() ? 'All VINs' : 'Assigned to me', w.assigned, ''],
-      ['Completed (Claimed)', w.completed, 'ok'],
+      ['Delivered', w.completed, 'ok'],
       ['Remaining', w.remaining, 'warn'],
       ['Progress %', `${w.progress}%`, 'info'],
     ];
@@ -1388,7 +1414,7 @@
       ['Assigned', w.assigned],
       ['PSFU', by.PSFU || 0],
       ['Ready', by['جاهز للتسليم'] || 0],
-      ['Delivered / Claimed', w.completed],
+      ['Delivered', w.completed],
     ].map(([l, n]) => `<div class="pipe-step"><strong>${esc(n)}</strong><span>${esc(l)}</span></div>`).join('');
 
     const mix = Object.entries(w.bySalesType).sort((a, b) => b[1] - a[1]);
@@ -1559,6 +1585,7 @@
       { key: 'proforma', label: 'Proforma', html: (r) => esc(na(r.raw.proformaDate)) },
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
+      ...customerColumns(),
       { key: 'salestype', label: 'Sales Type', html: (r) => esc(na(r.raw.salesType)) },
       { key: 'sa', label: 'S/A', html: (r) => esc(na(r.raw.salesAdvisor)) },
       { key: 'guest', label: 'Guest Exp', html: (r) => cell(r, 'guestCenter', 'yn') },
@@ -2371,6 +2398,7 @@
       { key: 'proforma', label: 'Proforma', html: (r) => esc(na(r.raw.proformaDate)) },
       { key: 'order', label: 'Order', html: (r) => esc(na(r.raw.salesOrder)) },
       { key: 'product', label: 'Product', html: (r) => esc(na(r.raw.product)) },
+      ...customerColumns(),
       { key: 'salestype', label: 'Sales Type', html: (r) => esc(na(r.raw.salesType)) },
       { key: 'sa', label: 'S/A', html: (r) => esc(na(r.raw.salesAdvisor)) },
       { key: 'guest', label: 'Guest Exp', html: (r) => (r.canEdit ? editableControl(r.vin, 'guestCenter', 'yn', r.ops.guestCenter) : readOnlyValue('yn', r.ops.guestCenter)) },
@@ -2544,6 +2572,11 @@
           <p class="hint">Raw Data (read-only)</p>
           ${[
             ['Proforma Date', v.raw.proformaDate], ['Sales Order', v.raw.salesOrder],
+            ...(showCustomerFields() ? [
+              ['Customer', v.raw.userName],
+              ['Invoice Owner', v.raw.invoiceOwner],
+              ['Phone', v.raw.phone],
+            ] : []),
             ['Sales Type', v.raw.salesType], ['S/A', v.raw.salesAdvisor],
             ['GT Location', v.raw.gtLocation], ['Vehicle Location', v.raw.vehicleLocation],
             ['PIC', v.raw.pic],
@@ -2689,20 +2722,28 @@
   }
 
   // ——— Session ———
-  function renderMonthCloseBanner(mc) {
+  function renderMonthCloseBanner() {
     const ban = $('#month-close-banner');
-    if (!ban) return;
-    const show = !!(isManager() && mc && mc.pending);
-    ban.classList.toggle('hidden', !show);
-    if (!show) return;
-    const title = $('#month-close-title');
-    const text = $('#month-close-text');
-    const applyBtn = $('#month-close-apply');
-    if (title) title.textContent = `Last month ${mc.forMonth || ''} is saved`;
-    if (text) {
-      text.textContent = `PSFU, Claimed, and تم التسليم stay in ${mc.forMonth || 'last month'}. Every other status is in this month. Open the Live Sheet and pick the month.`;
-    }
-    if (applyBtn) applyBtn.hidden = true;
+    if (ban) ban.classList.add('hidden');
+  }
+
+  async function loadPasswords() {
+    const data = await api('/users/passwords');
+    const sel = $('#pw-user');
+    const current = sel.value;
+    sel.innerHTML = (data.users || []).map((u) =>
+      `<option value="${esc(u.id)}">${esc(u.name)}${u.custom ? ' · own password' : ''}</option>`).join('');
+    if (current) sel.value = current;
+    $('#pw-hint').textContent = 'A saved password replaces the shared sign-in password for that user.';
+  }
+
+  async function savePassword() {
+    const userId = $('#pw-user').value;
+    const next = $('#pw-value').value.trim();
+    const res = await api('/users/password', { method: 'PUT', json: { userId, password: next } });
+    $('#pw-value').value = '';
+    $('#pw-hint').textContent = `Saved ✓ ${res.name} signs in with the new password.`;
+    await loadPasswords();
   }
 
   async function refreshMonthClose() {
@@ -2743,7 +2784,15 @@
     loadDrafts();
     startGuestTick();
     const extractBtn = $('#extract-live');
-    if (extractBtn) extractBtn.hidden = !(state.user && state.user.id === 'hanouf');
+    if (extractBtn) extractBtn.hidden = !isManager();
+    const piiToggle = $('#pii-toggle');
+    const piiBox = $('#pii-show');
+    if (piiToggle && piiBox) {
+      const hanouf = !!(state.user && state.user.id === 'hanouf');
+      piiToggle.hidden = !hanouf;
+      state.showCustomer = hanouf && sessionStorage.getItem('dtx-hanouf-pii') === '1';
+      piiBox.checked = state.showCustomer;
+    }
     const who = canEditAnyVin() ? 'every VIN' : 'your VINs';
     const lockNote = canAssignCarrier()
       ? ' Status and الناقل save on the first choice. Double-click either one to change it.'
@@ -2842,6 +2891,27 @@
       refreshViewSilent().catch(() => {});
     }
   });
+  const piiBox = $('#pii-show');
+  if (piiBox) {
+    piiBox.addEventListener('change', () => {
+      if (!(state.user && state.user.id === 'hanouf')) {
+        piiBox.checked = false;
+        state.showCustomer = false;
+        return;
+      }
+      state.showCustomer = piiBox.checked;
+      sessionStorage.setItem('dtx-hanouf-pii', state.showCustomer ? '1' : '0');
+      if (state.view === 'live') loadLiveSheet().catch(() => {});
+      else if (state.view === 'my' || state.view === 'mine') loadMy().catch(() => {});
+      if (state._drawerVin) openVin(state._drawerVin).catch(() => {});
+    });
+  }
+  const pwSave = $('#pw-save');
+  if (pwSave) {
+    pwSave.addEventListener('click', () => {
+      savePassword().catch((err) => { $('#pw-hint').textContent = err.message || 'Could not save'; });
+    });
+  }
   $('#login-btn').addEventListener('click', login);
   $('#login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
   $('#logout-btn').addEventListener('click', () => { logout().catch(() => location.reload()); });
