@@ -143,6 +143,44 @@ function looksLikeVin(v) {
   return s.length >= 10 && /[A-Z]/.test(s) && /\d/.test(s);
 }
 
+function columnLetter(index) {
+  let n = index;
+  let s = '';
+  do {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return s;
+}
+
+function displayCell(value, header) {
+  if (value == null || value === '') return '';
+  const h = normalizeHeader(header);
+  if (typeof value === 'number' && /date|تاريخ/.test(h)) {
+    const iso = normalizeDate(value);
+    if (iso) return iso;
+  }
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  return cellString(value);
+}
+
+/** Every Excel column on the row, including blanks, so VIN Finder can show the full upload. */
+function sheetColumns(header, row) {
+  const head = Array.isArray(header) ? header : [];
+  const cells = Array.isArray(row) ? row : [];
+  let last = Math.max(head.length, cells.length) - 1;
+  while (last >= 0 && !cellString(head[last]) && (cells[last] == null || cells[last] === '')) last -= 1;
+  const cols = [];
+  for (let i = 0; i <= last; i += 1) {
+    cols.push({
+      letter: columnLetter(i),
+      label: cellString(head[i]) || columnLetter(i),
+      value: displayCell(cells[i], head[i]),
+    });
+  }
+  return cols;
+}
+
 /** Sales Raw letter layout: column A is S/A, column C holds the VIN. */
 function isSalesRawLetterLayout(rows) {
   const head = (rows[0] || []).map(normalizeHeader);
@@ -248,6 +286,7 @@ function parseSalesRaw(buffer) {
     let layout = '';
     if (isSalesRawLetterLayout(rows)) {
       layout = 'letters';
+      const header = rows[0] || [];
       rows.slice(1).forEach((row) => {
         if (!Array.isArray(row)) return;
         const vin = normVin(row[RAW_COL.vin]);
@@ -260,7 +299,7 @@ function parseSalesRaw(buffer) {
           else if (field === 'leadTime') raw[field] = parseLeadTime(row[col]);
           else raw[field] = cellString(row[col]);
         });
-        items.push({ vin, raw });
+        items.push({ vin, raw, columns: sheetColumns(header, row) });
       });
     } else {
       const h = findHeaderRow(rows);
@@ -268,6 +307,7 @@ function parseSalesRaw(buffer) {
       const idx = buildColumnIndex(rows[h].map(cellString), HEADER_MAP);
       if (idx.vin == null) return;
       layout = 'headers';
+      const header = rows[h] || [];
       rows.slice(h + 1).forEach((row) => {
         if (!Array.isArray(row)) return;
         const vin = normVin(row[idx.vin]);
@@ -277,7 +317,7 @@ function parseSalesRaw(buffer) {
         if (idx.proformaDate == null) raw.proformaDate = normalizeDate(row[RAW_COL.proformaDate]);
         if (idx.invoiceDate == null) raw.invoiceDate = normalizeDate(row[RAW_COL.invoiceDate]);
         if (idx.leadTime == null) raw.leadTime = parseLeadTime(row[RAW_COL.leadTime]);
-        items.push({ vin, raw });
+        items.push({ vin, raw, columns: sheetColumns(header, row) });
       });
     }
     const picked = chooseSalesRawDuplicates(items);

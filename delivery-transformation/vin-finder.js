@@ -25,16 +25,28 @@
         { label: 'VIN', value: row.vin },
         { label: 'Sales Order', value: row.order },
       ];
+    const head = fields.map((field) => {
+      const letter = field.letter ? `<span>${esc(field.letter)}</span>` : '';
+      return `<th>${letter}${esc(field.label || field.letter || '')}</th>`;
+    }).join('');
+    const body = fields.map((field) => `<td>${esc(field.value || '—')}</td>`).join('');
+    const note = row.full
+      ? ''
+      : '<p class="raw-note">Showing the saved fields. Upload Sales Raw again to fill every Excel column.</p>';
     return `<article class="card">
       <h2>${esc(row.vin)}</h2>
       <div class="grid meta">
         <div><span>Current status</span><strong><span class="badge ${statusClass(status)}">${esc(status)}</span></strong></div>
         <div><span>Employee</span><strong>${esc(row.employee || '—')}</strong></div>
       </div>
-      <h3>Sales Raw</h3>
-      <div class="grid raw">
-        ${fields.map((field) => `<div><span>${esc(field.label)}</span><strong>${esc(field.value || '—')}</strong></div>`).join('')}
+      <h3>Sales Raw · ${fields.length} columns</h3>
+      <div class="raw-scroll">
+        <table class="raw-cols">
+          <thead><tr>${head}</tr></thead>
+          <tbody><tr>${body}</tr></tbody>
+        </table>
       </div>
+      ${note}
     </article>`;
   }
 

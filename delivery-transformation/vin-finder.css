@@ -23,7 +23,7 @@ body {
     linear-gradient(180deg, #f3f7fb 0%, var(--bg) 40%, #e4ebf3 100%);
 }
 
-.wrap { max-width: 880px; margin: 0 auto; padding: 28px 16px 48px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 16px 48px; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
 .brand-mark {
   width: 36px; height: 36px; border-radius: 9px;
@@ -84,7 +84,46 @@ h1 { margin: 0 0 6px; font-size: 1.7rem; color: var(--navy); }
   text-transform: uppercase;
   color: var(--muted);
 }
-.grid.raw strong { font-weight: 650; word-break: break-word; }
+.raw-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+table.raw-cols {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+table.raw-cols th,
+table.raw-cols td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 108px;
+  max-width: 240px;
+}
+table.raw-cols th {
+  background: #f4f7fb;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: normal;
+}
+table.raw-cols th span {
+  display: block;
+  color: var(--navy);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+table.raw-cols td {
+  font-size: 0.88rem;
+  font-weight: 650;
+  word-break: break-word;
+}
+table.raw-cols tr td:last-child,
+table.raw-cols tr th:last-child { border-right: 0; }
+.raw-note { margin: 8px 0 0; color: var(--muted); font-size: 0.75rem; }
 .grid div span {
   display: block;
   font-size: 0.7rem;

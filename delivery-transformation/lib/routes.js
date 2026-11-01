@@ -948,27 +948,35 @@ function createDeliveryTransformationRouter(opts = {}) {
     ['date', 'Date'],
   ];
 
-  function finderRawPayload(raw, ops) {
+  function finderRawPayload(raw, ops, columns) {
     const src = raw || {};
     const vin = String(src.vin || '').trim();
     const order = String(src.salesOrder || '').trim();
+    const full = Array.isArray(columns) && columns.length
+      ? columns.map((col) => ({
+        letter: String(col.letter || ''),
+        label: String(col.label || col.letter || ''),
+        value: String(col.value != null ? col.value : '').trim(),
+      }))
+      : FINDER_RAW_FIELDS.map(([key, label]) => ({
+        letter: '',
+        label,
+        value: String(src[key] != null ? src[key] : '').trim(),
+      }));
     return {
       vin,
       order,
       status: String((ops && ops.opsStatus) || '').trim(),
       employee: String((ops && ops.assignedEmployeeName) || '').trim(),
-      raw: FINDER_RAW_FIELDS.map(([key, label]) => ({
-        key,
-        label,
-        value: String(src[key] != null ? src[key] : '').trim(),
-      })),
+      full: Array.isArray(columns) && columns.length > 0,
+      raw: full,
     };
   }
 
   function collectFinderRows(q) {
     const seen = new Set();
     const rows = [];
-    const push = (raw, ops) => {
+    const push = (raw, ops, columns) => {
       const vin = String((raw && raw.vin) || '').trim();
       const order = String((raw && raw.salesOrder) || '').trim();
       const vinKey = finderKey(vin);
@@ -982,7 +990,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       ].join('|');
       if (seen.has(id)) return;
       seen.add(id);
-      const row = finderRawPayload({ ...(raw || {}), vin: vin || (raw && raw.vin) || '' }, ops);
+      const row = finderRawPayload({ ...(raw || {}), vin: vin || (raw && raw.vin) || '' }, ops, columns);
       row.exact = vinKey === q || orderKey === q;
       rows.push(row);
     };
@@ -996,15 +1004,15 @@ function createDeliveryTransformationRouter(opts = {}) {
         });
       }
       merged.vin = v.vin;
-      push(merged, v.ops);
+      push(merged, v.ops, saved && saved.columns);
     });
     Object.values(index).forEach((saved) => {
       if (!saved || !saved.raw) return;
-      push({ ...saved.raw, vin: saved.vin || saved.raw.vin }, null);
+      push({ ...saved.raw, vin: saved.vin || saved.raw.vin }, null, saved.columns);
     });
     Object.values(pendingMap()).forEach((pending) => {
       if (!pending || !pending.raw) return;
-      push({ ...pending.raw, vin: pending.vin || pending.raw.vin }, null);
+      push({ ...pending.raw, vin: pending.vin || pending.raw.vin }, null, pending.columns);
     });
     return rows
       .sort((a, b) => Number(b.exact) - Number(a.exact) || String(a.vin).localeCompare(String(b.vin)))
@@ -1148,6 +1156,38 @@ function createDeliveryTransformationRouter(opts = {}) {
     return store.data.meta.salesRawByVin;
   }
 
+  function columnRank(letter) {
+    return String(letter || '').toUpperCase().split('').reduce((n, ch) => n * 26 + (ch.charCodeAt(0) - 64), 0);
+  }
+
+  function mergeSheetColumns(prev, next) {
+    const incoming = Array.isArray(next) ? next : [];
+    if (!incoming.length) return Array.isArray(prev) ? prev : [];
+    const byLetter = new Map();
+    (Array.isArray(prev) ? prev : []).forEach((col) => {
+      if (col && col.letter) byLetter.set(col.letter, col);
+    });
+    incoming.forEach((col) => {
+      if (!col || !col.letter) return;
+      const old = byLetter.get(col.letter);
+      const value = String(col.value == null ? '' : col.value).trim();
+      if (!value && old && String(old.value || '').trim()) {
+        byLetter.set(col.letter, {
+          letter: col.letter,
+          label: col.label || old.label || col.letter,
+          value: old.value,
+        });
+        return;
+      }
+      byLetter.set(col.letter, {
+        letter: col.letter,
+        label: col.label || (old && old.label) || col.letter,
+        value,
+      });
+    });
+    return [...byLetter.values()].sort((a, b) => columnRank(a.letter) - columnRank(b.letter));
+  }
+
   function rememberSalesRaw(vin, raw, now, by, opts = {}) {
     const key = normVin(vin);
     if (!key) return { added: false, invoiceFilled: false };
@@ -1169,7 +1209,13 @@ function createDeliveryTransformationRouter(opts = {}) {
       if (val !== '' && val != null) next[k] = val;
     });
     next.vin = key;
-    map[key] = { vin: key, raw: next, at: now, by: by || '' };
+    map[key] = {
+      vin: key,
+      raw: next,
+      columns: mergeSheetColumns(map[key] && map[key].columns, opts.columns),
+      at: now,
+      by: by || '',
+    };
     return { added: !existed, invoiceFilled: false };
   }
 
@@ -1685,6 +1731,7 @@ function createDeliveryTransformationRouter(opts = {}) {
     const key = normVin(vin);
     if (index[key]) {
       index[key].raw = { ...emptyRaw(), vin: key };
+      index[key].columns = [];
       index[key].cleared = true;
       index[key].at = now;
       index[key].by = userName || '';
@@ -2052,9 +2099,11 @@ function createDeliveryTransformationRouter(opts = {}) {
             }
             const otherKey = other.storeKey && other.storeKey !== vin ? other.storeKey : '';
             if (otherKey) {
+              const savedOther = salesRawIndex()[otherKey];
               salesRawIndex()[otherKey] = {
                 vin,
                 raw: { ...emptyRaw(), ...(other.raw || {}), vin },
+                columns: mergeSheetColumns(savedOther && savedOther.columns, item.columns),
                 at: now,
                 by: req.dtUser.name,
               };
@@ -2077,6 +2126,7 @@ function createDeliveryTransformationRouter(opts = {}) {
             id,
             vin,
             raw,
+            columns: mergeSheetColumns(prev.columns, item.columns),
             cancelChanged: true,
             cancelFromCustomer: was,
             cancelNote: `Status الغاء changed. Was ${was || '—'}. Now ${nowName || '—'}. Review, then assign separately.`,
@@ -2097,7 +2147,7 @@ function createDeliveryTransformationRouter(opts = {}) {
           });
           return;
         }
-        rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name);
+        rememberSalesRaw(item.vin, item.raw, now, req.dtUser.name, { columns: item.columns });
         const v = store.getVehicle(item.vin);
         const hasProforma = !!String((item.raw && item.raw.proformaDate) || '').trim();
         const hasInvoice = !!String((item.raw && item.raw.invoiceDate) || '').trim();
@@ -2120,6 +2170,7 @@ function createDeliveryTransformationRouter(opts = {}) {
               ...prev,
               vin: item.vin,
               raw,
+              columns: mergeSheetColumns(prev.columns, item.columns),
               uploadedBy: req.dtUser.name,
               uploadedAt: now,
               firstUploadedAt: prev.firstUploadedAt || prev.uploadedAt || now,
