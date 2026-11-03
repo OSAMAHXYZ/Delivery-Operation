@@ -66,8 +66,13 @@
     return !!(state.user && state.user.id === 'hanouf');
   }
 
+  function canRevealCustomer() {
+    const id = state.user && state.user.id;
+    return id === 'hanouf' || id === 'rasha';
+  }
+
   function showCustomerFields() {
-    return !!(state.user && state.user.id === 'hanouf' && state.showCustomer);
+    return canRevealCustomer() && !!state.showCustomer;
   }
 
   function customerColumns() {
@@ -2788,9 +2793,9 @@
     const piiToggle = $('#pii-toggle');
     const piiBox = $('#pii-show');
     if (piiToggle && piiBox) {
-      const hanouf = !!(state.user && state.user.id === 'hanouf');
-      piiToggle.hidden = !hanouf;
-      state.showCustomer = hanouf && sessionStorage.getItem('dtx-hanouf-pii') === '1';
+      const allowed = canRevealCustomer();
+      piiToggle.hidden = !allowed;
+      state.showCustomer = allowed && sessionStorage.getItem('dtx-hanouf-pii') === '1';
       piiBox.checked = state.showCustomer;
     }
     const who = canEditAnyVin() ? 'every VIN' : 'your VINs';
@@ -2894,7 +2899,7 @@
   const piiBox = $('#pii-show');
   if (piiBox) {
     piiBox.addEventListener('change', () => {
-      if (!(state.user && state.user.id === 'hanouf')) {
+      if (!canRevealCustomer()) {
         piiBox.checked = false;
         state.showCustomer = false;
         return;
