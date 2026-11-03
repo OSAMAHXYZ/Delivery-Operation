@@ -67,8 +67,7 @@
   }
 
   function canRevealCustomer() {
-    const id = state.user && state.user.id;
-    return id === 'hanouf' || id === 'rasha';
+    return !!(state.user && state.user.id);
   }
 
   function showCustomerFields() {
