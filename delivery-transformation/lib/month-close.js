@@ -61,7 +61,8 @@ function proformaMonth(vehicle) {
  * File the live sheet by month.
  * The first run saves the current VINs as last month, then moves every VIN
  * whose status is not PSFU, Claimed, or تم التسليم into the current month.
- * Later months do the same for VINs still sitting in an older month.
+ * A VIN whose proforma is last month stays in this month and is not filed back
+ * into last month. Later months do the same for VINs still sitting in an older month.
  */
 function rollSheetMonths(store) {
   const now = riyadhParts();
@@ -73,15 +74,17 @@ function rollSheetMonths(store) {
   store.allVehicles().forEach((v) => {
     if (!v.ops) v.ops = {};
     const stay = isStayStatus(v.ops.opsStatus);
+    const fromProforma = proformaMonth(v);
     if (!/^\d{4}-\d{2}$/.test(String(v.ops.sheetMonth || ''))) {
-      const fromProforma = proformaMonth(v);
       if (first) v.ops.sheetMonth = prevYm || nowYm;
-      else if (stay && fromProforma) v.ops.sheetMonth = fromProforma;
+      else if (stay && fromProforma && fromProforma !== prevYm) v.ops.sheetMonth = fromProforma;
       else v.ops.sheetMonth = nowYm;
       changed += 1;
     }
-    if (!stay && String(v.ops.sheetMonth) < nowYm) {
-      v.ops.sheetMonthFrom = v.ops.sheetMonth;
+    const filed = String(v.ops.sheetMonth || '');
+    const lastMonthProformaInThisMonth = fromProforma === prevYm && filed !== nowYm;
+    if (lastMonthProformaInThisMonth || (!stay && filed < nowYm)) {
+      v.ops.sheetMonthFrom = filed;
       v.ops.sheetMonth = nowYm;
       changed += 1;
     }
