@@ -1,0 +1,640 @@
+/* Data collector layout skin. Scoped to body.lx.
+   Remove the admin-layout.css link to drop this skin. */
+
+body.lx {
+  background: #f3f5f8 !important;
+  height: 100vh;
+  overflow: hidden;
+}
+body.lx:has(#collector-app.hidden) {
+  height: auto;
+  min-height: 100vh;
+  overflow: auto;
+}
+
+body.lx .lx-app:not(.hidden) {
+  display: grid !important;
+  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+body.lx .lx-app > .topnav { grid-column: 1; grid-row: 1; }
+body.lx .lx-app > .lx-main { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; }
+body.lx .lx-app > .pdf-win,
+body.lx .lx-app > .drawer-back { grid-column: 1 / -1; grid-row: 1; }
+
+body.lx.vsnd-screen {
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+body.lx.vsnd-screen .collector-app,
+body.lx.vsnd-screen .lx-app:not(.hidden) {
+  height: 100vh !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  flex-direction: unset !important;
+}
+
+/* Sidebar — the existing header + nav */
+body.lx .topnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 232px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 16px 10px 12px;
+  background: #0f1b2d !important;
+  color: #e7eef6;
+  border: 0;
+  border-right: 1px solid #1b2c44;
+  backdrop-filter: none;
+  overflow: hidden;
+}
+body.lx .topnav .brand {
+  padding: 2px 8px 8px;
+  gap: 10px;
+}
+body.lx .topnav .brand-mark {
+  background: #fff;
+  color: #eb0a1e;
+  border: 0;
+  flex: 0 0 auto;
+}
+body.lx .topnav .brand strong {
+  color: #fff;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+}
+body.lx .topnav .brand span {
+  color: #93a6bb;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+body.lx.vsnd-screen .topnav .brand span {
+  display: block !important;
+}
+body.lx .nav-links {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 2px;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-right: 2px;
+}
+body.lx .lx-nav-label {
+  margin: 14px 8px 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f93a8;
+}
+body.lx .nav-links .tab-btn,
+body.lx .nav-links a {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: #d5deea;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px 8px 12px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  box-shadow: none;
+}
+body.lx .nav-links .tab-btn:hover,
+body.lx .nav-links a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: transparent;
+  color: #fff;
+}
+body.lx .nav-links .tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: inset 3px 0 0 #eb0a1e;
+}
+body.lx .lx-side-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 6px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+body.lx .topnav #who {
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+body.lx .topnav #logout-btn {
+  width: 100%;
+  color: #d5deea;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Main column */
+body.lx .lx-main {
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  background: #f3f5f8;
+}
+body.lx .top-right {
+  position: sticky;
+  top: 0;
+  z-index: 36;
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between !important;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e3e8ef;
+}
+body.lx .lx-crumb {
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #0f1b2d;
+  white-space: nowrap;
+}
+body.lx .lx-top-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+body.lx .live-clock {
+  background: #f3f5f8;
+  color: #0f1b2d;
+}
+body.lx .lx-excel { position: relative; }
+body.lx .lx-excel summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid #e3e8ef;
+  background: #fff;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-weight: 800;
+  font-size: 0.84rem;
+  color: #0f1b2d;
+}
+body.lx .lx-excel summary::-webkit-details-marker { display: none; }
+body.lx .lx-excel-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  min-width: min(320px, calc(100vw - 36px));
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 27, 45, 0.14);
+}
+body.lx .lx-excel-menu .btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+body.lx.vsnd-screen #xls-live,
+body.lx.vsnd-screen #xls-admin {
+  display: inline-flex !important;
+}
+
+body.lx .admin-wrap,
+body.lx.vsnd-screen .admin-wrap {
+  max-width: 1680px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 24px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+
+body.lx .hero { margin: 0; }
+body.lx .hero h1,
+body.lx .vsnd-dash-title h1,
+body.lx #tab-org > h1 {
+  margin: 0 0 4px;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: #0f1b2d;
+}
+body.lx .hero p,
+body.lx .vsnd-dash-title p {
+  margin: 0;
+  color: #5a6b7d;
+  max-width: 70ch;
+}
+body.lx .sync-line { margin: 0; }
+
+body.lx .panel-tab { display: none; }
+body.lx .panel-tab.active {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+body.lx .card,
+body.lx .vsnd-panel,
+body.lx .vsnd-card,
+body.lx .vsnd-pill {
+  background: #fff;
+  border: 1px solid #e3e8ef !important;
+  border-radius: 12px !important;
+  box-shadow: none;
+}
+body.lx .card { margin-bottom: 0 !important; }
+body.lx .panel-tab .kpi-row { margin-bottom: 0 !important; }
+body.lx .toolbar { margin-bottom: 0; }
+
+/* VSND — normal page scroll, no one-screen squeeze */
+body.lx.vsnd-screen #tab-dash.vsnd-board,
+body.lx #tab-dash.vsnd-board {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  grid-template-rows: none !important;
+}
+body.lx .vsnd-dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+body.lx .lx-dash-tools {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+body.lx .vsnd-controls,
+body.lx .vsnd-dash-actions { margin-left: 0; }
+
+body.lx #tab-dash .vsnd-top-row {
+  display: grid !important;
+  grid-template-columns: 360px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  min-height: 0 !important;
+}
+body.lx .lx-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 360px;
+  max-width: 100%;
+  min-width: 0;
+}
+body.lx .lx-pills .vsnd-pill {
+  min-width: 0 !important;
+  width: auto;
+}
+body.lx #vsnd-sla-kpis {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  min-width: 0;
+  align-content: stretch;
+}
+body.lx #vsnd-sla-kpis .kpi {
+  min-width: 0;
+  padding: 10px 8px;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+}
+body.lx #vsnd-sla-kpis .lbl {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.lx #vsnd-sla-kpis .val {
+  display: block;
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f1b2d;
+  font-variant-numeric: tabular-nums;
+}
+
+body.lx .vsnd-card,
+body.lx #vsnd-card {
+  height: auto !important;
+  overflow: visible !important;
+  padding: 16px !important;
+}
+body.lx .vsnd-scroll {
+  height: auto !important;
+  max-height: min(62vh, 640px) !important;
+  min-height: 280px !important;
+  overflow: auto !important;
+}
+
+body.lx #tab-dash .vsnd-bottom-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) !important;
+  gap: 14px !important;
+  min-height: 0 !important;
+}
+body.lx .lx-section {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+body.lx .lx-ops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+body.lx .lx-team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+}
+
+body.lx .vsnd-panel {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 12px 14px !important;
+}
+body.lx .vsnd-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+body.lx .vsnd-panel h3 .hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.lx .vsnd-panel h3 .btn,
+body.lx .vsnd-panel h3 .vsnd-wide-btn {
+  margin-left: auto !important;
+  flex: 0 0 auto;
+}
+body.lx .vsnd-panel-body {
+  display: block !important;
+  height: auto !important;
+  flex: none !important;
+  min-height: 0 !important;
+  max-height: 380px !important;
+  overflow: auto !important;
+  align-items: stretch !important;
+}
+body.lx #vsnd-alerts-body {
+  max-height: 440px !important;
+}
+body.lx .vsnd-panel-body.vsnd-status-compact,
+body.lx .vsnd-panel-body.vsnd-inv-compact {
+  display: flex !important;
+  align-items: flex-start !important;
+}
+body.lx .vsnd-legend-list {
+  max-height: none !important;
+}
+
+/* Other tabs */
+body.lx .lx-split,
+body.lx .lx-pair,
+body.lx .lx-emp-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+body.lx .lx-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+body.lx #tab-assign .lx-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 -8px 24px rgba(15, 27, 45, 0.06);
+}
+body.lx .lx-assign {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+body.lx #tab-give .give-form { max-width: none; }
+
+body.lx #tab-vins .lx-sheet {
+  max-height: 62vh;
+  overflow: auto;
+}
+body.lx #live-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+body.lx .lx-fold { padding: 0; }
+body.lx .lx-fold-sum {
+  list-style: none;
+  cursor: pointer;
+  padding: 16px 18px;
+}
+body.lx .lx-fold-sum::-webkit-details-marker { display: none; }
+body.lx .lx-fold-sum h2 { margin: 0; }
+body.lx .lx-fold-sum::after {
+  content: "▾";
+  float: right;
+  color: #64748b;
+  font-weight: 800;
+}
+body.lx .lx-fold[open] .lx-fold-sum { border-bottom: 1px solid #e3e8ef; }
+body.lx .lx-fold-body { padding: 14px 18px 16px; }
+
+body.lx .lx-org {
+  display: grid;
+  grid-template-columns: minmax(260px, 380px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+body.lx .lx-org-forms {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+}
+body.lx .lx-org-main {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+body.lx #tab-org form label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5a6b7d;
+}
+body.lx #tab-org form input,
+body.lx #tab-org form select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* Cars PDF copy — docked, under the header */
+body.lx .pdf-win,
+body.lx.vsnd-screen .pdf-win {
+  top: auto;
+  left: auto;
+  right: 18px;
+  bottom: 18px;
+  width: min(380px, calc(100vw - 36px));
+  max-height: min(70vh, calc(100vh - 88px));
+  z-index: 30;
+  box-shadow: 0 18px 48px rgba(15, 27, 45, 0.22);
+}
+body.lx .pdf-win.is-min {
+  width: auto;
+  max-height: none;
+}
+body.lx .pdf-win-body {
+  max-height: calc(min(70vh, calc(100vh - 88px)) - 42px);
+}
+
+body.lx .table-wrap,
+body.lx .chart-list,
+body.lx .vsnd-panel,
+body.lx .card { min-width: 0; }
+
+@media (max-width: 1360px) {
+  body.lx #tab-dash .vsnd-top-row {
+    grid-template-columns: 1fr !important;
+  }
+  body.lx .lx-pills { width: 100%; }
+  body.lx #vsnd-sla-kpis {
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)) !important;
+  }
+  body.lx .lx-ops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  body.lx .lx-split,
+  body.lx .lx-pair,
+  body.lx .lx-emp-split,
+  body.lx .lx-cards,
+  body.lx .lx-assign,
+  body.lx .lx-org,
+  body.lx .lx-team,
+  body.lx .lx-ops,
+  body.lx #tab-dash .vsnd-bottom-row,
+  body.lx .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 900px) {
+  body.lx .lx-app:not(.hidden) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  body.lx .lx-app > .topnav { grid-column: 1; grid-row: 1; }
+  body.lx .lx-app > .lx-main { grid-column: 1; grid-row: 2; }
+  body.lx .topnav {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  body.lx .topnav .brand { flex: 0 0 auto; padding: 0 4px; }
+  body.lx .topnav .brand-mark,
+  body.lx .topnav .brand span,
+  body.lx.vsnd-screen .topnav .brand span,
+  body.lx .lx-nav-label { display: none !important; }
+  body.lx .nav-links {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex: 0 0 auto;
+    overflow: visible;
+    align-items: center;
+  }
+  body.lx .nav-links .tab-btn,
+  body.lx .nav-links a {
+    width: auto;
+    white-space: nowrap;
+    padding: 7px 10px;
+  }
+  body.lx .lx-side-foot {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0;
+    border-top: 0;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+  body.lx .topnav #logout-btn { width: auto; }
+  body.lx .admin-wrap,
+  body.lx.vsnd-screen .admin-wrap { padding: 16px !important; }
+  body.lx .top-right { padding: 8px 16px; }
+  body.lx .grid-3,
+  body.lx .lx-ops,
+  body.lx #tab-dash .vsnd-bottom-row,
+  body.lx .lx-team { grid-template-columns: 1fr !important; }
+  body.lx .lx-main { overflow-x: hidden; }
+}

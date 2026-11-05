@@ -143,6 +143,15 @@ function currentMonthKey() {
   return new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 7);
 }
 
+/** Admin force-assign: the VIN stays on this month even if it was filed in last month. */
+function forceVinOntoMonth(v, month) {
+  if (!v.ops) v.ops = emptyOps();
+  const filed = String(v.ops.sheetMonth || '');
+  if (filed && filed !== month) v.ops.sheetMonthFrom = filed;
+  v.ops.sheetMonth = month;
+  v.ops.forceMonth = month;
+}
+
 /** Today in Riyadh (UTC+3), e.g. "2026-09-23". */
 function todayKey() {
   return new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -1433,131 +1442,88 @@ function createDeliveryTransformationRouter(opts = {}) {
     return String((saved && saved.raw && saved.raw.invoiceDate) || (raw && raw.invoiceDate) || '').trim();
   }
 
-  function buildInventoryPayload(viewer) {
-    const byVin = new Map();
-    const who = viewerId(viewer);
-    const rtlUsers = who === 'alfadel' || who === 'albara';
-    Object.values(salesRawIndex()).forEach((saved) => {
-      if (!saved || !saved.vin) return;
-      const pending = pendingMap()[saved.vin];
-      const vehicle = store.getVehicle(saved.vin);
-      const ownerSrc = vehicle && vehicle.ops && vehicle.ops.inventoryOwnerId ? vehicle : (pending || {});
-      const labelSrc = vehicle && inventoryLabelOf(vehicle) ? vehicle : (pending || {});
-      const row = inventoryRow(
-        saved.vin,
-        saved.raw,
-        inventoryOwnerOf(ownerSrc),
-        vehicle ? 'live' : 'raw',
-        (vehicle && vehicle.ops && vehicle.ops.assignedEmployeeName) || '',
-        inventoryLabelOf(labelSrc),
-      );
-      if (saved.removed) {
-        row.stockClass = 'REMOVED';
-        row.stockReason = saved.replacedBy
-          ? `Removed. ${saved.replacedBy} is the replacement for this VIN.`
-          : 'Removed.';
-      }
-      byVin.set(saved.vin, row);
-    });
-    const rtl = (store.data.meta && store.data.meta.rtlStock) || {};
-    Object.values(rtl).forEach((saved) => {
-      if (!saved || !saved.vin || !isSpecialStockLocation(saved.location)) return;
-      let row = byVin.get(saved.vin);
-      if (!row) {
-        if (!rtlUsers) return;
-        row = inventoryRow(saved.vin, { product: saved.product }, {
-          id: saved.stockOwnerId || '',
-          name: saved.stockOwnerName || '',
-          at: saved.claimedAt || '',
-        }, 'rtl', '', '');
-        byVin.set(saved.vin, row);
-      }
-      row.location = saved.location || '';
-      row.rtlUpdatedAt = saved.updatedAt || '';
-    });
-    const pool = [...byVin.values()].sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
-    const stockOutVins = new Set();
-    const rubaOut = new Set();
-    const rtlIn = new Set();
-    const rtlOut = new Set();
-    pool.forEach((row) => {
-      if (row.stockClass === 'REMOVED') return;
-      const vehicle = store.getVehicle(row.vin);
-      const printed = !!(vehicle && isCoordinatorPrinted(vehicle)
-        && String((vehicle.ops && vehicle.ops.coordinatorPrintKind) || '') !== 'warehouse');
-      const invoice = savedInvoiceDate(row.vin, row);
-      row.invoiceDate = invoice;
-      const special = isSpecialStockLocation(row.location);
-      if (row.label === 'delivery' && row.stockOwnerId === 'ruba' && invoice) {
-        row.stockClass = 'STOCK OUT';
-        row.stockReason = 'Ruba marked Delivery and Sales Raw column V has an invoice date.';
-        stockOutVins.add(row.vin);
-        rubaOut.add(row.vin);
-        return;
-      }
-      if (printed) {
-        row.stockClass = 'STOCK OUT';
-        row.stockReason = special
-          ? 'Delivery note saved. This car was in 7022 Telesales North or 7277 eCommerce Sales - Retail.'
-          : 'A delivery note is saved.';
-        stockOutVins.add(row.vin);
-        if (special) rtlOut.add(row.vin);
-        return;
-      }
-      if (special) {
-        row.stockClass = 'STOCK IN';
-        row.stockReason = 'Current location is 7022 Telesales North or 7277 eCommerce Sales - Retail.';
-        rtlIn.add(row.vin);
-      }
-    });
-    const me = viewer && viewer.userId;
+  function yardLocationCode(location) {
+    return String(location || '').replace(/\s+/g, '').toLowerCase();
+  }
 
+  /** Live Sheet vehicle location: 7022/1100 is stock in. Any other 7022/ code is stock out. */
+  function liveSheetStockKind(location) {
+    const code = yardLocationCode(location);
+    if (code === '7022/1100') return 'in';
+    if (code.startsWith('7022/')) return 'out';
+    return '';
+  }
+
+  function buildInventoryPayload(viewer) {
+    const who = viewerId(viewer);
+    const inRows = [];
+    const outRows = [];
+    store.allVehicles().forEach((v) => {
+      const loc = String((v.raw && v.raw.vehicleLocation) || '').trim();
+      const kind = liveSheetStockKind(loc);
+      if (!kind) return;
+      const row = inventoryRow(
+        v.vin,
+        v.raw,
+        inventoryOwnerOf(v),
+        'live',
+        (v.ops && v.ops.assignedEmployeeName) || '',
+        inventoryLabelOf(v),
+      );
+      row.location = loc;
+      row.assignedEmployeeId = (v.ops && v.ops.assignedEmployeeId) || '';
+      if (kind === 'in') {
+        row.stockClass = 'STOCK IN';
+        row.stockReason = 'Vehicle location is 7022/1100.';
+        inRows.push(row);
+      } else {
+        row.stockClass = 'STOCK OUT';
+        row.stockReason = 'Vehicle location starts with 7022/ and is not 7022/1100.';
+        outRows.push(row);
+      }
+    });
+    inRows.sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    outRows.sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    const stockOutVins = new Set(outRows.map((r) => r.vin));
     const claimedByUser = {};
     (store.data.audit || []).forEach((a) => {
       if (!a) return;
-      const who = String(a.user || '').trim();
-      if (!who) return;
-      if (a.action === 'inventory_claim') {
-        claimedByUser[who] = (claimedByUser[who] || 0) + 1;
-      }
+      const userName = String(a.user || '').trim();
+      if (!userName) return;
+      if (a.action === 'inventory_claim') claimedByUser[userName] = (claimedByUser[userName] || 0) + 1;
     });
-
+    const mineOf = (rows, user) => rows.filter((r) => r.assignedEmployeeId === user.id || r.employee === user.name);
     const users = USERS.filter((u) => u.canInventory).map((u) => {
-      const stock = pool.filter((r) => r.stockOwnerId === u.id && !stockOutVins.has(r.vin));
-      const rtlPerson = u.id === 'alfadel' || u.id === 'albara';
+      const stock = mineOf(inRows, u);
+      const out = mineOf(outRows, u);
       return {
         id: u.id,
         name: u.name,
-        stockIn: rtlPerson ? rtlIn.size : stock.length,
-        stockOut: u.id === 'ruba' ? rubaOut.size : (rtlPerson ? rtlOut.size : 0),
+        stockIn: stock.length,
+        stockOut: out.length,
         claims: claimedByUser[u.name] || 0,
         display: stock.filter((r) => r.label === 'display').length,
         delivery: stock.filter((r) => r.label === 'delivery').length,
         stock,
       };
     });
-    const rubaIn = pool.filter((r) => r.stockOwnerId === 'ruba' && !stockOutVins.has(r.vin)).length;
-    const stockIn = rubaIn + rtlIn.size;
-    const stockOut = stockOutVins.size;
-    const displayRows = pool.filter((r) => r.label === 'display');
-    const deliveryRows = pool.filter((r) => r.label === 'delivery');
-
+    const me = who;
     return {
       at: new Date().toISOString(),
-      total: pool.length,
-      unclaimed: pool.filter((r) => !r.stockOwnerId).length,
-      mine: pool.filter((r) => r.stockOwnerId === me).length,
-      stockIn,
-      stockOut,
-      display: displayRows.length,
-      delivery: deliveryRows.length,
-      displayRows,
-      deliveryRows,
-      pool,
-      stock: pool.filter((r) => r.stockOwnerId === me),
+      total: inRows.length,
+      unclaimed: inRows.filter((r) => !r.stockOwnerId).length,
+      mine: inRows.filter((r) => r.stockOwnerId === me).length,
+      stockIn: inRows.length,
+      stockOut: stockOutVins.size,
+      display: inRows.filter((r) => r.label === 'display').length,
+      delivery: inRows.filter((r) => r.label === 'delivery').length,
+      displayRows: inRows.filter((r) => r.label === 'display'),
+      deliveryRows: inRows.filter((r) => r.label === 'delivery'),
+      pool: inRows,
+      stock: inRows.filter((r) => r.stockOwnerId === me),
       users,
       rtlSync: (store.data.meta && store.data.meta.rtlSync && store.data.meta.rtlSync.last) || null,
-      locationRule: locationRuleApplies(viewer),
+      locationRule: true,
     };
   }
 
@@ -2860,6 +2826,7 @@ function createDeliveryTransformationRouter(opts = {}) {
         v.ops.assignedEmployeeName = emp ? emp.name : '';
         v.ops.assignedBy = emp ? req.dtUser.name : '';
         v.ops.assignedAt = emp ? (v.ops.assignedAt || new Date().toISOString()) : '';
+        if (emp) forceVinOntoMonth(v, currentMonthKey());
         if (old !== (v.ops.assignedEmployeeName || '')) {
           changes.push({
             field: 'assignedEmployee',
@@ -3342,6 +3309,7 @@ function createDeliveryTransformationRouter(opts = {}) {
       v.ops.assignedAt = now;
       v.ops.updatedBy = req.dtUser.name;
       v.ops.updatedAt = now;
+      forceVinOntoMonth(v, currentMonthKey());
       store.upsertVehicle(store.vehicleKey(vin) || vin, v);
       if (pending[vin]) delete pending[vin];
       store.pushAudit({

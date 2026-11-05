@@ -2367,10 +2367,12 @@
       loadMy().catch((e) => alert(e.message));
     });
     grid = sheetGrids.my;
+    const own = state.view === 'mine' || !isManager();
     const data = await fetchLive({
       q: state.myFilters.q,
       status: state.myFilters.status,
-      employee: (state.view === 'mine' || !isManager()) ? state.user.name : '',
+      month: state.liveFilters.month || '',
+      employee: own ? state.user.name : '',
     });
     const table = $('#my-table');
     const active = document.activeElement;

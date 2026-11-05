@@ -901,12 +901,13 @@
           </h2>
           <div class="table-wrap" style="max-height:200px">
             <table class="data">
-              <thead><tr><th>VIN</th><th>Product</th><th>Printed</th><th>By</th></tr></thead>
+              <thead><tr><th>VIN</th><th>Product</th><th>Printed</th><th>Saved</th><th>By</th></tr></thead>
               <tbody>${(city.vins || []).map((v) => `
                 <tr>
                   <td class="detail-vin">${esc(v.vin)}</td>
                   <td>${esc(v.product || '—')}</td>
                   <td>${esc(fmtWhen(v.printedAt))}</td>
+                  <td>${esc(v.printMonth || '—')}</td>
                   <td>${esc(v.printedBy || '—')}</td>
                 </tr>`).join('')}</tbody>
             </table>
@@ -1287,12 +1288,6 @@
     return `${y}-${String(mo).padStart(2, '0')}`;
   }
 
-  function isVinDelivered(v) {
-    const s = String((v && v.status) || '').trim();
-    const lower = s.toLowerCase();
-    return !!String((v && v.invoiceDate) || '').trim() || lower === 'claimed' || lower === 'psfu' || s === 'تم التسليم';
-  }
-
   function boardCompanyCities() {
     const month = (slaDash && slaDash.month) || empMonth || '';
     const prev = prevYm(month);
@@ -1301,9 +1296,11 @@
         const vins = (city.vins || []).filter((v) => {
           const ym = String(v.printedAt || v.proformaDate || '').slice(0, 7);
           if (!month) return true;
-          if (ym === month) return true;
-          return ym === prev && !isVinDelivered(v);
-        });
+          return ym === month || ym === prev;
+        }).map((v) => ({
+          ...v,
+          printMonth: String(v.printedAt || v.proformaDate || '').slice(0, 7) === prev ? prev : month,
+        }));
         return { city: city.city, count: vins.length, vins };
       }).filter((city) => city.count);
       return {
@@ -1331,8 +1328,16 @@
       return;
     }
     const rows = boardCompanyCities();
+    const month = (slaDash && slaDash.month) || empMonth || '';
+    const prev = prevYm(month);
+    let thisN = 0;
+    let lastN = 0;
+    rows.forEach((c) => (c.cities || []).forEach((city) => (city.vins || []).forEach((v) => {
+      if (prev && v.printMonth === prev) lastN += 1;
+      else thisN += 1;
+    })));
     if (!rows.length) {
-      host.innerHTML = '<p class="chart-empty" style="margin:0;font-size:.75rem">No coordinator prints this month. Last month’s undelivered prints stay in this chart.</p>';
+      host.innerHTML = '<p class="chart-empty" style="margin:0;font-size:.75rem">No saved coordinator prints for this month or last month.</p>';
       return;
     }
     host.innerHTML = `<div class="vsnd-hbars">${rows.map((c) => {
@@ -1347,7 +1352,7 @@
         <b>${esc(c.total)}</b>
       </button>`;
     }).join('')}</div>
-    <p class="hint" style="margin:6px 0 0">Printed by the coordinator this month, plus last month’s VINs that are still not delivered.</p>`;
+    <p class="hint" style="margin:6px 0 0">This month ${thisN}. Last month saved ${lastN}. Open a company to see each print.</p>`;
     host.querySelectorAll('[data-board-co]').forEach((b) => {
       const row = rows.find((c) => c.company === b.dataset.boardCo);
       b.addEventListener('click', () => openCompanyCities(b.dataset.boardCo, row));

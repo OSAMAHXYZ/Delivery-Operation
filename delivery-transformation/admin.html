@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css?v=20261019a" />
+  <link rel="stylesheet" href="admin-layout.css?v=20261105a" />
 </head>
-<body>
+<body class="lx">
   <div class="collector-gate" id="collector-gate">
     <div class="login-card">
       <div class="brand">
@@ -30,36 +31,52 @@
     </div>
   </div>
 
-  <div class="collector-app hidden" id="collector-app">
+  <div class="collector-app lx-app hidden" id="collector-app">
   <header class="topnav">
     <div class="brand">
       <div class="brand-mark">T</div>
-      <div><strong>TOYOTA</strong><span>Delivery Transformation · Data collector</span></div>
+      <div><strong>TOYOTA</strong><span>Delivery Transformation</span></div>
     </div>
     <nav class="nav-links">
+      <p class="lx-nav-label">Dashboards</p>
       <button type="button" class="tab-btn active" data-tab="dash">VSND</button>
       <button type="button" class="tab-btn" data-tab="ops">Ops</button>
-      <button type="button" class="tab-btn" data-tab="weights">KPI weights</button>
+      <p class="lx-nav-label">Work</p>
+      <button type="button" class="tab-btn" data-tab="give">Assignment</button>
+      <button type="button" class="tab-btn" data-tab="vins">VIN tools</button>
+      <button type="button" class="tab-btn" data-tab="org">Cities & Companies</button>
+      <p class="lx-nav-label">Rules</p>
       <button type="button" class="tab-btn" data-tab="schedule">SLA</button>
       <button type="button" class="tab-btn" data-tab="assign">Auto assign</button>
-      <button type="button" class="tab-btn" data-tab="give">Assignment</button>
-      <button type="button" class="tab-btn" data-tab="org">Cities & Companies</button>
-      <button type="button" class="tab-btn" data-tab="vins">VIN tools</button>
+      <button type="button" class="tab-btn" data-tab="weights">KPI weights</button>
+      <p class="lx-nav-label">Other pages</p>
       <a href="coordinator.html">Coordinator</a>
       <a href="employee.html">Employee</a>
       <a href="inventory-managment.html">Inventory</a>
       <a href="attendance.html" target="_blank" rel="noopener">Attendance</a>
     </nav>
-    <div class="top-right">
-      <button type="button" class="btn" id="xls-live">Extract printed + sheet + assignments</button>
-      <button type="button" class="btn" id="xls-admin">Extract admin Excel</button>
-      <button type="button" class="btn" id="xls-all">Extract all data</button>
-      <button type="button" class="btn" id="xls-all-upload">Upload all data</button>
-      <span class="live-clock" id="live-clock">—</span>
+    <div class="lx-side-foot">
       <span id="who" class="badge">—</span>
       <button type="button" class="btn-ghost" id="logout-btn">Logout</button>
     </div>
   </header>
+
+  <div class="lx-main">
+  <div class="top-right">
+    <span class="lx-crumb">Data collector</span>
+    <div class="lx-top-tools">
+      <span class="live-clock" id="live-clock">—</span>
+      <details class="lx-excel" id="lx-excel">
+        <summary>Excel ▾</summary>
+        <div class="lx-excel-menu">
+          <button type="button" class="btn" id="xls-live">Extract printed + sheet + assignments</button>
+          <button type="button" class="btn" id="xls-admin">Extract admin Excel</button>
+          <button type="button" class="btn" id="xls-all">Extract all data</button>
+          <button type="button" class="btn" id="xls-all-upload">Upload all data</button>
+        </div>
+      </details>
+    </div>
+  </div>
 
   <main class="wrap admin-wrap">
     <section class="panel-tab active vsnd-board" id="tab-dash">
@@ -68,43 +85,30 @@
           <h1>VSND Dashboard</h1>
           <p id="vsnd-month-label">—</p>
         </div>
-        <div class="vsnd-controls">
-          <label class="vsnd-month-pick">
-            <span class="vsnd-cal-ico" aria-hidden="true">📅</span>
-            <input type="month" id="sla-month" />
-          </label>
-          <div class="vsnd-nav">
-            <button type="button" class="vsnd-nav-btn" id="vsnd-prev" title="Previous month">‹</button>
-            <button type="button" class="vsnd-nav-btn" id="vsnd-next" title="Next month">›</button>
+        <div class="lx-dash-tools">
+          <div class="vsnd-controls">
+            <label class="vsnd-month-pick">
+              <span class="vsnd-cal-ico" aria-hidden="true">📅</span>
+              <input type="month" id="sla-month" />
+            </label>
+            <div class="vsnd-nav">
+              <button type="button" class="vsnd-nav-btn" id="vsnd-prev" title="Previous month">‹</button>
+              <button type="button" class="vsnd-nav-btn" id="vsnd-next" title="Next month">›</button>
+            </div>
           </div>
-        </div>
-        <div class="vsnd-dash-actions">
-          <span class="vsnd-updated">Last Update <b id="vsnd-updated">—</b></span>
-          <button type="button" class="btn vsnd-refresh" id="vsnd-refresh">↻ Refresh</button>
+          <div class="vsnd-dash-actions">
+            <span class="vsnd-updated">Last Update <b id="vsnd-updated">—</b></span>
+            <button type="button" class="btn vsnd-refresh" id="vsnd-refresh">↻ Refresh</button>
+          </div>
         </div>
       </header>
 
       <div class="vsnd-top-row">
-        <div class="vsnd-pill vsnd-pill-ok" id="vsnd-kpi-delivered"></div>
-        <div class="vsnd-pill vsnd-pill-bad" id="vsnd-kpi-vsnd"></div>
-        <div class="vsnd-panel" id="vsnd-by-status">
-          <h3>
-            VSND by Status
-            <button type="button" class="btn inv-more vsnd-wide-btn" id="vsnd-status-wide" title="Open wide chart">Wide chart</button>
-          </h3>
-          <div class="vsnd-panel-body vsnd-status-compact" id="vsnd-by-status-body"></div>
+        <div class="lx-pills">
+          <div class="vsnd-pill vsnd-pill-ok" id="vsnd-kpi-delivered"></div>
+          <div class="vsnd-pill vsnd-pill-bad" id="vsnd-kpi-vsnd"></div>
         </div>
-        <div class="vsnd-panel" id="vsnd-inventory">
-          <h3>
-            Stock In / Out
-            <button type="button" class="btn inv-more vsnd-wide-btn" id="inv-wide-btn" title="Open wide chart">Wide chart</button>
-          </h3>
-          <div class="vsnd-panel-body vsnd-inv-compact" id="vsnd-last7-body"></div>
-        </div>
-        <div class="vsnd-panel" id="vsnd-accuracy">
-          <h3>Entry Accuracy <span class="hint" style="font-weight:600">· /100 · audit + missing fields</span></h3>
-          <div class="vsnd-panel-body" id="vsnd-aging-body"></div>
-        </div>
+        <div class="kpi-row sla-kpi-row" id="vsnd-sla-kpis"></div>
       </div>
 
       <div class="card vsnd-card vsnd-schedule-card" id="vsnd-card">
@@ -119,7 +123,6 @@
             <span><i class="lg-late"></i> Breached / Late / No Movement</span>
           </div>
         </div>
-        <div class="kpi-row sla-kpi-row" id="vsnd-sla-kpis" style="margin-bottom:10px"></div>
         <div class="vsnd-scroll">
           <div id="sla-chart" class="vsnd-grid-host" aria-label="VSND Schedule"></div>
         </div>
@@ -132,6 +135,24 @@
             <p class="chart-empty">No schedule alerts</p>
           </div>
         </div>
+        <div class="vsnd-panel" id="vsnd-by-status">
+          <h3>
+            VSND by Status
+            <button type="button" class="btn inv-more vsnd-wide-btn" id="vsnd-status-wide" title="Open wide chart">Wide chart</button>
+          </h3>
+          <div class="vsnd-panel-body vsnd-status-compact" id="vsnd-by-status-body"></div>
+        </div>
+      </div>
+
+      <p class="lx-section">OPERATIONS</p>
+      <div class="lx-ops">
+        <div class="vsnd-panel" id="vsnd-inventory">
+          <h3>
+            Stock In / Out
+            <button type="button" class="btn inv-more vsnd-wide-btn" id="inv-wide-btn" title="Open wide chart">Wide chart</button>
+          </h3>
+          <div class="vsnd-panel-body vsnd-inv-compact" id="vsnd-last7-body"></div>
+        </div>
         <div class="vsnd-panel" id="vsnd-days-sales">
           <h3>
             Company / city <span class="hint" style="font-weight:600">· coordinator prints</span>
@@ -139,13 +160,21 @@
           </h3>
           <div class="vsnd-panel-body" id="vsnd-aging-dist-body"></div>
         </div>
-        <div class="vsnd-panel" id="vsnd-display">
-          <h3>Display Counter <span class="hint" style="font-weight:600">· Ruba inventory</span></h3>
-          <div class="vsnd-panel-body" id="vsnd-emp-body"></div>
-        </div>
         <div class="vsnd-panel" id="vsnd-carrier">
           <h3>الناقل <span class="hint" style="font-weight:600">· كل ما تم تسجيله لكل شركة</span></h3>
           <div class="vsnd-panel-body" id="vsnd-region-body"></div>
+        </div>
+      </div>
+
+      <p class="lx-section">TEAM & DATA QUALITY</p>
+      <div class="lx-team">
+        <div class="vsnd-panel" id="vsnd-accuracy">
+          <h3>Entry Accuracy <span class="hint" style="font-weight:600">· /100 · audit + missing fields</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-aging-body"></div>
+        </div>
+        <div class="vsnd-panel" id="vsnd-display">
+          <h3>Display Counter <span class="hint" style="font-weight:600">· Ruba inventory</span></h3>
+          <div class="vsnd-panel-body" id="vsnd-emp-body"></div>
         </div>
       </div>
     </section>
@@ -159,54 +188,20 @@
       <div class="kpi-row" id="dash-kpis"></div>
       <p class="sync-line">Live · last sync <span id="dash-sync">—</span></p>
 
-      <div class="card backup-card" id="backup-card">
-        <h2>Data backup — all program data</h2>
-        <p class="hint">A full snapshot is saved automatically every 10 minutes: Live Sheet, assignments, coordinator prints, attendance, audit, and settings. Download keeps that saved copy. Restore puts that copy back on employee.html and coordinator.html.</p>
-        <div class="backup-meta" id="backup-meta">Last saved — · next scan —</div>
-        <div class="toolbar" style="margin-top:10px">
-          <button type="button" class="btn" id="backup-save">Save snapshot now</button>
-          <button type="button" class="btn" id="backup-download">Download saved snapshot</button>
-          <button type="button" class="btn-primary" id="backup-restore">Restore last data</button>
-          <span class="hint" id="backup-hint"></span>
+      <div class="lx-split">
+        <div class="card">
+          <h2>1 · Company attendance</h2>
+          <p class="hint">Check-in count updates live. Each delivery note PDF assigns its VIN to the selected company. Click a company for arrive / leave times.</p>
+          <div id="attend-chart" class="chart-list"></div>
         </div>
-      </div>
-
-      <div class="card" id="full-excel-card" style="margin-bottom:14px">
-        <h2>Excel — printed VINs, Live Sheet, assignments</h2>
-        <p class="hint">
-          Extract three sheets Excel can open: printed VIN details from the coordinator, the Live Sheet, and assignments
-          (who has each VIN, plus VINs still pending). Extract all data saves every record.
-          Upload either file and the system reads it. A blank cell does not clear a saved value.
-        </p>
-        <div class="toolbar" style="margin-top:10px">
-          <button type="button" class="btn-primary" id="xls-data">Extract printed + sheet + assignments</button>
-          <button type="button" class="btn" id="xls-all-card">Extract all data</button>
-          <button type="button" class="btn" id="xls-all-pick">Upload Excel</button>
-          <input type="file" id="xls-all-file" accept=".xlsx,.xls" hidden />
-          <span class="hint" id="xls-all-hint"></span>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom:14px">
-        <h2>1 · Company attendance</h2>
-        <p class="hint">Check-in count updates live. Each delivery note PDF assigns its VIN to the selected company. Click a company for arrive / leave times.</p>
-        <div id="attend-chart" class="chart-list"></div>
-      </div>
-
-      <div class="grid-2" style="margin-bottom:14px">
         <div class="card">
           <h2>2 · Delivery notes by user</h2>
           <p class="hint">How many delivery notes each coordinator created in total.</p>
           <div id="user-chart" class="chart-list"></div>
         </div>
-        <div class="card">
-          <h2>3 · Companies by city</h2>
-          <p class="hint">Company name + total cars. Click to see the city split and VINs.</p>
-          <div id="city-chart" class="chart-list"></div>
-        </div>
       </div>
 
-      <div class="card" style="margin-bottom:14px" id="emp-card">
+      <div class="card" id="emp-card">
         <div id="emp-list-view">
           <h2>4 · Delivery Employee Performance</h2>
           <p class="hint">Green = MTD VINs toward target · Red = still needed to hit target · Ach% = MTD ÷ target (can exceed 100%). Click an employee for Overall KPI.</p>
@@ -215,8 +210,9 @@
             <span class="hint" id="emp-month-hint"></span>
           </div>
           <div class="kpi-row" id="emp-kpis"></div>
+          <div class="lx-emp-split">
           <div id="emp-chart" class="chart-list" aria-label="Delivery Employee Performance chart"></div>
-          <div class="table-wrap" style="margin-top:12px">
+          <div class="table-wrap">
             <table class="data" id="emp-table">
               <thead>
                 <tr>
@@ -229,6 +225,7 @@
               </thead>
               <tbody id="emp-table-body"></tbody>
             </table>
+          </div>
           </div>
         </div>
         <div id="emp-kpi-view" hidden>
@@ -254,6 +251,41 @@
           <div class="ekpi-detail" id="ekpi-detail" hidden></div>
         </div>
       </div>
+
+      <div class="card">
+        <h2>3 · Companies by city</h2>
+        <p class="hint">Company name + total cars. Click to see the city split and VINs.</p>
+        <div id="city-chart" class="chart-list"></div>
+      </div>
+
+      <div class="lx-split">
+        <div class="card" id="full-excel-card">
+          <h2>Excel — printed VINs, Live Sheet, assignments</h2>
+          <p class="hint">
+            Extract three sheets Excel can open: printed VIN details from the coordinator, the Live Sheet, and assignments
+            (who has each VIN, plus VINs still pending). Extract all data saves every record.
+            Upload either file and the system reads it. A blank cell does not clear a saved value.
+          </p>
+          <div class="toolbar" style="margin-top:10px">
+            <button type="button" class="btn-primary" id="xls-data">Extract printed + sheet + assignments</button>
+            <button type="button" class="btn" id="xls-all-card">Extract all data</button>
+            <button type="button" class="btn" id="xls-all-pick">Upload Excel</button>
+            <input type="file" id="xls-all-file" accept=".xlsx,.xls" hidden />
+            <span class="hint" id="xls-all-hint"></span>
+          </div>
+        </div>
+        <div class="card backup-card" id="backup-card">
+          <h2>Data backup — all program data</h2>
+          <p class="hint">A full snapshot is saved automatically every 10 minutes: Live Sheet, assignments, coordinator prints, attendance, audit, and settings. Download keeps that saved copy. Restore puts that copy back on employee.html and coordinator.html.</p>
+          <div class="backup-meta" id="backup-meta">Last saved — · next scan —</div>
+          <div class="toolbar" style="margin-top:10px">
+            <button type="button" class="btn" id="backup-save">Save snapshot now</button>
+            <button type="button" class="btn" id="backup-download">Download saved snapshot</button>
+            <button type="button" class="btn-primary" id="backup-restore">Restore last data</button>
+            <span class="hint" id="backup-hint"></span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="panel-tab" id="tab-assign">
@@ -261,7 +293,8 @@
         <h1>Auto assign</h1>
         <p>Sales advisor rules run first. A sales advisor that is not listed goes only to Hanouf. Bank orders stay off the employees you block. Hanouf is not in the even split.</p>
       </section>
-      <div class="card" style="margin-bottom:14px">
+      <div class="lx-cards">
+      <div class="card">
         <h2>Who can receive auto assign</h2>
         <p class="hint">Only checked employees are used when VINs are split evenly. A sales advisor rule can still send VINs to someone who is not checked. Ruba stays off the even split and only receives the sales advisors listed below.</p>
         <div id="aa-employees" class="aa-checks"></div>
@@ -316,7 +349,8 @@
           <select id="aa-fallback"></select>
         </div>
       </div>
-      <div class="toolbar">
+      </div>
+      <div class="toolbar lx-savebar">
         <button type="button" class="btn-primary" id="aa-save">Save auto assign</button>
         <span class="hint" id="aa-hint"></span>
       </div>
@@ -381,7 +415,8 @@
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:14px">
+      <div class="lx-pair">
+      <div class="card">
         <h2>Delivery 5-day SLA</h2>
         <p class="hint">Default: Proforma + target days · delivered status = تم التسليم · historical COMPLETED ON TIME / LATE is preserved.</p>
         <div class="kpi-row" id="sla-delivery-form" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:0"></div>
@@ -399,6 +434,7 @@
           <span class="hint" id="sla-hint">Only admin can edit · managers can view.</span>
         </div>
       </div>
+      </div>
 
       <div class="card">
         <h2>SLA Change History</h2>
@@ -415,9 +451,10 @@
     <section class="panel-tab" id="tab-give">
       <section class="hero">
         <h1>Assignment</h1>
-        <p>Type VIN numbers, choose an employee, and they are assigned immediately. Product, customer, sales type, and the other Sales Raw fields are copied onto the VIN, including one that is already assigned.</p>
+        <p>Type VIN numbers, choose an employee, and they are assigned immediately, including a VIN from last month. That VIN moves to this month so the employee can see it.</p>
       </section>
-      <div class="card" style="margin-bottom:14px">
+      <div class="lx-assign">
+      <div class="card">
         <h2>Assign VINs</h2>
         <form id="give-form" class="give-form">
           <div class="field">
@@ -442,6 +479,7 @@
           </table>
         </div>
       </div>
+      </div>
     </section>
 
     <section class="panel-tab" id="tab-vins">
@@ -458,8 +496,9 @@
         <div class="card"><h2>By الناقل</h2><div id="by-carrier"></div></div>
       </div>
 
-      <div class="card" style="margin-bottom:14px">
-        <h2>Add VIN to Live Sheet</h2>
+      <details class="card lx-fold">
+        <summary class="lx-fold-sum"><h2>Add VIN to Live Sheet</h2></summary>
+        <div class="lx-fold-body">
         <p class="hint">New VINs appear for the coordinator and the assigned employee. A last-month proforma date can be assigned here, and the VIN stays on the sheet.</p>
         <form id="add-form" class="kpi-row" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:0">
           <div class="field"><label>VIN *</label><input name="vin" required /></div>
@@ -475,9 +514,10 @@
           <div class="field"><label>Employee</label><select name="assignedEmployeeId" id="add-employee"></select></div>
           <div class="field" style="align-self:end"><button type="submit" class="btn-primary" style="width:100%">Add VIN</button></div>
         </form>
-      </div>
+        </div>
+      </details>
 
-      <div class="card" style="margin-bottom:14px">
+      <div class="card">
         <h2>Live Sheet — full details</h2>
         <div class="toolbar">
           <input type="search" id="search" placeholder="Search VIN / order / product / employee…" />
@@ -493,19 +533,24 @@
           <button type="button" class="btn" id="refresh-btn">Refresh</button>
           <span class="hint" id="live-meta"></span>
         </div>
-        <div class="table-wrap"><table class="data" id="live-table"></table></div>
+        <div class="table-wrap lx-sheet"><table class="data" id="live-table"></table></div>
       </div>
 
-      <div class="card">
-        <h2>Audit log</h2>
-        <div class="table-wrap" style="max-height:360px"><table class="data" id="audit-table"></table></div>
-      </div>
+      <details class="card lx-fold">
+        <summary class="lx-fold-sum"><h2>Audit log</h2></summary>
+        <div class="lx-fold-body">
+          <div class="table-wrap" style="max-height:360px"><table class="data" id="audit-table"></table></div>
+        </div>
+      </details>
     </section>
 
     <section class="panel-tab" id="tab-org">
-      <h1>Cities & Companies</h1>
-      <p class="hint" id="org-hint">These records are organization names only. Adding a city or company does not put a VIN in stock.</p>
-      <div class="grid-2">
+      <section class="hero">
+        <h1>Cities & Companies</h1>
+        <p class="hint" id="org-hint">These records are organization names only. Adding a city or company does not put a VIN in stock.</p>
+      </section>
+      <div class="lx-org">
+      <div class="grid-2 lx-org-forms">
         <form id="org-city-form" class="card">
           <h2>City</h2>
           <input type="hidden" name="id" />
@@ -528,6 +573,7 @@
           <button type="submit" class="btn-primary">Save company</button>
         </form>
       </div>
+      <div class="lx-org-main">
       <div class="toolbar">
         <input type="search" id="org-search" placeholder="Search city or company" />
         <select id="org-status">
@@ -539,8 +585,11 @@
       </div>
       <div class="table-wrap"><table class="data" id="org-cities"></table></div>
       <div class="table-wrap"><table class="data" id="org-companies"></table></div>
+      </div>
+      </div>
     </section>
   </main>
+  </div>
 
   <aside class="pdf-win" id="pdf-win">
     <header class="pdf-win-bar">
@@ -575,10 +624,24 @@
   </div>
   </div>
 
+  <script>
+    (function () {
+      var box = document.getElementById('lx-excel');
+      if (!box) return;
+      box.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('button');
+        if (btn && box.contains(btn)) box.open = false;
+      });
+      document.addEventListener('click', function (e) {
+        if (!box.open || box.contains(e.target)) return;
+        box.open = false;
+      });
+    }());
+  </script>
   <script src="../scripts/muthakara-field-layout.js"></script>
   <script src="../scripts/check-note-field-layout.js"></script>
   <script src="shared.js?v=20261003scope2"></script>
   <script src="live.js?v=20261101a"></script>
-  <script src="admin.js?v=20261019h"></script>
+  <script src="admin.js?v=20261105a"></script>
 </body>
 </html>

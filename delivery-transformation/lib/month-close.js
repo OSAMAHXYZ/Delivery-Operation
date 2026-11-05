@@ -71,6 +71,15 @@ function rollSheetMonths(store) {
   let changed = 0;
   store.allVehicles().forEach((v) => {
     if (!v.ops) v.ops = {};
+    const forced = String(v.ops.forceMonth || '');
+    if (/^\d{4}-\d{2}$/.test(forced)) {
+      if (String(v.ops.sheetMonth || '') !== forced) {
+        v.ops.sheetMonthFrom = v.ops.sheetMonth || '';
+        v.ops.sheetMonth = forced;
+        changed += 1;
+      }
+      return;
+    }
     const stay = isStayStatus(v.ops.opsStatus);
     const fromProforma = proformaMonth(v);
     if (!/^\d{4}-\d{2}$/.test(String(v.ops.sheetMonth || ''))) {
